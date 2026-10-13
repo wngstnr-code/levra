@@ -239,5 +239,6 @@ Three rules for the backend:
   - Do: a production environment separate from staging; production addresses; keepers with production keys.
   - Done when: all endpoints answer correctly against the production contracts; all keepers send a heartbeat.
 
-- [ ] **BE-61 · Status page**
+- [~] **BE-61 · Status page**
   - Done when: the public can see the state of the oracle, keepers, API and indexer.
+  - Note: written on 14 October 2026. The API serves `/status`: one plain HTML page with no script or outside files, built from `/v1/status`: each stock's oracle price age and limit, the keepers that run in this deployment, and the indexer lag, with one line saying whether all is normal. It refreshes every 30 seconds and answers 503 with a short notice when the chain cannot be read. Still to do: check it live on the staging API after merge, and give it the public status address once the domain is chosen (Q-25).
