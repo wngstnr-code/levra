@@ -28,12 +28,12 @@ Three rules for the backend:
   - Done when: Nabil and Wangsit have read and approved it; the status in 03 is changed to "frozen"; the frontend can import the types.
   - Note: merged as PR 2 on 13 October 2026. The API side of the interface agreement is frozen.
 
-- [~] **BE-03 · Oracle logger (spike)**
+- [x] **BE-03 · Oracle logger (spike)**
   - Needs: Postgres from BE-01.
   - Do: a long-running process that records every price change for QQQ, HOOD and BIL in the Anchored oracle into Postgres: the price, best bid and best ask, market session, source quote time (`feedUpdateTimestamp`) and publish time (`publishedAt`), plus the block time of each read. It keeps running after the spike. Add queries for the update interval and the source quote age per session (p50, p95, p99, max), and for every session change with its time. Check whether the oracle emits an event on each update; if it does, backfill past weeks from the logs. Add a query that computes `maxOracleAge` per market with the formula in 04.
   - Done when: the data covers at least 7 days including one weekend; the report on how often the price is updated in each session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense is generated from the queries, not written by hand. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value. BE-17 can read the tables it needs.
   - Note: start on day one, because it needs a week. A partial report after the first day is fine if it says clearly that the weekend is not covered yet. This logger later becomes the oracle monitor (BE-50).
-  - Note: Anchored's documentation answers part of this (heartbeat, delay, session hours, carry-forward while closed) and is summarized in 05 and 04. The logger itself is not written or running yet, so nothing is confirmed by observation.
+  - Note: done on 13 October 2026. The oracle emits `PriceUpdated` on every write, so the recorder (`apps/keeper`, job `oracleMonitor`) backfilled 29 September to 13 October from logs (4,603 writes, two weekends) and then follows new logs every 5 seconds. Report: `docs/reports/oracle-2026-10-13.md`, regenerated with `pnpm --filter @levra/keeper report:oracle`. Findings are in 04, Q-03 and Q-19 are answered, and the hard age questions went to Wangsit as Q-28. It runs on Dharu's machine until staging (BE-15). The event ABI comes from PR 8, which needs Wangsit's review.
 
 - [~] **BE-04 · KyberSwap (spike)**
   - Do: get an identifier; try to find a route and build calldata with a contract address as the recipient; record the rate limit. Write a script that measures market depth (buy and sell $100, $300, $1,000, $3,000, $10,000 for each stock, against the DEX mid price and against the oracle), runs daily and stores the results.
@@ -126,6 +126,7 @@ Three rules for the backend:
   - Needs: BE-03, SC-11.
   - Do: a close and open calendar (US exchange holidays, daylight saving changes, the Anchored session schedule); a program that writes `nextCloseAt` to `RiskManager`. The Anchored schedule is read from the session changes recorded by BE-03, never typed into the code. Until a weekend close has been observed, post the earliest possible close (the regular close on the last trading day), because an early close is safe and a late one is not. The program switches to the observed schedule by itself once the data has it.
   - Done when: `nextCloseAt` on chain is correct for the next four weeks, including one holiday; on the local fork it posts the early close with no weekend data and the observed close after a weekend is recorded, with no code change in between; if this program stops, the team gets an alert.
+  - Note: BE-03 data shows the weekly close at Friday 20:00 ET, with the session flipping between `POST_MARKET` and `CLOSED` until about 20:15. The close time is the first `CLOSED` write, not the last flip.
 
 - [ ] **BE-31 · Protector keeper**
   - Needs: SC-30, BE-20.
@@ -172,6 +173,7 @@ Three rules for the backend:
 - [ ] **BE-50 · Monitoring and alerts for the team**
   - Do: every row in the "What we monitor" table in 08; alerts to the team channel. Grows out of the BE-03 logger. The "price too old" limit is computed per session from the BE-03 data, not typed in. Until a session has enough samples, use a strict default and mark the monitor as learning in `/v1/status`. The expected session schedule comes from the same source as BE-30.
   - Done when: each row has been triggered once on purpose and its alert arrived; a normal weekend with no updates raises no alert once the weekend is in the data.
+  - Note: the Friday 20:00 to 20:15 ET session flipping seen in BE-03 is normal for this oracle and must not raise a "session outside schedule" alert.
 
 - [ ] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
