@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
+import { useApiSession } from "@/lib/api/hooks";
+import { formatDuration } from "@/lib/units";
 import { useMarketSession } from "@/lib/useMarketSession";
+import { useNowSeconds } from "@/lib/useNow";
 import { SessionBadge } from "./ui/SessionBadge";
 import { WalletButton } from "./WalletButton";
 
@@ -13,12 +16,16 @@ const routes = [
   { href: "/trade", key: "trade" },
   { href: "/positions", key: "positions" },
   { href: "/earn", key: "earn" },
+  { href: "/settings", key: "settings" },
 ] as const;
 
 export function Header() {
   const m = useT();
   const pathname = usePathname();
   const session = useMarketSession();
+  const api = useApiSession();
+  const now = useNowSeconds();
+  const closeIn = api.data?.closedRegime && api.data.session !== "CLOSED" && api.data.nextCloseAt && api.data.nextCloseAt > now ? api.data.nextCloseAt - now : null;
 
   return (
     <header className="sticky top-0 z-20 bg-bg/80 backdrop-blur-xl">
@@ -46,7 +53,7 @@ export function Header() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {session && <SessionBadge session={session} />}
+          {session && <SessionBadge session={session} warn={closeIn !== null} label={closeIn !== null ? m.session.closesIn(formatDuration(closeIn)) : undefined} />}
           <WalletButton />
         </div>
       </div>
