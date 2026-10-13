@@ -1,3 +1,4 @@
+import type { Db } from "@levra/db";
 import type { HealthResponse } from "@levra/shared/api";
 import { Hono } from "hono";
 import type { ChainReader } from "./chain/reader";
@@ -7,6 +8,7 @@ import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
 import { marketRoutes } from "./routes/markets";
 import { quoteRoutes } from "./routes/quotes";
+import { statusRoutes } from "./routes/status";
 import { streamRoutes, type StreamOptions } from "./routes/stream";
 import type { SwapSource } from "./swap/kyber";
 
@@ -17,9 +19,12 @@ export type AppDeps = {
   /** The indexer's copy of router events. Without one, events are read from chain logs (tests on a fork). */
   events?: EventStore;
   stream?: StreamOptions;
+  /** Needed by /v1/status (heartbeats and the indexer cursor). */
+  db?: Db;
+  version?: string;
 };
 
-export function createApp({ logger, reader, swap, events, stream }: AppDeps) {
+export function createApp({ logger, reader, swap, events, stream, db, version = "dev" }: AppDeps) {
   const app = new Hono();
 
   app.use(async (c, next) => {
@@ -39,6 +44,7 @@ export function createApp({ logger, reader, swap, events, stream }: AppDeps) {
     app.route("/", streamRoutes(reader, logger, stream));
     app.route("/", accountRoutes(reader, store));
     if (swap) app.route("/", quoteRoutes(reader, swap, store));
+    if (db) app.route("/", statusRoutes(reader, db, version));
   }
 
   app.notFound(() => {
