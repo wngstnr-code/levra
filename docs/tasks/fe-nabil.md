@@ -17,10 +17,10 @@ Four rules for the frontend:
 
 ## M0. Foundation and spikes
 
-- [~] **FE-01 · Set up `apps/web`**
+- [x] **FE-01 · Set up `apps/web`**
   - Do: Next.js project; Tailwind; style and type checks; CI on GitHub Actions; a preview deployment for every PR.
   - Done when: an empty page is deployed and every PR gets a preview address.
-  - Note: `apps/web` exists with Next.js 16, Tailwind 4, ESLint, type checks, Vitest and a CI workflow (`.github/workflows/web.yml`). Not done yet: hosting and preview deployments, which wait for the hosting choice (blocker in PROGRESS). `apps/web` uses TypeScript 6 because typescript-eslint does not support TypeScript 7 yet.
+  - Note: `apps/web` exists with Next.js 16, Tailwind 4, ESLint, type checks, Vitest and a CI workflow (`.github/workflows/web.yml`). Hosting: Vercel project under Wangsit's account (an import from Nabil's Hobby account failed on the private repo), root directory `apps/web`, live at `https://levra-mon.vercel.app`. Sign-in works on the Vercel domain after adding it to the Privy allowed domains. Vercel posts a preview address on every PR (seen on PR 25). Done on 13 October 2026. `apps/web` uses TypeScript 6 because typescript-eslint does not support TypeScript 7 yet.
 
 - [x] **FE-02 · Wallet and network**
   - Do: connect a plain wallet on Monad (chain 143); sign in by email or passkey without an existing wallet (D-16); switch network automatically; show the MON and USDC balances. The provider is Privy (D-22). Confirm with Wangsit that its embedded wallet is a normal key wallet, because that decides whether the signature path in 03 section 3 works.
