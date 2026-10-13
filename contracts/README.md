@@ -83,6 +83,10 @@ Things to know:
 - Settings such as `SEED`, `MARGIN`, `BORROW`, `INVENTORY_USD`, `SHORT_USD`, `CLOSE=no`, `LONGS` and `SHORTS` can be passed in the environment.
 - KyberSwap refuses to build a swap for some wallets. If that happens the short script stops before sending anything.
 
+## First deposit into the vault
+
+After `make deploy-vault-monad`, `make first-earn-monad CONFIRM=yes` deposits 1 USDC into the vault, prints which market it reached and redeems it again. `AMOUNT` changes the size in USDC base units and `WITHDRAW=no` leaves the deposit in. Without `CONFIRM=yes` it is a dry run.
+
 ## Deployment settings
 
 Environment variables read by `script/Deploy.s.sol`. All are optional on a fork.

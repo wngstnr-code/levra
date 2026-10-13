@@ -43,7 +43,7 @@ deploy-vault-fork:
 deploy-vault-monad:
 	@DEPLOY_ENV=monad forge script script/DeployVault.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
-# The four targets below send real transactions on Monad mainnet. They are dry runs unless CONFIRM=yes.
+# The five targets below send real transactions on Monad mainnet. They are dry runs unless CONFIRM=yes.
 # SYMBOL picks the stock for the first two: QQQ (default), HOOD or BIL.
 
 # Every market in scope: long on QQQ, HOOD and BIL, then short on QQQ and HOOD.
@@ -58,6 +58,10 @@ first-long-monad:
 first-short-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-first-short.sh
 
+# Deposits USDC into the vault, shows which market it reached and withdraws it. AMOUNT in USDC base units.
+first-earn-monad:
+	CONFIRM=$(CONFIRM) ./script/mainnet-first-earn.sh
+
 # Gives the keeper and poster roles to the addresses in .env. Skips what is empty or already set.
 set-roles-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-set-roles.sh
@@ -65,4 +69,4 @@ set-roles-monad:
 deploy-monad:
 	@DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
-.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad set-roles-monad
+.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad first-earn-monad set-roles-monad

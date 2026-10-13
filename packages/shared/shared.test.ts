@@ -81,6 +81,7 @@ describe("deployment", () => {
   it("bundles the Monad mainnet deployment", () => {
     expectAllMarketsInScope(monadDeployment);
     expect(monadDeployment.router).toBe("0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6");
+    expect(monadDeployment.usdcVault).toBe("0xfB99A7E3f5571baA363d67F7823bb354cfd95447");
   });
 });
 
