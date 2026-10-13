@@ -105,11 +105,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: all five markets are in the staging address file; each market has one real open and close transaction recorded.
   - Note: all five markets are deployed on mainnet and listed in `deployments/monad.json`. Each has one real open and one real full close, recorded in PROGRESS.md. Q-15 (the short soft limit) is still open.
 
-- [~] **SC-23 · USDC vault**
+- [x] **SC-23 · USDC vault**
   - Needs: SC-06, SC-22.
   - Do: create the vault from the official Morpho factory; set the supply cap per market as in 04; the roles are held by team addresses (a multisig later); the fee share as in Q-07.
   - Done when: lending and withdrawing USDC through the vault works on staging; the vault funds really flow into our markets; the address is in the address file.
-  - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Deployed on mainnet on 13 October 2026 at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447` and recorded in `deployments/monad.json`. Read back from the chain: name, asset, the three caps, the supply queue, fee, fee recipient and timelock match the plan. No deposit yet. Still to do: a real deposit and withdrawal on mainnet with `make first-earn-monad` (rehearsed on a fork of the live state: 1 USDC reached the QQQ market and came back in full), and moving ownership to the multisig (SC-55).
+  - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Deployed on mainnet on 13 October 2026 at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447` and recorded in `deployments/monad.json`. Read back from the chain: name, asset, the three caps, the supply queue, fee, fee recipient and timelock match the plan. A real deposit and withdrawal ran on mainnet the same day with `make first-earn-monad`: 1 USDC went in, the vault lent all of it to the QQQ long market, and 1 USDC came back in full. Hashes are in PROGRESS.md. Ownership moves to the multisig with SC-55.
 
 - [x] **SC-24 · Seed inventory for short markets**
   - Needs: SC-22, X-14.

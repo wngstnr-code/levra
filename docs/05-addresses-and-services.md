@@ -175,7 +175,7 @@ Staging deployment of 13 October 2026 (SC-15). Verified by reading the contracts
 | `RiskManager` | `0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F` |
 | `Lens` | `0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8` |
 | `Liquidator` | `0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39` |
-| USDC vault | `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, `Levra USDC` (`lvUSDC`), MetaMorpho v1.1 from Morpho's factory. Caps: 10,000 USDC for QQQ, 5,000 for HOOD, 20,000 for BIL. Fee 10%, timelock 1 day. Curator and guardian not set. Cost 0.73 MON in 11 transactions |
+| USDC vault | `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, `Levra USDC` (`lvUSDC`), MetaMorpho v1.1 from Morpho's factory. Caps: 10,000 USDC for QQQ, 5,000 for HOOD, 20,000 for BIL. Fee 10%, timelock 1 day. Curator and guardian not set. Cost 0.73 MON in 11 transactions. A deposit was charged 674,482 gas and a full redeem 517,582 gas |
 | Markets | QQQ, HOOD and BIL long, QQQ and HOOD short. IDs and oracles are in the deployment file |
 | Owner and fee recipient | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the deployer wallet, a single key until the handover of SC-55 |
 | Keeper, calendar poster, oracle age poster | Not set. `make set-roles-monad` sets them once the addresses are known |
