@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 17 |
 | Backend | Dharu | 34 | 6 | 6 |
-| Frontend | Nabil | 25 | 0 | 2 |
+| Frontend | Nabil | 25 | 2 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -62,7 +62,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Nabil | Nabil | Accept the repo invitation on GitHub | X-01 |
+| 13 October 2026 | Nabil | Nabil | Hosting for the web app with a preview deployment per PR (for example Vercel connected to the repo) | FE-01 |
 | 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
@@ -124,6 +124,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Quote rules in 03: `gasLimit` `"0"` when not simulated, uint256 in `typedData` as decimal strings, where realized PnL comes from, warning thresholds. No shape change | Dharu, Nabil | be/BE-12-quote-long |
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
+| 13 October 2026 | Added the `NEXT_PUBLIC_PRIVY_APP_ID` environment variable (section 7) | Nabil | fe/FE-01-03-m0-foundation |
 
 ## Daily log
 
@@ -131,6 +132,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Nabil: repo access works. FE-03 done: `/markets` shows live prices and sessions from the Anchored oracle. FE-01 and FE-02 built on `fe/FE-01-03-m0-foundation`: Next.js app, CI, Privy sign-in, switch to Monad, balances. FE-02 done: sign-in by email, passkey and external wallet works on localhost, with an embedded wallet, real balances and key export. Fixed on the way: export used the active wallet address instead of the embedded one. Next: hosting (blocker), then FE-10 and FE-11.
 - Dharu: BE-14 done and BE-13 started: `apps/indexer` follows router events into Postgres (Envio HyperSync, RPC as fallback, D-34), and `/v1/accounts` and `/history` serve positions from `Lens` with entry price and PnL from the indexed events. Checked end to end on the fork. Waiting: a HyperSync token (Dharu) and Morpho's events in the ABI export (Wangsit). After Wangsit's PR 13 and 14: `DebtRepaid` is indexed, `repay` is a collateral quote action and `repayDebt` a history type; our decisions are renumbered to D-33 (db package) and D-34 (indexer) because D-31 and D-32 were taken.
 
 - Dharu: BE-16 formulas in `packages/shared/math.ts` (PR 10) match `Lens` exactly for a real long and short on the fork. BE-10 and BE-11 (chain reader, `/v1/config`, `/v1/session`, `/v1/markets`, `/v1/stream`) are written and checked against direct contract reads on the fork. Next: BE-12 quote for long.

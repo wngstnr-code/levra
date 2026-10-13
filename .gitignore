@@ -16,3 +16,5 @@ broadcast/
 *.log
 
 contracts/deployments/fork.json
+*.tsbuildinfo
+next-env.d.ts
