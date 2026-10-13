@@ -21,6 +21,7 @@ import {
   publicActions,
   toHex,
   walletActions,
+  zeroAddress,
   type Address,
   type Hex,
 } from "viem";
@@ -35,7 +36,11 @@ const rpcUrl = process.env.FORK_RPC_URL;
 const deploymentFile = process.env.FORK_DEPLOYMENT_FILE;
 
 describe.skipIf(!rpcUrl || !deploymentFile)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
-  const deployment = readDeployment(deploymentFile ?? "");
+  // Collecting a skipped suite still runs this body, so read the file only when the fork is configured.
+  const deployment =
+    rpcUrl && deploymentFile
+      ? readDeployment(deploymentFile)
+      : { chainId: 143, block: 0, router: zeroAddress, riskManager: zeroAddress, lens: zeroAddress, markets: [] };
   const reader = createChainReader(createChainClient(rpcUrl ?? ""), deployment);
   const app = createApp({ logger: pino({ level: "silent" }), reader });
   const chain = createTestClient({ chain: monad, mode: "anvil", transport: http(rpcUrl) }).extend(publicActions).extend(walletActions);
