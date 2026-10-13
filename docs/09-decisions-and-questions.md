@@ -46,7 +46,7 @@ How to use it:
 | D-32 | The router gets `repayDebt(marketId, assets)`: the user pays down their own debt with the loan token. For a long this is how margin is added with USDC | Chosen by Wangsit on 13 October 2026. `addCollateral` takes the collateral token, which for a long is stock, so long users had no simple way to lower risk without selling | Leaving it to a direct Morpho call from the frontend |
 | D-33 | The backend database lives in its own package, `packages/db` (`@levra/db`): Drizzle schema, migrations and the client, used by api, indexer and keeper. Owner: Dharu. Local Postgres runs from `docker-compose.yml` on port 5442 by default (`LEVRA_PG_PORT` changes it) | Chosen by Dharu on 13 October 2026. One schema for three apps, and it is not a shared interface, so it stays out of `packages/shared` | Schema inside `apps/api`; one schema per app |
 | D-34 | The indexer is our own log follower in `apps/indexer`, reading from Envio HyperSync through its JSON API (RPC as fallback) into `packages/db`. Positions are read live from `Lens`; the database keeps the events that history, entry price and PnL need | Chosen by Dharu on 13 October 2026. The Envio CLI (HyperIndex) has no Windows build and needs extra containers, while HyperSync works from any platform and keeps Envio in the stack. Changes D-21 for the indexer. Whether the Envio bounty (D-26) accepts HyperSync without HyperIndex is not verified | Envio HyperIndex in WSL; RPC only |
-| D-35 | Hard oracle ages per market: source quote age while open is 1 hour for QQQ and HOOD and 3 hours for BIL; publish age while closed is 4 days for all. Ages to open a position start at 35, 36 and 51 minutes. Proposed from the BE-03 data and implemented in the deployment script. Wangsit confirms before the mainnet deployment, because the hard ages are fixed forever | BIL's source quote reached 81.5 minutes after hours, so 1 hour would block its liquidations at times. BIL barely moves, so a longer age costs little. 4 days covers a holiday weekend with a day to spare | One hard age for all markets; 2 hours for BIL, which leaves little room above the 81.5 minutes seen |
+| D-35 | Hard oracle ages per market: source quote age while open is 1 hour for QQQ and HOOD and 3 hours for BIL; publish age while closed is 4 days for all. Ages to open a position start at 35, 36 and 51 minutes. Proposed from the BE-03 data and implemented in the deployment script. Confirmed by Wangsit on 13 October 2026 and deployed on mainnet with these numbers. The hard ages are now fixed for this deployment | BIL's source quote reached 81.5 minutes after hours, so 1 hour would block its liquidations at times. BIL barely moves, so a longer age costs little. 4 days covers a holiday weekend with a day to spare | One hard age for all markets; 2 hours for BIL, which leaves little room above the 81.5 minutes seen |
 | D-36 | The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price, both through KyberSwap. Quotes, `/v1/markets`, the stream and the depth table all use it, and price impact is measured against it. The client lives in `packages/kyber` (owner: Dharu), shared by the API and the keeper | Chosen by Dharu on 13 October 2026. A one-sided probe carries the pool fee and half the spread, which made every sale look about 2% worse than a buy of the same size | A 10 USDC buy only; the pool's own spot price |
 
 ## Open questions
@@ -82,7 +82,8 @@ Every question has an owner and a milestone to answer it by.
 | Q-25 | Which domain? `levra.com`, `.io`, `.xyz` and `.app` are in use | Nabil | M0 | X-02 | See "Decisions waiting for the team" |
 | Q-26 | Answered: see D-30 | - | - | - | - |
 | Q-27 | Answered: see D-31 | - | - | - | - |
-| Q-28 | Proposed answer in D-35, implemented in the deployment script. Waiting for Wangsit to confirm the numbers before mainnet | Wangsit | Before SC-15 | SC-10 | See D-35 |
+| Q-28 | Answered: see D-35 | - | - | - | - |
+| Q-29 | Bug bounty: how large are the rewards, who pays them, and which private channel takes the reports? | Wangsit | Before public launch | SC-56 | See "Decisions waiting for the team". Until decided, the draft in `drafts/bug-bounty.md` is not published |
 
 ## Decisions waiting for the team
 
@@ -98,6 +99,26 @@ Each has options and a suggestion. Nothing here is decided. When the team picks,
 | D. Change the name | `levra.com`, `.io`, `.xyz`, `.app` are in use, and Levva is a DeFi project one letter away |
 
 Availability is only confirmed by a registrar.
+
+### Q-29. Bug bounty rewards and reporting channel
+
+Rewards:
+
+| Option | State |
+|---|---|
+| A. A share of the funds at risk, with a ceiling: critical 10% up to a fixed cap, lower levels fixed amounts | Common in DeFi. The cap must be money the team really has. Suggested once there is a treasury (X-14) |
+| B. Fixed amounts per level, small at first, raised as the supply caps are raised | Simple and honest for a staging product with small caps. Suggested for now |
+| C. No paid rewards until after the audit, only public credit | Costs nothing. Gives little reason to report instead of exploit |
+
+Channel:
+
+| Option | State |
+|---|---|
+| A. GitHub private vulnerability reporting on the repo | Free, works today, off at the moment. One setting to turn on. Suggested |
+| B. A security email address on our own domain | Needs the domain first (Q-25) |
+| C. A bounty platform | Reaches more researchers. Takes a fee and an application. Fits after the audit |
+
+Nothing here is decided.
 
 ## Differences between this document set and the idea PDF
 
