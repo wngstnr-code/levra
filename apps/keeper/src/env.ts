@@ -3,6 +3,9 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.url(),
+  MONAD_RPC_URL: z.url(),
+  /** Blocks to read back on the first start of the oracle recorder. 4,000,000 blocks is about two weeks. */
+  ORACLE_BACKFILL_BLOCKS: z.coerce.bigint().positive().default(4_000_000n),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 
