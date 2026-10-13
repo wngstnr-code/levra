@@ -54,7 +54,7 @@ Common infrastructure, confirmed to have code at the usual addresses:
 
 Flash loan room: Morpho held about 10.5 million idle USDC on 13 October 2026.
 
-These addresses are not in `packages/shared/addresses.ts` yet. Adding them is part of SC-06. Which vault type to use is an open decision (Q-11).
+These addresses are in `packages/shared/addresses.ts`. The vault type is decided: MetaMorpho v1.1 (D-24).
 
 ## Tokens
 

@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 1 | 15 |
+| Smart contracts | Wangsit | 30 | 2 | 14 |
 | Backend | Dharu | 33 | 1 | 4 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -144,3 +144,4 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: contracts written on `sprint/long-flow`: `SessionOracle`, `RiskManager`, `MarginRouter` (long, short, close, auto-deleverage, one confirmation with signatures) and `Lens`. 48 tests pass on a fork of Monad with real Morpho, the real Anchored oracle and real tokens.
 - Wangsit: `script/Deploy.s.sol` deploys everything and creates five markets. On a local fork, `script/e2e-long.sh` opened and closed a long on aQQQ through the live KyberSwap route and the router ended with no tokens. Nothing is deployed on mainnet yet. That needs a funded deployer wallet (X-03).
 - Backend and frontend for the sprint are not started. They belong to Dharu and Nabil.
+- Wangsit: PR 4 opened for the contracts. SC-06 done: the missing addresses are in `packages/shared/addresses.ts`. SC-14: `packages/shared` now validates and reads the deployment file and exposes the stock list in `markets.ts`.

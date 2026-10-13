@@ -38,10 +38,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: the result is written as a table in 05; Q-18 is answered; any dangerous finding is added to the threat list in 07.
   - Note: read from chain and written up in 05 under "Token behavior". On a fork, aQQQ bought from the exchange moved into Morpho as collateral and back out, so a plain transfer to Morpho is allowed today. Still to do: add the findings to the threat list in 07.
 
-- [~] **SC-06 · Addresses we have not found yet (spike)**
+- [x] **SC-06 · Addresses we have not found yet (spike)**
   - Do: find and confirm on chain: the Morpho vault factory, the Morpho public allocator, Safe, Permit2, Multicall3. Also check how much USDC can be flash loaned from Morpho.
   - Done when: the addresses are in 05 and in `packages/shared/addresses.ts`; Q-11 is answered.
-  - Note: addresses found in Morpho's SDK address list and confirmed to have code on chain: both vault factories, the public allocator, Permit2, Multicall3 and Safe 1.4.1. They are in 05. Still to do: add them to `packages/shared/addresses.ts`, and decide the vault type (Q-11).
+  - Note: both Morpho vault factories, the public allocator, Permit2, Multicall3, Safe 1.4.1 and wrapped MON are in 05 and in `packages/shared/addresses.ts`, with a test that every address is checksummed. Q-11 is answered by D-24.
 
 ---
 
@@ -75,7 +75,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-10 to SC-13.
   - Do: one script that deploys the oracle, creates the aQQQ long market on Morpho (hard limit 77%), deploys `RiskManager`, the router and `Lens`, fills in the settings, and writes `contracts/deployments/<environment>.json` as defined in 03. `make fork` runs it on the local fork.
   - Done when: Dharu and Nabil can run `make fork` and get the same addresses; `packages/shared/addresses.ts` and `markets.ts` read that file.
-  - Note: `script/Deploy.s.sol` deploys everything, creates five markets (QQQ, HOOD and BIL long, QQQ and HOOD short) and writes the deployment file. Run on a fork: about 15 million gas, about 3 MON. Still to do: `packages/shared` reading the deployment file, and teammates running it.
+  - Note: the script deploys everything and writes the deployment file. `packages/shared` validates that file (`deployments.ts`), reads it from disk for Node (`deployments.node.ts`) and joins it with the stock list (`markets.ts`). A test parses the real file written on a local fork. Still to do: commit `monad.json` and a static import of it after the mainnet deployment (SC-15), and Dharu and Nabil running `make fork` and `make deploy-fork`. Fork addresses match between machines only with the same `FORK_BLOCK`.
 
 - [ ] **SC-15 · Staging on mainnet**
   - Needs: SC-14, X-03.
