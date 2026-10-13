@@ -2,6 +2,15 @@
 
 Foundry project for the Levra contracts. Owner: Wangsit.
 
+| Contract | What it does |
+|---|---|
+| `SessionOracle` | Morpho oracle for one stock market, fed by the Anchored stock oracle. Knows the market session |
+| `RiskManager` | Soft limits that follow market hours, position caps, and the pause for opening |
+| `MarginRouter` | Opens and closes long and short positions in one transaction through a Morpho flash loan and one swap |
+| `Lens` | Reads every market and every position of a user in one call |
+
+User funds stay in the user's own Morpho position. The router acts through the Morpho authorization the user grants and holds no tokens between transactions.
+
 ## Setup
 
 ```bash
@@ -14,10 +23,21 @@ make build
 | Command | What it does |
 |---|---|
 | `make build` | Compile |
+| `make test` | Run the tests against a fork of Monad mainnet (real Morpho, real Anchored oracle, real tokens) |
 | `make abis` | Compile, then write the ABIs to `packages/shared/abis/` |
 | `make fmt` | Format |
+| `make fork` | Start a local fork of Monad mainnet on port 8545 |
+| `make deploy-fork` | Deploy everything to the local fork and write `deployments/fork.json` |
+| `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route |
+| `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
+
+Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
 
 Run `make abis` after any change to an interface and commit the result in the same PR.
+
+## Tests
+
+The swap aggregator is replaced by a small test contract so fills can be set exactly. Everything else is the live chain state. The real aggregator route is covered by `script/e2e-long.sh`.
 
 ## Interfaces
 
