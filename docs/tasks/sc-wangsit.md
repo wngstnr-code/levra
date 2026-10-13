@@ -15,7 +15,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 - [~] **SC-01 · Set up `contracts/`**
   - Do: Foundry project; install the official Morpho interfaces, OpenZeppelin and forge-std; `forge fmt`; CI on GitHub Actions.
   - Done when: `forge build` and `forge test` pass on your own machine and on GitHub.
-  - Note: done: Foundry project, forge-std, morpho-blue and OpenZeppelin as submodules, `forge fmt`, a Makefile, 48 tests. Still to do: CI on GitHub Actions.
+  - Note: done: Foundry project, forge-std, morpho-blue and OpenZeppelin as submodules, `forge fmt`, a Makefile, 56 tests, and a CI workflow that runs format, build, the fork tests, an ABI freshness check and the package checks. Still to do: see the first green CI run on GitHub.
 
 - [~] **SC-02 · Local mainnet fork (spike)**
   - Do: a `make fork` command that runs Anvil as a copy of Monad at a fixed block number. Try reading Morpho, the Anchored oracle and token balances from that fork.
@@ -63,7 +63,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-10, SC-11, SC-04.
   - Do: `openLong`, `closeLong` (partial and full), `addCollateral`, `removeCollateral`; Morpho flash loan; allowlist of swap targets; fees with a hard-coded maximum; `multicall`, `permitToken`, `authorizeWithSig`; reentrancy guard; events.
   - Done when: fork tests run open, add collateral, reduce and full close against the real Morpho and KyberSwap; threats T-01, T-02, T-03, T-10, T-12 and T-17 in 07 each have a test; the router holds no tokens after each test.
-  - Note: written and tested on a fork: open, add and remove collateral, partial and full close, one confirmation with two signatures, the swap target lock, the flash callback guard. Threats T-01, T-02 and T-12 have tests. T-03 (reentrancy) and T-10 (signature replay) have no dedicated test yet.
+  - Note: written and tested on a fork: open, add and remove collateral, partial and full close, one confirmation with two signatures, the swap target lock, the flash callback guard. Threats T-01, T-02, T-03, T-10 and T-12 have tests (`test/Security.t.sol` covers reentrancy and signature replay). T-17 is covered by measuring swap output from balances. Waiting for review.
 
 - [~] **SC-13 · `Lens`**
   - Needs: SC-11.
