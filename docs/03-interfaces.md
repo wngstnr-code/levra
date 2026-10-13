@@ -367,6 +367,8 @@ Base path: `/v1`. All responses are JSON. Errors always have this shape:
 type ApiError = { error: { code: string; message: string; details?: unknown } };
 ```
 
+Rate limits (BE-51, initial proposals): 429 `RATE_LIMITED` with a `Retry-After` header and `details.retryAfterSeconds`, per IP address and per wallet; quotes (trade, deposit, withdrawal) have tighter limits, and a quote can also be refused when the shared KyberSwap budget is spent.
+
 Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`, `UNAUTHORIZED`, `RATE_LIMITED`, `NO_ROUTE`, `INSUFFICIENT_LIQUIDITY`, `QUOTE_EXPIRED`, `UPSTREAM_ERROR`, `INTERNAL`.
 
 ### Endpoint list

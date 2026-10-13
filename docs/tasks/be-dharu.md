@@ -198,8 +198,9 @@ Three rules for the backend:
   - Note: the Friday 20:00 to 20:15 ET session flipping seen in BE-03 is normal for this oracle and must not raise a "session outside schedule" alert.
   - Note: written on 14 October 2026. Keeper job `monitor` (every minute) checks every row of the 08 table except web app errors (FE-54): oracle age per stock while the calendar says open, against a limit per session from the BE-03 data (99th percentile of the source quote age plus one heartbeat, as in the `maxOracleAge` rule), or the market's `maxOracleAge` as the strict default while a session has fewer than 500 samples, shown in `/v1/status` as `ageLimitLearning`; session against the BE-30 calendar, only once a weekend is observed and only after 30 minutes, so the Friday flips pass; DEX mid against `maxDeviationBps`; keeper heartbeats and errors; every change of `maxOracleAge` and `nextCloseAt` with old and new value; MON of every role key below 5 MON; positions past the hard limit for 5 minutes; bad debt from liquidations; utilization at 95%; the latest depth run against the 04 cap rule (loss to the oracle at the cap size below the liquidation bonus); indexer lag over 300 blocks; and the public API (`MONITOR_API_URL`) failing or slower than 3 seconds for 2 minutes. Alerts go to a Telegram group (`TEAM_TELEGRAM_CHAT_ID` with the BE-33 bot) and/or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), once per problem, with a RESOLVED message when it ends; state in `monitor_state`. Limits are initial proposals. Tests trigger every row on purpose, check that a normal weekend raises nothing, and run the monitor once on the fork. Still to do: a real team channel and seeing each alert arrive there. The monitor cannot report its own death; an outside uptime check on `/v1/status` is part of BE-15 hosting.
 
-- [ ] **BE-51 · Rate limits and abuse protection**
+- [x] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
+  - Note: done on 14 October 2026. Token buckets per IP for every route but `/v1/health`; per IP and per wallet for trade quotes and the deposit and withdrawal quotes (the wallet is `user`, or `recipient` for a deposit); per wallet for `/v1/accounts/:address` and `/v1/earn/:address`. A refusal is 429 `RATE_LIMITED` with `Retry-After`, after CORS so the browser can read it. The proxy header is trusted only when `TRUST_PROXY_HEADER` is set, and only its last entry. One global budget on KyberSwap calls (a route costs 1, a quote 2) means no client traffic can use up our KyberSwap quota. In memory, so for one API instance. All limits are initial proposals for BE-54.
 
 - [~] **BE-52 · Region and terms acceptance**
   - Needs: X-10, X-11.
@@ -211,8 +212,9 @@ Three rules for the backend:
   - Do: regular database backups and a restore test; a runbook for the six situations in 07, stored in `docs/`.
   - Done when: a restore from backup has been tried; the runbook has been read by all three of us and practiced once.
 
-- [ ] **BE-54 · Load test**
+- [~] **BE-54 · Load test**
   - Done when: the quote and account endpoints hold up at the target load without passing the limits of the RPC endpoint and outside services; the result is recorded.
+  - Note: the harness `apps/api/loadtest/run.ts` runs the real API with the BE-51 limits on and counts the JSON-RPC and KyberSwap calls per request. First run on a local fork: 50 users, 0.70 RPC calls per API request, KyberSwap kept inside the budget; the KyberSwap budget refused most quotes at 50 users, so it needs KyberSwap's real limit. Report: `docs/reports/loadtest-2026-10-13.md`. Still to do: the run against staging with the paid RPC (BE-15) at a target load agreed by the team.
 
 - [ ] **BE-55 · Keeper key management**
   - Needs: SC-55.
