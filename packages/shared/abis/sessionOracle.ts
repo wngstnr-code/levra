@@ -65,6 +65,11 @@ export const sessionOracleAbi = [
         "internalType": "enum Session"
       },
       {
+        "name": "feedUpdatedAt",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
         "name": "publishedAt",
         "type": "uint64",
         "internalType": "uint64"

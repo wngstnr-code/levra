@@ -118,6 +118,19 @@ export const riskManagerAbi = [
   },
   {
     "type": "function",
+    "name": "marketIds",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "Id[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "nextCloseAt",
     "inputs": [],
     "outputs": [
@@ -138,6 +151,30 @@ export const riskManagerAbi = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "positionLtv",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "Id"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"

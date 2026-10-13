@@ -31,6 +31,11 @@ interface IRiskManager {
 
     function config(Id id) external view returns (MarketConfig memory);
 
+    function marketIds() external view returns (Id[] memory);
+
+    /// Debt over collateral value at the oracle price, WAD. Zero when there is no debt.
+    function positionLtv(Id id, address user) external view returns (uint256);
+
     /// True when the market is closed, unknown, or inside the pre-close window.
     function isClosedRegime() external view returns (bool);
 

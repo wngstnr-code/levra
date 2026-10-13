@@ -21,6 +21,7 @@ interface ILens {
         uint256 borrowRatePerSecond;
         uint256 priceE8;
         Session session;
+        uint64 feedUpdatedAt;
         uint64 publishedAt;
         bool stale;
         bool enabled;

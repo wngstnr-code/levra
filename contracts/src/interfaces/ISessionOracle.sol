@@ -8,11 +8,19 @@ interface ISessionOracle is IOracle {
     error OracleStale(uint64 publishedAt);
     error InvalidOraclePrice();
 
-    /// Prices have 8 decimals.
+    /// Prices have 8 decimals. feedUpdatedAt is the time of the source quote.
     function snapshot()
         external
         view
-        returns (uint256 priceE8, uint256 bidE8, uint256 askE8, Session session, uint64 publishedAt, bool stale);
+        returns (
+            uint256 priceE8,
+            uint256 bidE8,
+            uint256 askE8,
+            Session session,
+            uint64 feedUpdatedAt,
+            uint64 publishedAt,
+            bool stale
+        );
 
     function priceId() external view returns (bytes32);
 
