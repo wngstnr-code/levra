@@ -203,6 +203,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-52 can now refuse regions inside a country (ISO 3166-2 from Cloudflare's `cf-region-code`), which covers the sanctioned Ukrainian regions in D-42 once the API sits behind Cloudflare.
 - Dharu: proposed the region block list from Anchored's own prohibited jurisdictions (D-42, initial proposal pending counsel) and raised Q-31 on investor checks. Sent Dharu's multisig address to the blocker row for X-03. Alerts will start with Telegram only (Q-30).
 - Nabil: the web app runs against the Railway staging API on localhost: markets, positions, earn, deposit tokens, settings and sign-in answer with real data and CORS passes. Fixed on the way: the trade form was blocked because staging has no terms version, so `/v1/eligibility` answers 404; the app now treats that as the gate being off, like the API. Deposit now lists common chains and USDC first and uses a neutral address placeholder. Open: quotes hit the KyberSwap limit, and five keepers are not healthy yet (waiting for the role grants), so the service banner shows.
 - Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).
