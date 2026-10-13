@@ -769,9 +769,16 @@ type ConfigResponse = {
 
 type HealthResponse = { ok: true };
 type StatusResponse = {
-  oracle: { symbol: string; publishedAt: number; ageSeconds: number; stale: boolean }[];
+  oracle: {
+    symbol: string;
+    publishedAt: number;
+    ageSeconds: number;
+    stale: boolean;
+    ageLimitSeconds?: number | null; // team monitor's "too old" limit for the current session (BE-50); null before it ran
+    ageLimitLearning?: boolean;      // true while the session has too few samples and the strict default applies
+  }[];
   keepers: {
-    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers";
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers" | "monitor";
     lastHeartbeatAt: number | null;
     healthy: boolean;
   }[];
