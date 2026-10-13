@@ -33,6 +33,7 @@ const sampleMarket = {
   loanToken: usdc,
   enabled: true,
   oraclePriceE8: "74562000000",
+  oracleFeedUpdatedAt: 1791870477,
   oraclePublishedAt: 1791871377,
   oracleStale: false,
   dexMidPriceE8: "72628000000",
@@ -201,6 +202,6 @@ describe("endpoints", () => {
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
-    expect(seen.size).toBe(23);
+    expect(seen.size).toBe(24);
   });
 });

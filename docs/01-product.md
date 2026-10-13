@@ -23,7 +23,7 @@ What we build is three things that do not exist yet:
 
 Note for market makers: borrowing stock without selling it right away can be done directly on Morpho. Our app shows the market and the position, but a special flow is not needed in the first version.
 
-Restriction from the issuer: Anchored aims its tokens at professional investors outside the United States and China. Our product must respect that restriction (see 08-startup-readiness.md, legal section).
+Restriction from the issuer: Anchored aims its tokens at professional and qualified investors and publishes a list of prohibited jurisdictions that includes the United States, China and Canada (full list in 05). Our product must respect that restriction (see 08-startup-readiness.md, legal section).
 
 ## Scope of the final version
 

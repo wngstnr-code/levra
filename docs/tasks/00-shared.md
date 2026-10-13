@@ -11,21 +11,22 @@ Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Every task has 
 - [~] **X-01 · Monorepo and repo rules** (driver: Wangsit)
   - Do: create the repo with the layout in 02; pnpm workspaces and Turborepo; `CODEOWNERS` per 06; branch protection on `main`; PR template; MIT license file.
   - Done when: all three have cloned it, a PR to `main` requires passing CI, and GitHub requests review from the right owner automatically.
-  - Note: done so far: private repo `wngstnr-code/levra`, pnpm workspaces, Turborepo, PR template, MIT license. Still to do: add Dharu and Nabil as collaborators, `CODEOWNERS` (needs their GitHub usernames), branch protection on `main`, and a required CI check once SC-01, BE-01 and FE-01 add their workflows.
+  - Note: done so far: private repo `wngstnr-code/levra`, pnpm workspaces, Turborepo, PR template, MIT license, `CODEOWNERS`. Dharu has joined. Still to do: Nabil accepts the invitation, branch protection on `main`, and a required CI check once CI exists.
 
 - [~] **X-02 · Product name and domain** (driver: Nabil)
   - Do: agree on a name; check the domain and social handles; answer Q-01.
   - Done when: the name is recorded in 09 and the domain is registered.
-  - Note: the name is decided, Levra (D-15). Still to do: domain, social handles, and a check against the close names listed under Q-01.
+  - Note: the name is decided, Levra (D-15). A DNS check found `levra.com`, `.io`, `.xyz` and `.app` in use and no name servers for `levra.fi`, `levra.finance` and `levra.markets` (Q-25). Still to do: pick and register a domain, social handles, and the check against Levva.
 
 - [ ] **X-03 · Wallets, funds and multisig** (driver: Wangsit)
   - Do: one development wallet per person with a little MON and USDC; a team treasury; a multisig on Monad with all three as signers.
   - Done when: each person has sent one real transaction on Monad mainnet, and the multisig address is in 05.
 
-- [ ] **X-04 · Interface freeze** (driver: Dharu)
+- [x] **X-04 · Interface freeze** (driver: Dharu)
   - Needs: SC-03, BE-02, FE-04.
   - Do: one session where all three walk through 03 together, screen by screen and flow by flow, and check that nothing a screen or a service needs is missing.
   - Done when: the status table in 03 says "frozen" for contracts and API, and the date is in the daily log.
+  - Note: both sides were agreed in a joint session on 13 October 2026 and frozen by merging PR 1 and PR 2. Later additions follow the interface change process in 06.
 
 ---
 
@@ -68,14 +69,16 @@ Without these the product can be built but cannot be opened to the public.
   - Do: find counsel who knows tokenized securities and DeFi; get a written view on margin lending and shorting of tokenized stocks, on geo-blocking, and on what the web app may and may not do.
   - Done when: Q-06 has a written answer in 09.
 
-- [ ] **X-11 · Terms of use, privacy policy, risk disclosure** (driver: Nabil, due by M5)
+- [~] **X-11 · Terms of use, privacy policy, risk disclosure** (driver: Nabil, due by M5)
   - Needs: X-10.
   - Do: write the three texts. The risk disclosure must cover every item listed in 08.
   - Done when: the texts are reviewed by counsel and ready for FE-50 and FE-53.
+  - Note: a first draft of the risk disclosure is in `docs/drafts/risk-disclosure.md`. Not reviewed by counsel. Terms of use and privacy policy are not started.
 
-- [ ] **X-12 · Talk to Anchored** (driver: Wangsit, start in M0)
+- [~] **X-12 · Talk to Anchored** (driver: Wangsit, start in M0)
   - Do: ask in writing: may their tokens be used as collateral and lent in Morpho markets; can the Morpho or router address be denylisted; what happens to dividends for tokens held by Morpho; how short borrowers are treated on dividend dates; how to become a partner so large liquidations can be redeemed instead of sold on a thin exchange.
   - Done when: Q-04 and Q-05 are answered in 09, or Anchored has declined to answer and that is recorded.
+  - Note: the message is drafted in `docs/outreach/anchored-questions.md`. Not sent yet.
 
 - [ ] **X-13 · Auditor** (driver: Wangsit, start in M3)
   - Do: collect quotes and dates from at least two audit firms; decide where the money comes from.

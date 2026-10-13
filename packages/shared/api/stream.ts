@@ -5,6 +5,7 @@ import { sessionInfo } from "./session";
 export const priceEvent = z.object({
   symbol,
   oraclePriceE8: priceE8,
+  feedUpdatedAt: unixSeconds,
   publishedAt: unixSeconds,
   stale: z.boolean(),
   dexMidPriceE8: priceE8.nullable(),

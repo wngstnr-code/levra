@@ -10,5 +10,6 @@ export * from "./compliance";
 export * from "./auth";
 export * from "./alerts";
 export * from "./status";
+export * from "./config";
 export * from "./stream";
 export * from "./endpoints";

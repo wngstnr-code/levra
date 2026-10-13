@@ -31,6 +31,9 @@ After that, read your own task list, then other docs when needed:
 | [07-testing-and-security.md](07-testing-and-security.md) | How to test, threat list, audit | SC, BE |
 | [08-startup-readiness.md](08-startup-readiness.md) | Launch requirements, operations, legal, business, competition submission | Everyone |
 | [09-decisions-and-questions.md](09-decisions-and-questions.md) | Decisions already made and questions still open | Everyone |
+| [10-screens.md](10-screens.md) | Draft of every screen: data, actions, states, and data still missing from the API | FE, BE |
+| [outreach/anchored-questions.md](outreach/anchored-questions.md) | Draft message to the token issuer | SC |
+| [drafts/risk-disclosure.md](drafts/risk-disclosure.md) | Draft risk disclosure, not reviewed by counsel | Everyone |
 | [PROGRESS.md](PROGRESS.md) | Progress board: milestones, blockers, daily log | Everyone |
 
 Claude sessions in this repo follow [`../CLAUDE.md`](../CLAUDE.md). It tells every new session to read these docs first.
@@ -56,5 +59,5 @@ Claude sessions in this repo follow [`../CLAUDE.md`](../CLAUDE.md). It tells eve
 
 ## Things not yet decided that need attention soon
 
-- The sign-in provider (Q-02). The product name is decided: Levra (D-15). Packages use the `@levra/*` scope and contract names stay descriptive, such as `MarginRouter`.
+- The decisions listed with options in 09 under "Decisions waiting for the team". The product name is decided: Levra (D-15). Packages use the `@levra/*` scope and contract names stay descriptive, such as `MarginRouter`.
 - The three riskiest things to prove in M0: a real swap transaction from a contract (SC-04), how the Anchored oracle behaves when the market is closed (BE-03), and a real cross-chain deposit (BE-05).

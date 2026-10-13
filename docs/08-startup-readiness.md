@@ -81,7 +81,7 @@ This is the weakest part of the plan and cannot be solved with code. What is wri
 | Item | Situation | What to do |
 |---|---|---|
 | Lending money to buy stocks, and shorting | Tightly regulated in almost every country. There is no strong answer yet | Consult legal counsel before opening to the public (X-10) |
-| Issuer restrictions | Anchored tokens are for professional investors outside the United States and China | Geo-blocking at least for those two countries and sanctioned countries; users declare they are eligible |
+| Issuer restrictions | Anchored tokens are for professional and qualified investors outside its prohibited jurisdictions, a list longer than the United States and China (see 05) | Geo-blocking, with the list still to be decided (Q-24); users declare they are eligible |
 | Anchored terms of use | Not yet read for the case of a lending venue | Ask directly (X-12) |
 | Dividends | Paid to the wallet of the holder. Collateral stocks are held by Morpho, so their fate is unclear | Ask directly (X-12). Until it is clear, write it in the risk disclosure |
 | Legal entity | None yet | Decide the form and place together with counsel (X-20) |
@@ -150,7 +150,7 @@ The rules below come from a third-party copy of the competition rules. Check the
 | Judging | 14 to 27 October 2026 |
 | Announcement | 3 November 2026 |
 | Criteria | Five, each 20%: product quality and completeness, technical excellence, use of Monad, fit with the track, innovation and impact |
-| Matching bounties | Aurora Intents ($5,000) and Envio ($1,000). Others depend on the wallet choice (Q-02, Q-13) |
+| Matching bounties | Aurora Intents ($5,000), Envio ($1,000) and Privy ($5,000). Not decided yet (Q-13) |
 
 What must be there:
 

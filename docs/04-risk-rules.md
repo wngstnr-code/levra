@@ -138,11 +138,13 @@ The Anchored oracle is the weakest point of this design. What we know and do not
 | Item | Status |
 |---|---|
 | Live on Monad, gives price and market session for QQQ, HOOD, BIL | Verified |
-| Price delayed 15 to 23 minutes when measured | Verified, one measurement |
-| Controlled by one party and they can change it | Verified (the address is a proxy) |
-| How often the price is updated in each market session | Not verified (BE-03) |
-| Whether the price is updated when the market is closed | Not verified (BE-03) |
-| The exact schedule of each market session | Not verified (BE-03) |
+| Price delayed 15 to 23 minutes when measured | Verified, one measurement. Anchored's documentation says the source quote can be about 15 minutes delayed |
+| Controlled by one party and they can change it | Verified. It is an upgradeable proxy, and prices are written by an operator role held by Anchored |
+| Best bid and best ask are positive and ordered | From Anchored's documentation: the oracle rejects a write that breaks this. One live read agreed |
+| How often the price is updated | From Anchored's documentation: a 10 minute heartbeat by default. Not verified by observation (BE-03) |
+| What happens when the market is closed | From Anchored's documentation: the last price is carried forward and `feedUpdateTimestamp` stops advancing. Not verified by observation (BE-03) |
+| The schedule of each market session | From Anchored's documentation, see 05. Weekly close Friday 8:00 PM and weekly open Sunday 8:00 PM, US Eastern Time. Not verified by observation (BE-03) |
+| Stock splits and other corporate actions | Not known. A split that changes the price per token without changing balances would liquidate positions. Asked in X-12 |
 
 How this design withstands those weaknesses:
 
@@ -152,6 +154,16 @@ How this design withstands those weaknesses:
 - **An oracle monitor** tells the team as soon as the price stops updating.
 
 The hard max age cannot be filled in until BE-03 is done. Until then, `SessionOracle` is written with max age as a number set at deployment.
+
+Max ages used by the deployment script, all initial proposals until BE-03 has a week of data:
+
+| Setting | Value | Where |
+|---|---|---|
+| Source quote age while the market is open | 1 hour | `SessionOracle`, hard |
+| Publish age while the market is closed | 4 days | `SessionOracle`, hard |
+| Source quote age to open a new position | 45 minutes | `RiskManager`, soft |
+
+Staleness needs two clocks (decided in D-23). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
 
 Be careful: if `price()` reverts, Morpho cannot run borrowing, collateral withdrawal, or liquidation in that market. So a hard max age that is too short is as dangerous as one that is too long.
 

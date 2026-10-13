@@ -1,0 +1,255 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.28;
+
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {Authorization} from "morpho-blue/src/interfaces/IMorpho.sol";
+import {IAnchoredStockOracle} from "../src/interfaces/IAnchoredStockOracle.sol";
+import {IMarginRouter} from "../src/interfaces/IMarginRouter.sol";
+import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
+import {ISessionOracle} from "../src/interfaces/ISessionOracle.sol";
+import {ILens} from "../src/interfaces/ILens.sol";
+import {Session} from "../src/interfaces/Types.sol";
+import {RiskManager} from "../src/RiskManager.sol";
+import {BaseTest} from "./Base.t.sol";
+
+contract RiskTest is BaseTest {
+    bytes32 private constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    bytes32 private constant AUTHORIZATION_TYPEHASH = keccak256(
+        "Authorization(address authorizer,address authorized,bool isAuthorized,uint256 nonce,uint256 deadline)"
+    );
+
+    function _mockOracle(Session session, uint256 feedAge, uint256 publishAge, int128 price) internal {
+        IAnchoredStockOracle.PricePayload memory payload = IAnchoredStockOracle.PricePayload({
+            price: price,
+            bestBid: price - 5e6,
+            bestAsk: price + 5e6,
+            feedUpdateTimestamp: uint64(block.timestamp - feedAge),
+            publishedAt: uint64(block.timestamp - publishAge),
+            roundId: 1,
+            session: session
+        });
+        vm.mockCall(address(STOCK_ORACLE), abi.encodeCall(IAnchoredStockOracle.latestPrice, (QQQ)), abi.encode(payload));
+    }
+
+    // ----- oracle -----
+
+    function test_openMarketPriceGoesStaleOnTheSourceQuoteTime() public {
+        _mockOracle(Session.Regular, 2 hours + 1, 0, 740e8);
+        vm.expectPartialRevert(ISessionOracle.OracleStale.selector);
+        longOracle.price();
+        (,,,,,, bool stale) = longOracle.snapshot();
+        assertTrue(stale);
+    }
+
+    function test_closedMarketAcceptsTheCarriedPrice() public {
+        _mockOracle(Session.Closed, 3 days, 5 minutes, 740e8);
+        assertEq(longOracle.price(), (740e8 - 5e6) * 1e16);
+        (,,,,,, bool stale) = longOracle.snapshot();
+        assertFalse(stale);
+    }
+
+    function test_closedMarketGoesStaleWhenTheHeartbeatStops() public {
+        _mockOracle(Session.Closed, 5 days, 4 days + 1, 740e8);
+        vm.expectPartialRevert(ISessionOracle.OracleStale.selector);
+        longOracle.price();
+    }
+
+    function test_nonPositivePriceIsRejected() public {
+        _mockOracle(Session.Regular, 0, 0, 0);
+        vm.expectRevert(ISessionOracle.InvalidOraclePrice.selector);
+        longOracle.price();
+        vm.expectRevert(ISessionOracle.InvalidOraclePrice.selector);
+        shortOracle.price();
+    }
+
+    function test_negativePriceIsRejected() public {
+        _mockOracle(Session.Regular, 0, 0, -1);
+        vm.expectRevert(ISessionOracle.InvalidOraclePrice.selector);
+        longOracle.price();
+        vm.expectRevert(ISessionOracle.InvalidOraclePrice.selector);
+        longOracle.snapshot();
+    }
+
+    function test_missingBidFallsBackToThePrice() public {
+        IAnchoredStockOracle.PricePayload memory payload = IAnchoredStockOracle.PricePayload({
+            price: 740e8,
+            bestBid: 0,
+            bestAsk: 0,
+            feedUpdateTimestamp: uint64(block.timestamp),
+            publishedAt: uint64(block.timestamp),
+            roundId: 1,
+            session: Session.Regular
+        });
+        vm.mockCall(address(STOCK_ORACLE), abi.encodeCall(IAnchoredStockOracle.latestPrice, (QQQ)), abi.encode(payload));
+        assertEq(longOracle.price(), 740e8 * 1e16);
+        assertEq(shortOracle.price(), uint256(1e56) / 740e8);
+    }
+
+    function test_shortOracleUsesTheAsk() public {
+        _mockOracle(Session.Regular, 0, 0, 740e8);
+        assertEq(shortOracle.price(), uint256(1e56) / (740e8 + 5e6));
+    }
+
+    // ----- soft limit by session -----
+
+    function test_softLimitIsStricterWhenTheMarketIsClosed() public {
+        _mockOracle(Session.Closed, 1 days, 5 minutes, 740e8);
+        assertEq(risk.currentSoftLtv(longId), SOFT_CLOSED);
+        assertTrue(risk.isClosedRegime());
+
+        IMarginRouter.OpenParams memory p = _openLongParams(100e6, 257e6, 0);
+        vm.prank(user);
+        vm.expectPartialRevert(IRiskManager.SoftLimitExceeded.selector);
+        router.openLong(p);
+    }
+
+    function test_unknownSessionCountsAsClosed() public {
+        _mockOracle(Session.Unknown, 0, 0, 740e8);
+        assertEq(risk.currentSoftLtv(longId), SOFT_CLOSED);
+    }
+
+    function test_openingNeedsAFresherPriceThanTheHardLimit() public {
+        IRiskManager.MarketConfig memory c = _config(risk.config(longId).side, address(longOracle));
+        c.maxOracleAge = 30 minutes;
+        risk.setMarketConfig(longId, c);
+        _mockOracle(Session.Regular, 31 minutes, 0, 740e8);
+
+        IMarginRouter.OpenParams memory p = _openLongParams(100e6, 100e6, 0);
+        vm.prank(user);
+        vm.expectPartialRevert(IRiskManager.OracleStale.selector);
+        router.openLong(p);
+    }
+
+    // ----- roles -----
+
+    function test_guardianCanOnlyTighten() public {
+        address guardian = makeAddr("guardian");
+        risk.setGuardian(guardian);
+
+        vm.startPrank(guardian);
+        risk.tightenMarket(longId, 0.7e18, 0.65e18, 1_000e6);
+        assertEq(risk.currentSoftLtv(longId), 0.7e18);
+        vm.expectRevert(RiskManager.NotTightening.selector);
+        risk.tightenMarket(longId, 0.71e18, 0.65e18, 1_000e6);
+        vm.expectRevert(RiskManager.NotTightening.selector);
+        risk.tightenMarket(longId, 0.7e18, 0.65e18, 1_001e6);
+        vm.stopPrank();
+    }
+
+    function test_guardianCanPauseButNotResume() public {
+        address guardian = makeAddr("guardian");
+        risk.setGuardian(guardian);
+        vm.prank(guardian);
+        risk.setOpeningPaused(true);
+        assertTrue(risk.openingPaused());
+        vm.prank(guardian);
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.setOpeningPaused(false);
+        risk.setOpeningPaused(false);
+        assertFalse(risk.openingPaused());
+    }
+
+    function test_strangersCannotChangeAnything() public {
+        IRiskManager.MarketConfig memory c = _config(risk.config(longId).side, address(longOracle));
+        vm.startPrank(makeAddr("stranger"));
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.tightenMarket(longId, 0.1e18, 0.1e18, 1);
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.setOpeningPaused(true);
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.setNextCloseAt(uint64(block.timestamp + 1 hours));
+        vm.expectRevert();
+        risk.setMarketConfig(longId, c);
+        vm.expectRevert();
+        router.setFees(50, 30, address(1));
+        vm.expectRevert();
+        router.setKeeper(address(1), true);
+        vm.stopPrank();
+    }
+
+    function test_closeTimeMustBeInTheNearFuture() public {
+        vm.expectRevert(RiskManager.InvalidCloseTime.selector);
+        risk.setNextCloseAt(uint64(block.timestamp));
+        vm.expectRevert(RiskManager.InvalidCloseTime.selector);
+        risk.setNextCloseAt(uint64(block.timestamp + 8 days + 1));
+        risk.setNextCloseAt(uint64(block.timestamp + 8 days));
+    }
+
+    function test_softLimitMustStayBelowTheHardLimit() public {
+        IRiskManager.MarketConfig memory c = _config(risk.config(longId).side, address(longOracle));
+        c.softLtvOpen = uint64(LLTV);
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setMarketConfig(longId, c);
+        c.softLtvOpen = SOFT_OPEN;
+        c.oracle = address(shortOracle);
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setMarketConfig(longId, c);
+    }
+
+    function test_feesAreCapped() public {
+        vm.expectRevert();
+        router.setFees(51, 30, feeRecipient);
+        vm.expectRevert();
+        router.setFees(50, 31, feeRecipient);
+        router.setFees(50, 30, feeRecipient);
+    }
+
+    // ----- lens -----
+
+    function test_lensListsBothMarkets() public view {
+        ILens.MarketView[] memory markets = lens.getMarkets();
+        assertEq(markets.length, 2);
+        assertEq(markets[0].lltv, LLTV);
+        assertEq(markets[0].currentSoftLtv, SOFT_OPEN);
+        assertEq(markets[0].totalSupplyAssets, 100_000e6);
+        assertGt(markets[0].priceE8, 0);
+        assertGt(markets[0].feedUpdatedAt, 0);
+        assertFalse(markets[0].stale);
+        assertEq(markets[1].totalSupplyAssets, 100e18);
+    }
+
+    // ----- one confirmation on first use -----
+
+    function test_firstUseInOneTransactionWithTwoSignatures() public {
+        uint256 key = 0xB0B;
+        address newcomer = vm.addr(key);
+        deal(address(USDC), newcomer, 500e6);
+        uint256 deadline = block.timestamp + 1 hours;
+
+        bytes32 permitDigest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                IERC20Permit(address(USDC)).DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(PERMIT_TYPEHASH, newcomer, address(router), 100e6, 0, deadline))
+            )
+        );
+        (uint8 pv, bytes32 pr, bytes32 ps) = vm.sign(key, permitDigest);
+
+        Authorization memory authorization = Authorization(newcomer, address(router), true, 0, deadline);
+        bytes32 authDigest = keccak256(
+            abi.encodePacked(
+                "\x19\x01", MORPHO.DOMAIN_SEPARATOR(), keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization))
+            )
+        );
+        (uint8 av, bytes32 ar, bytes32 as_) = vm.sign(key, authDigest);
+
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(IMarginRouter.permitToken, (address(USDC), 100e6, deadline, pv, pr, ps));
+        calls[1] = abi.encodeCall(IMarginRouter.authorizeWithSig, (newcomer, true, 0, deadline, av, ar, as_));
+        calls[2] = abi.encodeCall(IMarginRouter.openLong, (_openLongParams(100e6, 100e6, 0)));
+
+        vm.prank(newcomer);
+        router.multicall(calls);
+
+        assertGt(MORPHO.position(longId, newcomer).collateral, 0);
+        assertEq(USDC.balanceOf(newcomer), 400e6);
+        assertEq(USDC.allowance(newcomer, address(router)), 0);
+        _assertRouterEmpty();
+    }
+
+    function test_cannotAuthorizeOnBehalfOfSomeoneElse() public {
+        vm.expectRevert(IMarginRouter.Unauthorized.selector);
+        router.authorizeWithSig(user, true, 0, block.timestamp + 1, 27, bytes32(0), bytes32(0));
+    }
+}

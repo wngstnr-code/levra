@@ -34,6 +34,14 @@ How to use it:
 | D-20 | First use is one confirmation: two gasless signatures (USDC permit and Morpho authorization) applied inside one `multicall` together with the open | Chosen by the team on 13 October 2026. Best experience for new users | Three separate transactions on first use; relying on wallet batching only |
 | D-21 | Backend stack: TypeScript, Hono (REST plus SSE), Postgres with Drizzle, Envio for the indexer | Chosen by Dharu on 13 October 2026. Light, and Envio has a bounty. Envio on Monad is still to be proven in BE-06 | NestJS with Prisma; Ponder |
 | D-22 | Sign-in provider: Privy, next to plain wallets through wagmi | Chosen by Nabil and Wangsit on 13 October 2026. Privy's docs list Monad as a supported network. Answers Q-02 | Dynamic; deciding later |
+| D-23 | Staleness uses two clocks. Market open: the source quote time, `feedUpdateTimestamp`. Market `CLOSED`: the carried price is accepted and freshness is judged on `publishedAt`. The interface gains the source quote time in `snapshot()`, `Lens` and the API | Chosen by the team on 13 October 2026. Matches how the oracle behaves and does not block liquidations over a weekend. Answers Q-22 | `publishedAt` only; Anchored's `latestPriceNoOlderThan` |
+| D-24 | The USDC vault is a MetaMorpho v1.1 vault | Chosen by the team on 13 October 2026. Simpler and enough for our case. Answers Q-11 | Vault V2 |
+| D-25 | The web app blocks Anchored's full list of prohibited jurisdictions (in 05). Counsel confirms the final list | Chosen by the team on 13 October 2026. Matches the issuer. Answers Q-24 | United States and China only; adding address screening now |
+| D-26 | Sponsor bounties to go for: Aurora Intents, Envio and Privy | Chosen by the team on 13 October 2026. They match choices already made. Answers Q-13 | Aurora Intents only; none |
+| D-27 | Seed funds for now: staging only, a few hundred dollars of USDC and a little MON. Production seed is decided later | Chosen by the team on 13 October 2026. Answers Q-21 for staging | One tenth of the caps; the full caps |
+| D-28 | Fees: 0.10% on open and close, 10% of vault interest, auto-deleverage fee at most 0.30% | Chosen by the team on 13 October 2026. Answers Q-07 | Free at launch; 0.20% and 15% |
+| D-29 | Only registered keepers may run auto-deleverage | Chosen by the team on 13 October 2026. Safest at the start. Answers Q-08 | Anyone; a switch to open it later |
+| D-30 | Levra is submitted to Monad Metropolis, Track 01, by 14 October 2026 at 10:59 WIB, and the goal is to win. Before the deadline the team builds one real flow on mainnet first (long on aQQQ in one confirmation), then adds what time allows in this order: positions and close, cross-chain deposit, short, sign-in by email. This is the first slice of the final product, built to the same rules, not a throwaway demo | Chosen by the team on 13 October 2026. Answers Q-26 | Not submitting; submitting docs only |
 
 ## Open questions
 
@@ -42,26 +50,46 @@ Every question has an owner and a milestone to answer it by.
 | No | Question | Owner | Due by | Via task | Working assumption |
 |---|---|---|---|---|---|
 | Q-01 | Answered: Levra (D-15). Still open under X-02: domain, social handles, and a conflict check. A quick search found no project named exactly Levra, but found close names in the same field: Levva (DeFi vaults, formerly Marginly), Levr (token launchpad) and Levana (perps) | Nabil | M0 | X-02 | Keep Levra unless the conflict check finds a real problem |
-| Q-02 | Answered: Privy (D-22). Still to confirm in FE-02: the embedded wallet is a normal key wallet, so the signature path of D-20 works, and the user can export or recover it | Nabil, Wangsit | M0 | FE-02 | If it turns out to be a smart account, first use batches `approve` and `setAuthorization` calls instead of using signatures |
-| Q-03 | What is the max age of the oracle price, and what happens to the price when the exchange is closed? | Dharu, Wangsit | M1 | BE-03, SC-10 | Numbers are filled in at deployment after a week of data |
+| Q-02 | Answered: Privy (D-22). Privy's documentation says the embedded wallet is a normal key wallet by default, supports `signTypedData` and can be exported, so the signature path of D-20 should work. Still to confirm by running it in FE-02 | Nabil, Wangsit | M0 | FE-02 | Proceed on the signature path |
+| Q-03 | Partly answered from Anchored's documentation: 10 minute heartbeat, source quote about 15 minutes delayed, suggested max age at least 1,500 seconds, and the price is carried forward while `CLOSED`. Still open: confirm by a week of observation, then choose the numbers | Dharu, Wangsit | M1 | BE-03, SC-10 | See Q-22 for which clock to use |
 | Q-04 | What happens to dividends for stocks held by Morpho? What about the stock borrower (short) when there is a dividend? | Wangsit | M2 | X-12 | Write it in the risk disclosure until it is clear |
 | Q-05 | Does Anchored allow its token to be used in a lending venue? Can the Morpho or router address be put on a denylist? | Wangsit | M1 | X-12, SC-05 | Run staging with small funds while waiting for the answer |
 | Q-06 | How do the margin and short rules on stocks apply to this product? What kind of legal entity and where? | All three | M5 | X-10, X-20 | There is no strong answer yet |
-| Q-07 | What are the transaction fee, the auto-deleverage fee, and the share of interest? | All three | M5 | - | 0.10%, at most 0.30%, 10% of interest |
-| Q-08 | Auto-deleverage only by registered keepers, or by anyone? | Wangsit | M3 | SC-30 | Registered keepers first; open it later after it is tested |
+| Q-07 | Answered: see D-28 | - | - | - | - |
+| Q-08 | Answered: see D-29 | - | - | - | - |
 | Q-09 | Can a cross-chain deposit open a position directly when the funds arrive? | Dharu, Wangsit | M4 | BE-05, SC-40 | Two steps: funds arrive in the wallet, then one confirmation |
-| Q-10 | How does a user from another chain pay their first transaction fee on Monad? | Dharu, Nabil | M4 | BE-05, BE-40 | A second transfer of a little MON through the same service |
-| Q-11 | Which version of the Morpho vault is available on Monad and do we use it? | Wangsit | M2 | SC-06, SC-23 | The one with an official factory on Monad |
+| Q-10 | Partly answered: a price-only quote shows 1 USDC on Base can arrive as about 39 MON on Monad in about 39 seconds. Still open: a real transfer | Dharu, Nabil | M4 | BE-05, BE-40 | A second small transfer of MON through the same service |
+| Q-11 | Answered: see D-24 | - | - | - | - |
 | Q-12 | Which auditor, when, and paid from what funds? | All three | M5 | X-13 | Get quotes from M3 |
-| Q-13 | Which sponsor bounties do we go for? | All three | M0 | X-16 | Aurora Intents, Envio and Privy |
+| Q-13 | Answered: see D-26 | - | - | - | - |
 | Q-14 | Display language of the app? | Nabil | M5 | FE-55 | English as the main, Indonesian as the second |
 | Q-15 | Does the short soft limit need its own number, different from long? | Wangsit, Dharu | M2 | SC-22, BE-34 | Same as long, whichever is more cautious |
-| Q-16 | What is the pair token in the aQQQ, aHOOD, aBIL pools? Does it need to go through another token? | Wangsit | M0 | SC-04 | Assume the aggregator finds a route from USDC |
-| Q-17 | Can Anvil copy Monad mainnet correctly? | Wangsit | M0 | SC-02 | If not, find another fork tool or test directly on mainnet with small funds |
-| Q-18 | Does USDC on Monad support `permit`? | Wangsit | M0 | SC-05 | If not, first use takes two confirmations or the transactions are bundled in the wallet |
-| Q-19 | Are the best bid and best ask in the Anchored oracle always filled and reasonable? | Dharu | M1 | BE-03 | If not, use the price only |
+| Q-16 | Answered: all three pools pair the stock directly with USDC and routes are a single hop (aggregator routes on 13 October 2026) | Wangsit | M0 | SC-04 | - |
+| Q-17 | Answered: yes. Anvil 1.8.3 forks Monad. Forge needs `--network monad`. The full long flow through real Morpho and a real KyberSwap route runs on the fork | - | - | - | - |
+| Q-18 | Answered: yes for USDC (`DOMAIN_SEPARATOR` and `nonces` answer). No for aQQQ, aHOOD and aBIL, so lending stock needs a normal `approve` first | Wangsit | M0 | SC-05 | - |
+| Q-19 | Partly answered: Anchored's documentation says the oracle rejects any write where a price is not positive or bid exceeds ask. One live read agreed. Still to confirm over a week | Dharu | M1 | BE-03 | Keep the fallback to the price alone |
 | Q-20 | When and how to accept stocks from xStocks? Which oracle is used for them? | All three | After M6 | X-18 | The design already allows a different oracle per market |
-| Q-21 | How much of the team treasury goes in as seed funds for markets, and does part of it become liquidity on the exchange? | All three | M2 | X-14 | Start from the supply cap in 04 |
+| Q-21 | Answered: see D-27 | - | - | - | - |
+| Q-22 | Answered: see D-23 | - | - | - | - |
+| Q-23 | How is a stock split applied to the token balance and to the oracle price? | Wangsit | M1 | X-12 | Asked of Anchored. Until answered, treat any stock with an announced split as not eligible |
+| Q-24 | Answered: see D-25 | - | - | - | - |
+| Q-25 | Which domain? `levra.com`, `.io`, `.xyz` and `.app` are in use | Nabil | M0 | X-02 | See "Decisions waiting for the team" |
+| Q-26 | Answered: see D-30 | - | - | - | - |
+
+## Decisions waiting for the team
+
+Each has options and a suggestion. Nothing here is decided. When the team picks, the choice moves to the Decisions table.
+
+### Q-25. Domain
+
+| Option | State |
+|---|---|
+| A. `levra.fi` | No name servers found. Short, fits finance |
+| B. `levra.finance` | No name servers found. Clear, longer |
+| C. `levra.markets` | No name servers found |
+| D. Change the name | `levra.com`, `.io`, `.xyz`, `.app` are in use, and Levva is a DeFi project one letter away |
+
+Availability is only confirmed by a registrar.
 
 ## Differences between this document set and the idea PDF
 
