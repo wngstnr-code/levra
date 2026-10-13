@@ -54,84 +54,82 @@ export type RequirementCheck = {
   funded: boolean;
 };
 
-/** Checks the token approval and the Morpho authorization the router needs, for an action that pulls `amount` of `token`. */
-export async function checkRequirements(
-  reader: ChainReader,
-  p: { user: Address; token: Address; amount: bigint; signatures?: SignatureInput[]; blockTime: number },
-): Promise<RequirementCheck> {
+export type RequirementInput = {
+  user: Address;
+  /** The token the router pulls from the user, if any. `permit` says whether a signature can replace `approve`. */
+  pull?: { token: Address; amount: bigint; permit: boolean };
+  /** Whether the router acts on the user's Morpho position (borrow, repay, withdraw). */
+  authorization: boolean;
+  signatures?: SignatureInput[];
+  blockTime: number;
+};
+
+function vOf(signature: Hex) {
+  const { r, s, v, yParity } = parseSignature(signature);
+  return { r, s, v: Number(v ?? BigInt(yParity + 27)) };
+}
+
+/** Checks the token approval and the Morpho authorization the router needs for one action. */
+export async function checkRequirements(reader: ChainReader, p: RequirementInput): Promise<RequirementCheck> {
   const { router, chainId } = reader.deployment;
-  const state = await reader.userState(p.user, p.token);
+  const state = await reader.userState(p.user, p.pull?.token ?? reader.deployment.markets[0]!.loanToken);
   const deadline = p.blockTime + SIGNATURE_VALIDITY;
   const signed = new Map((p.signatures ?? []).map((s) => [s.type, s]));
   const preCalls: Hex[] = [];
+  const requirements: Requirement[] = [];
+  let ready = true;
 
-  const approveMet = state.allowance >= p.amount;
-  const approveSig = approveMet ? undefined : signed.get("approve");
-  if (approveSig) {
-    const { r, s, v, yParity } = parseSignature(approveSig.signature);
-    preCalls.push(
-      encodeFunctionData({
-        abi: marginRouterAbi,
-        functionName: "permitToken",
-        args: [p.token, p.amount, BigInt(approveSig.deadline), Number(v ?? BigInt(yParity + 27)), r, s],
-      }),
-    );
-  }
-
-  const authMet = state.authorized;
-  const authSig = authMet ? undefined : signed.get("morphoAuthorization");
-  if (authSig) {
-    const { r, s, v, yParity } = parseSignature(authSig.signature);
-    const nonce = authSig.nonce === undefined ? state.morphoNonce : BigInt(authSig.nonce);
-    preCalls.push(
-      encodeFunctionData({
-        abi: marginRouterAbi,
-        functionName: "authorizeWithSig",
-        args: [p.user, true, nonce, BigInt(authSig.deadline), Number(v ?? BigInt(yParity + 27)), r, s],
-      }),
-    );
-  }
-
-  const requirements: Requirement[] = [
-    {
+  if (p.pull) {
+    const met = state.allowance >= p.pull.amount;
+    const sig = met || !p.pull.permit ? undefined : signed.get("approve");
+    if (sig) {
+      const { r, s, v } = vOf(sig.signature);
+      preCalls.push(encodeFunctionData({ abi: marginRouterAbi, functionName: "permitToken", args: [p.pull.token, p.pull.amount, BigInt(sig.deadline), v, r, s] }));
+    }
+    ready &&= met || !!sig;
+    requirements.push({
       type: "approve",
-      satisfied: approveMet,
-      token: p.token,
+      satisfied: met,
+      token: p.pull.token,
       spender: router,
-      amountRaw: p.amount.toString(),
-      ...(approveMet
+      amountRaw: p.pull.amount.toString(),
+      ...(met || !p.pull.permit
         ? {}
         : {
             typedData: permitTypedData({
-              token: p.token,
-              ...(await reader.permitDomain(p.token)),
+              token: p.pull.token,
+              ...(await reader.permitDomain(p.pull.token)),
               chainId,
               owner: p.user,
               spender: router,
-              value: p.amount,
+              value: p.pull.amount,
               nonce: state.permitNonce,
               deadline,
             }),
           }),
-    },
-    {
-      type: "morphoAuthorization",
-      satisfied: authMet,
-      spender: router,
-      ...(authMet
-        ? {}
-        : { typedData: authorizationTypedData({ chainId, authorizer: p.user, authorized: router, nonce: state.morphoNonce, deadline }) }),
-    },
-  ];
+    });
+  }
 
-  if (signed.size > 0 && preCalls.length === 0 && (!approveMet || !authMet)) {
+  if (p.authorization) {
+    const met = state.authorized;
+    const sig = met ? undefined : signed.get("morphoAuthorization");
+    if (sig) {
+      const { r, s, v } = vOf(sig.signature);
+      const nonce = sig.nonce === undefined ? state.morphoNonce : BigInt(sig.nonce);
+      preCalls.push(encodeFunctionData({ abi: marginRouterAbi, functionName: "authorizeWithSig", args: [p.user, true, nonce, BigInt(sig.deadline), v, r, s] }));
+    }
+    ready &&= met || !!sig;
+    requirements.push({
+      type: "morphoAuthorization",
+      satisfied: met,
+      spender: router,
+      ...(met ? {} : { typedData: authorizationTypedData({ chainId, authorizer: p.user, authorized: router, nonce: state.morphoNonce, deadline }) }),
+    });
+  }
+
+  if (signed.size > 0 && preCalls.length === 0 && !ready) {
     throw new ApiHttpError("BAD_REQUEST", "The signatures sent do not match the missing requirements.");
   }
 
-  return {
-    requirements,
-    preCalls,
-    ready: (approveMet || !!approveSig) && (authMet || !!authSig),
-    funded: state.balance >= p.amount,
-  };
+  return { requirements, preCalls, ready, funded: !p.pull || state.balance >= p.pull.amount };
 }

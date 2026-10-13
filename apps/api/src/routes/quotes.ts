@@ -1,8 +1,10 @@
-import { quoteOpenRequest } from "@levra/shared/api";
+import { quoteCloseRequest, quoteCollateralRequest, quoteOpenRequest } from "@levra/shared/api";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { ChainReader } from "../chain/reader";
 import { ApiHttpError } from "../errors";
+import { quoteCloseLong } from "../quotes/close-long";
+import { quoteCollateral } from "../quotes/collateral";
 import { quoteOpenLong } from "../quotes/open-long";
 import type { SwapSource } from "../swap/kyber";
 
@@ -20,6 +22,10 @@ export function quoteRoutes(reader: ChainReader, swap: SwapSource) {
     if (req.side === "short") throw new ApiHttpError("BAD_REQUEST", "Short quotes are not available yet.");
     return c.json(await quoteOpenLong({ reader, swap }, req));
   });
+
+  app.post("/v1/quote/close", async (c) => c.json(await quoteCloseLong({ reader, swap }, await body(quoteCloseRequest, c.req.json()))));
+
+  app.post("/v1/quote/collateral", async (c) => c.json(await quoteCollateral(reader, await body(quoteCollateralRequest, c.req.json()))));
 
   return app;
 }

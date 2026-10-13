@@ -37,13 +37,20 @@ export async function simulate(client: PublicClient, tx: { from: Address; to: Ad
     const data = revertData(err);
     if (!data || data === "0x") throw new ApiHttpError("UPSTREAM_ERROR", "Could not simulate the transaction.", undefined, err);
     let name: string;
+    let args: readonly unknown[] | undefined;
     try {
-      name = decodeErrorResult({ abi: errorAbi, data }).errorName;
+      ({ errorName: name, args } = decodeErrorResult({ abi: errorAbi, data }));
     } catch {
       throw new ApiHttpError("BAD_REQUEST", "The transaction would fail on chain.", { revert: data });
     }
     const code = blockingErrors[name];
-    if (!code) throw new ApiHttpError("BAD_REQUEST", `The transaction would fail on chain: ${name}.`, { error: name });
+    if (!code) {
+      const detail = name === "Error" && typeof args?.[0] === "string" ? `: ${args[0]}` : "";
+      throw new ApiHttpError("BAD_REQUEST", `The transaction would fail on chain: ${name}${detail}.`, {
+        error: name,
+        args: args?.map((a) => (typeof a === "bigint" ? a.toString() : a)),
+      });
+    }
     return { gasLimit: 0n, warning: { code, severity: "block", message: `The contract would reject this now (${name}).` } };
   }
 }
