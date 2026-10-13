@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 11 | 4 |
-| Frontend | Nabil | 26 | 3 | 2 |
+| Frontend | Nabil | 26 | 3 | 6 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -66,6 +66,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet | BE-17, BE-30, BE-31, BE-32 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
+| 13 October 2026 | Nabil | Dharu | CORS on the API for the web origins (`https://levra-mon.vercel.app`, the Vercel preview addresses and `http://localhost:3000`), and a public staging address for `NEXT_PUBLIC_API_URL`. Without CORS the browser blocks every call from the web app | FE-10, FE-11, FE-12, FE-13 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
@@ -187,6 +188,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Nabil: M1 frontend built on `fe/FE-10-13-m1-core-long`: markets on the service with a live stream and an oracle fallback, the long trade form with first-use signatures and a checked transaction, positions with collateral, repay, reduce and close, history sentences, status banners, and every text in English and Indonesian. Waiting for Dharu: CORS and a hosted staging API.
 - Wangsit: `make close-all-monad` written and rehearsed on a fork of the live state: a long, a short and a vault deposit were all closed and the Lens showed no position left. It is the command to run after the demo video is recorded.
 - Nabil: FE-05 started: the Figma design system is in `apps/web` (Tailwind tokens, SF Pro with Inter fallback, base components, header with a live market session). Markets keeps its data and moves to the new look next.
 - Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.
