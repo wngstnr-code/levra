@@ -1,5 +1,6 @@
 "use client";
 
+import { termsMessage } from "@levra/shared/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { Address } from "viem";
@@ -7,7 +8,6 @@ import { useConfig } from "wagmi";
 import { signMessage } from "wagmi/actions";
 import { api } from "./api/client";
 import { apiConfigured, queryKeys, shouldRetry } from "./api/hooks";
-import { termsMessage } from "./terms";
 
 export type ComplianceStatus = "unchecked" | "loading" | "error" | "blocked" | "needsTerms" | "ok";
 
