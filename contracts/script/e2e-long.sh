@@ -9,7 +9,7 @@ MARGIN=${MARGIN:-50000000}
 BORROW=${BORROW:-50000000}
 MARKET=$(market long marketId)
 ORACLE=$(market long oracle)
-PARAMS="($USDC,$STOCK,$ORACLE,$IRM,770000000000000000)"
+PARAMS=$(market_params long)
 
 echo "Funding the test account and seeding the long market"
 fund_usdc 2000000000
