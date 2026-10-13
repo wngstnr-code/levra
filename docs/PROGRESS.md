@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 17 |
-| Backend | Dharu | 34 | 1 | 4 |
+| Backend | Dharu | 34 | 5 | 5 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -66,6 +66,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Wangsit | Answer Q-27 and, if yes, a `setMaxOracleAge` role with owner-set bounds in `RiskManager` (SC-11), plus the matching change in 03 | BE-17 |
+| 13 October 2026 | Dharu | Wangsit | Review PR 8 (oracle event ABI, needed by BE-03) and the formulas in PR 10 (BE-16) | BE-03, BE-16 |
+| 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
@@ -114,12 +116,21 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
+| 13 October 2026 | Quote rules in 03: `gasLimit` `"0"` when not simulated, uint256 in `typedData` as decimal strings, where realized PnL comes from, warning thresholds. No shape change | Dharu, Nabil | be/BE-12-quote-long |
+| 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
+| 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
 ### 13 October 2026
+
+- Dharu: BE-16 formulas in `packages/shared/math.ts` (PR 10) match `Lens` exactly for a real long and short on the fork. BE-10 and BE-11 (chain reader, `/v1/config`, `/v1/session`, `/v1/markets`, `/v1/stream`) are written and checked against direct contract reads on the fork. Next: BE-12 quote for long.
+- Dharu: BE-12 done on the fork: open long with first-use signatures in one `multicall`, reduce, remove collateral and full close, all from quotes over the live KyberSwap route. The router held no USDC afterwards. Request for Wangsit: add `IERC20Permit` (`nonces`, `name`, `version`) to the ABI export; the API uses a minimal fragment until then. Next: BE-06 and BE-13 indexer, then BE-14 accounts.
+
+- Dharu: BE-01 done (PR 7): api with `/v1/health`, keeper job runner with heartbeats, `packages/db`, local Postgres, backend CI passing on GitHub.
+- Dharu: BE-03 done: the oracle logger backfilled two weeks of `PriceUpdated` logs and keeps following them. Report in `docs/reports/oracle-2026-10-13.md`. For Wangsit (Q-28): BIL's source quote reached 81.5 minutes after hours, above the 1 hour hard age in `SessionOracle`; nothing is written while `CLOSED`, so `publishedAt` stops too; the session flips for about 15 minutes every Friday at 20:00 ET. Needs PR 8 (event ABI) reviewed by Wangsit.
 
 - Dharu: backend plan adjusted so values that wait on oracle data are picked up without code changes: BE-03 becomes a persistent logger in Postgres with generated reports, BE-10 reads `maxOracleAge` and `stale` from the chain, BE-16 checks bid and ask on every read with the same condition as `SessionOracle`.
 - Dharu: keeper plan adjusted the same way: new BE-17 posts `maxOracleAge` from data within multisig bounds, on the source quote clock of D-23 (needs Q-27 from Wangsit); BE-30 and BE-50 take the schedule and limits from BE-03 data; BE-31 and BE-33 use the BE-30 calendar; BE-55 covers the new key.

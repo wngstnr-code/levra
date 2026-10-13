@@ -111,6 +111,7 @@ enum Session { UNKNOWN, PRE_MARKET, REGULAR, POST_MARKET, OVERNIGHT, CLOSED }
 - `priceId` is the `keccak256` of the uppercase symbol, for example `keccak256("QQQ")`.
 - Prices have 8 decimals.
 - The layout above matches Anchored's own documentation and was read successfully from the live contract on 13 October 2026.
+- Every write emits `PriceUpdated(bytes32 indexed priceId, int256 price, int256 bestBid, int256 bestAsk, uint64 feedUpdateTimestamp, uint64 publishedAt, uint80 roundId, Session session)`, topic `0x2e2fc593...c07f`. Verified on 13 October 2026: the topic matches the signature, and logs filtered by `priceId` read back to at least 29 September 2026 through `rpc2.monad.xyz` in 10,000 block ranges. QQQ showed about 5 updates per 10,000 blocks. The oracle logger (BE-03) uses these logs, so its history starts weeks back instead of on the day it is started.
 
 What Anchored's documentation says about the oracle (read on 13 October 2026, not independently verified unless marked):
 
@@ -134,7 +135,7 @@ Consequence for our design: `ISessionOracle.snapshot()` and the API expose `publ
 
 ### Market sessions
 
-From Anchored's documentation. Times are US Eastern Time.
+From Anchored's documentation, and confirmed by two weeks of oracle writes (BE-03, see 04 and `docs/reports/oracle-2026-10-13.md`). Times are US Eastern Time.
 
 | Session | Hours |
 |---|---|

@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -18,21 +18,22 @@ Three rules for the backend:
 
 ## M0. Foundation and spikes
 
-- [ ] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
+- [x] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
+  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-31), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. The Backend workflow passed on GitHub on PR 7.
 
 - [x] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
   - Done when: Nabil and Wangsit have read and approved it; the status in 03 is changed to "frozen"; the frontend can import the types.
   - Note: merged as PR 2 on 13 October 2026. The API side of the interface agreement is frozen.
 
-- [~] **BE-03 · Oracle logger (spike)**
+- [x] **BE-03 · Oracle logger (spike)**
   - Needs: Postgres from BE-01.
   - Do: a long-running process that records every price change for QQQ, HOOD and BIL in the Anchored oracle into Postgres: the price, best bid and best ask, market session, source quote time (`feedUpdateTimestamp`) and publish time (`publishedAt`), plus the block time of each read. It keeps running after the spike. Add queries for the update interval and the source quote age per session (p50, p95, p99, max), and for every session change with its time. Check whether the oracle emits an event on each update; if it does, backfill past weeks from the logs. Add a query that computes `maxOracleAge` per market with the formula in 04.
   - Done when: the data covers at least 7 days including one weekend; the report on how often the price is updated in each session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense is generated from the queries, not written by hand. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value. BE-17 can read the tables it needs.
   - Note: start on day one, because it needs a week. A partial report after the first day is fine if it says clearly that the weekend is not covered yet. This logger later becomes the oracle monitor (BE-50).
-  - Note: Anchored's documentation answers part of this (heartbeat, delay, session hours, carry-forward while closed) and is summarized in 05 and 04. The logger itself is not written or running yet, so nothing is confirmed by observation.
+  - Note: done on 13 October 2026. The oracle emits `PriceUpdated` on every write, so the recorder (`apps/keeper`, job `oracleMonitor`) backfilled 29 September to 13 October from logs (4,603 writes, two weekends) and then follows new logs every 5 seconds. Report: `docs/reports/oracle-2026-10-13.md`, regenerated with `pnpm --filter @levra/keeper report:oracle`. Findings are in 04, Q-03 and Q-19 are answered, and the hard age questions went to Wangsit as Q-28. It runs on Dharu's machine until staging (BE-15). The event ABI comes from PR 8, which needs Wangsit's review.
 
 - [~] **BE-04 · KyberSwap (spike)**
   - Do: get an identifier; try to find a route and build calldata with a contract address as the recipient; record the rate limit. Write a script that measures market depth (buy and sell $100, $300, $1,000, $3,000, $10,000 for each stock, against the DEX mid price and against the oracle), runs daily and stores the results.
@@ -53,20 +54,23 @@ Three rules for the backend:
 
 ## M1. Core long
 
-- [ ] **BE-10 · Chain reader**
+- [x] **BE-10 · Chain reader**
   - Needs: SC-03.
   - Do: one layer for reading the oracle, the Morpho market state and positions through `Lens`, with a short cache and handling of RPC endpoint limits. Risk parameters such as `maxOracleAge` and the `stale` flag from `SessionOracle.snapshot()` are always read from the chain, never kept as constants in the backend.
   - Done when: all endpoints use it; no other part calls the RPC endpoint directly; changing `maxOracleAge` on chain changes `oracleStale` and the `ORACLE_STALE` warning without a backend deploy.
+  - Note: `apps/api/src/chain/` reads `Lens.getMarkets`, `getPositions`, `RiskManager.config`, the session values and Morpho's market fee with multicall, JSON-RPC batching and a 1 to 2 second single-flight cache. A failed read answers `UPSTREAM_ERROR`. A fork test sets `maxOracleAge` through the owner and sees `oracleStale` flip without a restart. The `ORACLE_STALE` quote warning reads the same field (BE-12).
 
-- [ ] **BE-11 · Markets, market session and price stream**
+- [~] **BE-11 · Markets, market session and price stream**
   - Needs: BE-10.
   - Do: `GET /v1/markets`, `GET /v1/session`, `GET /v1/stream`.
   - Done when: the numbers match direct reads from the chain; the stream sends a new price within a few seconds of it being published on chain.
+  - Note: `GET /v1/config`, `/v1/session`, `/v1/markets` and `/v1/stream` (SSE: `price` per stock, `market`, `session`, only on change, read every 2 seconds) are written. A fork test checks every market number against direct contract reads. `nextOpenAt` stays null until the calendar (BE-30) and the DEX price fields stay null until BE-04 measures them. Still to do: timing of the stream against a live oracle write. A fork does not receive new writes, so this needs the mainnet deployment (Wangsit).
 
-- [ ] **BE-12 · Quote engine for long**
+- [x] **BE-12 · Quote engine for long**
   - Needs: BE-04, BE-10, BE-16, the ABI from SC-03. For simulation it needs SC-14.
   - Do: `POST /v1/quote/open`, `/v1/quote/close`, `/v1/quote/collateral` for long. Compute the loan amount from the leverage; request a route; build the router calldata; simulate against the chain; fill in the gas limit; fill in warnings and the required approvals.
   - Done when: the transaction data from a quote runs successfully on the local fork for open, reduce and full close; the displayed summary matches the real result within the requested slippage tolerance.
+  - Note: done on 13 October 2026 on the local fork with the live KyberSwap route (`apps/api/test/quote-long.fork.test.ts`): first use with a USDC permit and a Morpho authorization signed by a real key, sent as one `multicall`; then reduce by half, remove collateral, and full close, each from its quote. Collateral and returned USDC landed within 2% of the preview at 1% slippage, and the router held no USDC afterwards. `/v1/quote/collateral` also works for short markets; open and close for short come in BE-20. Realized PnL uses router events until the indexer (BE-13) exists. The DEX mid price comes from a 10 USDC KyberSwap probe.
 
 - [ ] **BE-13 · Indexer**
   - Needs: BE-06, SC-03. Addresses from SC-14.
@@ -83,10 +87,11 @@ Three rules for the backend:
   - Do: deploy the API, indexer and database on the service of your choice; choose a paid RPC endpoint provider; `GET /v1/status`.
   - Done when: Nabil uses the staging address from the deployed web app.
 
-- [ ] **BE-16 · Shared formulas**
+- [~] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
   - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table. Include the "price used" rule from 04 (long: lower of price and best bid, short: higher of price and best ask) with the fallback to the price alone, checked on every read so the code does not depend on the answer to Q-19. The fallback condition must match `SessionOracle` exactly, as written in 04.
   - Done when: tests compare the results with `Lens` on the local fork for long and short, including a zero and a non-sensible bid and ask; Wangsit has reviewed it.
+  - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). The fork test in `apps/api/test/fork.test.ts` opens a real long and short on Morpho and gets exactly the same LTV and liquidation price as `Lens`, and the same Morpho price as `SessionOracle.price()`. A zero or non-sensible bid and ask cannot be produced on a fork of the live oracle, so those cases are covered by unit tests only. Still to do: Wangsit's review.
 
 - [ ] **BE-17 · Oracle age poster (keeper)**
   - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (Q-27, requested from Wangsit).
@@ -125,6 +130,7 @@ Three rules for the backend:
   - Needs: BE-03, SC-11.
   - Do: a close and open calendar (US exchange holidays, daylight saving changes, the Anchored session schedule); a program that writes `nextCloseAt` to `RiskManager`. The Anchored schedule is read from the session changes recorded by BE-03, never typed into the code. Until a weekend close has been observed, post the earliest possible close (the regular close on the last trading day), because an early close is safe and a late one is not. The program switches to the observed schedule by itself once the data has it.
   - Done when: `nextCloseAt` on chain is correct for the next four weeks, including one holiday; on the local fork it posts the early close with no weekend data and the observed close after a weekend is recorded, with no code change in between; if this program stops, the team gets an alert.
+  - Note: BE-03 data shows the weekly close at Friday 20:00 ET, with the session flipping between `POST_MARKET` and `CLOSED` until about 20:15. The close time is the first `CLOSED` write, not the last flip.
 
 - [ ] **BE-31 · Protector keeper**
   - Needs: SC-30, BE-20.
@@ -171,6 +177,7 @@ Three rules for the backend:
 - [ ] **BE-50 · Monitoring and alerts for the team**
   - Do: every row in the "What we monitor" table in 08; alerts to the team channel. Grows out of the BE-03 logger. The "price too old" limit is computed per session from the BE-03 data, not typed in. Until a session has enough samples, use a strict default and mark the monitor as learning in `/v1/status`. The expected session schedule comes from the same source as BE-30.
   - Done when: each row has been triggered once on purpose and its alert arrived; a normal weekend with no updates raises no alert once the weekend is in the data.
+  - Note: the Friday 20:00 to 20:15 ET session flipping seen in BE-03 is normal for this oracle and must not raise a "session outside schedule" alert.
 
 - [ ] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
