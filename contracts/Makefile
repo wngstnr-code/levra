@@ -15,8 +15,9 @@ fmt:
 abis: build
 	node script/export-abis.mjs
 
+# Set FORK_BLOCK to get the same addresses on every machine. Live swap routes need the latest block.
 fork:
-	anvil --fork-url $(RPC) --port 8545
+	anvil --fork-url $(RPC) --port 8545 $(if $(FORK_BLOCK),--fork-block-number $(FORK_BLOCK))
 
 deploy-fork:
 	DEPLOY_ENV=fork forge script script/Deploy.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast

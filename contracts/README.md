@@ -26,7 +26,7 @@ make build
 | `make test` | Run the tests against a fork of Monad mainnet (real Morpho, real Anchored oracle, real tokens) |
 | `make abis` | Compile, then write the ABIs to `packages/shared/abis/` |
 | `make fmt` | Format |
-| `make fork` | Start a local fork of Monad mainnet on port 8545 |
+| `make fork` | Start a local fork of Monad mainnet on port 8545. `FORK_BLOCK=<number>` pins the block |
 | `make deploy-fork` | Deploy everything to the local fork and write `deployments/fork.json` |
 | `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route |
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
@@ -34,6 +34,13 @@ make build
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
 
 Run `make abis` after any change to an interface and commit the result in the same PR.
+
+## Deployment files
+
+The deployment script writes `deployments/<environment>.json`. `packages/shared/deployments.ts` holds its schema and `packages/shared/markets.ts` joins the markets with the stock list.
+
+- `fork.json` is not committed. Its addresses depend on the deployer's nonce at the forked block, so they match between machines only when the same `FORK_BLOCK` is used.
+- `monad.json` is committed after the mainnet deployment.
 
 ## Tests
 
