@@ -209,9 +209,10 @@ Three rules for the backend:
   - Done when: requests from a restricted region are rejected with `REGION_BLOCKED`; the acceptance is stored together with the version of the terms.
   - Note: written on 14 October 2026. The country comes from a header set by the CDN in front of the API (`GEO_COUNTRY_HEADER`, for example `cf-ipcountry`); with a block list (`BLOCKED_COUNTRIES`), a request without a country is refused, since it did not come through the CDN. `POST /v1/terms/accept` rebuilds the 03 text (`termsMessage` in `packages/shared/api/compliance.ts`) and checks the signature, smart wallets included, then stores the address, version, signature and country. Only opening a position (`/v1/quote/open`) and a deposit quote are gated; closing, reducing, collateral and withdrawals never are (product rule 8). Without `TERMS_VERSION` the routes are off and the web app cannot pass its gate, so a deployment without terms takes no new positions. Tests: blocked and missing country, gate on open and deposit, no gate on close and withdraw, a wrong signer or old version refused, acceptance stored. Still to do: the country list and the terms version from X-10 and X-11, and the CDN header once hosted (BE-15).
 
-- [ ] **BE-53 · Backups and incident runbook**
+- [~] **BE-53 · Backups and incident runbook**
   - Do: regular database backups and a restore test; a runbook for the six situations in 07, stored in `docs/`.
   - Done when: a restore from backup has been tried; the runbook has been read by all three of us and practiced once.
+  - Note: backup, restore and restore-check scripts in `packages/db/scripts` (`pg_dump` custom format, restore in one transaction, the check compares every table's row count between the counts before and after the dump). The restore test passed on 13 October 2026 on `levra_staging` and `levra` (results in the runbook). Runbook: `docs/runbook.md`, the six situations in 07 plus backup and restore. Still to do: scheduled backups and off-site copies on the hosted database (BE-15), all three reading the runbook, and one drill.
 
 - [~] **BE-54 · Load test**
   - Done when: the quote and account endpoints hold up at the target load without passing the limits of the RPC endpoint and outside services; the result is recorded.
