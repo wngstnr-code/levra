@@ -52,7 +52,7 @@ Every question has an owner and a milestone to answer it by.
 |---|---|---|---|---|---|
 | Q-01 | Answered: Levra (D-15). Still open under X-02: domain, social handles, and a conflict check. A quick search found no project named exactly Levra, but found close names in the same field: Levva (DeFi vaults, formerly Marginly), Levr (token launchpad) and Levana (perps) | Nabil | M0 | X-02 | Keep Levra unless the conflict check finds a real problem |
 | Q-02 | Answered: Privy (D-22). Privy's documentation says the embedded wallet is a normal key wallet by default, supports `signTypedData` and can be exported, so the signature path of D-20 should work. Still to confirm by running it in FE-02 | Nabil, Wangsit | M0 | FE-02 | Proceed on the signature path |
-| Q-03 | Partly answered from Anchored's documentation: 10 minute heartbeat, source quote about 15 minutes delayed, suggested max age at least 1,500 seconds, and the price is carried forward while `CLOSED`. Still open: confirm by a week of observation, then choose the numbers | Dharu, Wangsit | M1 | BE-03, SC-10 | See Q-22 for which clock to use |
+| Q-03 | Answered by observation (BE-03, two weeks including two weekends, `docs/reports/oracle-2026-10-13.md`): writes about every 10 minutes while open; no writes at all while `CLOSED` (about 47.7 hours each weekend), so `feedUpdateTimestamp` and `publishedAt` both stop; source quote age outside `CLOSED` reaches 26.8 minutes for QQQ, 33.6 for HOOD and 81.5 for BIL. Choosing the numbers moves to Q-28 | - | - | - | - |
 | Q-04 | What happens to dividends for stocks held by Morpho? What about the stock borrower (short) when there is a dividend? | Wangsit | M2 | X-12 | Write it in the risk disclosure until it is clear |
 | Q-05 | Does Anchored allow its token to be used in a lending venue? Can the Morpho or router address be put on a denylist? | Wangsit | M1 | X-12, SC-05 | Run staging with small funds while waiting for the answer |
 | Q-06 | How do the margin and short rules on stocks apply to this product? What kind of legal entity and where? | All three | M5 | X-10, X-20 | There is no strong answer yet |
@@ -68,7 +68,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-16 | Answered: all three pools pair the stock directly with USDC and routes are a single hop (aggregator routes on 13 October 2026) | Wangsit | M0 | SC-04 | - |
 | Q-17 | Answered: yes. Anvil 1.8.3 forks Monad. Forge needs `--network monad`. The full long flow through real Morpho and a real KyberSwap route runs on the fork | - | - | - | - |
 | Q-18 | Answered: yes for USDC (`DOMAIN_SEPARATOR` and `nonces` answer). No for aQQQ, aHOOD and aBIL, so lending stock needs a normal `approve` first | Wangsit | M0 | SC-05 | - |
-| Q-19 | Partly answered: Anchored's documentation says the oracle rejects any write where a price is not positive or bid exceeds ask. One live read agreed. Still to confirm over a week | Dharu | M1 | BE-03 | Keep the fallback to the price alone |
+| Q-19 | Answered by observation (BE-03): in 4,603 writes the best bid and best ask were always positive, never crossed, and always around the price. The fallback to the price alone stays as a safety net | - | - | - | - |
 | Q-20 | When and how to accept stocks from xStocks? Which oracle is used for them? | All three | After M6 | X-18 | The design already allows a different oracle per market |
 | Q-21 | Answered: see D-27 | - | - | - | - |
 | Q-22 | Answered: see D-23 | - | - | - | - |
@@ -77,6 +77,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-25 | Which domain? `levra.com`, `.io`, `.xyz` and `.app` are in use | Nabil | M0 | X-02 | See "Decisions waiting for the team" |
 | Q-26 | Answered: see D-30 | - | - | - | - |
 | Q-27 | Can a keeper role set `maxOracleAge` within bounds set by the multisig? This keeps the value in line with oracle data with nobody touching it, but it lets one key loosen a limit inside the bounds, which SC-55 currently forbids | Wangsit, Dharu | M1 | SC-11, SC-55, BE-17 | Yes. Dharu proposes a new role in `RiskManager` with `setMaxOracleAge(Id, uint32)`, rejected outside `[minOracleAge, capOracleAge]` per market, where the bounds are set by the owner only. SC-55 gets an exception for this one value inside the bounds |
+| Q-28 | Which hard ages should `SessionOracle` use, per market? BE-03 data: BIL's source quote reached 81.5 minutes after hours, above the 1 hour setting, so an aBIL `price()` would revert then; `publishedAt` stops while `CLOSED`, so the 4 day setting must cover the longest holiday close (about 72 hours, not yet observed); the session flips for about 15 minutes every Friday at 20:00 ET. Details in 04 | Wangsit | M1 | SC-10, BE-03 | Raise the open-market hard age for BIL (for example 2 hours), keep 4 days while `CLOSED`, and set `maxOracleAge` from the rule in 04 (QQQ 35, HOOD 36, BIL 51 minutes on this data) |
 
 ## Decisions waiting for the team
 

@@ -140,10 +140,11 @@ The Anchored oracle is the weakest point of this design. What we know and do not
 | Live on Monad, gives price and market session for QQQ, HOOD, BIL | Verified |
 | Price delayed 15 to 23 minutes when measured | Verified, one measurement. Anchored's documentation says the source quote can be about 15 minutes delayed |
 | Controlled by one party and they can change it | Verified. It is an upgradeable proxy, and prices are written by an operator role held by Anchored |
-| Best bid and best ask are positive and ordered | From Anchored's documentation: the oracle rejects a write that breaks this. One live read agreed |
-| How often the price is updated | From Anchored's documentation: a 10 minute heartbeat by default. Not verified by observation (BE-03) |
-| What happens when the market is closed | From Anchored's documentation: the last price is carried forward and `feedUpdateTimestamp` stops advancing. Not verified by observation (BE-03) |
-| The schedule of each market session | From Anchored's documentation, see 05. Weekly close Friday 8:00 PM and weekly open Sunday 8:00 PM, US Eastern Time. Not verified by observation (BE-03) |
+| Best bid and best ask are positive and ordered | Verified by observation (BE-03, 4,603 writes, 29 September to 13 October 2026): always positive, bid never above ask, and the price always between them. 99th percentile spread: QQQ 16.6 bps, HOOD 46.9 bps, BIL 16.4 bps. Largest: HOOD 198 bps |
+| How often the price is updated | Verified by observation (BE-03): about every 10 minutes in every open session. QQQ and HOOD: 95% of gaps at most 10.2 minutes. BIL is slower outside regular hours: 99th percentile gap up to 43 minutes after hours |
+| What happens when the market is closed | Verified by observation (BE-03): over both weekends there were no writes at all for about 47.7 hours. `feedUpdateTimestamp` and `publishedAt` both stop. The price is carried forward |
+| The schedule of each market session | Verified by observation (BE-03), US Eastern Time: sessions match 05. The session field changes on the first write after each boundary: about 04:15, 09:45 and 16:15, and 20:00 sharp. On Fridays the session flips between `POST_MARKET` and `CLOSED` many times from 20:00 to 20:15, then stays `CLOSED` until Sunday 20:00. No holiday is in the data yet |
+| Source quote age outside `CLOSED` | Verified by observation (BE-03), 99th percentile and maximum: QQQ 25.0 and 26.8 minutes, HOOD 25.8 and 33.6 minutes, BIL 41.0 and 81.5 minutes. Full numbers in `docs/reports/oracle-2026-10-13.md` |
 | Stock splits and other corporate actions | Not known. A split that changes the price per token without changing balances would liquidate positions. Asked in X-12 |
 
 How this design withstands those weaknesses:
@@ -164,6 +165,15 @@ Max ages used by the deployment script, all initial proposals until BE-03 has a 
 | Source quote age to open a new position | 45 minutes | `RiskManager`, soft |
 
 Staleness needs two clocks (decided in D-23). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
+
+What the BE-03 data means for these numbers (for Wangsit to decide, Q-28):
+
+- BIL's source quote reached 81.5 minutes after hours, above the 1 hour hard age. With that setting, `price()` of an aBIL market would revert at those moments and block liquidations. QQQ and HOOD stayed under 34 minutes.
+- `publishedAt` does not advance while `CLOSED`, so it measures time since the close, not a heartbeat. A normal weekend is about 48 hours, inside the 4 day setting. A long holiday weekend can reach about 72 hours. No holiday was observed yet.
+- The 45 minute soft value is above the QQQ and HOOD data but below BIL's after-hours maximum, so opening an aBIL position would sometimes be refused after hours.
+- Because the session flips on Friday evenings, any rule keyed on `CLOSED` switches on and off for about 15 minutes before it settles.
+
+Values from the automatic rule below on this data (initial proposal): QQQ 35 minutes, HOOD 36 minutes, BIL 51 minutes.
 
 ### Automatic `maxOracleAge`
 
