@@ -73,3 +73,24 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@utility animate-sheet-in {
+  animation: sheet-in 350ms var(--ease-spring);
+}
+
+@utility animate-fade-in {
+  animation: fade-in 200ms ease-out;
+}

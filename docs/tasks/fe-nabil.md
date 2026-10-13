@@ -50,24 +50,28 @@ Four rules for the frontend:
 
 ## M1. Core long
 
-- [ ] **FE-10 · Markets page**
+- [~] **FE-10 · Markets page**
   - Needs: BE-02. Data from BE-11; before that, straight from the chain.
   - Do: a list of stocks with price, market session, current limit, maximum leverage, borrow rate, available funds, and DEX-to-oracle deviation.
   - Done when: all numbers match `GET /v1/markets`; prices change through the stream without a reload.
+  - Note: built on 13 October 2026 (`fe/FE-10-13-m1-core-long`): `/markets` reads `GET /v1/markets`, keeps prices current from `/v1/stream` (server-sent events), and shows price, session and quote age straight from the oracle when the service is not configured. Limits and rates are never filled with stand-in numbers. Waiting for the staging API to be hosted, with CORS, to check against `/v1/markets` (blocker in PROGRESS).
 
-- [ ] **FE-11 · Long form**
+- [~] **FE-11 · Long form**
   - Needs: SC-03, BE-02. Quotes from BE-12; for tests on the local fork it needs SC-14.
   - Do: inputs for amount and leverage with their limits; a pre-confirmation summary with all items in Flow 2 in 01; the approval steps (USDC approval and Morpho authorization) combined into one confirmation when possible; a transaction tracker; a result screen; translation of every contract error into a plain sentence; the quote is requested again when it goes stale; the confirm button disappears when there is a `block` warning.
   - Done when: opening a long works on the local fork and on mainnet staging; the transaction data from the backend is checked first (the target must be the router address from `packages/shared`).
+  - Note: built on 13 October 2026: `/trade` with margin, leverage within the market maximum, slippage, the summary of Flow 2 (stock and value, debt, exchange vs oracle price, impact, fee, LTV ring against soft and hard limits, liquidation price and distance, gap scenarios), a details sheet, first-use signatures in one confirmation (D-20), approvals when a token has no permit, a transaction sheet with plain sentences before the wallet opens, re-quoting before expiry, and a hidden confirm button on a `block` warning. Every transaction is decoded and checked against the router address and the market on screen before the wallet sees it (D-19). Contract errors become sentences in `apps/web/lib/i18n`. Not yet run against the API: waiting for staging hosting and CORS. `signTypedData` with the Privy embedded wallet (Q-02) is checked on the first real run.
 
-- [ ] **FE-12 · Positions page**
+- [~] **FE-12 · Positions page**
   - Needs: BE-14.
   - Do: a list of positions with value, debt, profit and loss, an LTV bar (with marks for the soft limit and the hard limit), and the distance to the liquidation price; actions to add collateral, remove collateral, reduce and close; history.
   - Done when: all four actions work on staging; the position changes on screen within a few seconds after the transaction.
+  - Note: built on 13 October 2026: `/positions` with total equity, a card per position (LTV ring with soft and hard marks, value, debt, equity, entry, P&L, liquidation price and distance, worst gap), and a manage sheet for add, remove and repay (`/v1/quote/collateral`) and reduce and close (`/v1/quote/close`). The history tab explains each item in a sentence. Waiting for staging hosting and CORS to run the four actions.
 
-- [ ] **FE-13 · Always-visible states**
+- [~] **FE-13 · Always-visible states**
   - Do: a market session badge on all pages; a banner when the oracle price is stale; a banner when the backend or the keepers have a problem (from `/v1/status`); one consistent error message style.
   - Done when: each state can be triggered and shows correctly.
+  - Note: built on 13 October 2026: the session badge is in the header on every page, read from the oracle. Banners for no service, an unreachable service, a stale price and background services behind (`/v1/status`). One empty and error style (`EmptyState`). The stale and service rules are unit tested. Checking each state live waits for the staging API.
 
 ---
 

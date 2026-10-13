@@ -3,13 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 import { useMarketSession } from "@/lib/useMarketSession";
 import { SessionBadge } from "./ui/SessionBadge";
 import { WalletButton } from "./WalletButton";
 
-const routes = [{ href: "/markets", label: "Markets" }];
+const routes = [
+  { href: "/markets", key: "markets" },
+  { href: "/trade", key: "trade" },
+  { href: "/positions", key: "positions" },
+] as const;
 
 export function Header() {
+  const m = useT();
   const pathname = usePathname();
   const session = useMarketSession();
 
@@ -33,7 +39,7 @@ export function Header() {
                   active ? "bg-surface-3 text-fg" : "text-fg-2 hover:text-fg",
                 )}
               >
-                {r.label}
+                {m.nav[r.key]}
               </Link>
             );
           })}
