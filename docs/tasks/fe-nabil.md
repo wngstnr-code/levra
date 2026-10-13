@@ -109,7 +109,7 @@ Four rules for the frontend:
   - Needs: BE-33.
   - Do: sign in with a wallet signature; choose the channel and the types of alerts.
   - Done when: the choices are saved and a test alert arrives.
-  - Note: built on 13 October 2026: Settings signs in with a wallet signature (SIWE built with viem, `/v1/auth/nonce` and `/v1/auth/siwe`), then reads and saves `/v1/alerts`: email, the Telegram link status, before-close, an LTV threshold, protection, liquidation and deposit alerts. A test alert needs an endpoint that 03 does not have yet. Waiting for BE-33.
+  - Note: built on 13 October 2026: Settings signs in with a wallet signature (SIWE built with viem, `/v1/auth/nonce` and `/v1/auth/siwe`), then reads and saves `/v1/alerts`: email, the Telegram link status, before-close, an LTV threshold, protection, liquidation and deposit alerts. A test alert needs an endpoint that 03 does not have yet. Waiting for BE-33. On 14 October 2026, after BE-33: Telegram can be linked from Settings with the one-time bot link (`POST /v1/alerts/telegram`, "I pressed Start" refreshes the status) and unlinked (`DELETE`). Still needed for "Done when": the delivery keys (Q-30) and a test alert endpoint.
 
 - [~] **FE-32 · Gap scenarios panel**
   - Needs: BE-34.
@@ -131,12 +131,12 @@ Four rules for the frontend:
   - Needs: BE-40.
   - Do: choose the source chain and token; show the deposit address, QR code, the amount that will arrive, the estimated time and the expiry time; a status tracker; when funds arrive, guide the user straight to the transaction form; handle expiry and refunds.
   - Done when: a real deposit from another chain is completed from start to finish through the app.
-  - Note: built on 13 October 2026 (`fe/FE-40-41-m4-deposits`): `/deposit` picks the origin chain and token from `/v1/deposit/tokens`, takes the amount, the refund address and whether to send MON, then shows the deposit address with a QR code, the memo, what arrives, the time and an expiry countdown, and follows `/v1/deposit/:id` through seen, processing and arrived, or refunded, failed or expired, with a button to Trade on arrival. Transfer ids are kept in the browser per address, since the API has no list yet (10-screens.md). Waiting for BE-40 to run a real deposit.
+  - Note: built on 13 October 2026 (`fe/FE-40-41-m4-deposits`): `/deposit` picks the origin chain and token from `/v1/deposit/tokens`, takes the amount, the refund address and whether to send MON, then shows the deposit address with a QR code, the memo, what arrives, the time and an expiry countdown, and follows `/v1/deposit/:id` through seen, processing and arrived, or refunded, failed or expired, with a button to Trade on arrival. Transfer ids are kept in the browser per address, since the API has no list yet (10-screens.md). Waiting for BE-40 to run a real deposit. On 14 October 2026, after BE-40 and D-40: with "send MON" on, the screen also shows the second transfer (`gasDeposit`: address, QR, memo, how much of the same token to send) and follows its status with the amount in MON. Still needed for "Done when": a real transfer, which waits on Dharu's test transfers and the hosted API.
 
 - [~] **FE-41 · Withdraw flow**
   - Needs: BE-41.
   - Done when: a real withdrawal to another chain is completed through the app.
-  - Note: built on 13 October 2026: the Withdraw tab takes the USDC amount, the destination chain and token and the recipient, gets `/v1/withdraw/quote`, sends USDC on Monad to the quoted address with a plain-sentence sheet first, and follows the status. Waiting for BE-41 to run a real withdrawal.
+  - Note: built on 13 October 2026: the Withdraw tab takes the USDC amount, the destination chain and token and the recipient, gets `/v1/withdraw/quote`, sends USDC on Monad to the quoted address with a plain-sentence sheet first, and follows the status. Waiting for BE-41 to run a real withdrawal. On 14 October 2026: the destination hash of a withdrawal shows as text, since it is not always an EVM hash.
 
 ---
 
@@ -146,7 +146,7 @@ Four rules for the frontend:
   - Needs: BE-52, X-11.
   - Do: a screen for restricted regions; acceptance of the terms and the risk disclosure on the first visit, with a wallet signature.
   - Done when: a user from a restricted region cannot reach the transaction forms; a new user cannot transact before accepting.
-  - Note: built on 13 October 2026 (`fe/FE-50-55-m5-hardening`): `/v1/eligibility` is checked for the visitor; a blocked region sees a full screen on Trade and cannot supply or deposit, and is pointed to Positions, because closing, adding collateral and withdrawing are never gated. A new user signs the terms and the risk disclosure once (three boxes, then `personal_sign` of the text in 03 section 4, then `POST /v1/terms/accept`) before opening, supplying or depositing. Tested end to end for the blocked region. Waiting for BE-52 and the final terms (X-11).
+  - Note: built on 13 October 2026 (`fe/FE-50-55-m5-hardening`): `/v1/eligibility` is checked for the visitor; a blocked region sees a full screen on Trade and cannot supply or deposit, and is pointed to Positions, because closing, adding collateral and withdrawing are never gated. A new user signs the terms and the risk disclosure once (three boxes, then `personal_sign` of the text in 03 section 4, then `POST /v1/terms/accept`) before opening, supplying or depositing. Tested end to end for the blocked region. Waiting for BE-52 and the final terms (X-11). On 14 October 2026, after BE-52: the signed text now comes from `termsMessage` in `packages/shared` (the local copy is removed). Still needed: `TERMS_VERSION` and `BLOCKED_COUNTRIES` from X-10 and X-11, and the hosted API.
 
 - [~] **FE-51 · Mobile, accessibility and speed**
   - Done when: all flows are comfortable on a phone screen; the app can be used with a keyboard; colors have enough contrast; the main page opens quickly on a slow connection.
