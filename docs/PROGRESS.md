@@ -202,9 +202,8 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 13 October 2026
 
 - Nabil: fixed the leverage slider stuck at 1× while the service is offline: limits now come from RiskManager on chain. A sweep of 20 controls on every page in Chromium passes. The analytics script now loads only on Vercel.
-- Nabil: decided D-38, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
 - Nabil: decided D-39, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
-- Nabil: M5 frontend built on `fe/FE-50-55-m5-hardening`: region and terms gates (closing and withdrawing never gated), Help with words, risks and every address, error screens and cookieless metrics, a phone tab bar and better contrast, Playwright in CI (33 tests on desktop and phone, two languages). Waiting for BE-52, X-11 and an error service.
+- Nabil: M5 frontend built on `fe/FE-50-55-m5-hardening`: region and terms gates (closing and withdrawing never gated), Help with words, risks and every address, error screens and cookieless metrics, a phone tab bar and better contrast, Playwright in CI on desktop and phone. Waiting for BE-52, X-11 and an error service.
 - Nabil: M4 frontend built on `fe/FE-40-41-m4-deposits`: cross-chain deposit with a QR code, expiry and a status tracker, and withdraw with a checked USDC transfer. Waiting for BE-40 and BE-41.
 - Nabil: M3 frontend built on `fe/FE-30-33-m3-protection`: protection switches, the close countdown and pre-close banners, Settings with alerts behind a wallet sign-in, Morpho authorization, wallet and language, and a gap slider on the shared formula. Waiting for BE-30, BE-33 and SC-30 on mainnet.
 - Nabil: M2 frontend built on `fe/FE-20-22-m2-short-earn`: short on the trade form, Earn with the vault and stock lending read and sent straight on chain, and the market detail page. Waiting for BE-20, BE-21 and BE-23 for short quotes, APY and market detail data.
