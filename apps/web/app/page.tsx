@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function HomePage() {
-  return <h1 className="text-2xl font-semibold">Levra</h1>;
+  redirect("/markets");
 }
