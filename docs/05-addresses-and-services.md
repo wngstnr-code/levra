@@ -201,6 +201,7 @@ Also verified on a local fork on 13 October 2026:
 - The built calldata executes from our router, for buying and for selling.
 - The calldata carries its own minimum return, derived from the `slippageTolerance` sent when building. If the pool moved more than that, the swap reverts with "Return amount is not enough" before our own check. So the user's slippage setting must be passed to the build request.
 - The build request is refused with "wallets invalid" for some addresses. The well-known first account of a local node is one of them.
+- Verified on 13 October 2026 against the mainnet deployment: the build request accepts the mainnet router (`0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6`) as sender and recipient. Quotes for aQQQ, aHOOD and aBIL from the staging API built calldata for it.
 
 Observed on 13 October 2026 (BE-04): a full depth run sends 33 route requests in 18 seconds, with a 300 ms pause between requests, and got no 429. KyberSwap does not publish the limit for an unregistered client ID, so the real limit is not verified. The client in `packages/kyber` reports a 429 as `RATE_LIMITED`, and the depth keeper counts them in its heartbeat. Still not verified: whether a registered client ID is needed for production use.
 

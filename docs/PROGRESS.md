@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 19 |
-| Backend | Dharu | 34 | 10 | 5 |
+| Backend | Dharu | 34 | 11 | 4 |
 | Frontend | Nabil | 25 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -153,6 +153,8 @@ One line for every change to 03 after the freeze.
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
 ### 13 October 2026
+
+- Dharu: staging run against the mainnet deployment on Dharu's machine: the indexer saw Wangsit's first-run transactions, markets, status, account and history answered correctly, KyberSwap accepts the mainnet router, and the price stream delivered live oracle writes 1 to 2 seconds after publication (BE-11 done). Fixed: a full close of a short showed as a reduction. Waiting: hosting and a paid RPC provider for BE-15.
 
 - Wangsit: the contracts are deployed on Monad mainnet (SC-15, staging): router, risk manager, lens, liquidator and five markets, in 25 transactions for 1.87 MON. Read back from the chain: owners, fees, limits, oracle ages and prices match the plan. Addresses are in `contracts/deployments/monad.json` and in `@levra/shared/deployments/monad`. Keeper, calendar poster and oracle age poster are not set yet. The source of all nine contracts is verified on Sourcify. Next: the first real long and short once the wallet holds USDC.
 - Dharu: BE-32 done: the liquidator bot watches every borrower in our markets from the indexed Morpho events and liquidates through `Liquidator` with a KyberSwap route, never using the contract's float. Long and short liquidations ran on the fork. For Wangsit: `Deploy.s.sol` gives one `KEEPER` address both the router and the Liquidator keeper role, while BE-55 asks for one key per role.

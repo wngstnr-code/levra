@@ -61,11 +61,11 @@ Three rules for the backend:
   - Done when: all endpoints use it; no other part calls the RPC endpoint directly; changing `maxOracleAge` on chain changes `oracleStale` and the `ORACLE_STALE` warning without a backend deploy.
   - Note: `apps/api/src/chain/` reads `Lens.getMarkets`, `getPositions`, `RiskManager.config`, the session values and Morpho's market fee with multicall, JSON-RPC batching and a 1 to 2 second single-flight cache. A failed read answers `UPSTREAM_ERROR`. A fork test sets `maxOracleAge` through the owner and sees `oracleStale` flip without a restart. The `ORACLE_STALE` quote warning reads the same field (BE-12).
 
-- [~] **BE-11 · Markets, market session and price stream**
+- [x] **BE-11 · Markets, market session and price stream**
   - Needs: BE-10.
   - Do: `GET /v1/markets`, `GET /v1/session`, `GET /v1/stream`.
   - Done when: the numbers match direct reads from the chain; the stream sends a new price within a few seconds of it being published on chain.
-  - Note: `GET /v1/config`, `/v1/session`, `/v1/markets` and `/v1/stream` (SSE: `price` per stock, `market`, `session`, only on change, read every 2 seconds) are written. A fork test checks every market number against direct contract reads. `nextOpenAt` stays null until the calendar (BE-30). The DEX price fields come from the depth keeper (BE-04) and are null when no mid price is under 30 minutes old. Still to do: timing of the stream against a live oracle write. A fork does not receive new writes, so this needs the mainnet deployment (Wangsit).
+  - Note: `GET /v1/config`, `/v1/session`, `/v1/markets` and `/v1/stream` (SSE: `price` per stock, `market`, `session`, only on change, read every 2 seconds) are written. A fork test checks every market number against direct contract reads. `nextOpenAt` stays null until the calendar (BE-30). The DEX price fields come from the depth keeper (BE-04) and are null when no mid price is under 30 minutes old. Done on 13 October 2026 against the mainnet deployment: three live oracle writes reached a stream client 1 to 2 seconds after they were published on chain (HOOD 2 s, BIL 2 s, QQQ 1 s).
 
 - [x] **BE-12 · Quote engine for long**
   - Needs: BE-04, BE-10, BE-16, the ABI from SC-03. For simulation it needs SC-14.
@@ -89,7 +89,7 @@ Three rules for the backend:
   - Needs: BE-11, BE-14.
   - Do: deploy the API, indexer and database on the service of your choice; choose a paid RPC endpoint provider; `GET /v1/status`.
   - Done when: Nabil uses the staging address from the deployed web app.
-  - Note: `GET /v1/status` is written and tested: source quote age and stale flag per stock, health of every keeper from its heartbeat, indexer cursor against the chain head, and `APP_VERSION`. Still to do: the hosting and the paid RPC provider (Dharu and Nabil), and the mainnet deployment (Wangsit) that staging points at.
+  - Note: `GET /v1/status` is written and tested: source quote age and stale flag per stock, health of every keeper from its heartbeat, indexer cursor against the chain head, and `APP_VERSION`. On 13 October 2026 api, indexer and keeper ran on Dharu's machine against the mainnet deployment (`contracts/deployments/monad.json`, public RPC, database `levra_staging`): the indexer picked up Wangsit's first-run transactions (5 opens and closes, seed lending) within seconds; `/v1/markets`, `/v1/session`, `/v1/status` (indexer lag 2 blocks, oracleMonitor and marketDepth healthy) and the account and history of the first-run wallet answered correctly; quotes built KyberSwap calldata for the mainnet router. Still to do: hosting and a paid RPC provider (Dharu and Nabil), so Nabil's deployed web app can point at it.
 
 - [~] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
