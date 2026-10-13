@@ -79,6 +79,7 @@ interface ISessionOracle is IOracle {
             uint256 bidE8,
             uint256 askE8,
             Session session,
+            uint64 feedUpdatedAt,   // time of the source quote
             uint64 publishedAt,
             bool stale
         );
@@ -104,6 +105,8 @@ interface IRiskManager {
     }
 
     function config(Id id) external view returns (MarketConfig memory);
+    function marketIds() external view returns (Id[] memory);
+    function positionLtv(Id id, address user) external view returns (uint256); // WAD
     function isClosedRegime() external view returns (bool); // closed, or already inside the pre-close window
     function currentSoftLtv(Id id) external view returns (uint256); // WAD
     function nextCloseAt() external view returns (uint64);
@@ -198,6 +201,7 @@ interface ILens {
         uint256 borrowRatePerSecond; // WAD
         uint256 priceE8;
         Session session;
+        uint64 feedUpdatedAt;
         uint64 publishedAt;
         bool stale;
         bool enabled;
@@ -325,6 +329,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | Method | Path | Content | Milestone |
 |---|---|---|---|
 | GET | `/v1/health` | Alive or not | M1 |
+| GET | `/v1/config` | Chain ID and the addresses of our contracts and markets | M1 |
 | GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block | M1 |
 | GET | `/v1/session` | Market session, next close and open time | M1 |
 | GET | `/v1/markets` | All markets, with the current session | M1 |
@@ -374,6 +379,7 @@ type Market = {
   enabled: boolean;
 
   oraclePriceE8: string;
+  oracleFeedUpdatedAt: number; // time of the source quote
   oraclePublishedAt: number;
   oracleStale: boolean;
   dexMidPriceE8: string | null;
@@ -678,6 +684,24 @@ type AlertSettings = {
   };
 };
 
+type ConfigResponse = {
+  chainId: number;
+  morpho: Address;
+  usdc: Address;
+  router: Address;
+  riskManager: Address;
+  lens: Address;
+  markets: {
+    symbol: string;
+    side: SideName;
+    marketId: Hex;
+    oracle: Address;
+    collateralToken: Address;
+    loanToken: Address;
+    lltv: string;
+  }[];
+};
+
 type HealthResponse = { ok: true };
 type StatusResponse = {
   oracle: { symbol: string; publishedAt: number; ageSeconds: number; stale: boolean }[];
@@ -697,7 +721,7 @@ Server-Sent Events. Three event types:
 
 | Event | Content | When |
 |---|---|---|
-| `price` | `{ symbol, oraclePriceE8, publishedAt, stale, dexMidPriceE8 }` | On every new price |
+| `price` | `{ symbol, oraclePriceE8, feedUpdatedAt, publishedAt, stale, dexMidPriceE8 }` | On every new price |
 | `session` | `SessionInfo` | Every time the market session changes |
 | `market` | `{ marketId, currentSoftLtvWad, borrowApyWad, availableLiquidityRaw }` | On every meaningful change |
 
