@@ -63,7 +63,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
-| 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet. The tool to make them is ready (`docs/keys.md`) | BE-17, BE-30, BE-31, BE-32, BE-55 |
+| 14 October 2026 | Dharu | Wangsit | Grant the four keeper roles on mainnet: `ORACLE_AGE_POSTER=0x33B03c6e569e06938D59F1232ef5070646F0146d CALENDAR_POSTER=0x745356C469FcE1372B4C2259332f5251130d4a5b KEEPER=0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e LIQUIDATOR_KEEPER=0x22ea6605a7D5246b1F05831632DC8172125A5C18 make set-roles-monad CONFIRM=yes`. The keys are on Railway's keeper service; the keeper is redeployed after the grant and the MON top-up | BE-17, BE-30, BE-31, BE-32, BE-55 |
+| 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`) | BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | The restricted country list from counsel (X-10) and a published terms version (X-11), set as `BLOCKED_COUNTRIES` and `TERMS_VERSION` | BE-52 |
 | 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
@@ -200,6 +201,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: mainnet keeper keys made with the BE-55 script and stored on Railway's keeper service only; the addresses went to Wangsit for `make set-roles-monad` (blocker row). The keeper is not redeployed yet, so the role jobs stay off until the grant and the MON top-up.
 - Dharu: BE-61 written: the API serves a public status page at `/status` (oracle age per stock, keepers, indexer lag, one overall line), plain HTML that refreshes itself. Next: check it live on staging after merge.
 - Dharu: BE-55 written: `docs/keys.md`, a `keys` script that makes one key per role and stores it on Railway without printing it, a capped `topup` script, and log redaction. The leak drill passed on a fork. Next: make the mainnet keys and send the addresses to Wangsit for `make set-roles-monad` (needs Dharu's go-ahead).
 - Dharu: BE-15 staging is up on Railway (D-41): API at `https://api-production-c154.up.railway.app`, indexer caught up, keeper running its data and monitor jobs. The first deploy crashed on placeholder variables; fixed. Nabil can point `NEXT_PUBLIC_API_URL` at it. Still on the public RPC.
