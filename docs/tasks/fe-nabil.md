@@ -32,53 +32,68 @@ Four rules for the frontend:
   - Done when: real prices and market sessions show and change with the chain, without a backend.
   - Note: done on 13 October 2026. `/markets` reads `latestPrice` for every stock in `packages/shared/markets.ts` every 10 seconds and shows price, best bid and ask, session and source quote age. Checked against mainnet: aQQQ $741.45, aHOOD $108.75, aBIL $91.51, all `PRE_MARKET`, quote age 16 minutes. A stale price flag is left to FE-13, which uses `oracleStale` from the API.
 
-- [~] **FE-04 · Screen design**
+- [x] **FE-04 · Screen design**
   - Do: wireframes for all pages in 02 and the seven flows in 01; a component list; all states of each screen (loading, empty, error, stale price, market closed, pre-close window, restricted region); colors, fonts and spacing as one system.
   - Done when: Wangsit and Dharu have seen it and there is no data that a screen needs but is missing from 03. If there is, propose an addition to 03 now.
   - Note: a first written draft of every screen, its data, actions and states is in `docs/10-screens.md`, with a list of data the API does not provide yet. Nabil still has to review it, design the layouts and the design system.
-  - Note: low-fidelity wireframes of every screen are in Figma, all on one page: https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY (13 October 2026). Sections: foundations and kit, entry and gates, markets, trade, trade transaction states, positions, earn, deposit and withdraw, settings, help, shared states. Each screen has a note with its data source, states and the task it belongs to. Still open: review by Wangsit and Dharu, the visual design and design system, mobile layouts.
+  - Note: low-fidelity wireframes of every screen are in Figma, all on one page: https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY (13 October 2026). Sections: foundations and kit, entry and gates, markets, trade, trade transaction states, positions, earn, deposit and withdraw, settings, help, shared states. Each screen has a note with its data source, states and the task it belongs to. Still open: review by Wangsit and Dharu, mobile layouts.
+  - Note: the visual design is on the page "Design" in the same Figma file (13 October 2026): a design system (reference analysis, colour tokens, SF Pro type scale, components, shape and motion rules) and every screen in a dark, pastel bento style with equal card edges and Apple-style continuous corners and glass sheets. An "Apple first" variant was tried and not chosen.
+  - Note: Wangsit and Dharu reviewed and approved the wireframes on 14 October 2026. The data the screens need that 03 does not have yet is listed in 10-screens.md (a list of transfers per user, the liquidation collateral and bonus in history). Mobile layouts are built in code (FE-51) and not drawn in Figma.
+
+- [~] **FE-05 · Design system in code**
+  - Needs: FE-04 (the Figma page "Design").
+  - Do: the design tokens (colours, type, radius, motion) as Tailwind theme values in `apps/web/app/globals.css`; the font stack (SF Pro on Apple devices, Inter elsewhere); base components in `apps/web/components/ui/` (button, card, change pill, session badge, money with faint decimals); the header with a live market session; existing screens moved onto the tokens.
+  - Done when: the tokens and base components match the Figma design system, and no screen uses colours outside the tokens.
+  - Note: built on 13 October 2026 on `fe/FE-05-design-system`. Checked by build and the generated CSS. Not verified: the wide display width (`font-stretch`) only works with Apple's system font, and continuous corners (`corner-shape`) only work in browsers that support it; other browsers show normal width and normal rounded corners. A visual check in the browser by Nabil is still open.
 
 ---
 
 ## M1. Core long
 
-- [ ] **FE-10 · Markets page**
+- [~] **FE-10 · Markets page**
   - Needs: BE-02. Data from BE-11; before that, straight from the chain.
   - Do: a list of stocks with price, market session, current limit, maximum leverage, borrow rate, available funds, and DEX-to-oracle deviation.
   - Done when: all numbers match `GET /v1/markets`; prices change through the stream without a reload.
+  - Note: built on 13 October 2026 (`fe/FE-10-13-m1-core-long`): `/markets` reads `GET /v1/markets`, keeps prices current from `/v1/stream` (server-sent events), and shows price, session and quote age straight from the oracle when the service is not configured. Limits and rates are never filled with stand-in numbers. Waiting for the staging API to be hosted, with CORS, to check against `/v1/markets` (blocker in PROGRESS).
 
-- [ ] **FE-11 · Long form**
+- [~] **FE-11 · Long form**
   - Needs: SC-03, BE-02. Quotes from BE-12; for tests on the local fork it needs SC-14.
   - Do: inputs for amount and leverage with their limits; a pre-confirmation summary with all items in Flow 2 in 01; the approval steps (USDC approval and Morpho authorization) combined into one confirmation when possible; a transaction tracker; a result screen; translation of every contract error into a plain sentence; the quote is requested again when it goes stale; the confirm button disappears when there is a `block` warning.
   - Done when: opening a long works on the local fork and on mainnet staging; the transaction data from the backend is checked first (the target must be the router address from `packages/shared`).
+  - Note: built on 13 October 2026: `/trade` with margin, leverage within the market maximum, slippage, the summary of Flow 2 (stock and value, debt, exchange vs oracle price, impact, fee, LTV ring against soft and hard limits, liquidation price and distance, gap scenarios), a details sheet, first-use signatures in one confirmation (D-20), approvals when a token has no permit, a transaction sheet with plain sentences before the wallet opens, re-quoting before expiry, and a hidden confirm button on a `block` warning. Every transaction is decoded and checked against the router address and the market on screen before the wallet sees it (D-19). Contract errors become sentences in `apps/web/lib/i18n`. Not yet run against the API: waiting for staging hosting and CORS. `signTypedData` with the Privy embedded wallet (Q-02) is checked on the first real run.
 
-- [ ] **FE-12 · Positions page**
+- [~] **FE-12 · Positions page**
   - Needs: BE-14.
   - Do: a list of positions with value, debt, profit and loss, an LTV bar (with marks for the soft limit and the hard limit), and the distance to the liquidation price; actions to add collateral, remove collateral, reduce and close; history.
   - Done when: all four actions work on staging; the position changes on screen within a few seconds after the transaction.
+  - Note: built on 13 October 2026: `/positions` with total equity, a card per position (LTV ring with soft and hard marks, value, debt, equity, entry, P&L, liquidation price and distance, worst gap), and a manage sheet for add, remove and repay (`/v1/quote/collateral`) and reduce and close (`/v1/quote/close`). The history tab explains each item in a sentence. Waiting for staging hosting and CORS to run the four actions.
 
-- [ ] **FE-13 · Always-visible states**
+- [~] **FE-13 · Always-visible states**
   - Do: a market session badge on all pages; a banner when the oracle price is stale; a banner when the backend or the keepers have a problem (from `/v1/status`); one consistent error message style.
   - Done when: each state can be triggered and shows correctly.
+  - Note: built on 13 October 2026: the session badge is in the header on every page, read from the oracle. Banners for no service, an unreachable service, a stale price and background services behind (`/v1/status`). One empty and error style (`EmptyState`). The stale and service rules are unit tested. Checking each state live waits for the staging API.
 
 ---
 
 ## M2. Short and Earn
 
-- [ ] **FE-20 · Short form**
+- [~] **FE-20 · Short form**
   - Needs: FE-11, BE-20.
   - Do: inputs for collateral and the value of the borrowed stock; a summary as in Flow 3; a short explanation of how short works and that the sale proceeds are held as collateral; closing a short shows the leftover stock that comes back.
   - Done when: open, reduce and close of a short work on staging.
+  - Note: built on 13 October 2026 (`fe/FE-20-22-m2-short-earn`): the Short tab of `/trade` (collateral, short size up to the market maximum, the Flow 3 summary, a plain explanation that the sale proceeds stay as collateral) and, on close, the stock that comes back. aBIL has no short tab (D-11). The API still answers short quotes with BAD_REQUEST (BE-20), which the form shows as is.
 
-- [ ] **FE-21 · Earn page**
+- [~] **FE-21 · Earn page**
   - Needs: BE-21, SC-23.
   - Do: the choice to lend USDC (to the vault) and stocks (to a market); interest, the share that is borrowed, the amount that can be withdrawn now; the lender risk disclosure before confirmation; lending and withdrawing call the vault and Morpho directly (D-07).
   - Done when: lending and withdrawing work for USDC and for one stock on staging.
+  - Note: built on 13 October 2026: `/earn` lends USDC to the vault (ERC-4626 `deposit`, `withdraw`, `redeem`) and stock to its short market on Morpho (`supply`, `withdraw`), both direct calls (D-07), with an approval transaction first when needed. The user's deposits, wallet balances, allowances, totals and borrowed share are read straight from the vault and Morpho, so lending and withdrawing work without the service. APY, fee and earned interest come from `/v1/earn` and `/v1/earn/:address` (BE-21), and show a dash until then. The lender risk statement must be ticked before the first supply; the choice is kept per address in the browser.
 
-- [ ] **FE-22 · Market detail page**
+- [~] **FE-22 · Market detail page**
   - Needs: BE-23.
   - Do: market depth (price impact per size), DEX-to-oracle deviation and its history, hard and soft limits with an explanation, interest history, the age of the oracle price.
   - Done when: all five markets show with numbers from the backend.
+  - Note: built on 13 October 2026: `/markets/QQQ`, `/HOOD`, `/BIL` with the long and short market, limits with a plain explanation and the worst gap from `gaps.ts`, exchange vs oracle with its history, the lending market with a utilization ring, market depth by size and the borrow rate history. Data from `/v1/markets/:symbol` (BE-23); the price and session come from the oracle meanwhile.
 
 ---
 
@@ -151,10 +166,15 @@ Four rules for the frontend:
 
 ## M6. Launch
 
-- [ ] **FE-60 · Home page and domain name**
+- [ ] **FE-60 · App domain**
   - Needs: X-02.
-  - Do: a home page that explains the product in a few sentences; a preview image for links; the production domain name.
-  - Done when: the production app runs on its domain name against the production contracts and backend.
+  - Do: serve `apps/web` on the `app.` subdomain of the production domain (D-37); a preview image for links; `/` keeps opening Markets.
+  - Done when: the production app runs on `app.<domain>` against the production contracts and backend.
+
+- [ ] **FE-62 · Landing site**
+  - Needs: X-02, FE-60.
+  - Do: a separate Next.js project in `apps/landing` on the root domain (D-37): what Levra is in a few sentences, how it works, risks, links to the app, terms, privacy, status and audit; its own design, made after the app works; a second Vercel project.
+  - Done when: the landing site runs on the root domain, links to `app.<domain>`, and passes the same checks as `apps/web` in CI.
 
 - [ ] **FE-61 · Final check**
   - Do: go through every screen and every state one by one in production.

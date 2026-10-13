@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAge, formatUnitsFixed, formatUsdE8, shortAddress } from "./format";
+import { formatAge, formatUnitsFixed, formatUsdE8, shortAddress, splitDecimal } from "./format";
 
 describe("formatUnitsFixed", () => {
   it("formats USDC base units", () => {
@@ -41,5 +41,16 @@ describe("formatAge", () => {
 describe("shortAddress", () => {
   it("keeps the start and the end", () => {
     expect(shortAddress("0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee")).toBe("0xD5D9…eAee");
+  });
+});
+
+describe("splitDecimal", () => {
+  it("splits at the last decimal point", () => {
+    expect(splitDecimal("$1,234.56")).toEqual({ whole: "$1,234", decimals: ".56" });
+    expect(splitDecimal("100.00 USDC")).toEqual({ whole: "100", decimals: ".00 USDC" });
+  });
+
+  it("returns the text whole when there is no decimal point", () => {
+    expect(splitDecimal("$500")).toEqual({ whole: "$500", decimals: "" });
   });
 });

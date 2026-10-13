@@ -5,14 +5,17 @@ import { useEffect, useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 import { monad } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { Balances } from "./Balances";
+import { Button } from "./ui/Button";
 
 export function WalletButton() {
+  const m = useT();
   if (!privyAppId) {
     return (
-      <span className="text-sm text-neutral-500" title="NEXT_PUBLIC_PRIVY_APP_ID is not set">
-        Sign-in unavailable
+      <span className="text-sm text-fg-3" title="NEXT_PUBLIC_PRIVY_APP_ID is not set">
+        {m.wallet.unavailable}
       </span>
     );
   }
@@ -20,6 +23,7 @@ export function WalletButton() {
 }
 
 function PrivyWalletButton() {
+  const m = useT();
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { exportWallet } = useExportWallet();
   const { address, chainId, isConnected } = useAccount();
@@ -32,31 +36,26 @@ function PrivyWalletButton() {
   }, [onWrongChain, switchChain]);
 
   if (!ready) {
-    return <span className="text-sm text-neutral-500">Loading</span>;
+    return <span className="text-sm text-fg-3">{m.common.loading}</span>;
   }
 
   if (!authenticated) {
     return (
-      <button onClick={login} className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-neutral-950 hover:bg-neutral-200">
-        Sign in
-      </button>
+      <Button size="sm" onClick={login}>
+        {m.wallet.signIn}
+      </Button>
     );
   }
 
   if (!address) {
-    return <span className="text-sm text-neutral-500">Connecting wallet</span>;
+    return <span className="text-sm text-fg-3">{m.wallet.connecting}</span>;
   }
 
   if (onWrongChain) {
     return (
-      <button
-        onClick={() => switchChain({ chainId: monad.id })}
-        disabled={isSwitching}
-        className="rounded-md bg-amber-400 px-3 py-1.5 text-sm font-medium text-neutral-950 disabled:opacity-60"
-        title={switchError?.message}
-      >
-        {isSwitching ? "Switching to Monad" : "Switch to Monad"}
-      </button>
+      <Button size="sm" variant="caution" onClick={() => switchChain({ chainId: monad.id })} disabled={isSwitching} title={switchError?.message}>
+        {isSwitching ? m.wallet.switching : m.wallet.switchToMonad}
+      </Button>
     );
   }
 
@@ -66,18 +65,19 @@ function PrivyWalletButton() {
 
   return (
     <details className="relative">
-      <summary className="cursor-pointer list-none rounded-md border border-neutral-700 px-3 py-1.5 text-sm tabular-nums hover:border-neutral-500">
+      <summary className="flex h-11 cursor-pointer list-none items-center gap-2.5 rounded-full bg-surface-1 pr-4 pl-1.5 text-sm font-medium tabular-nums transition-colors duration-200 ease-spring hover:bg-surface-2">
+        <span aria-hidden className="size-8 rounded-full bg-peri" />
         {shortAddress(address)}
       </summary>
-      <div className="absolute right-0 z-10 mt-2 w-64 space-y-3 rounded-md border border-neutral-800 bg-neutral-900 p-4 shadow-lg">
-        <p className="break-all text-xs text-neutral-400">{address}</p>
+      <div className="squircle absolute right-0 z-30 mt-2 w-72 space-y-4 rounded-panel bg-surface-2 p-5">
+        <p className="break-all text-xs text-fg-2">{address}</p>
         <Balances address={address} />
-        <div className="flex flex-col gap-2 border-t border-neutral-800 pt-3 text-sm">
+        <div className="flex flex-col gap-2.5 border-t border-line pt-4 text-sm">
           {embeddedWallet?.type === "wallet" && (
             <ExportWalletButton onExport={() => exportWallet({ address: embeddedWallet.address })} />
           )}
-          <button onClick={logout} className="text-left text-neutral-300 hover:text-white">
-            Sign out
+          <button onClick={logout} className="text-left text-fg-2 transition-colors hover:text-fg">
+            {m.wallet.signOut}
           </button>
         </div>
       </div>
@@ -86,6 +86,7 @@ function PrivyWalletButton() {
 }
 
 function ExportWalletButton({ onExport }: { onExport: () => Promise<void> }) {
+  const m = useT();
   const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
@@ -93,16 +94,16 @@ function ExportWalletButton({ onExport }: { onExport: () => Promise<void> }) {
     try {
       await onExport();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The wallet key could not be exported.");
+      setError(e instanceof Error ? e.message : m.wallet.exportFailed);
     }
   }
 
   return (
     <div>
-      <button onClick={handleClick} className="text-left text-neutral-300 hover:text-white">
-        Export wallet key
+      <button onClick={handleClick} className="text-left text-fg-2 transition-colors hover:text-fg">
+        {m.wallet.exportKey}
       </button>
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-xs text-down">{error}</p>}
     </div>
   );
 }

@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 16 | 7 |
-| Frontend | Nabil | 25 | 3 | 1 |
+| Frontend | Nabil | 27 | 4 | 8 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -67,6 +67,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
+| 13 October 2026 | Nabil | Dharu | CORS on the API for the web origins (`https://levra-mon.vercel.app`, the Vercel preview addresses and `http://localhost:3000`), and a public staging address for `NEXT_PUBLIC_API_URL`. Without CORS the browser blocks every call from the web app | FE-10, FE-11, FE-12, FE-13 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
@@ -192,9 +193,13 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 14 October 2026
 
 - Dharu: BE-33 written: wallet sign-in (D-38), alert settings, Telegram linking, and the alerts keeper (before-close at 24, 4 and 1 hours, LTV threshold, auto-deleverage, liquidation, deposits). Fork test passes with a stand-in email channel. Waiting on Dharu: the delivery services (Q-30) and their keys. Next: BE-50 team monitor.
+- Nabil: FE-04 done: Wangsit and Dharu approved the wireframes and the visual design.
 
 ### 13 October 2026
 
+- Nabil: M2 frontend built on `fe/FE-20-22-m2-short-earn`: short on the trade form, Earn with the vault and stock lending read and sent straight on chain, and the market detail page. Waiting for BE-20, BE-21 and BE-23 for short quotes, APY and market detail data.
+- Nabil: M1 frontend built on `fe/FE-10-13-m1-core-long`: markets on the service with a live stream and an oracle fallback, the long trade form with first-use signatures and a checked transaction, positions with collateral, repay, reduce and close, history sentences, status banners, and every text in English and Indonesian. Waiting for Dharu: CORS and a hosted staging API.
+- Nabil: visual design for every screen is on the Figma page "Design" (dark, pastel bento). Decided D-37: the landing site is separate (`apps/landing`, root domain) and the app runs on `app.<domain>`. New task FE-62; FE-60 is now the app domain only.
 - Dharu: BE-31 done: the protector reduces protected positions above the soft limit to the target in the last 30 minutes before close, with the 04 formula and a live route; fork test passes for a long and a short, and leaves unprotected positions alone. Request for Wangsit: add `isKeeper()` to the `MarginRouter` ABI export (fragment until then). Next: BE-33 alerts.
 - Dharu: BE-30 calendar poster written: the keeper keeps `nextCloseAt` at the next close, regular until a weekend is observed and then the observed one, with no code change; fork test passes. Request for Wangsit: add `calendarPoster()` to the `RiskManager` ABI export; the keeper uses a fragment until then. Mainnet posting waits on the role address and hosting. Next: BE-31 protector.
 - Dharu: BE-23 done: `/v1/markets/:symbol` with both sides, the latest depth run and hourly rate and deviation history; the depth keeper now stores rate snapshots. Next: BE-30 calendar poster.
@@ -202,6 +207,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - Dharu: BE-20 done: short quotes (open, reduce, close) ran end to end on the fork from quote data, with first-use signatures; accounts and history give shorts an entry price and PnL. Also in this PR: the shared gap helper (BE-34) and the exchange calendar (BE-30), plus tables for the Earn, alert, deposit and terms tasks.
 
 - Wangsit: `make close-all-monad` written and rehearsed on a fork of the live state: a long, a short and a vault deposit were all closed and the Lens showed no position left. It is the command to run after the demo video is recorded.
+- Nabil: FE-05 started: the Figma design system is in `apps/web` (Tailwind tokens, SF Pro with Inter fallback, base components, header with a live market session). Markets keeps its data and moves to the new look next.
 - Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.
 - Wangsit: SC-23 done. A real deposit and withdrawal went through the USDC vault on mainnet with `make first-earn-monad`: 1 USDC in, all of it lent to the QQQ long market by the vault, 1 USDC back in full. The vault is empty again. Dharu and Nabil can use `monadDeployment.usdcVault` for the Earn screen.
 - Wangsit: the USDC vault is live on mainnet (SC-23): `Levra USDC` at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, created from Morpho's factory, read back from the chain: caps 10,000 QQQ, 5,000 HOOD, 20,000 BIL, fee 10%, timelock 1 day, owner the deployer wallet. It is in `monad.json` as `usdcVault`. One QQQ long is left open in the deployer wallet for the demo. `make first-earn-monad` is written and rehearsed on a fork of the live state: 1 USDC went into the vault, reached the QQQ market and came back in full. Next: run it on mainnet.
