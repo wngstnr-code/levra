@@ -10,6 +10,7 @@ import { createLiquidatorBot } from "./liquidator/bot";
 import type { Logger } from "./logger";
 import { createOracleAgePoster } from "./oracle/age-poster";
 import { createOracleRecorder } from "./oracle/recorder";
+import { createProtector } from "./protector/protector";
 import type { Job } from "./runner";
 
 export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[] {
@@ -34,6 +35,12 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     jobs.push(createCalendarPoster({ client, wallet: walletFor(env.CALENDAR_POSTER_KEY), deployment }));
   } else {
     logger.info("calendar poster off: CALENDAR_POSTER_KEY or DEPLOYMENT_FILE is not set");
+  }
+
+  if (deployment && env.PROTECTOR_KEY) {
+    jobs.push(createProtector({ client, wallet: walletFor(env.PROTECTOR_KEY), deployment, swap }));
+  } else {
+    logger.info("protector off: PROTECTOR_KEY or DEPLOYMENT_FILE is not set");
   }
 
   if (deployment && env.LIQUIDATOR_KEY) {
