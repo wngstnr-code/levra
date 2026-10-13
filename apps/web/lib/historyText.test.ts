@@ -2,7 +2,6 @@ import type { HistoryItem } from "@levra/shared/api";
 import { describe, expect, it } from "vitest";
 import { historySentence } from "./historyText";
 import { en } from "./i18n/en";
-import { id } from "./i18n/id";
 
 const base: HistoryItem = {
   id: "1",
@@ -29,9 +28,8 @@ describe("historySentence", () => {
     expect(historySentence(item, en)).toBe("The price crossed the liquidation price. A liquidator repaid $100.00 of the debt and took 0.1450 aQQQ, including the liquidation bonus.");
   });
 
-  it("explains a close with realized P&L, in Indonesian too", () => {
+  it("explains a close with realized P&L", () => {
     const item = { ...base, type: "close" as const, usdAmountRaw: "49700000", realizedPnlUsdRaw: "420000" };
     expect(historySentence(item, en)).toBe("Closed the position and received $49.70. Realized P&L +$0.42.");
-    expect(historySentence(item, id)).toBe("Posisi ditutup dan kamu menerima $49.70. P&L terealisasi +$0.42.");
   });
 });

@@ -48,15 +48,6 @@ test("help lists the deployed contracts and explains each word", async ({ page }
   await expect(page.getByText("Loan to value")).toBeVisible();
 });
 
-test("the language switch changes the text and keeps the page", async ({ page }) => {
-  await mockService(page);
-  await page.goto("/markets");
-  await page.getByRole("radio", { name: "id" }).click();
-  await expect(page.getByRole("heading", { name: "Pasar" })).toBeVisible();
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "Pasar" })).toBeVisible();
-});
-
 test("an unknown page says so", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere");
@@ -72,17 +63,14 @@ test("phones get the tab bar instead of the top navigation", async ({ page, isMo
   await expect(tabBar.getByRole("link", { name: /Positions/ })).toBeVisible();
 });
 
-// The page must never be wider than the screen, in either language. Compared with the device width, not innerWidth, which grows with the page.
-for (const lang of ["en", "id"]) {
-  for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help"]) {
-    test(`${path} fits a phone screen in ${lang}`, async ({ page, isMobile }) => {
-      test.skip(!isMobile, "phone layout only");
-      await page.addInitScript((l) => localStorage.setItem("levra.lang", l), lang);
-      await mockService(page);
-      await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      const width = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(width).toBeLessThanOrEqual(page.viewportSize()!.width);
-    });
-  }
+// The page must never be wider than the screen. Compared with the device width, not innerWidth, which grows with the page.
+for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help"]) {
+  test(`${path} fits a phone screen`, async ({ page, isMobile }) => {
+    test.skip(!isMobile, "phone layout only");
+    await mockService(page);
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
 }

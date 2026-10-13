@@ -1,5 +1,4 @@
 export const en = {
-  langName: "English",
   common: {
     loading: "Loading",
     tryAgain: "Try again",
@@ -444,7 +443,6 @@ export const en = {
     address: "Address",
     network: "Network",
     walletBody: "The wallet key is yours. Export it to use this wallet in another app.",
-    language: "Language",
     connect: "Sign in to see your settings.",
     methods: { email: "Email", passkey: "Passkey", wallet: "Wallet" },
   },

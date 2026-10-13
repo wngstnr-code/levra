@@ -9,7 +9,6 @@ import { ComplianceProvider } from "@/components/gate/Compliance";
 import { PrivySignInProvider } from "@/components/SignIn";
 import { StreamSync } from "@/lib/api/stream";
 import { monad } from "@/lib/chain";
-import { I18nProvider } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { privyWagmiConfig, readOnlyWagmiConfig } from "@/lib/wagmi";
 
@@ -17,10 +16,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } }));
 
   const inner = (
-    <I18nProvider>
+    <>
       <StreamSync />
       <ComplianceProvider>{children}</ComplianceProvider>
-    </I18nProvider>
+    </>
   );
 
   if (!privyAppId) {

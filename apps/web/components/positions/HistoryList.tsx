@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { stockOf } from "@/lib/deployment";
 import { historySentence } from "@/lib/historyText";
-import { useI18n } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { formatLocal } from "@/lib/time";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -39,7 +39,7 @@ const marks: Record<HistoryItemType, { glyph: string; bg: string }> = {
 };
 
 export function HistoryList({ address }: { address: Address }) {
-  const { m, lang } = useI18n();
+  const m = useT();
   const history = useHistory(address);
   const [filter, setFilter] = useState<Filter>("all");
   const items = (history.data?.pages.flatMap((p) => p.items) ?? []).filter((i) => filter === "all" || groups[filter].includes(i.type));
@@ -61,7 +61,7 @@ export function HistoryList({ address }: { address: Address }) {
         ) : items.length === 0 ? (
           <p className="p-4 text-sm text-fg-2">{m.history.empty}</p>
         ) : (
-          items.map((item) => <Row key={item.id} item={item} lang={lang} />)
+          items.map((item) => <Row key={item.id} item={item} />)
         )}
       </Card>
       {history.hasNextPage && (
@@ -73,8 +73,8 @@ export function HistoryList({ address }: { address: Address }) {
   );
 }
 
-function Row({ item, lang }: { item: HistoryItem; lang: string }) {
-  const { m } = useI18n();
+function Row({ item }: { item: HistoryItem }) {
+  const m = useT();
   const stock = stockOf(item.symbol);
   const mark = marks[item.type];
   return (
@@ -93,7 +93,7 @@ function Row({ item, lang }: { item: HistoryItem; lang: string }) {
         <p className="mt-1 text-sm text-fg-2">{historySentence(item, m)}</p>
       </div>
       <div className="shrink-0 text-right text-[13px]">
-        <p className="text-fg-2">{formatLocal(item.timestamp, lang)}</p>
+        <p className="text-fg-2">{formatLocal(item.timestamp)}</p>
         <a href={`${monad.blockExplorers.default.url}/tx/${item.txHash}`} target="_blank" rel="noreferrer" className="font-medium text-lime">
           {m.common.viewTx} ↗
         </a>
