@@ -53,6 +53,7 @@ How to use it:
 | D-39 | The app is English only. All text stays in one message file (`apps/web/lib/i18n/en.ts`), so no sentence is written inside a component and another language can be added later as a file | Chosen by Nabil on 13 October 2026. Answers Q-14 | English and Indonesian with a switch |
 | D-40 | The MON gas top-up with a cross-chain deposit is a second small transfer through 1Click to its own deposit address, worth about $1 of the same token (initial proposal). `POST /v1/deposit/quote` returns it as `gasDeposit` next to the main address. Answers Q-10 | Chosen by Dharu on 14 October 2026. One 1Click deposit address delivers one token, so USDC and MON cannot share it. A 1 USDC quote from Base gave about 39 MON | Dropping the top-up; the whole deposit as MON; a team wallet that sends MON |
 | D-41 | The backend (API, indexer, keeper, Postgres) runs on Railway, one service each in project `levra`; the web app stays on Vercel | Chosen by Dharu on 14 October 2026. Railway runs long-lived processes and the database in one place, which the indexer and keeper need; Vercel suits the Next.js app | One host for both; a VPS |
+| D-42 | Initial proposal, not legal advice: the region block list (`BLOCKED_COUNTRIES`) is Anchored's own list of prohibited jurisdictions, as ISO codes: `AF,DZ,BY,CA,CN,CU,KP,ER,IR,LY,MM,MA,NP,RU,SO,SS,SD,SY,US,VE`. China excludes Hong Kong (HK is not blocked). The sanctioned regions of Ukraine (Crimea, Donetsk, Luhansk, Kherson, Zaporizhzhia, Sevastopol) cannot be told apart by country code; until the CDN gives a region, they are covered only by the signed terms. Counsel (X-10) confirms or changes it | Chosen by Dharu on 14 October 2026. Levra cannot be open to people the token issuer itself refuses. Source: Anchored's eligibility page (docs.anchored.finance/getting-started/eligibility, read on 14 October 2026), which also bars US persons under Regulation S wherever they are | A shorter list (US and sanctioned countries only); blocking all of Ukraine |
 
 ## Open questions
 
@@ -89,7 +90,8 @@ Every question has an owner and a milestone to answer it by.
 | Q-27 | Answered: see D-31 | - | - | - | - |
 | Q-28 | Answered: see D-35 | - | - | - | - |
 | Q-29 | Bug bounty: how large are the rewards, who pays them, and which private channel takes the reports? | Wangsit | Before public launch | SC-56 | See "Decisions waiting for the team". Until decided, the draft in `drafts/bug-bounty.md` is not published |
-| Q-30 | Which services deliver user alerts? | Dharu | M3 | BE-33 | See "Decisions waiting for the team". The code has email through Resend and a Telegram bot, both off until their keys are set |
+| Q-30 | Answered for now: alerts start with Telegram only (a bot for user alerts and a team group); email is left out until there is a domain (Q-25) | - | - | - | - |
+| Q-31 | Anchored says its tokens are "designed for professional and qualified investors" and onboards holders with KYC. Levra has no KYC and lets any eligible wallet use the tokens. Does that need investor checks, or a narrower audience? | Wangsit (X-10) | Before public launch | BE-52, X-10, X-11 | Ask counsel together with Q-06. Until answered, launch only to a small invited group |
 
 ## Decisions waiting for the team
 
@@ -125,16 +127,6 @@ Channel:
 | C. A bounty platform | Reaches more researchers. Takes a fee and an application. Fits after the audit |
 
 Nothing here is decided.
-
-### Q-30. Alert delivery services
-
-| Option | State |
-|---|---|
-| A. Email through Resend and a Telegram bot | Written and tested with a stand-in channel (BE-33). Resend has a free tier; needs a sending domain (Q-25). The bot needs a token from BotFather. Suggested |
-| B. Telegram only | No domain needed, works today with one bot token. Users without Telegram get no alerts |
-| C. Another email provider (Postmark, SES) | Only the `resendEmail` function changes |
-
-Email addresses are not verified yet: a user can enter any address. Alerts only describe that user's own positions. Nothing here is decided.
 
 ## Differences between this document set and the idea PDF
 
