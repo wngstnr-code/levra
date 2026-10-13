@@ -53,6 +53,7 @@ The product opens to the public only when all of these rows are met. None can be
 | Market session | Changes outside the expected schedule | BE-50 |
 | Gap between DEX price and oracle | Passes `maxDeviationBps` | BE-50 |
 | Heartbeat of each keeper | No heartbeat for more than a few minutes | BE-50 |
+| Risk values posted by keepers (`maxOracleAge`, `nextCloseAt`) | Every change, with the old and new value | BE-50 |
 | MON balance of keepers | Below the safe limit | BE-50 |
 | Unhealthy positions not yet closed | Present for more than a few minutes | BE-50 |
 | Bad debt | More than zero | BE-50 |

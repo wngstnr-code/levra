@@ -63,7 +63,7 @@ What we do not write but we deploy and configure: the markets on Morpho, and the
 |---|---|
 | `apps/api` | Provides market data, full transaction quotes with their call data, account data, cross-chain deposits, alerts, region checks |
 | `apps/indexer` | Reads events from our contracts and from Morpho, then stores them as positions and history |
-| `apps/keeper` | Programs that run all the time: calendar poster for market closes, protector (auto-deleverage), liquidator bot, alert sender, oracle monitor |
+| `apps/keeper` | Programs that run all the time: calendar poster for market closes, oracle age poster, protector (auto-deleverage), liquidator bot, alert sender, oracle monitor |
 
 ### Frontend (Nabil)
 

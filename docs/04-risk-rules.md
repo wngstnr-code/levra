@@ -165,6 +165,21 @@ Max ages used by the deployment script, all initial proposals until BE-03 has a 
 
 Staleness needs two clocks (decided in D-23). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
 
+### Automatic `maxOracleAge`
+
+Initial proposal, depends on Q-27. A keeper (BE-17) keeps `maxOracleAge` in line with the data from the oracle logger, so nobody has to change it by hand. It follows the open-market clock of D-23, because that is the clock `RiskManager` checks.
+
+| Item | Rule |
+|---|---|
+| Input | Age of the source quote (block time minus `feedUpdateTimestamp`) per market, sampled in every session except `CLOSED`, from the BE-03 tables |
+| Value | The 99th percentile of that age plus one heartbeat (10 minutes), rounded up to whole minutes, never below 1,500 seconds |
+| Minimum data | 7 days, including one full weekend, and at least 500 samples per market |
+| Before the minimum is met | No post. The value set at deployment stays |
+| Smallest change worth posting | 10% of the value on chain |
+| Bounds | `[minOracleAge, capOracleAge]` per market, set only by the multisig behind the timelock. The contract rejects anything outside them. The cap stays below the hard source quote age in `SessionOracle` |
+
+The bounds are what limits the damage of a leaked keeper key: the worst it can do is set the cap, which the multisig already accepted as safe.
+
 Be careful: if `price()` reverts, Morpho cannot run borrowing, collateral withdrawal, or liquidation in that market. So a hard max age that is too short is as dangerous as one that is too long.
 
 ## Five-year price gap data
