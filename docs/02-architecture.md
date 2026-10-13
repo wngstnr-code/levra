@@ -182,6 +182,7 @@ One repo for everything (monorepo), managed with pnpm and Turborepo.
 │   ├── keeper/           Dharu. Keeper
 │   └── web/              Nabil. Web app
 ├── packages/
+│   ├── db/               Dharu. Postgres schema and migrations (Drizzle), used by api, indexer and keeper
 │   └── shared/           Shared, each file has an owner
 │       ├── abis/         generated from contracts/, do not edit by hand
 │       ├── addresses.ts  addresses of external services and our contracts

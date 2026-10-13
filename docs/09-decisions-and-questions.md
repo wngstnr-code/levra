@@ -42,6 +42,7 @@ How to use it:
 | D-28 | Fees: 0.10% on open and close, 10% of vault interest, auto-deleverage fee at most 0.30% | Chosen by the team on 13 October 2026. Answers Q-07 | Free at launch; 0.20% and 15% |
 | D-29 | Only registered keepers may run auto-deleverage | Chosen by the team on 13 October 2026. Safest at the start. Answers Q-08 | Anyone; a switch to open it later |
 | D-30 | Levra is submitted to Monad Metropolis, Track 01, by 14 October 2026 at 10:59 WIB, and the goal is to win. Before the deadline the team builds one real flow on mainnet first (long on aQQQ in one confirmation), then adds what time allows in this order: positions and close, cross-chain deposit, short, sign-in by email. This is the first slice of the final product, built to the same rules, not a throwaway demo | Chosen by the team on 13 October 2026. Answers Q-26 | Not submitting; submitting docs only |
+| D-31 | The backend database lives in its own package, `packages/db` (`@levra/db`): Drizzle schema, migrations and the client, used by api, indexer and keeper. Owner: Dharu. Local Postgres runs from `docker-compose.yml` on port 5442 by default (`LEVRA_PG_PORT` changes it) | Chosen by Dharu on 13 October 2026. One schema for three apps, and it is not a shared interface, so it stays out of `packages/shared` | Schema inside `apps/api`; one schema per app |
 
 ## Open questions
 
