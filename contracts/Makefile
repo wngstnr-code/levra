@@ -46,7 +46,11 @@ deploy-vault-monad:
 first-long-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-first-long.sh
 
+# Sends real transactions on Monad mainnet: lends stock to the QQQ short market, opens a small short and closes it.
+first-short-monad:
+	CONFIRM=$(CONFIRM) ./script/mainnet-first-short.sh
+
 deploy-monad:
 	DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
 
-.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad
+.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad
