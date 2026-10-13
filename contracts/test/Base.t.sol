@@ -148,7 +148,7 @@ abstract contract BaseTest is Test {
             borrowAssets: borrow,
             swap: _swapData(USDC, AQQQ, swapIn, _stockFor(swapIn, fillBps)),
             maxLtv: SOFT_OPEN,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
     }
 
@@ -191,6 +191,19 @@ abstract contract BaseTest is Test {
             )
         );
         return vm.sign(key, digest);
+    }
+
+    function _mockOracle(Session session, uint256 feedAge, uint256 publishAge, int128 price) internal {
+        IAnchoredStockOracle.PricePayload memory payload = IAnchoredStockOracle.PricePayload({
+            price: price,
+            bestBid: price - 5e6,
+            bestAsk: price + 5e6,
+            feedUpdateTimestamp: uint64(vm.getBlockTimestamp() - feedAge),
+            publishedAt: uint64(vm.getBlockTimestamp() - publishAge),
+            roundId: 1,
+            session: session
+        });
+        vm.mockCall(address(STOCK_ORACLE), abi.encodeCall(IAnchoredStockOracle.latestPrice, (QQQ)), abi.encode(payload));
     }
 
     function _assertRouterEmpty() internal view {

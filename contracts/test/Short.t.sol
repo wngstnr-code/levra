@@ -22,7 +22,7 @@ contract ShortTest is BaseTest {
             borrowAssets: borrow,
             swap: _swapData(AQQQ, USDC, borrow, proceeds),
             maxLtv: SOFT_OPEN,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
     }
 
@@ -83,7 +83,7 @@ contract ShortTest is BaseTest {
             swapAmountIn: spend,
             swap: _swapData(USDC, AQQQ, spend, buyBack),
             minReturn: 99e6,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
         vm.prank(user);
         uint256 returned = router.closeShort(close);

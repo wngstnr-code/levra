@@ -36,7 +36,7 @@ contract SecurityTest is BaseTest {
     function setUp() public override {
         super.setUp();
         deal(address(USDC), newcomer, 500e6);
-        deadline = block.timestamp + 1 hours;
+        deadline = vm.getBlockTimestamp() + 1 hours;
     }
 
     function _firstUseCalls() internal view returns (bytes[] memory calls) {
