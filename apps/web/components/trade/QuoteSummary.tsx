@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio } from "@/lib/units";
+import { GapTry } from "../GapTry";
 import { Card } from "../ui/Card";
 import { Money } from "../ui/Money";
 import { Ring } from "../ui/Ring";
@@ -120,7 +121,7 @@ function Legend({ dot, text }: { dot: string; text: string }) {
   );
 }
 
-function GapCard({ quote, loading }: Props) {
+function GapCard({ quote, loading, side }: Props) {
   const m = useT();
   const scenarios = quote?.preview.gapScenarios ?? [];
   const lltv = quote ? BigInt(quote.market.lltvWad) : 0n;
@@ -147,6 +148,7 @@ function GapCard({ quote, loading }: Props) {
         </div>
       )}
       {scenarios[0] && <p className="text-xs text-fg-3">{scenarios[0].label}</p>}
+      {quote && <GapTry side={side} ltvWad={quote.preview.ltvAfterWad} softWad={quote.market.currentSoftLtvWad} lltvWad={quote.market.lltvWad} />}
     </Card>
   );
 }
