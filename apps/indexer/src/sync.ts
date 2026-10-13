@@ -1,14 +1,16 @@
-import { morphoEvents, routerEvents, syncCursors, type Db } from "@levra/db";
+import { morphoEvents, routerEvents, syncCursors, vaultEvents, type Db } from "@levra/db";
 import { external } from "@levra/shared/addresses";
 import type { Deployment } from "@levra/shared/deployments";
 import { eq } from "drizzle-orm";
 import type { Address, Hex } from "viem";
 import { morphoTopics, toMorphoRow } from "./morpho";
 import { routerTopics, toRouterRow } from "./router";
+import { toVaultRow, vaultTopics } from "./vault";
 import type { LogSource, RawLog } from "./sources/types";
 
 export const ROUTER_CURSOR = "router_events";
 export const MORPHO_CURSOR = "morpho_events";
+export const VAULT_CURSOR = "vault_events";
 
 export type SyncResult = { head: bigint; lastBlock: bigint; inserted: number };
 
@@ -18,8 +20,8 @@ export type Stream = {
   address: Address;
   topic0: Hex[];
   topic1?: Hex[];
-  table: typeof routerEvents | typeof morphoEvents;
-  toRow: (log: RawLog) => typeof routerEvents.$inferInsert;
+  table: typeof routerEvents | typeof morphoEvents | typeof vaultEvents;
+  toRow: (log: RawLog) => typeof routerEvents.$inferInsert | typeof vaultEvents.$inferInsert;
 };
 
 export const routerStream = (deployment: Deployment): Stream => ({
@@ -40,6 +42,12 @@ export const morphoStream = (deployment: Deployment): Stream => ({
   toRow: toMorphoRow,
 });
 
+/** The USDC vault, when the deployment has one (SC-23). */
+export const vaultStream = (deployment: Deployment): Stream | null =>
+  deployment.usdcVault
+    ? { cursor: VAULT_CURSOR, address: deployment.usdcVault, topic0: vaultTopics, table: vaultEvents, toRow: toVaultRow }
+    : null;
+
 /** Reads one stream from its cursor (or the deployment block) up to the head. At most `maxPages` pages per call. */
 export async function syncStream(db: Db, source: LogSource, deployment: Deployment, stream: Stream, maxPages = 50): Promise<SyncResult> {
   const head = await source.head();
@@ -54,7 +62,8 @@ export async function syncStream(db: Db, source: LogSource, deployment: Deployme
     const lastBlock = result.nextBlock - 1n;
     await db.transaction(async (tx) => {
       if (rows.length > 0) {
-        inserted += (await tx.insert(stream.table).values(rows).onConflictDoNothing().returning({ tx: stream.table.txHash })).length;
+        // Each stream pairs a table with rows of that table; the union type cannot express the pairing.
+        inserted += (await tx.insert(stream.table).values(rows as never).onConflictDoNothing().returning({ tx: stream.table.txHash })).length;
       }
       const row = { lastBlock, updatedAt: new Date() };
       await tx.insert(syncCursors).values({ name: stream.cursor, ...row }).onConflictDoUpdate({ target: syncCursors.name, set: row });

@@ -43,8 +43,8 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 34 | 11 | 4 |
-| Frontend | Nabil | 26 | 4 | 20 |
+| Backend | Dharu | 34 | 16 | 7 |
+| Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -65,6 +65,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
 | 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet | BE-17, BE-30, BE-31, BE-32 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
+| 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | Dharu | Approval of the signed message texts in 03 section 4 (terms acceptance and SIWE for alerts), and the endpoints that check them | FE-50, FE-31 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
@@ -183,21 +184,37 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 | 13 October 2026 | Added the `NEXT_PUBLIC_PRIVY_APP_ID` environment variable (section 7) | Nabil | fe/FE-01-03-m0-foundation |
+| 14 October 2026 | Added `POST` and `DELETE /v1/alerts/telegram` and `TelegramLinkResponse`; wrote down the sign-in rules (D-38) and when alerts go out | Dharu, Nabil | be/BE-33-alerts |
+| 13 October 2026 | Wrote down `MarketDetail` history rules in 03: 30 days, one point per hour, empty without a database, 404 for an unknown stock | Dharu, Nabil | be/BE-23-market-detail |
+| 13 October 2026 | `EarnPosition.earnedRaw` is now signed, since bad debt can make it negative. Earn option ids are `vault:<address>` and `market:<marketId>` | Dharu, Nabil | be/BE-22-earn |
 | 13 October 2026 | Added `@levra/shared/deployments/monad`, which exports `monadDeployment`: the mainnet deployment file, validated and bundled. Nothing was removed | Dharu, Nabil | sc/SC-15-mainnet-deployment |
 
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
+### 14 October 2026
+
+- Dharu: BE-33 written: wallet sign-in (D-38), alert settings, Telegram linking, and the alerts keeper (before-close at 24, 4 and 1 hours, LTV threshold, auto-deleverage, liquidation, deposits). Fork test passes with a stand-in email channel. Waiting on Dharu: the delivery services (Q-30) and their keys. Next: BE-50 team monitor.
+- Nabil: FE-04 done: Wangsit and Dharu approved the wireframes and the visual design.
+
 ### 13 October 2026
 
 - Nabil: fixed the leverage slider stuck at 1× while the service is offline: limits now come from RiskManager on chain. A sweep of 20 controls on every page in Chromium passes. The analytics script now loads only on Vercel.
 - Nabil: decided D-38, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
+- Nabil: decided D-39, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
 - Nabil: M5 frontend built on `fe/FE-50-55-m5-hardening`: region and terms gates (closing and withdrawing never gated), Help with words, risks and every address, error screens and cookieless metrics, a phone tab bar and better contrast, Playwright in CI (33 tests on desktop and phone, two languages). Waiting for BE-52, X-11 and an error service.
 - Nabil: M4 frontend built on `fe/FE-40-41-m4-deposits`: cross-chain deposit with a QR code, expiry and a status tracker, and withdraw with a checked USDC transfer. Waiting for BE-40 and BE-41.
 - Nabil: M3 frontend built on `fe/FE-30-33-m3-protection`: protection switches, the close countdown and pre-close banners, Settings with alerts behind a wallet sign-in, Morpho authorization, wallet and language, and a gap slider on the shared formula. Waiting for BE-30, BE-33 and SC-30 on mainnet.
 - Nabil: M2 frontend built on `fe/FE-20-22-m2-short-earn`: short on the trade form, Earn with the vault and stock lending read and sent straight on chain, and the market detail page. Waiting for BE-20, BE-21 and BE-23 for short quotes, APY and market detail data.
 - Nabil: M1 frontend built on `fe/FE-10-13-m1-core-long`: markets on the service with a live stream and an oracle fallback, the long trade form with first-use signatures and a checked transaction, positions with collateral, repay, reduce and close, history sentences, status banners, and every text in English and Indonesian. Waiting for Dharu: CORS and a hosted staging API.
+- Nabil: visual design for every screen is on the Figma page "Design" (dark, pastel bento). Decided D-37: the landing site is separate (`apps/landing`, root domain) and the app runs on `app.<domain>`. New task FE-62; FE-60 is now the app domain only.
+- Dharu: BE-31 done: the protector reduces protected positions above the soft limit to the target in the last 30 minutes before close, with the 04 formula and a live route; fork test passes for a long and a short, and leaves unprotected positions alone. Request for Wangsit: add `isKeeper()` to the `MarginRouter` ABI export (fragment until then). Next: BE-33 alerts.
+- Dharu: BE-30 calendar poster written: the keeper keeps `nextCloseAt` at the next close, regular until a weekend is observed and then the observed one, with no code change; fork test passes. Request for Wangsit: add `calendarPoster()` to the `RiskManager` ABI export; the keeper uses a fragment until then. Mainnet posting waits on the role address and hosting. Next: BE-31 protector.
+- Dharu: BE-23 done: `/v1/markets/:symbol` with both sides, the latest depth run and hourly rate and deviation history; the depth keeper now stores rate snapshots. Next: BE-30 calendar poster.
+- Dharu: BE-22 and BE-21 done: the indexer stores vault deposits and withdrawals, and `/v1/earn` and `/v1/earn/:address` give the USDC vault and stock lending with APY, supplied, borrowed share, withdrawable and earned, matching chain reads on a fork. Request for Wangsit: add MetaMorpho (`totalAssets`, `fee`, `withdrawQueue`, `maxWithdraw`) to the ABI export; the API uses a fragment until then. Next: BE-23.
+- Dharu: BE-20 done: short quotes (open, reduce, close) ran end to end on the fork from quote data, with first-use signatures; accounts and history give shorts an entry price and PnL. Also in this PR: the shared gap helper (BE-34) and the exchange calendar (BE-30), plus tables for the Earn, alert, deposit and terms tasks.
+
 - Wangsit: `make close-all-monad` written and rehearsed on a fork of the live state: a long, a short and a vault deposit were all closed and the Lens showed no position left. It is the command to run after the demo video is recorded.
 - Nabil: FE-05 started: the Figma design system is in `apps/web` (Tailwind tokens, SF Pro with Inter fallback, base components, header with a live market session). Markets keeps its data and moves to the new look next.
 - Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.

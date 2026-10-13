@@ -1,6 +1,6 @@
 import { marginRouterAbi } from "@levra/shared/abis";
-import type { GapScenario, QuoteOpenRequest, QuoteOpenResponse } from "@levra/shared/api";
-import { gapTable } from "@levra/shared/gaps";
+import type { QuoteOpenRequest, QuoteOpenResponse } from "@levra/shared/api";
+import { gapScenarios } from "@levra/shared/gaps";
 import {
   BPS,
   WAD,
@@ -8,7 +8,6 @@ import {
   cautiousPriceE8,
   collateralValue,
   liquidationPriceE8,
-  ltvAfterGapWad,
   morphoOraclePrice,
   positionLtvWad,
   signedDeviationBps,
@@ -31,13 +30,6 @@ import {
 } from "./common";
 import { checkRequirements } from "./requirements";
 import { simulate } from "./simulate";
-
-export function longGapScenarios(symbol: string, ltvWad: bigint, lltvWad: bigint): GapScenario[] {
-  const gap = gapTable[symbol as keyof typeof gapTable];
-  if (!gap || ltvWad === 0n) return [];
-  const ltvAfter = ltvAfterGapWad("long", ltvWad, (BigInt(gap.worstDropBps) * WAD) / BPS);
-  return [{ label: "Worst weekend or holiday gap in 5 years", moveBps: gap.worstDropBps, ltvWad: ltvAfter.toString(), liquidated: ltvAfter >= lltvWad }];
-}
 
 export async function quoteOpenLong({ reader, swap }: QuoteDeps, req: QuoteOpenRequest): Promise<QuoteOpenResponse> {
   const margin = BigInt(req.marginRaw);
@@ -147,7 +139,7 @@ export async function quoteOpenLong({ reader, swap }: QuoteDeps, req: QuoteOpenR
       liqPriceE8: liqE8.toString(),
       liqDistanceBps: liqDistanceBps(m.oraclePriceE8, liqE8),
       borrowApyWad: borrowApyWad(m.borrowRatePerSecondWad).toString(),
-      gapScenarios: longGapScenarios(m.info.symbol, ltvAfter, m.lltvWad),
+      gapScenarios: gapScenarios("long", m.info.symbol, ltvAfter, m.lltvWad),
     },
     requirements: check.requirements,
     tx: { to: reader.deployment.router, data, value: "0", gasLimit: gasLimit.toString() },

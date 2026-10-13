@@ -107,40 +107,47 @@ Three rules for the backend:
 
 ## M2. Short and Earn
 
-- [ ] **BE-20 · Quote engine for short**
+- [x] **BE-20 · Quote engine for short**
   - Needs: BE-12, SC-21.
   - Do: open and close short. On close, buy slightly more stock than the debt so it is sure to be enough, and show the remainder in the summary.
   - Done when: open, reduce and full close of a short succeed on the local fork from the quote data.
+  - Note: done on 13 October 2026. `/v1/quote/open` with `side: short` borrows stock worth margin times leverage at the oracle price and sells it; `/v1/quote/close` on a short market buys back the debt plus accrual, a 0.2% buffer and the slippage room, sized from the oracle price and corrected from the real route; the leftover stock goes to the wallet and shows as `stockAmountRaw` minus `debtRepaidRaw`. Accounts and history now give shorts an entry price (average sale price) and PnL. Fork test with the live KyberSwap route: first use with signatures, a 50% reduction and a full close; the debt was repaid in full and the router kept no tokens.
 
-- [ ] **BE-21 · Earn**
+- [x] **BE-21 · Earn**
   - Needs: SC-23.
   - Do: `GET /v1/earn` and `/v1/earn/:address`: interest, amount supplied, share that is borrowed, amount that can be withdrawn now, for the USDC vault and the stock markets.
   - Done when: the numbers match direct reads from the chain.
+  - Note: done on 13 October 2026. Options: the USDC vault (`vault:<address>`) and one stock option per short market (`market:<marketId>`), since stock is the loan token there. Vault APY is each market's supply APY weighted by the vault's assets in it, over all its assets, less the vault fee; withdrawable is idle USDC plus, per market, the smaller of the vault's assets and the market's free liquidity. Stock positions use Morpho's supply shares with the interest since the last update booked (`expectedSupplyShares` in `math.ts`). `earnedRaw` is supplied now minus net deposits from the indexed events, and can be negative after bad debt. Vault shares received by a plain transfer count fully as earned. Fork test: a vault deposit and a stock supply match `totalAssets`, `fee`, `convertToAssets`, `maxWithdraw` and Morpho's market and position reads. MetaMorpho reads use a temporary fragment until the ABI export has MetaMorpho (request to Wangsit).
 
-- [ ] **BE-22 · Indexer for Earn**
+- [x] **BE-22 · Indexer for Earn**
   - Needs: BE-13, SC-23.
   - Do: vault events and supply and withdraw events in the stock markets go into the history.
   - Done when: the Earn history and the interest received show correctly for the test addresses.
+  - Note: done on 13 October 2026. The indexer follows the vault's ERC-4626 `Deposit` and `Withdraw` into `vault_events`, with the share owner as user, when the deployment has `usdcVault`. Morpho `Supply` and `Withdraw` in our markets were already indexed (BE-13). History shows both as `lend` and `withdrawLend`, and `/v1/earn/:address` uses them for `earnedRaw`. viem's `erc4626Abi` names the `Deposit` owner topic `receiver`, so the indexer uses the EIP-4626 names.
 
-- [ ] **BE-23 · All stocks and market detail**
+- [x] **BE-23 · All stocks and market detail**
   - Needs: SC-22, BE-04.
   - Do: support aHOOD and aBIL in all endpoints; `GET /v1/markets/:symbol` with the latest market depth, interest history, and DEX-to-oracle deviation history.
   - Done when: all five markets show with the correct numbers.
+  - Note: done on 13 October 2026. The `marketDepth` keeper job now also stores a rate snapshot of every market from `Lens` on each run (`market_rates`, every 10 minutes) when `DEPLOYMENT_FILE` is set. `/v1/markets/:symbol` gives both sides of the stock, the latest depth run, and 30 days of rate and deviation history at one point per hour (initial proposal). Every endpoint reads markets and tokens from the deployment, so HOOD and BIL need no special code. Fork test: the detail of every stock equals its rows in `/v1/markets`, which match the contracts for all five markets, and the keeper's snapshot equals the API's rates. DB test for the history and the depth run.
 
 ---
 
 ## M3. Market-hours protection
 
-- [ ] **BE-30 · Exchange calendar and calendar poster**
+- [~] **BE-30 · Exchange calendar and calendar poster**
   - Needs: BE-03, SC-11.
   - Do: a close and open calendar (US exchange holidays, daylight saving changes, the Anchored session schedule); a program that writes `nextCloseAt` to `RiskManager`. The Anchored schedule is read from the session changes recorded by BE-03, never typed into the code. Until a weekend close has been observed, post the earliest possible close (the regular close on the last trading day), because an early close is safe and a late one is not. The program switches to the observed schedule by itself once the data has it.
   - Done when: `nextCloseAt` on chain is correct for the next four weeks, including one holiday; on the local fork it posts the early close with no weekend data and the observed close after a weekend is recorded, with no code change in between; if this program stops, the team gets an alert.
   - Note: BE-03 data shows the weekly close at Friday 20:00 ET, with the session flipping between `POST_MARKET` and `CLOSED` until about 20:15. The close time is the first `CLOSED` write, not the last flip.
+  - Note: `packages/shared/calendar.ts` (NYSE holidays and early closes from their rules, daylight saving from the time zone, the Anchored schedule as an observed offset with the regular close as fallback) and `observedClosedStretches` in `packages/db` are written with tests.
+  - Note: the `calendar` keeper job is written (13 October 2026). Every 10 minutes it takes the schedule from `observedClosedStretches` (the regular close until a weekend is in the data), computes the next close on the chain's clock and posts it with `setNextCloseAt`. A close that just passed stays on chain through the contract's grace hour; a wrong future close is corrected. It runs when `CALENDAR_POSTER_KEY` and `DEPLOYMENT_FILE` are set and checks the key is the poster. Tests: a 10-minute simulation over four weeks around Thanksgiving always holds the right close (including the Wednesday and the 13:00 Friday close); on the fork the same job posts the regular close with no weekend data and moves to the observed close (4 hours later) once a weekend is added. Still to do: posting on mainnet, which needs the calendar poster role and hosting, and the alert when the job stops (BE-50, from its heartbeat).
 
-- [ ] **BE-31 · Protector keeper**
+- [x] **BE-31 · Protector keeper**
   - Needs: SC-30, BE-20.
   - Do: watch positions that have protection switched on; take the close time from the calendar (BE-30), never from a schedule of its own; when the time comes (see the order in 04) and a position is above the soft limit, compute the deleverage size with the formula in 04, request a route, call `deleverage`. Retry on failure; log every action.
   - Done when: on the local fork, positions above the limit are reduced to the target; positions without protection are not touched.
+  - Note: done on 13 October 2026. The `protector` job runs every minute and acts only in the last 30 minutes before the next close from the BE-30 calendar (04 timeline), never after it. Candidates are the latest `ProtectionSet` per user and market from the indexer (`protectedPositions`); the chain decides (`protectionEnabled`, `Lens` LTV above the current soft limit). Target: the current soft limit minus 1 point. Size: the 04 formula, for a short in dollars of USDC spent; the cost c is the keeper fee plus 1% slippage plus the price impact, guessed first and then taken from the real route, plus a 0.1% margin so rounding cannot leave the position just above the target (initial proposals). A trade too far from the oracle is skipped, as the router would reject it. A failed position is logged, the run reports the error in its heartbeat, and the next run retries. Runs when `PROTECTOR_KEY` (a router keeper) and `DEPLOYMENT_FILE` are set. Fork test with live KyberSwap routes: a protected long and a protected short were reduced to just below the target; a position whose protection was switched off was not touched; the router kept no tokens. On mainnet it needs the router keeper address (blocker on Wangsit's list).
 
 - [x] **BE-32 · Liquidator bot**
   - Needs: SC-32.
@@ -148,14 +155,16 @@ Three rules for the backend:
   - Done when: on the local fork, a position made unhealthy is liquidated within a few blocks.
   - Note: done on 13 October 2026. The keeper job `liquidator` (on only when `LIQUIDATOR_KEY` and `DEPLOYMENT_FILE` are set) takes every borrower in our markets from the indexed Morpho events, so users who borrow straight on Morpho are watched too, and checks health on chain with Morpho's own rounding (`morphoIsHealthy` in `math.ts`). It seizes as much as repays the whole debt (all the collateral when there is bad debt), sells the stock for a long or buys the stock back with part of the USDC for a short through KyberSwap, and halves the seizure when the DEX cannot cover the debt. It never lets the contract cover a shortfall from its own balance. Fork tests: a long after a 12% price drop and a short after a 25% rise were liquidated in the next run, a healthy position was left alone, and the `Liquidator` kept no tokens. Note for SC: the deployment script gives one `KEEPER` address both the router keeper role and the Liquidator keeper role; BE-55 asks for one key per role.
 
-- [ ] **BE-33 · Alerts for users**
+- [~] **BE-33 · Alerts for users**
   - Do: sign in with a wallet signature (`/v1/auth/siwe`); `GET` and `PUT /v1/alerts`; delivery channels (proposal: email and Telegram); a schedule of 24 hours, 4 hours and 1 hour before close, with the close time taken from the calendar (BE-30); alerts when the LTV passes a threshold, when auto-deleverage happens, and when liquidation happens.
   - Done when: a test address receives all three before-close alerts at the right times.
+  - Note: written on 14 October 2026. API: `/v1/auth/nonce` and `/v1/auth/siwe` (D-38), `GET` and `PUT /v1/alerts`, and `POST`/`DELETE /v1/alerts/telegram` for linking a Telegram chat with a one-time code; on only when `AUTH_SECRET` and `AUTH_DOMAIN` are set. Keeper job `alerts` (every minute): before-close alerts at 24 hours, 4 hours and 1 hour from the BE-30 calendar for positions above the closed-market limit; LTV over the user's threshold, once per crossing; auto-deleverage, liquidation and arrived deposits from the indexed events. Each alert goes out once per channel (`alert_deliveries`), a failed send is retried. It also links Telegram chats from the bot's `/start <code>` messages. Fork test: a position above the closed limit got the three before-close alerts at the right stages and once each, a position below it got none, plus the LTV, deleverage and liquidation alerts. Still to do: pick the delivery services (Q-30), set `RESEND_API_KEY`, `ALERT_EMAIL_FROM` and `TELEGRAM_BOT_TOKEN`, and see one real email and one Telegram message arrive; email addresses are not verified yet.
 
-- [ ] **BE-34 · Gap scenarios**
+- [~] **BE-34 · Gap scenarios**
   - Needs: BE-16.
   - Do: fill `gapScenarios` in quotes and in accounts; a periodic job that updates the gap table from the market data source and tells the team when the worst number changes.
   - Done when: the scenarios in the summary match the formula in 04; the gap table can be regenerated from a script.
+  - Note: one `gapScenarios` helper in `packages/shared/gaps.ts` fills quotes and accounts for long and short, with tests against the formula in 04; `gapStatsFromBars` rebuilds a table row from daily bars. Still to do: the regeneration script with a data source, and the daily check that alerts the team (needs BE-50).
 
 ---
 

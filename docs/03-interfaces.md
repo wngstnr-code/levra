@@ -396,6 +396,8 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
 | POST | `/v1/auth/siwe` | Sign in with a wallet signature, for settings | M3 |
 | GET, PUT | `/v1/alerts` | User alert settings (sign-in required) | M3 |
+| POST | `/v1/alerts/telegram` | One-time t.me link that links a Telegram chat to the wallet (sign-in required) | M3 |
+| DELETE | `/v1/alerts/telegram` | Unlinks the Telegram chat (sign-in required) | M3 |
 
 ### Main data shapes
 
@@ -640,10 +642,12 @@ type MarketDetail = {
   stockToken: Address;
   session: SessionInfo;
   markets: Market[];          // one per side
-  depth: DepthPoint[];
-  rateHistory: RatePoint[];
-  deviationHistory: DeviationPoint[];
+  depth: DepthPoint[];         // the latest daily depth run; failed sizes are left out
+  rateHistory: RatePoint[];    // last 30 days, the last snapshot per market in each hour, oldest first
+  deviationHistory: DeviationPoint[]; // last 30 days, the last mid measurement in each hour, oldest first
 };
+// `:symbol` is the stock symbol without the `a` prefix, any case. 404 for a stock not in the deployment.
+// The three history arrays are empty when the API runs without a database. Window and bucket are initial proposals.
 
 type QuoteCollateralRequest = {
   user: Address;
@@ -664,7 +668,7 @@ type QuoteCollateralResponse = {
 type HistoryResponse = { items: HistoryItem[]; nextCursor: string | null }; // query: cursor, limit (1 to 100)
 
 type EarnOption = {
-  id: string;
+  id: string;                 // "vault:<vault address>" or "market:<marketId>", lowercase
   kind: "vault" | "market";
   asset: Address;
   assetSymbol: string;
@@ -677,6 +681,7 @@ type EarnOption = {
   feeWad: string | null;      // share of interest taken by the vault
 };
 type EarnResponse = { options: EarnOption[] };
+// earnedRaw: supplied now minus net deposits, signed (negative after bad debt). Stock options are the short markets.
 type EarnPosition = { optionId: string; suppliedRaw: string; earnedRaw: string; withdrawableRaw: string };
 type EarnAccount = { address: Address; positions: EarnPosition[] };
 
@@ -717,6 +722,10 @@ type TermsAcceptResponse = { accepted: true; acceptedAt: number };
 type AuthNonceResponse = { nonce: string };
 type SiweRequest = { message: string; signature: Hex };
 type SiweResponse = { token: string; expiresAt: number };
+// Sign-in (D-38): GET /v1/auth/nonce, then an EIP-4361 message with that nonce, the web app's host as domain and
+// chain 143, signed by the wallet. The token goes in `Authorization: Bearer <token>` on the alert routes; 401
+// UNAUTHORIZED without it. A nonce is good for 10 minutes and once; a token for 24 hours.
+type TelegramLinkResponse = { url: string; expiresAt: number }; // https://t.me/<bot>?start=<code>, good for 15 minutes
 
 type AlertSettings = {
   channels: { email: string | null; telegramLinked: boolean };
@@ -728,6 +737,11 @@ type AlertSettings = {
     depositArrived: boolean;
   };
 };
+// A wallet that never saved settings gets every event on and no channel. PUT changes only the fields it sends;
+// `ltvThresholdWad` must be above 0 and below 1e18, or null to turn it off.
+// When alerts go out (alerts keeper): 24 hours, 4 hours and 1 hour before a close, for positions above the closed-market
+// limit; once when a position's LTV passes the threshold, again only after it went back under; on auto-deleverage,
+// liquidation and an arrived deposit, for events less than a day old.
 
 type ConfigResponse = {
   chainId: number;
@@ -780,7 +794,7 @@ Server-Sent Events. Three event types:
 - If there is a warning with `severity: "block"`, `tx` is still sent but the frontend does not show the confirm button.
 - In `typedData`, every `uint256` value is a decimal string so the payload survives JSON. The frontend turns them into `bigint` before signing.
 - `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
-- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for short positions until the short quote engine (BE-20) and for positions built straight on Morpho, whose cost is not known. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
+- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for positions built straight on Morpho, whose cost is not known. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
 - `/history` takes `cursor` (the `id` of the last item shown) and `limit` (1 to 100, default 20) as query parameters, newest first. An unknown cursor answers `BAD_REQUEST`.
 - Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.

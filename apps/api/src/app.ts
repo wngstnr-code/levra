@@ -6,7 +6,10 @@ import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
 import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
-import { marketRoutes, type DexMids } from "./routes/markets";
+import { alertRoutes } from "./routes/alerts";
+import { authRoutes } from "./routes/auth";
+import { earnRoutes } from "./routes/earn";
+import { dbMarketHistory, marketRoutes, type DexMids } from "./routes/markets";
 import { latestDexMids } from "@levra/db";
 import { createCache } from "./chain/cache";
 import { quoteRoutes } from "./routes/quotes";
@@ -24,6 +27,8 @@ export type AppDeps = {
   /** Needed by /v1/status (heartbeats and the indexer cursor). */
   db?: Db;
   version?: string;
+  /** Wallet sign-in and alert settings (BE-33). Off without it; needs `db`. */
+  auth?: { secret: string; domain: string; telegramBot?: string };
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
@@ -32,7 +37,7 @@ function dexMidsFromDb(db: Db): DexMids {
   return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
 }
 
-export function createApp({ logger, reader, swap, events, stream, db, version = "dev" }: AppDeps) {
+export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth }: AppDeps) {
   const app = new Hono();
 
   app.use(async (c, next) => {
@@ -49,11 +54,16 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
   if (reader) {
     const store = events ?? chainEventStore(reader);
     const mids = db ? dexMidsFromDb(db) : undefined;
-    app.route("/", marketRoutes(reader, mids));
+    app.route("/", marketRoutes(reader, mids, db ? dbMarketHistory(db) : undefined));
     app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
+    app.route("/", earnRoutes(reader, store));
     if (swap) app.route("/", quoteRoutes(reader, swap, store));
     if (db) app.route("/", statusRoutes(reader, db, version));
+    if (db && auth) {
+      app.route("/", authRoutes(reader.client, db, { secret: auth.secret, domain: auth.domain, chainId: reader.deployment.chainId }));
+      app.route("/", alertRoutes(db, { secret: auth.secret, telegramBot: auth.telegramBot }));
+    }
   }
 
   app.notFound(() => {

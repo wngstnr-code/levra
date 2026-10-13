@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { wad } from "./primitives";
+import { unixSeconds, wad } from "./primitives";
 
 export const alertSettings = z.object({
   channels: z.object({
@@ -21,3 +21,10 @@ export const alertSettingsUpdate = z.object({
   events: alertSettings.shape.events.partial().optional(),
 });
 export type AlertSettingsUpdate = z.infer<typeof alertSettingsUpdate>;
+
+/** A t.me link that opens the alert bot with a one-time code. Pressing Start links the chat to the signed-in wallet. */
+export const telegramLinkResponse = z.object({
+  url: z.url(),
+  expiresAt: unixSeconds,
+});
+export type TelegramLinkResponse = z.infer<typeof telegramLinkResponse>;
