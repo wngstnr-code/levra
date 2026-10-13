@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 17 | 13 |
+| Backend | Dharu | 35 | 18 | 15 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -72,8 +72,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 14 October 2026 | Dharu | Nabil | Show `gasDeposit` on the deposit screen when `includeGas` is on: the second address and how much of the same token to send there (D-40) | FE-40 |
-| 13 October 2026 | Nabil | Dharu | A public staging address for `NEXT_PUBLIC_API_URL` (CORS is done in BE-56) | FE-10, FE-11, FE-12, FE-13, BE-15 |
-| 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
+| 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
 
 ## Open questions that block work soon
 
@@ -202,6 +201,9 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 14 October 2026
 
 - Dharu: BE-55 written: `docs/keys.md`, a `keys` script that makes one key per role and stores it on Railway without printing it, a capped `topup` script, and log redaction. The leak drill passed on a fork. Next: make the mainnet keys and send the addresses to Wangsit for `make set-roles-monad` (needs Dharu's go-ahead).
+- Dharu: BE-15 staging is up on Railway (D-41): API at `https://api-production-c154.up.railway.app`, indexer caught up, keeper running its data and monitor jobs. The first deploy crashed on placeholder variables; fixed. Nabil can point `NEXT_PUBLIC_API_URL` at it. Still on the public RPC.
+- Dharu: BE-51 done and BE-54 started: rate limits per IP and wallet are wired into the API (also on deposit and withdrawal quotes), with one budget on KyberSwap calls; the load test harness and its first fork report are in. Next: the staging load test after hosting.
+- Dharu: BE-53 in review: backup, restore and restore-check scripts for Postgres and the incident runbook (`docs/runbook.md`), updated for the BE-50 team alerts. Restore test passed on 13 October. Next: all three read the runbook, one drill, and scheduled backups once hosted.
 - Dharu: BE-56 done: CORS for the web app's origins (`CORS_ORIGINS`, with `*` for one dash-separated part so only this project's Vercel previews match) and sign-in from several hosts (`AUTH_DOMAIN` as a list). This removes Nabil's CORS blocker; the signed texts were approved in BE-52, which removes the other. Still needed for the web app: the staging address (BE-15).
 - Dharu: BE-52 written: `/v1/eligibility` from a CDN country header and a block list, `/v1/terms/accept` checking the signed 03 text and storing it with the version and country, and a gate on opening and deposit quotes only (closing and withdrawing are never gated). Waiting on X-10 and X-11 for the country list and the terms version. Next: CORS and sign-in domains for the web app.
 - Dharu: BE-50 written: the `monitor` keeper checks every row of the 08 monitoring table (oracle age with a per-session limit from data, session against the calendar, DEX deviation, heartbeats, risk value changes, keeper MON, unhealthy positions, bad debt, utilization, depth against the cap rule, indexer lag, API) and alerts a team Telegram group or webhook once per problem, with a RESOLVED message. Waiting on Dharu: the team channel. Next: BE-52.

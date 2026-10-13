@@ -39,6 +39,11 @@ const envSchema = z.object({
   GEO_COUNTRY_HEADER: optional(),
   /** Comma-separated ISO 3166-1 alpha-2 codes to refuse, decided with counsel (X-10). Needs GEO_COUNTRY_HEADER. */
   BLOCKED_COUNTRIES: optional(),
+  /**
+   * Header with the client address written by our own proxy, for example x-forwarded-for or cf-connecting-ip (BE-51).
+   * Only set it when a proxy we control always writes it; otherwise clients could choose their own address.
+   */
+  TRUST_PROXY_HEADER: optional(),
   /** Shown in /v1/status, for example the git commit of the deployed build. */
   APP_VERSION: z.string().min(1).default("dev"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
@@ -47,7 +52,9 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envSchema.safeParse(source);
+  // A variable left empty on the host counts as not set, so its default applies instead of failing the start.
+  const set = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ""));
+  const parsed = envSchema.safeParse(set);
   if (!parsed.success) throw new Error(`Invalid environment: ${z.prettifyError(parsed.error)}`);
   return parsed.data;
 }
