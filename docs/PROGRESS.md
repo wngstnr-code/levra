@@ -114,6 +114,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
+| 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 
 ## Daily log
 
