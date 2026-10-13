@@ -1,11 +1,21 @@
 import { z } from "zod";
 
+const optional = () =>
+  z
+    .string()
+    .optional()
+    .transform((v) => v || undefined);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.url(),
   MONAD_RPC_URL: z.url(),
   /** Blocks to read back on the first start of the oracle recorder. 4,000,000 blocks is about two weeks. */
   ORACLE_BACKFILL_BLOCKS: z.coerce.bigint().positive().default(4_000_000n),
+  /** contracts/deployments/<environment>.json. Needed by keepers that act on our contracts. */
+  DEPLOYMENT_FILE: optional(),
+  /** Key of the oracle age poster role (BE-17). The job runs only when it is set. One key per role (BE-55). */
+  ORACLE_AGE_POSTER_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 
