@@ -8,6 +8,13 @@
       "when": 1791878739016,
       "tag": "0000_keeper_heartbeats",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791879583000,
+      "tag": "0001_oracle_updates",
+      "breakpoints": true
     }
   ]
 }
