@@ -104,10 +104,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: all five markets are in the staging address file; each market has one real open and close transaction recorded.
   - Note: the deployment script creates all five markets. Not deployed on mainnet yet. Q-15 is still open.
 
-- [ ] **SC-23 · USDC vault**
+- [~] **SC-23 · USDC vault**
   - Needs: SC-06, SC-22.
   - Do: create the vault from the official Morpho factory; set the supply cap per market as in 04; the roles are held by team addresses (a multisig later); the fee share as in Q-07.
   - Done when: lending and withdrawing USDC through the vault works on staging; the vault funds really flow into our markets; the address is in the address file.
+  - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Still to do: mainnet, and moving ownership to the multisig (SC-55).
 
 - [ ] **SC-24 · Seed inventory for short markets**
   - Needs: SC-22, X-14.
