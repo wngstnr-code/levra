@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 11 | 4 |
-| Frontend | Nabil | 25 | 3 | 1 |
+| Frontend | Nabil | 26 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -186,6 +186,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Nabil: visual design for every screen is on the Figma page "Design" (dark, pastel bento). Decided D-37: the landing site is separate (`apps/landing`, root domain) and the app runs on `app.<domain>`. New task FE-62; FE-60 is now the app domain only.
 - Wangsit: SC-23 done. A real deposit and withdrawal went through the USDC vault on mainnet with `make first-earn-monad`: 1 USDC in, all of it lent to the QQQ long market by the vault, 1 USDC back in full. The vault is empty again. Dharu and Nabil can use `monadDeployment.usdcVault` for the Earn screen.
 - Wangsit: the USDC vault is live on mainnet (SC-23): `Levra USDC` at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, created from Morpho's factory, read back from the chain: caps 10,000 QQQ, 5,000 HOOD, 20,000 BIL, fee 10%, timelock 1 day, owner the deployer wallet. It is in `monad.json` as `usdcVault`. One QQQ long is left open in the deployer wallet for the demo. `make first-earn-monad` is written and rehearsed on a fork of the live state: 1 USDC went into the vault, reached the QQQ market and came back in full. Next: run it on mainnet.
 - Wangsit: `make set-roles-monad` written and rehearsed on a fork: it sets the router keeper, the `Liquidator` keeper, the calendar poster and the oracle age poster from the owner wallet, and skips what is already set. `Deploy.s.sol` now reads `LIQUIDATOR_KEEPER` separately, as Dharu asked for BE-55. Safe supports Monad, so the multisig can be made at app.safe.global. The Anchored message is updated for the staging deployment. Waiting for: four role addresses from Dharu, one wallet address each from Dharu and Nabil.
