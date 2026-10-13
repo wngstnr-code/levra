@@ -90,6 +90,28 @@ contract GovernanceTest is BaseTest {
         timelock.schedule(address(risk), 0, data, bytes32(0), bytes32(0), GovernancePlan.DELAY);
     }
 
+    function test_oraclePosterIsTheOneKeyThatMayLoosenAndOnlyInsideBounds() public {
+        address poster = makeAddr("poster");
+        risk.setOracleAgePoster(poster);
+        risk.setOracleAgeBounds(longId, 25 minutes, 1 hours);
+        _accept();
+
+        vm.prank(poster);
+        risk.setMaxOracleAge(longId, 1 hours);
+        assertEq(risk.config(longId).maxOracleAge, 1 hours);
+
+        // Widening the bounds is the owner's call, so it takes the multisig and the wait.
+        vm.prank(poster);
+        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        risk.setOracleAgeBounds(longId, 25 minutes, 2 hours);
+        vm.prank(multisig);
+        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        risk.setOracleAgeBounds(longId, 25 minutes, 2 hours);
+        _throughTimelock(address(risk), abi.encodeCall(IRiskManager.setOracleAgeBounds, (longId, 25 minutes, 2 hours)));
+        (, uint32 cap) = risk.oracleAgeBounds(longId);
+        assertEq(cap, 2 hours);
+    }
+
     function test_multisigTightensAndPausesAtOnce() public {
         _accept();
         vm.startPrank(multisig);
