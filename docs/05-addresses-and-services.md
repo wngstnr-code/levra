@@ -32,7 +32,29 @@ Production uses a paid RPC endpoint provider. The choice is task BE-15.
 | Anchored, stock price oracle | `0x037848af338c38e1e0ab722be80bf4c2e612a1f7` | A proxy, can be changed by Anchored |
 | Chainlink, wNVDAx-USD | `0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0` | For reference only; not used |
 
-Not yet looked up and must be confirmed in SC-06: Morpho vault factory, Morpho public allocator, Safe (multisig), Permit2, Multicall3.
+More Morpho contracts on Monad, taken from the address list in Morpho's own SDK (`morpho-org/sdks`, `packages/morpho-ts/src/addresses.ts`) and confirmed to have code on chain on 13 October 2026:
+
+| Name | Address |
+|---|---|
+| Morpho vault factory (MetaMorpho v1.1) | `0x33f20973275B2F574488b18929cd7DCBf1AbF275` |
+| Morpho Vault V2 factory | `0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c` |
+| Morpho market adapter factory for Vault V2 | `0xa00666E86C7e2FA8d2c78d9481E687e098340180` |
+| Morpho public allocator | `0x0A503aB026EFACBC0F7feE7795F34B80b5B9a662` |
+| Wrapped MON | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
+
+Common infrastructure, confirmed to have code at the usual addresses:
+
+| Name | Address |
+|---|---|
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` |
+| Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
+| Safe 1.4.1 singleton | `0x41675C099F32341bf84BFc5382aF534df5C7461a` |
+| Safe 1.4.1 L2 singleton | `0x29fcB43b46531BcA003ddC8FCB67FFE91900C762` |
+| Safe 1.4.1 proxy factory | `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67` |
+
+Flash loan room: Morpho held about 10.5 million idle USDC on 13 October 2026.
+
+These addresses are not in `packages/shared/addresses.ts` yet. Adding them is part of SC-06. Which vault type to use is an open decision (Q-11).
 
 ## Tokens
 
@@ -58,11 +80,12 @@ AUSD and USDT0 are not used. Read their decimals from the network first if they 
 | aHOOD | Uniswap v4 | `0x5a5bd831053340c8f51021866464fc9672314d54eb6e7b92bdb2afa85b3cb80c` |
 | aBIL | Monday Trade v3 | `0x158d9dc39a3be0f2ce759deadbf18bae20dcf9d9` |
 
-Not verified (SC-04):
+Verified on 13 October 2026 from aggregator routes for a $100 buy: all three pools pair the stock directly with USDC, and each route is a single hop (answers Q-16).
 
-- The paired token in each pool (USDC, AUSD, or something else). The aggregator can route through other tokens, but that adds price impact.
-- Whether those Uniswap v4 pools have extra rules (a hook). The aggregator does not report it, but it has not been read from the contract.
-- No real swap transaction has been run yet. So far there are only quotes.
+Still not verified (SC-04):
+
+- Whether those Uniswap v4 pools have extra rules (a hook). The aggregator reports no hook data, but it has not been read from the contract.
+- No real swap transaction has been run yet. So far there are only quotes and built calldata.
 
 ## Anchored oracle
 
@@ -84,7 +107,40 @@ enum Session { UNKNOWN, PRE_MARKET, REGULAR, POST_MARKET, OVERNIGHT, CLOSED }
 
 - `priceId` is the `keccak256` of the uppercase symbol, for example `keccak256("QQQ")`.
 - Prices have 8 decimals.
-- The layout above was recorded from a read on 13 October 2026. Confirm it again against the ABI on the block explorer before writing `SessionOracle` (part of SC-10).
+- The layout above matches Anchored's own documentation and was read successfully from the live contract on 13 October 2026.
+
+What Anchored's documentation says about the oracle (read on 13 October 2026, not independently verified unless marked):
+
+| Topic | Details |
+|---|---|
+| `price` | Midpoint of best bid and best ask |
+| Freshness | Use `feedUpdateTimestamp` (time of the source quote). `publishedAt` only says when the value was written on chain |
+| Delay | The source quote can be about 15 minutes delayed |
+| Heartbeat | 10 minutes by default |
+| Suggested max age | 1,500 seconds (25 minutes) as a lower bound, before any product buffer |
+| Write rules | `price`, `bestBid`, `bestAsk` must be positive, and `bestBid` cannot exceed `bestAsk` |
+| `CLOSED` | The oracle carries the last price forward. `feedUpdateTimestamp` does not advance while closed |
+| Other reads | `latestPriceNoOlderThan(priceId, maxAge)`, `latestPrices(priceIds)`, `latestPricesNoOlderThan(priceIds, maxAge)`, `isSupportedPriceId`, `hasPrice`, `description` |
+| Read errors | `PriceIdNotFound`, `PriceNotAvailable`, `PriceTooOld` |
+| Who writes | An operator role held by Anchored's backend |
+| Same address on | Ethereum, Monad and Base |
+
+Read from chain on 13 October 2026 (verified): the oracle is an upgradeable proxy. Implementation `0x8745912828473e9bef9d843ce8629bee3dcb9fec`, proxy admin `0xd9b74950dd514ed6086e4fa403d323338fedd5f0`.
+
+Consequence for our design: `ISessionOracle.snapshot()` and the API expose `publishedAt`. Staleness should be judged on `feedUpdateTimestamp` while the market is open. This is an open decision (Q-22).
+
+### Market sessions
+
+From Anchored's documentation. Times are US Eastern Time.
+
+| Session | Hours |
+|---|---|
+| Overnight | 8:00 PM to 4:00 AM |
+| Pre-market | 4:00 AM to 9:30 AM |
+| Regular | 9:30 AM to 4:00 PM |
+| After-hours | 4:00 PM to 8:00 PM |
+
+Trading runs from Sunday evening to Friday evening. It stops on weekends and US market holidays, and there may be pauses of a few minutes between sessions. One stock can also be halted during a corporate action such as a dividend or a stock split. So the weekly close is Friday 8:00 PM and the weekly open is Sunday 8:00 PM. The oracle logger (BE-03) still has to confirm what the oracle reports at each of these moments.
 
 ## Morpho interface we use
 
@@ -114,7 +170,12 @@ enum Session { UNKNOWN, PRE_MARKET, REGULAR, POST_MARKET, OVERNIGHT, CLOSED }
 | Build the calldata | `POST https://aggregator-api.kyberswap.com/monad/api/v1/route/build` |
 | Client ID | Request header `x-client-id` |
 
-Finding a route has been used for measurements. Building the calldata, the request limits, and how to get a client ID are not verified (BE-04).
+Verified on 13 October 2026:
+
+- Finding a route works with any text as the client ID. We used `levra`.
+- Building calldata works when `sender` and `recipient` are a contract that holds no funds. The request body was `routeSummary`, `sender`, `recipient` and `slippageTolerance` (in basis points). The answer has `routerAddress` (the router above), `data` (about 3,600 bytes for a one-hop route), `amountOut`, `gas` and `transactionValue`.
+
+Still not verified (BE-04): request limits, whether a registered client ID is needed for production use, and that the built calldata executes from a contract (SC-04).
 
 ### Morpho, data API
 
@@ -130,7 +191,18 @@ Finding a route has been used for measurements. Building the calldata, the reque
 
 Verified: Monad is supported as both origin and destination; its token list includes MON, USDT0, and USDC on Monad.
 
-Not verified (BE-05): a real deposit from another network to Monad; its time and cost; the API key; the feature that runs automatic steps when funds arrive.
+Price-only quotes on 13 October 2026 (`dry: true`, no API key, no funds moved):
+
+| Route | Result | Estimated time |
+|---|---|---|
+| 50 USDC on Base to USDC on Monad | 49.889 USDC arrives (cost about 0.22%) | 37 seconds |
+| 50 USDC on Arbitrum to USDC on Monad | 49.889 USDC arrives | 27 seconds |
+| 50 USDC on Ethereum to USDC on Monad | 49.894 USDC arrives | 47 seconds |
+| 1 USDC on Base to MON on Monad | 39.45 MON arrives | 39 seconds |
+
+The last row shows the gas top-up of Q-10 is possible as a second small transfer. The service rejects requests from some HTTP clients, so the backend must send a normal user agent.
+
+Still not verified (BE-05): a real deposit; whether an API key changes the fee; the feature that runs automatic steps when funds arrive.
 
 ## Numbers measured on 13 October 2026
 
@@ -170,7 +242,7 @@ Of the 28 Anchored stocks checked, 24 have no route at all.
 | Item | Details |
 |---|---|
 | Number of tokens | About 80 stocks on Monad since 16 April 2026 |
-| Target | Professional investors outside the United States and China |
+| Target | Professional and qualified investors outside the prohibited jurisdictions listed below |
 | Identity check | For those who buy or swap directly with Anchored |
 | Trading hours | 24 hours, 5 days a week |
 | Dividends | Paid in USDC to the holder's wallet |
@@ -178,7 +250,60 @@ Of the 28 Anchored stocks checked, 24 have no route at all.
 | Control | Can block addresses (denylist) |
 | Partner route | Needs a partner API key |
 
-Unclear and must be asked of Anchored (X-12): what happens to dividends for stock held by Morpho, and whether their terms of use allow the tokens to be used in a lending venue.
+Unclear and must be asked of Anchored (X-12): what happens to dividends for stock held by Morpho, how stock splits are applied to the token and to the oracle price, and whether their terms of use allow the tokens to be used in a lending venue. The questions are drafted in `docs/outreach/anchored-questions.md`.
+
+### Token behavior
+
+Read from chain on 13 October 2026 (verified unless marked).
+
+| Item | aQQQ, aHOOD, aBIL | USDC |
+|---|---|---|
+| Upgradeable | Yes. Each token is a beacon proxy. Beacon `0xfe296a422b74cb22bb3c507311f0663fd0d95dd8`, implementation `0x45ad0F7eb547B041cdf97e201566E194f36070f5`, beacon owner `0x0cB7D20d05eB07B6Aeed6654da58806a53672Db7` (beacon read for aQQQ only) | Yes. Proxy with implementation `0xbd520ea8cbb4f81b62aff3c3ffe7affd69800b6d` and admin `0xc66bf3ef02d30e942bbab7f871d07b14d0ccc619` |
+| `permit` | No. `DOMAIN_SEPARATOR()` and `nonces()` do not exist | Yes. `DOMAIN_SEPARATOR()` and `nonces()` answer, `version()` is 2 (answers Q-18) |
+| Pause | No pause function on the token itself | Yes, a pauser role exists. Not paused when read |
+| Blocking | The token points to a compliance contract, `0xF1aeD4E4816a91CebfCBd33378E38962abf73276`, which is itself upgradeable. It has a denylist (`addToDenylist`, `removeFromDenylist`, `isDenylisted`) and an approved list (`isApproved`) | Circle blacklist. Morpho was not blacklisted when read |
+| Roles | Minter and burner roles. No function that moves or burns another holder's balance was found in the current implementation | Circle roles |
+| Supply | aQQQ total supply was 16.53 tokens | - |
+
+Compliance contract checks on 13 October 2026:
+
+| Address | `isDenylisted` | `isApproved` | `requireNotBlocked` | `requireCompliant` |
+|---|---|---|---|---|
+| Morpho | false | false | passes | reverts with `UserNotApproved` |
+| KyberSwap router | false | false | passes | reverts with `UserNotApproved` |
+| A random address | false | false | passes | reverts with `UserNotApproved` |
+
+Reading: there are two levels. "Not blocked" is true for everyone who is not on the denylist. "Compliant" is true only for approved addresses, which fits identity-checked accounts. Since exchange pools and ordinary wallets hold and trade the tokens, plain transfers most likely need only "not blocked". This is an inference. Which check a transfer uses has not been verified, and a transfer to Morpho has not been simulated (SC-05).
+
+What this means for us:
+
+- Anchored can block the Morpho address or our router with one call, and can change token and compliance logic by upgrading. Collateral could then be stuck. This is threat T-08 and cannot be closed with code.
+- Stock tokens have no `permit`, so lending stock in Earn needs a normal `approve` transaction first. The one-confirmation path with signatures (D-20) works for USDC only.
+
+### Who may hold Anchored tokens
+
+From Anchored's eligibility page (read on 13 October 2026). The products are for professional and qualified investors. Residents, citizens and entities of these places may not subscribe, buy or redeem: Afghanistan, Algeria, Belarus, Canada, China (not Hong Kong), Cuba, North Korea, Eritrea, Iran, Libya, Myanmar, Morocco, Nepal, Russia, Somalia, South Sudan, Sudan, Syria, the sanctioned regions of Ukraine, the United States, and Venezuela. US persons under Regulation S are excluded wherever they are. Sanctioned persons are excluded everywhere.
+
+Our geo-blocking list is an open decision (Q-24). Earlier docs said "outside the United States and China". The real list is longer.
+
+## Other services checked
+
+| Service | Finding | Status |
+|---|---|---|
+| Envio | Its supported networks page lists Monad mainnet, chain 143, with HyperSync at `https://143.hypersync.xyz`. Whether an API token is required was not found | From documentation. Not run (BE-06) |
+| Privy | The embedded wallet is a normal key wallet by default (an HD wallet). It supports `signTypedData` and private key export. Smart wallets are an optional layer on top | From documentation. Not run (FE-02) |
+| Local fork | Anvil 1.8.3 forks Monad through the public RPC. Reads and an impersonated `approve` work | Verified for those calls only (SC-02) |
+
+## Name and domains
+
+Checked by DNS lookup on 13 October 2026. A domain with no name servers may be free, but only a registrar can confirm.
+
+| Name | State |
+|---|---|
+| `levra.com`, `levra.io`, `levra.xyz`, `levra.app`, `levra.trade`, `getlevra.com` | In use (they resolve) |
+| `levra.fi`, `levra.finance`, `levra.markets` | No name servers found |
+| GitHub user `levra` | Taken since 2018 |
+| GitHub names `levra-finance`, `levrafi` | Not found, so likely free |
 
 ## Coming up
 
