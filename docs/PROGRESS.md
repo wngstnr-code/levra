@@ -74,7 +74,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 14 October 2026 | Dharu | Nabil | Show `gasDeposit` on the deposit screen when `includeGas` is on: the second address and how much of the same token to send there (D-40) | FE-40 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
-| 13 October 2026 | Nabil | Dharu | A public staging address for `NEXT_PUBLIC_API_URL` (CORS is done in BE-56) | FE-10, FE-11, FE-12, FE-13, BE-15 |
+| 14 October 2026 | Nabil | Wangsit | Set `NEXT_PUBLIC_API_URL=https://api-production-c154.up.railway.app` on the Vercel project (Production and Preview) and redeploy. The Vercel project is on Wangsit's account. This is the last step of BE-15 | FE-10, FE-11, FE-12, FE-13, BE-15 |
+| 14 October 2026 | Nabil | Dharu | Trade quotes on staging fail most of the time with 429 `RATE_LIMITED` "The swap aggregator is rate limiting us" (1 of 3 tries worked). Likely the missing KyberSwap client ID on Railway | FE-11, BE-04, BE-12 |
 
 ## Open questions that block work soon
 
@@ -203,6 +204,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Nabil: the web app runs against the Railway staging API on localhost: markets, positions, earn, deposit tokens, settings and sign-in answer with real data and CORS passes. Fixed on the way: the trade form was blocked because staging has no terms version, so `/v1/eligibility` answers 404; the app now treats that as the gate being off, like the API. Deposit now lists common chains and USDC first and uses a neutral address placeholder. Open: quotes hit the KyberSwap limit, and five keepers are not healthy yet (waiting for the role grants), so the service banner shows.
 - Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).
 - Dharu: BE-34 done: `report:gaps` rebuilds the gap table from five years of daily prices (same worst gaps as the table on 14 October), and the team monitor checks it daily. Staging: `/status` is live; the four keeper role jobs report "not the role holder" until Wangsit grants the roles.
 - Dharu: mainnet keeper keys made with the BE-55 script and stored on Railway's keeper service only; the addresses went to Wangsit for `make set-roles-monad` (blocker row). The keeper is not redeployed yet, so the role jobs stay off until the grant and the MON top-up.
