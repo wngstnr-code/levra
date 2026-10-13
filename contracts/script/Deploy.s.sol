@@ -9,6 +9,7 @@ import {IAnchoredStockOracle} from "../src/interfaces/IAnchoredStockOracle.sol";
 import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
 import {Side} from "../src/interfaces/Types.sol";
 import {Lens} from "../src/Lens.sol";
+import {Liquidator} from "../src/Liquidator.sol";
 import {MarginRouter} from "../src/MarginRouter.sol";
 import {RiskManager} from "../src/RiskManager.sol";
 import {SessionOracle} from "../src/SessionOracle.sol";
@@ -60,8 +61,12 @@ contract Deploy is Script {
         risk = new RiskManager(MORPHO, deployer, PRE_CLOSE_WINDOW);
         MarginRouter router = new MarginRouter(MORPHO, risk, KYBER_ROUTER, deployer, feeRecipient, FEE_BPS);
         Lens lens = new Lens(MORPHO, risk, router);
+        Liquidator liquidator = new Liquidator(MORPHO, KYBER_ROUTER, deployer, feeRecipient);
         router.setFees(FEE_BPS, KEEPER_FEE_BPS, feeRecipient);
-        if (keeper != address(0)) router.setKeeper(keeper, true);
+        if (keeper != address(0)) {
+            router.setKeeper(keeper, true);
+            liquidator.setKeeper(keeper, true);
+        }
 
         Plan[5] memory plans = [
             Plan("QQQ", AQQQ, Side.Long, 0.77e18, 0.73e18, 0.7e18, 500, 500e6),
@@ -77,6 +82,7 @@ contract Deploy is Script {
         if (owner != deployer) {
             risk.transferOwnership(owner);
             router.transferOwnership(owner);
+            liquidator.transferOwnership(owner);
         }
         vm.stopBroadcast();
 
@@ -91,6 +97,8 @@ contract Deploy is Script {
             vm.toString(address(risk)),
             '","lens":"',
             vm.toString(address(lens)),
+            '","liquidator":"',
+            vm.toString(address(liquidator)),
             '","markets":[',
             marketsJson,
             "]}"

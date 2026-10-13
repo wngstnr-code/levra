@@ -22,7 +22,13 @@ fork:
 deploy-fork:
 	DEPLOY_ENV=fork forge script script/Deploy.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast
 
+deploy-vault-fork:
+	DEPLOY_ENV=fork forge script script/DeployVault.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast
+
+deploy-vault-monad:
+	DEPLOY_ENV=monad forge script script/DeployVault.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
+
 deploy-monad:
 	DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
 
-.PHONY: build test fmt abis fork deploy-fork deploy-monad
+.PHONY: build test fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad
