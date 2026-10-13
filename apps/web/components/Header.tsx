@@ -12,6 +12,7 @@ const routes = [
   { href: "/markets", key: "markets" },
   { href: "/trade", key: "trade" },
   { href: "/positions", key: "positions" },
+  { href: "/earn", key: "earn" },
 ] as const;
 
 export function Header() {
