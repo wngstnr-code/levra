@@ -99,7 +99,7 @@ The Anchored oracle gives three numbers: price, best bid, and best ask.
 | Long | The lower of price and best bid | Collateral is valued carefully |
 | Short | The higher of price and best ask | Debt is valued carefully |
 
-If the best bid or best ask is zero or not sensible, use the price alone. Whether these two numbers are always filled is not verified (BE-03).
+If the best bid or best ask is zero or not sensible, use the price alone. The exact condition is the one in `SessionOracle`: for long, the best bid is used only when it is above zero and below the price; for short, the best ask is used only when it is above the price. `math.ts` uses the same condition (BE-16). Whether these two numbers are always filled is not verified (BE-03).
 
 ### Reducing a position to a target
 
