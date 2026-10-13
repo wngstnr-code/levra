@@ -9,12 +9,12 @@ export DEPLOYMENT=${DEPLOYMENT:-deployments/monad.json}
 export SLIPPAGE_BPS=${SLIPPAGE_BPS:-150}
 source script/lib.sh
 
-# Like send, but prints the transaction hash so it can be recorded.
+# Like send, but prints the transaction hash so it can be recorded. Stops the script if the transaction reverts.
 tx() {
   local label=$1
   shift
   local hash
-  hash=$(cast send --rpc-url "$RPC" --private-key "$KEY" --json "$@" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
+  hash=$(send_as "$KEY" "$ACCOUNT" "$@")
   echo "$label: $hash"
 }
 

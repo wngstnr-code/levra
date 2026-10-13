@@ -42,15 +42,22 @@ deploy-vault-fork:
 deploy-vault-monad:
 	DEPLOY_ENV=monad forge script script/DeployVault.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
 
-# Sends real transactions on Monad mainnet: seeds the QQQ long market, opens a small long and closes it.
+# The three targets below send real transactions on Monad mainnet. They are dry runs unless CONFIRM=yes.
+# SYMBOL picks the stock for the first two: QQQ (default), HOOD or BIL.
+
+# Every market in scope: long on QQQ, HOOD and BIL, then short on QQQ and HOOD.
+first-run-monad:
+	CONFIRM=$(CONFIRM) ./script/mainnet-first-run.sh
+
+# Seeds the long market of one stock, opens a small long and closes it.
 first-long-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-first-long.sh
 
-# Sends real transactions on Monad mainnet: lends stock to the QQQ short market, opens a small short and closes it.
+# Buys one stock and lends it to its short market, opens a small short and closes it.
 first-short-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-first-short.sh
 
 deploy-monad:
 	DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
 
-.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad
+.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad
