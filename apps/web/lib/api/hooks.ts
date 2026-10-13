@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
+import { orderDepositTokens } from "../depositTokens";
 import { api, apiBaseUrl, ApiRequestError } from "./client";
 
 export const queryKeys = {
@@ -103,7 +104,14 @@ export function useEarnAccount(address: Address | undefined) {
 }
 
 export function useDepositTokens() {
-  return useQuery({ queryKey: queryKeys.depositTokens, queryFn: ({ signal }) => api("depositTokens", { signal }), enabled: apiConfigured, staleTime: 10 * 60_000, retry: shouldRetry });
+  return useQuery({
+    queryKey: queryKeys.depositTokens,
+    queryFn: ({ signal }) => api("depositTokens", { signal }),
+    select: (d) => ({ ...d, tokens: orderDepositTokens(d.tokens) }),
+    enabled: apiConfigured,
+    staleTime: 10 * 60_000,
+    retry: shouldRetry,
+  });
 }
 
 const TERMINAL = new Set(["SUCCESS", "REFUNDED", "FAILED", "EXPIRED"]);
