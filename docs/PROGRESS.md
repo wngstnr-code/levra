@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 17 | 12 |
+| Backend | Dharu | 35 | 20 | 14 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -63,7 +63,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
-| 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet | BE-17, BE-30, BE-31, BE-32 |
+| 14 October 2026 | Dharu | Wangsit | Grant the four keeper roles on mainnet: `ORACLE_AGE_POSTER=0x33B03c6e569e06938D59F1232ef5070646F0146d CALENDAR_POSTER=0x745356C469FcE1372B4C2259332f5251130d4a5b KEEPER=0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e LIQUIDATOR_KEEPER=0x22ea6605a7D5246b1F05831632DC8172125A5C18 make set-roles-monad CONFIRM=yes`. The keys are on Railway's keeper service; the keeper is redeployed after the grant and the MON top-up | BE-17, BE-30, BE-31, BE-32, BE-55 |
+| 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`) | BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | The restricted country list from counsel (X-10) and a published terms version (X-11), set as `BLOCKED_COUNTRIES` and `TERMS_VERSION` | BE-52 |
 | 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
@@ -71,8 +72,9 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
+| 14 October 2026 | Dharu | Nabil | Show `gasDeposit` on the deposit screen when `includeGas` is on: the second address and how much of the same token to send there (D-40) | FE-40 |
+| 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
 | 13 October 2026 | Nabil | Dharu | A public staging address for `NEXT_PUBLIC_API_URL` (CORS is done in BE-56) | FE-10, FE-11, FE-12, FE-13, BE-15 |
-| 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
 
@@ -201,6 +203,14 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).
+- Dharu: BE-34 done: `report:gaps` rebuilds the gap table from five years of daily prices (same worst gaps as the table on 14 October), and the team monitor checks it daily. Staging: `/status` is live; the four keeper role jobs report "not the role holder" until Wangsit grants the roles.
+- Dharu: mainnet keeper keys made with the BE-55 script and stored on Railway's keeper service only; the addresses went to Wangsit for `make set-roles-monad` (blocker row). The keeper is not redeployed yet, so the role jobs stay off until the grant and the MON top-up.
+- Dharu: BE-61 written: the API serves a public status page at `/status` (oracle age per stock, keepers, indexer lag, one overall line), plain HTML that refreshes itself. Next: check it live on staging after merge.
+- Dharu: BE-55 written: `docs/keys.md`, a `keys` script that makes one key per role and stores it on Railway without printing it, a capped `topup` script, and log redaction. The leak drill passed on a fork. Next: make the mainnet keys and send the addresses to Wangsit for `make set-roles-monad` (needs Dharu's go-ahead).
+- Dharu: BE-15 staging is up on Railway (D-41): API at `https://api-production-c154.up.railway.app`, indexer caught up, keeper running its data and monitor jobs. The first deploy crashed on placeholder variables; fixed. Nabil can point `NEXT_PUBLIC_API_URL` at it. Still on the public RPC.
+- Dharu: BE-51 done and BE-54 started: rate limits per IP and wallet are wired into the API (also on deposit and withdrawal quotes), with one budget on KyberSwap calls; the load test harness and its first fork report are in. Next: the staging load test after hosting.
+- Dharu: BE-53 in review: backup, restore and restore-check scripts for Postgres and the incident runbook (`docs/runbook.md`), updated for the BE-50 team alerts. Restore test passed on 13 October. Next: all three read the runbook, one drill, and scheduled backups once hosted.
 - Nabil: frontend synced with BE-33, BE-40 to BE-42, BE-50 and BE-52 on `fe/FE-40-31-50-backend-sync`: deposit shows the second transfer for network fees (D-40) with its own status in MON, Telegram link and unlink in Settings, the terms text from `packages/shared`, withdrawal destination hashes as text, and the team monitor no longer raises the user service banner. Not run against a live API yet: it waits on the staging address (BE-15). Request for Dharu: 03 says `DepositStatus.amountOutRaw` is USDC, but for the gas transfer the API returns MON in wei; please write that down in 03 (the web app already shows MON for it).
 - Nabil: FE-06 logo picked and built in the app on `fe/FE-06-logo`: mark R1 with LEVRA in Chivo Black Italic, in the header, the browser tab and the home screen icons. Wangsit and Dharu still to confirm.
 - Dharu: BE-56 done: CORS for the web app's origins (`CORS_ORIGINS`, with `*` for one dash-separated part so only this project's Vercel previews match) and sign-in from several hosts (`AUTH_DOMAIN` as a list). This removes Nabil's CORS blocker; the signed texts were approved in BE-52, which removes the other. Still needed for the web app: the staging address (BE-15).

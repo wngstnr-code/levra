@@ -202,6 +202,8 @@ Be careful: if `price()` reverts, Morpho cannot run borrowing, collateral withdr
 
 ## Five-year price gap data
 
+Rebuilt from the same source with `pnpm --filter @levra/keeper report:gaps` (BE-34). A run on 14 October 2026 gave the same worst drop and rise for every stock below; it counts 275 events per stock (single mid-week holidays included) where this table says 261, so the "more than 2%" shares differ by up to 1.3 points. The team monitor alerts when a listed stock has a gap worse than this table.
+
 The difference between the closing price and the next opening price, for weekends and holidays only. 261 events per stock, October 2021 to October 2026, from Yahoo Finance.
 
 | Stock | Gaps more than 2% | Worst drop | Worst rise |

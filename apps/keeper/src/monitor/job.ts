@@ -9,6 +9,8 @@ import { and, eq, gte } from "drizzle-orm";
 import { getAddress, type Address, type PublicClient } from "viem";
 import { scheduleFromLogger, type ScheduleSource } from "../calendar/poster";
 import { maxAgeRule } from "../oracle/max-age";
+import { yahooBars, type BarSource } from "../gaps/source";
+import { gapStatsFromBars, gapTable, type GapStats } from "@levra/shared/gaps";
 import { loadOracleReport } from "../oracle/report";
 import type { Job } from "../runner";
 import { evaluate, oracleLimit, type Finding, type OracleLimit, type Snapshot } from "./checks";
@@ -16,6 +18,8 @@ import { evaluate, oracleLimit, type Finding, type OracleLimit, type Snapshot } 
 const SESSIONS = ["UNKNOWN", "PRE_MARKET", "REGULAR", "POST_MARKET", "OVERNIGHT", "CLOSED"];
 /** The oracle limits come from a heavy query over weeks of data; once an hour is enough. */
 const LIMITS_REFRESH_MS = 3_600_000;
+/** Daily prices change once a day; the gap check reads them once a day (BE-34). */
+const GAPS_REFRESH_MS = 86_400_000;
 const API_TIMEOUT_MS = 10_000;
 /** Checks whose subject can disappear (a liquidated borrower); a key missing from a run is resolved. */
 const VANISHING_PREFIXES = ["unhealthy:"];
@@ -98,14 +102,32 @@ export type MonitorOptions = {
   /** Public API base address for the response check, for example https://api.levra.xyz. */
   apiUrl?: string;
   schedule?: ScheduleSource;
+  /** Daily prices of the real stocks for the gap check (BE-34). */
+  bars?: BarSource;
   clock?: () => number;
   intervalMs?: number;
 };
 
 /** Team monitoring and alerts (BE-50): every row of "What we monitor" in 08, to the team channels. */
-export function createMonitor({ client, deployment, channels, wallets, apiUrl, schedule = scheduleFromLogger, clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
+export function createMonitor({ client, deployment, channels, wallets, apiUrl, schedule = scheduleFromLogger, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
   const labels = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
   let limitsCache: { at: number; stats: Map<string, { p99: number; n: number }> } | null = null;
+  let gapsCache: { at: number; rows: Snapshot["gaps"] } | null = null;
+
+  /** A source that cannot be read leaves `fresh` null, so the check waits instead of alerting. */
+  async function gapRows(symbols: string[]): Promise<Snapshot["gaps"]> {
+    if (gapsCache && Date.now() - gapsCache.at < GAPS_REFRESH_MS) return gapsCache.rows;
+    const rows = await Promise.all(
+      symbols
+        .filter((s) => s in gapTable)
+        .map(async (symbol) => {
+          const fresh = await bars(symbol).then((b) => gapStatsFromBars(b) as GapStats).catch(() => null);
+          return { symbol, table: (gapTable as Record<string, GapStats>)[symbol]!, fresh };
+        }),
+    );
+    if (rows.every((r) => r.fresh)) gapsCache = { at: Date.now(), rows };
+    return rows;
+  }
 
   async function sessionStats(db: Db) {
     if (!limitsCache || Date.now() - limitsCache.at > LIMITS_REFRESH_MS) {
@@ -219,6 +241,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, s
       indexer: cursors.filter((c) => watchedCursors.includes(c.name)).map((c) => ({ cursor: c.name, lastBlock: c.lastBlock })),
       head: block.number,
       api,
+      gaps: await gapRows(symbols),
     };
     return { snapshot, limits };
   }
