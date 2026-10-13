@@ -113,15 +113,17 @@ Three rules for the backend:
   - Done when: open, reduce and full close of a short succeed on the local fork from the quote data.
   - Note: done on 13 October 2026. `/v1/quote/open` with `side: short` borrows stock worth margin times leverage at the oracle price and sells it; `/v1/quote/close` on a short market buys back the debt plus accrual, a 0.2% buffer and the slippage room, sized from the oracle price and corrected from the real route; the leftover stock goes to the wallet and shows as `stockAmountRaw` minus `debtRepaidRaw`. Accounts and history now give shorts an entry price (average sale price) and PnL. Fork test with the live KyberSwap route: first use with signatures, a 50% reduction and a full close; the debt was repaid in full and the router kept no tokens.
 
-- [ ] **BE-21 · Earn**
+- [x] **BE-21 · Earn**
   - Needs: SC-23.
   - Do: `GET /v1/earn` and `/v1/earn/:address`: interest, amount supplied, share that is borrowed, amount that can be withdrawn now, for the USDC vault and the stock markets.
   - Done when: the numbers match direct reads from the chain.
+  - Note: done on 13 October 2026. Options: the USDC vault (`vault:<address>`) and one stock option per short market (`market:<marketId>`), since stock is the loan token there. Vault APY is each market's supply APY weighted by the vault's assets in it, over all its assets, less the vault fee; withdrawable is idle USDC plus, per market, the smaller of the vault's assets and the market's free liquidity. Stock positions use Morpho's supply shares with the interest since the last update booked (`expectedSupplyShares` in `math.ts`). `earnedRaw` is supplied now minus net deposits from the indexed events, and can be negative after bad debt. Vault shares received by a plain transfer count fully as earned. Fork test: a vault deposit and a stock supply match `totalAssets`, `fee`, `convertToAssets`, `maxWithdraw` and Morpho's market and position reads. MetaMorpho reads use a temporary fragment until the ABI export has MetaMorpho (request to Wangsit).
 
-- [ ] **BE-22 · Indexer for Earn**
+- [x] **BE-22 · Indexer for Earn**
   - Needs: BE-13, SC-23.
   - Do: vault events and supply and withdraw events in the stock markets go into the history.
   - Done when: the Earn history and the interest received show correctly for the test addresses.
+  - Note: done on 13 October 2026. The indexer follows the vault's ERC-4626 `Deposit` and `Withdraw` into `vault_events`, with the share owner as user, when the deployment has `usdcVault`. Morpho `Supply` and `Withdraw` in our markets were already indexed (BE-13). History shows both as `lend` and `withdrawLend`, and `/v1/earn/:address` uses them for `earnedRaw`. viem's `erc4626Abi` names the `Deposit` owner topic `receiver`, so the indexer uses the EIP-4626 names.
 
 - [ ] **BE-23 · All stocks and market detail**
   - Needs: SC-22, BE-04.

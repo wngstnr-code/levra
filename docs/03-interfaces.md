@@ -664,7 +664,7 @@ type QuoteCollateralResponse = {
 type HistoryResponse = { items: HistoryItem[]; nextCursor: string | null }; // query: cursor, limit (1 to 100)
 
 type EarnOption = {
-  id: string;
+  id: string;                 // "vault:<vault address>" or "market:<marketId>", lowercase
   kind: "vault" | "market";
   asset: Address;
   assetSymbol: string;
@@ -677,6 +677,7 @@ type EarnOption = {
   feeWad: string | null;      // share of interest taken by the vault
 };
 type EarnResponse = { options: EarnOption[] };
+// earnedRaw: supplied now minus net deposits, signed (negative after bad debt). Stock options are the short markets.
 type EarnPosition = { optionId: string; suppliedRaw: string; earnedRaw: string; withdrawableRaw: string };
 type EarnAccount = { address: Address; positions: EarnPosition[] };
 
