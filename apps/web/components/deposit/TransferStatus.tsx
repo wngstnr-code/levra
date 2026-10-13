@@ -53,6 +53,7 @@ export function TransferStatus({ id, kind, chainName, arrives = "USDC" }: { id: 
                     {m.common.viewTx} ↗
                   </a>
                 )}
+                {i === 2 && s?.destinationTxHash && kind === "withdraw" && <p className="text-[13px] break-all text-fg-2">{s.destinationTxHash}</p>}
               </div>
             </li>
           );
