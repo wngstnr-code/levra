@@ -12,19 +12,21 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 
 ## M0. Foundation and spikes
 
-- [ ] **SC-01 · Set up `contracts/`**
+- [~] **SC-01 · Set up `contracts/`**
   - Do: Foundry project; install the official Morpho interfaces, OpenZeppelin and forge-std; `forge fmt`; CI on GitHub Actions.
   - Done when: `forge build` and `forge test` pass on your own machine and on GitHub.
+  - Note: partly done with SC-03: Foundry project, forge-std and morpho-blue as submodules, `forge fmt`, a Makefile. Still to do: OpenZeppelin, a first test, and CI on GitHub Actions.
 
 - [ ] **SC-02 · Local mainnet fork (spike)**
   - Do: a `make fork` command that runs Anvil as a copy of Monad at a fixed block number. Try reading Morpho, the Anchored oracle and token balances from that fork.
   - Done when: one test reads the QQQ price from the Anchored oracle and the state of one Morpho market on the fork, and how to run it is written in `contracts/README.md`. The answer to Q-17 is written in 09.
   - If it fails: write down why and propose another way before moving on to M1.
 
-- [ ] **SC-03 · Interfaces, events and errors**
+- [~] **SC-03 · Interfaces, events and errors**
   - Do: write `ISessionOracle`, `IRiskManager`, `IMarginRouter`, `ILens`, the shared types, events and errors as defined in 03. Write a script that copies the ABIs to `packages/shared/abis/`.
   - Done when: Dharu and Nabil have read and approved it; the ABIs are in `packages/shared/abis/`; the status in 03 is changed to "frozen".
   - Note: this task unblocks the other two people. Do it first, together with SC-01.
+  - Note: interfaces, events, errors and the ABI export script are written and the ABIs are in `packages/shared/abis/`. Waiting for Dharu and Nabil to read and approve the PR. The freeze happens when it merges.
 
 - [ ] **SC-04 · A real swap from a contract (spike)**
   - Do: a small test contract that swaps $5 of USDC for aQQQ and back, using calldata from the KyberSwap API, on mainnet. Read from the chain: the quote token of each pool, and the hook address of the Uniswap v4 pools for aQQQ and aHOOD.
