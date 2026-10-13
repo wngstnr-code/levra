@@ -18,10 +18,10 @@ Three rules for the backend:
 
 ## M0. Foundation and spikes
 
-- [~] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
+- [x] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
-  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-31), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. Still to do: CI passing on GitHub.
+  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-31), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. The Backend workflow passed on GitHub on PR 7.
 
 - [x] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
