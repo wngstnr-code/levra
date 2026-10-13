@@ -24,6 +24,13 @@ export function formatToken(raw: string | bigint, decimals: number, fractionDigi
   return formatUnitsFixed(toBig(raw), decimals, fractionDigits);
 }
 
+/** Like formatToken, with a plus sign for gains and a minus sign for losses. */
+export function formatTokenSigned(raw: string | bigint, decimals: number, fractionDigits = 4): string {
+  const v = toBig(raw);
+  const text = formatToken(v < 0n ? -v : v, decimals, fractionDigits);
+  return v > 0n ? `+${text}` : v < 0n ? `${MINUS}${text}` : text;
+}
+
 /** WAD (1e18 = 100%) as a percentage. Trailing zero decimals are dropped: "73%", "50.1%". */
 export function formatWadPercent(wad: string | bigint, fractionDigits = 1): string {
   const text = formatUnitsFixed(toBig(wad) * 100n, WAD_DECIMALS, fractionDigits);

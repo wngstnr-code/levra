@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBps, formatDuration, formatLeverage, formatToken, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, wadRatio } from "./units";
+import { formatBps, formatDuration, formatLeverage, formatToken, formatTokenSigned, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, wadRatio } from "./units";
 
 describe("formatUsd", () => {
   it("formats USDC base units", () => {
@@ -16,6 +16,14 @@ describe("formatUsd", () => {
 describe("formatToken", () => {
   it("formats 18-decimal stock amounts", () => {
     expect(formatToken("269100000000000000", 18)).toBe("0.2691");
+  });
+});
+
+describe("formatTokenSigned", () => {
+  it("signs gains and losses", () => {
+    expect(formatTokenSigned("2500000", 6, 2)).toBe("+2.50");
+    expect(formatTokenSigned("-2500000", 6, 2)).toBe("−2.50");
+    expect(formatTokenSigned("0", 6, 2)).toBe("0.00");
   });
 });
 
