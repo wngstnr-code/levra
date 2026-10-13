@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 18 |
-| Backend | Dharu | 34 | 8 | 6 |
+| Backend | Dharu | 34 | 9 | 5 |
 | Frontend | Nabil | 25 | 2 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -117,6 +117,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
 | 13 October 2026 | Added the oracle age poster to `IRiskManager`: `oracleAgePoster()`, `oracleAgeBounds()`, `setOracleAgeBounds()`, `setMaxOracleAge()`, two events and the error `OracleAgeOutOfBounds` (D-31). `ISessionOracle` now exposes `MAX_FEED_AGE()` and `MAX_PUBLISH_AGE()` | Dharu | sc/SC-11-oracle-age-and-repay |
 | 13 October 2026 | Added `repayDebt()` and the event `DebtRepaid` to `IMarginRouter` (D-32). The API has no quote or history type for it yet | Dharu, Nabil | sc/SC-11-oracle-age-and-repay |
+| 13 October 2026 | `Market.dexMidPriceE8` and `dexDeviationBps` are now filled from the depth keeper (D-36 mid price, null when older than 30 minutes); `marketDepth` added to the keeper names. No shape change | Dharu, Nabil | be/BE-04-market-depth |
 | 13 October 2026 | Added `borrow` to the history types, for a loan taken straight on Morpho | Dharu, Nabil | be/BE-13-morpho-events |
 | 13 October 2026 | Added `oracleAgePoster` to the keeper names in `/v1/status` | Dharu, Nabil | be/BE-17-oracle-age-poster |
 | 13 October 2026 | Added `repayDebt` to the history types and `repay` to the collateral quote actions, so the app can add margin with USDC (D-32) | Dharu, Nabil | be/BE-13-indexer |
@@ -133,6 +134,8 @@ One line for every change to 03 after the freeze.
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
 ### 13 October 2026
+
+- Dharu: BE-04 done: the keeper measures the DEX mid price every 10 minutes and the depth table daily (`dex_quotes`), `/v1/markets` and the stream now carry the DEX price, and 05 has a new depth table from one run. The mid price is now two-sided (D-36), which removed a 2% bias against sales. No 429 at 33 requests in 18 seconds; KyberSwap's real limit is not published.
 
 - Dharu: BE-13 and BE-06 done: the indexer follows Morpho's events for our markets (from Wangsit's ABI export), positions rebuilt from them equal `Morpho.position` on the fork for router and direct users, and history shows liquidations and direct Morpho actions. New history type `borrow`.
 

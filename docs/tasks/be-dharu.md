@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -35,10 +35,10 @@ Three rules for the backend:
   - Note: start on day one, because it needs a week. A partial report after the first day is fine if it says clearly that the weekend is not covered yet. This logger later becomes the oracle monitor (BE-50).
   - Note: done on 13 October 2026. The oracle emits `PriceUpdated` on every write, so the recorder (`apps/keeper`, job `oracleMonitor`) backfilled 29 September to 13 October from logs (4,603 writes, two weekends) and then follows new logs every 5 seconds. Report: `docs/reports/oracle-2026-10-13.md`, regenerated with `pnpm --filter @levra/keeper report:oracle`. Findings are in 04, Q-03 and Q-19 are answered, and the hard age questions went to Wangsit as Q-28. It runs on Dharu's machine until staging (BE-15). The event ABI comes from PR 8, which needs Wangsit's review.
 
-- [~] **BE-04 · KyberSwap (spike)**
+- [x] **BE-04 · KyberSwap (spike)**
   - Do: get an identifier; try to find a route and build calldata with a contract address as the recipient; record the rate limit. Write a script that measures market depth (buy and sell $100, $300, $1,000, $3,000, $10,000 for each stock, against the DEX mid price and against the oracle), runs daily and stores the results.
   - Done when: 05 is updated with how to use it and its limits; the depth table in 05 is replaced with the new measurements using one consistent method; Wangsit uses the calldata in SC-04.
-  - Note: checked by hand on 13 October 2026: routes work with any client ID, all three pools pair with USDC in one hop, and calldata builds with a contract as sender and recipient. Details in 05. Still to do: the daily depth script, request limits, and re-measuring the depth table one consistent way.
+  - Note: checked by hand on 13 October 2026: routes work with any client ID, all three pools pair with USDC in one hop, and calldata builds with a contract as sender and recipient. Details in 05. Done on 13 October 2026: the keeper job `marketDepth` measures the DEX mid price of every stock every 10 minutes and the full table (buy and sell at $100 to $10,000) once a day into `dex_quotes`; `report:depth` prints it; 05 has the new table, measured in one run with one method (D-36), and what was observed about request limits (33 requests in 18 seconds, no 429; the official limit is not published). The client moved to `packages/kyber` for the API and the keeper.
 
 - [~] **BE-05 · Real cross-chain deposit (spike)**
   - Do: get an Aurora Intents API key; send $5 from another chain to USDC on Monad; record the time and fee; try a small transfer of MON; read the documentation on running a step when the funds arrive.
@@ -65,7 +65,7 @@ Three rules for the backend:
   - Needs: BE-10.
   - Do: `GET /v1/markets`, `GET /v1/session`, `GET /v1/stream`.
   - Done when: the numbers match direct reads from the chain; the stream sends a new price within a few seconds of it being published on chain.
-  - Note: `GET /v1/config`, `/v1/session`, `/v1/markets` and `/v1/stream` (SSE: `price` per stock, `market`, `session`, only on change, read every 2 seconds) are written. A fork test checks every market number against direct contract reads. `nextOpenAt` stays null until the calendar (BE-30) and the DEX price fields stay null until BE-04 measures them. Still to do: timing of the stream against a live oracle write. A fork does not receive new writes, so this needs the mainnet deployment (Wangsit).
+  - Note: `GET /v1/config`, `/v1/session`, `/v1/markets` and `/v1/stream` (SSE: `price` per stock, `market`, `session`, only on change, read every 2 seconds) are written. A fork test checks every market number against direct contract reads. `nextOpenAt` stays null until the calendar (BE-30). The DEX price fields come from the depth keeper (BE-04) and are null when no mid price is under 30 minutes old. Still to do: timing of the stream against a live oracle write. A fork does not receive new writes, so this needs the mainnet deployment (Wangsit).
 
 - [x] **BE-12 · Quote engine for long**
   - Needs: BE-04, BE-10, BE-16, the ABI from SC-03. For simulation it needs SC-14.

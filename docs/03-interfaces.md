@@ -427,7 +427,7 @@ type Market = {
   oracleFeedUpdatedAt: number; // time of the source quote
   oraclePublishedAt: number;
   oracleStale: boolean;       // SessionOracle's hard check, or older than maxOracleAge outside CLOSED (opening is refused)
-  dexMidPriceE8: string | null; // null until the DEX depth measurement (BE-04) has a value
+  dexMidPriceE8: string | null; // DEX mid price (D-36) from the depth keeper; null when no measurement is under 30 minutes old
   dexDeviationBps: number | null; // DEX price compared to oracle; can be negative
 
   lltvWad: string;
@@ -500,7 +500,7 @@ type QuoteOpenResponse = {
     execPriceE8: string;
     oraclePriceE8: string;
     deviationBps: number;     // swap price compared to oracle
-    priceImpactBps: number;   // swap price compared to DEX mid price
+    priceImpactBps: number;   // swap price compared to the DEX mid price (D-36); positive is worse for the trader
     feeRaw: string;           // USDC
     ltvAfterWad: string;
     liqPriceE8: string;
