@@ -29,12 +29,12 @@ contract ProtectionTest is BaseTest {
             swapAmountIn: sell,
             swap: _swapData(AQQQ, USDC, sell, _usdcFor(sell, fillBps)),
             minReturn: 0,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
     }
 
     function _enterPreClose() internal {
-        risk.setNextCloseAt(uint64(block.timestamp + 1 hours));
+        risk.setNextCloseAt(uint64(vm.getBlockTimestamp() + 1 hours));
     }
 
     function test_softLimitDropsInThePreCloseWindow() public {
@@ -43,7 +43,7 @@ contract ProtectionTest is BaseTest {
         _enterPreClose();
         assertEq(risk.currentSoftLtv(longId), SOFT_CLOSED);
         assertTrue(risk.isClosedRegime());
-        vm.warp(block.timestamp + 1 hours + risk.CLOSE_GRACE() + 1);
+        vm.warp(vm.getBlockTimestamp() + 1 hours + risk.CLOSE_GRACE() + 1);
         assertFalse(risk.isClosedRegime());
     }
 
