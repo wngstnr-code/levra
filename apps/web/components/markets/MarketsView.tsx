@@ -118,7 +118,7 @@ function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; 
   const m = useT();
   const head = [m.markets.stock, m.markets.oraclePrice, m.markets.session, m.markets.dexVsOracle, m.markets.softHard, m.markets.maxLeverage, m.markets.borrowApy, m.markets.canBorrow, m.markets.cap];
   return (
-    <div className="squircle overflow-x-auto rounded-card bg-surface-1 py-3">
+    <div className="squircle relative overflow-x-auto rounded-card bg-surface-1 py-3">
       <table className="w-full min-w-[1080px] text-left">
         <thead>
           <tr>

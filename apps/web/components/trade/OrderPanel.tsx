@@ -37,7 +37,7 @@ export function OrderPanel(p: Props) {
   const long = p.side === "long";
   const quick = long ? [150, 200, 300] : [25, 50, 100];
   return (
-    <section aria-label={m.trade.title} className={cn("squircle flex flex-col gap-4 self-start rounded-card p-6 text-ink", long ? "bg-lime" : "bg-peach")}>
+    <section aria-label={m.trade.title} className={cn("squircle flex min-w-0 flex-col gap-4 self-start rounded-card p-6 text-ink", long ? "bg-lime" : "bg-peach")}>
       <div role="tablist" className="flex gap-1 rounded-full bg-ink/8 p-1">
         {(["long", "short"] as const).map((s) => (
           <button
@@ -102,14 +102,14 @@ export function OrderPanel(p: Props) {
           onChange={(e) => p.onLeverage(Number(e.target.value))}
           className="w-full accent-ink"
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {quick.filter((q) => q <= p.maxE2).map((q) => (
             <Chip key={q} active={p.leverageE2 === q} onClick={() => p.onLeverage(q)} long={long}>
               {formatLeverage(q).replace(".00", "")}
             </Chip>
           ))}
           <Chip active={p.leverageE2 === p.maxE2} onClick={() => p.onLeverage(p.maxE2)} long={long}>
-            {m.trade.maxNow(formatLeverage(p.maxE2))}
+            {`${m.common.max} ${formatLeverage(p.maxE2)}`}
           </Chip>
         </div>
       </div>
