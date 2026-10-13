@@ -79,6 +79,12 @@ Four rules for the frontend:
   - Done when: each state can be triggered and shows correctly.
   - Note: built on 13 October 2026: the session badge is in the header on every page, read from the oracle. Banners for no service, an unreachable service, a stale price and background services behind (`/v1/status`). One empty and error style (`EmptyState`). The stale and service rules are unit tested. Checking each state live waits for the staging API.
 
+
+- [ ] **FE-14 · Price charts**
+  - Needs: a price history endpoint from Dharu (requested on 14 October 2026, see the daily log).
+  - Do: a sparkline of the oracle price on each stock card in Markets, and a price chart with 1D, 1W and 1M in Trade, as on the Figma page "Design". Built with `components/ui/AreaChart`.
+  - Done when: both charts show real oracle prices from the API on staging.
+  - Note: added on 14 October 2026. The charts are in the Figma design but were left out of FE-10 and FE-11, and the API has no price history yet: `deviationHistory` in `/v1/markets/:symbol` only has hourly points since staging started.
 ---
 
 ## M2. Short and Earn
