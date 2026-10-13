@@ -23,8 +23,15 @@ type Props = {
   tokenSymbol: string;
   stockDecimals: number;
   secondsLeft: number | null;
+  signedIn: boolean;
   onDetails: () => void;
 };
+
+/** Why there is no quote yet: no service, no wallet, or no amount. */
+function useEmptyText(signedIn: boolean) {
+  const m = useT();
+  return !apiConfigured ? m.trade.summaryOffline : signedIn ? m.trade.emptySummary : m.trade.summarySignIn;
+}
 
 export function QuoteSummary(p: Props) {
   return (
@@ -44,7 +51,8 @@ function Row({ k, v, tone }: { k: string; v: React.ReactNode; tone?: string }) {
   );
 }
 
-function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDecimals, secondsLeft, onDetails }: Props) {
+function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDecimals, secondsLeft, signedIn, onDetails }: Props) {
+  const emptyText = useEmptyText(signedIn);
   const m = useT();
   const pv = quote?.preview;
   return (
@@ -61,7 +69,7 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
             <Skeleton className="h-5 w-2/3" />
           </div>
         ) : (
-          <p className={cn("text-[15px]", error ? "text-down" : "text-fg-2")}>{error ?? (apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline)}</p>
+          <p className={cn("text-[15px]", error ? "text-down" : "text-fg-2")}>{error ?? emptyText}</p>
         )
       ) : (
         <>
@@ -127,7 +135,8 @@ function Legend({ dot, text }: { dot: string; text: string }) {
   );
 }
 
-function GapCard({ quote, loading, side }: Props) {
+function GapCard({ quote, loading, side, signedIn }: Props) {
+  const emptyText = useEmptyText(signedIn);
   const m = useT();
   const noLoan = !!quote && BigInt(quote.preview.debtRaw) === 0n;
   const worst = quote?.preview.gapScenarios ?? [];
@@ -146,7 +155,7 @@ function GapCard({ quote, loading, side }: Props) {
       {noLoan ? (
         <p className="text-[15px] text-fg-2">{m.trade.gapNoLoan}</p>
       ) : scenarios.length === 0 ? (
-        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline}</p>
+        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{emptyText}</p>
       ) : (
         <div className="flex min-h-48 flex-1 items-end gap-3">
           {scenarios.map((s) => (

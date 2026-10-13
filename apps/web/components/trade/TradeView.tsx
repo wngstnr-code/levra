@@ -182,6 +182,7 @@ export function TradeView() {
             tokenSymbol={stock.tokenSymbol}
             stockDecimals={stock.decimals}
             secondsLeft={q ? Math.max(0, q.expiresAt - now) : null}
+            signedIn={!!address}
             onDetails={() => setDetails(true)}
           />
         </div>

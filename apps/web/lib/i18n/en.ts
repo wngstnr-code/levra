@@ -165,6 +165,7 @@ export const en = {
     bonus: (v: string) => `bonus ${v}`,
     position: "Position",
     emptySummary: "Enter an amount to see what you get, your debt and your liquidation price.",
+    summarySignIn: "Sign in to see what you get, your debt and your liquidation price.",
     summaryOffline: "The summary, liquidation price and gap scenarios come from a quote, which needs the Levra service.",
     firstTime: (n: number) => `First time: ${n} free signature${n === 1 ? "" : "s"}, then 1 transaction`,
     firstTimeSub: "They let the Levra router use your USDC and act on your Morpho position.",
