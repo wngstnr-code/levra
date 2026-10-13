@@ -466,6 +466,7 @@ export const en = {
     minimum: (v: string) => `Minimum ${v}`,
     refund: (chain: string) => `Refund address on ${chain}`,
     refundHint: "Used only if the transfer fails.",
+    addressPlaceholder: "Address on that network",
     recipient: (chain: string) => `Recipient on ${chain}`,
     includeGas: "Also send a little MON for network fees",
     getAddress: "Get deposit address",

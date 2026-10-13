@@ -251,7 +251,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
         <input inputMode="decimal" autoComplete="off" placeholder="0.00" value={amountText} onChange={(e) => setAmountText(e.target.value)} className={cn(inputCls, "text-display text-[28px]")} />
       </Field>
       <Field label={m.deposit.refund(picked?.chainName ?? "")} hint={m.deposit.refundHint}>
-        <input autoComplete="off" spellCheck={false} placeholder="0x…" value={refund} onChange={(e) => setRefund(e.target.value)} className={inputCls} />
+        <input autoComplete="off" spellCheck={false} placeholder={m.deposit.addressPlaceholder} value={refund} onChange={(e) => setRefund(e.target.value)} className={inputCls} />
       </Field>
       <div className="squircle flex items-center gap-3 rounded-panel bg-ink/8 px-[18px] py-3">
         <span className="flex-1 text-sm font-medium">{m.deposit.includeGas}</span>
@@ -319,7 +319,7 @@ function WithdrawForm({ user, tokens, onSent }: { user: Address; tokens: Deposit
       </Field>
       <TokenPickers tokens={tokens} chain={chain} onChain={(c) => { onChain(c); quote.reset(); }} token={tokenId} onToken={(t) => { setTokenId(t); quote.reset(); }} chainLabel={m.deposit.to} />
       <Field label={m.deposit.recipient(picked?.chainName ?? "")}>
-        <input autoComplete="off" spellCheck={false} placeholder="0x…" value={recipient} onChange={(e) => { setRecipient(e.target.value); quote.reset(); }} className={inputCls} />
+        <input autoComplete="off" spellCheck={false} placeholder={m.deposit.addressPlaceholder} value={recipient} onChange={(e) => { setRecipient(e.target.value); quote.reset(); }} className={inputCls} />
       </Field>
       {q && (
         <div className="squircle rounded-panel bg-ink/8 px-4 py-2 text-sm">
