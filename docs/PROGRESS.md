@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 17 |
-| Backend | Dharu | 34 | 6 | 7 |
+| Backend | Dharu | 34 | 6 | 8 |
 | Frontend | Nabil | 25 | 2 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -133,6 +133,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Dharu: `/v1/status` written (BE-15): oracle age per stock, keeper health, indexer lag. Backend CI now runs package tests one at a time, since they share one test database.
 - Dharu: BE-17 written: the oracle age poster keeper posts `maxOracleAge` from the BE-03 data inside the owner's bounds (D-31). On a fork it moved all five markets; on the real data it proposes QQQ 2,100 s, HOOD 2,160 s and BIL 3,060 s, the same as the deployment values, so it posts nothing today. Team alerts wait for BE-50. Also fixed: keeper and indexer tests no longer clear each other's cursor (PR 18).
 - Nabil: repo access works. FE-03 done: `/markets` shows live prices and sessions from the Anchored oracle. FE-01 and FE-02 built on `fe/FE-01-03-m0-foundation`: Next.js app, CI, Privy sign-in, switch to Monad, balances. FE-02 done: sign-in by email, passkey and external wallet works on localhost, with an embedded wallet, real balances and key export. Fixed on the way: export used the active wallet address instead of the embedded one. Next: hosting (blocker), then FE-10 and FE-11.
 - Dharu: BE-14 done and BE-13 started: `apps/indexer` follows router events into Postgres (Envio HyperSync, RPC as fallback, D-34), and `/v1/accounts` and `/history` serve positions from `Lens` with entry price and PnL from the indexed events. Checked end to end on the fork. Waiting: a HyperSync token (Dharu) and Morpho's events in the ABI export (Wangsit). After Wangsit's PR 13 and 14: `DebtRepaid` is indexed, `repay` is a collateral quote action and `repayDebt` a history type; our decisions are renumbered to D-33 (db package) and D-34 (indexer) because D-31 and D-32 were taken.
