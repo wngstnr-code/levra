@@ -596,7 +596,7 @@ type DepositQuoteRequest = {
   originToken: string;
   amountRaw: string;
   refundAddress: string;      // address on the origin network
-  includeGas: boolean;        // also send a little MON
+  includeGas: boolean;        // also send a little MON, as a second small transfer (D-40)
 };
 
 type DepositQuoteResponse = {
@@ -605,18 +605,24 @@ type DepositQuoteResponse = {
   depositMemo: string | null;
   amountOutRaw: string;       // USDC arriving on Monad
   gasOutRaw: string | null;   // MON arriving
+  // With includeGas: send amountInRaw of the same token to this second address too. One address delivers one token.
+  gasDeposit: { id: string; depositAddress: string; depositMemo: string | null; amountInRaw: string } | null;
   estimatedSeconds: number;
-  expiresAt: number;
+  expiresAt: number;          // when the service stops waiting for the deposit
 };
 
 type DepositStatus = {
   id: string;
   status: "WAITING" | "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED" | "EXPIRED";
   originTxHash: string | null;
-  destinationTxHash: Hex | null;
+  destinationTxHash: string | null; // not always an EVM hash for a withdrawal
   amountOutRaw: string | null;
-  updatedAt: number;
+  updatedAt: number;          // when the status last changed
 };
+// Transfers go through Aurora Intents 1Click with 1% slippage; the gas top-up is worth about $1 (initial proposals).
+// `/v1/deposit/:id` also serves withdrawals and the gas transfer. The service is asked at most every 10 seconds per
+// transfer, and a keeper (`transfers`) follows open transfers even when nobody has the app open. EXPIRED means the
+// service's deadline passed with nothing deposited.
 ```
 
 ### More data shapes
@@ -765,7 +771,7 @@ type HealthResponse = { ok: true };
 type StatusResponse = {
   oracle: { symbol: string; publishedAt: number; ageSeconds: number; stale: boolean }[];
   keepers: {
-    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth";
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers";
     lastHeartbeatAt: number | null;
     healthy: boolean;
   }[];

@@ -51,6 +51,7 @@ How to use it:
 | D-37 | The landing page is a separate site from the app. The landing site lives at the root domain and the app at the `app.` subdomain of the same domain (for example `levra.xyz` and `app.levra.xyz`; the real domain is still Q-25). The landing site is its own Next.js project in `apps/landing`, deployed as a second Vercel project. Its design is done after the app works and may use its own style | Chosen by Nabil on 13 October 2026 | Home page inside the app; two unrelated domains; a separate repository |
 | D-38 | Wallet sign-in (SIWE, EIP-4361) gives a stateless session token signed with HMAC-SHA256 (`AUTH_SECRET`), good for 24 hours; a sign-in nonce is used once and is good for 10 minutes. The message must name the web app's host and chain 143. Smart wallets are checked with ERC-1271 and ERC-6492 | No session table, works with more than one API instance, nothing to clean up. The times are initial proposals | Sessions in the database; JWT library |
 | D-39 | The app is English only. All text stays in one message file (`apps/web/lib/i18n/en.ts`), so no sentence is written inside a component and another language can be added later as a file | Chosen by Nabil on 13 October 2026. Answers Q-14 | English and Indonesian with a switch |
+| D-40 | The MON gas top-up with a cross-chain deposit is a second small transfer through 1Click to its own deposit address, worth about $1 of the same token (initial proposal). `POST /v1/deposit/quote` returns it as `gasDeposit` next to the main address. Answers Q-10 | Chosen by Dharu on 14 October 2026. One 1Click deposit address delivers one token, so USDC and MON cannot share it. A 1 USDC quote from Base gave about 39 MON | Dropping the top-up; the whole deposit as MON; a team wallet that sends MON |
 
 ## Open questions
 
@@ -67,7 +68,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-07 | Answered: see D-28 | - | - | - | - |
 | Q-08 | Answered: see D-29 | - | - | - | - |
 | Q-09 | Can a cross-chain deposit open a position directly when the funds arrive? | Dharu, Wangsit | M4 | BE-05, SC-40 | Two steps: funds arrive in the wallet, then one confirmation |
-| Q-10 | Partly answered: a price-only quote shows 1 USDC on Base can arrive as about 39 MON on Monad in about 39 seconds. Still open: a real transfer | Dharu, Nabil | M4 | BE-05, BE-40 | A second small transfer of MON through the same service |
+| Q-10 | Answered: see D-40 | - | - | - | - |
 | Q-11 | Answered: see D-24 | - | - | - | - |
 | Q-12 | Which auditor, when, and paid from what funds? | All three | M5 | X-13 | Get quotes from M3 |
 | Q-13 | Answered: see D-26 | - | - | - | - |

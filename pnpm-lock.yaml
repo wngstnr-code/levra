@@ -20,6 +20,9 @@ importers:
       '@levra/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@levra/intents':
+        specifier: workspace:*
+        version: link:../../packages/intents
       '@levra/kyber':
         specifier: workspace:*
         version: link:../../packages/kyber
@@ -100,6 +103,9 @@ importers:
       '@levra/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@levra/intents':
+        specifier: workspace:*
+        version: link:../../packages/intents
       '@levra/kyber':
         specifier: workspace:*
         version: link:../../packages/kyber
@@ -226,6 +232,22 @@ importers:
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/intents:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

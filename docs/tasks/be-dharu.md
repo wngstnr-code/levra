@@ -170,20 +170,23 @@ Three rules for the backend:
 
 ## M4. Cross-chain deposits
 
-- [ ] **BE-40 · Deposit service**
+- [~] **BE-40 · Deposit service**
   - Needs: BE-05.
   - Do: `GET /v1/deposit/tokens`, `POST /v1/deposit/quote`, `GET /v1/deposit/:id`; store every deposit; watch the status until it is completed, refunded or expired; include a MON transfer when requested.
   - Done when: real deposits from two different chains arrive and their status shows correctly; a failed deposit is refunded and recorded.
+  - Note: written on 14 October 2026. 1Click client in the new `packages/intents` (owner: Dharu), shared by the API and the keeper. The API lists the tokens of every other chain, quotes exact-input deposits into USDC on Monad (1% slippage), adds the MON top-up as a second small transfer (D-40), stores every transfer with the whole signed quote in `deposits`, and refreshes a status from the service at most every 10 seconds. The keeper job `transfers` follows open transfers every 15 seconds for 4 days. Tested with a stand-in service and Postgres, plus a live quote and status read from 1Click (no funds). Still to do: real deposits from two chains, a refund, and the partner token (`INTENTS_JWT`), which may remove the service's 0.2% fee.
 
-- [ ] **BE-41 · Withdraw to another chain**
+- [~] **BE-41 · Withdraw to another chain**
   - Needs: BE-40.
   - Do: `POST /v1/withdraw/quote` from USDC on Monad to another chain.
   - Done when: one real withdrawal succeeds and is recorded.
+  - Note: written on 14 October 2026 with BE-40: the quote goes from USDC on Monad to the chosen token, a refund goes back to the user's own Monad wallet, and the status is followed like a deposit. Still to do: one real withdrawal.
 
-- [ ] **BE-42 · Notification when funds arrive**
+- [~] **BE-42 · Notification when funds arrive**
   - Needs: BE-40, BE-33.
   - Do: notify the app (through the stream) and the user (through the alert channels) when a deposit arrives.
   - Done when: the app moves to "funds arrived" without a reload.
+  - Note: the app learns of the arrival from `GET /v1/deposit/:id`, which the web app polls every 5 seconds until the status is final and which reads the service at most every 10 seconds, so no stream event is needed; the public stream has no user. The `transfers` keeper keeps the stored status current with the app closed, and the alerts keeper (BE-33) sends "Deposit arrived" from it. Still to do: see it with a real deposit.
 
 ---
 

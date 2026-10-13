@@ -234,7 +234,9 @@ Price-only quotes on 13 October 2026 (`dry: true`, no API key, no funds moved):
 
 The last row shows the gas top-up of Q-10 is possible as a second small transfer. The service rejects requests from some HTTP clients, so the backend must send a normal user agent.
 
-Still not verified (BE-05): a real deposit; whether an API key changes the fee; the feature that runs automatic steps when funds arrive.
+Verified on 14 October 2026 (no funds moved): without a partner token every quote carries an app fee of 20 bps (0.2%) to a 1Click recipient, on top of the route cost; the 50 USDC rows above include it. A quote with `dry: false` returns a deposit address (EVM style for Base), `deadline` and `timeWhenInactive` about 72 hours after the deadline we asked for, `refundFee` and `withdrawFee`; its status is `PENDING_DEPOSIT` until funds arrive. Only `PENDING_DEPOSIT` has been seen so far. The backend also handles `INCOMPLETE_DEPOSIT`, `KNOWN_DEPOSIT_TX`, `PROCESSING`, `SUCCESS`, `REFUNDED` and `FAILED` from 1Click's documentation; not verified until a real transfer. One deposit address delivers one token, so the MON top-up is a second transfer (D-40).
+
+Still not verified (BE-05): a real deposit; whether a partner token removes the 0.2% fee; the feature that runs automatic steps when funds arrive.
 
 ## Numbers measured on 13 October 2026
 

@@ -7,6 +7,8 @@ import type { Logger } from "./logger";
 import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
 import { alertRoutes } from "./routes/alerts";
+import { depositRoutes } from "./routes/deposit";
+import type { IntentsSource } from "@levra/intents";
 import { authRoutes } from "./routes/auth";
 import { earnRoutes } from "./routes/earn";
 import { dbMarketHistory, marketRoutes, type DexMids } from "./routes/markets";
@@ -29,6 +31,8 @@ export type AppDeps = {
   version?: string;
   /** Wallet sign-in and alert settings (BE-33). Off without it; needs `db`. */
   auth?: { secret: string; domain: string; telegramBot?: string };
+  /** Cross-chain deposits and withdrawals (BE-40, BE-41). Needs `db`. */
+  intents?: IntentsSource;
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
@@ -37,7 +41,7 @@ function dexMidsFromDb(db: Db): DexMids {
   return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
 }
 
-export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth }: AppDeps) {
+export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents }: AppDeps) {
   const app = new Hono();
 
   app.use(async (c, next) => {
@@ -65,6 +69,8 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
       app.route("/", alertRoutes(db, { secret: auth.secret, telegramBot: auth.telegramBot }));
     }
   }
+
+  if (db && intents) app.route("/", depositRoutes(db, intents));
 
   app.notFound(() => {
     throw new ApiHttpError("NOT_FOUND", "No such endpoint");

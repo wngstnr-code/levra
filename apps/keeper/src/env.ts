@@ -27,6 +27,8 @@ const envSchema = z.object({
   ALERT_EMAIL_FROM: optional(),
   /** Telegram alert bot token (BE-33). Telegram alerts and chat linking are off without it. Never commit it. */
   TELEGRAM_BOT_TOKEN: optional(),
+  /** Aurora Intents partner token (BE-40). Optional for reading transfer status. Never commit it. */
+  INTENTS_JWT: optional(),
   KYBER_BASE_URL: optional().pipe(z.url().optional()),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),

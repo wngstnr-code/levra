@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { address, bytes32, rawAmount, unixSeconds, usdRaw } from "./primitives";
+import { address, rawAmount, unixSeconds, usdRaw } from "./primitives";
 
 export const depositToken = z.object({
   chain: z.string(),
@@ -32,6 +32,18 @@ export const depositQuoteResponse = z.object({
   depositMemo: z.string().nullable(),
   amountOutRaw: usdRaw,
   gasOutRaw: rawAmount.nullable(),
+  /**
+   * With `includeGas`: a second, small transfer that arrives as MON, since one deposit address delivers one token.
+   * The user sends `amountInRaw` of the same token to this address as well.
+   */
+  gasDeposit: z
+    .object({
+      id: z.string(),
+      depositAddress: z.string(),
+      depositMemo: z.string().nullable(),
+      amountInRaw: rawAmount,
+    })
+    .nullable(),
   estimatedSeconds: z.number().int().nonnegative(),
   expiresAt: unixSeconds,
 });
@@ -41,7 +53,8 @@ export const depositStatus = z.object({
   id: z.string(),
   status: z.enum(["WAITING", "PROCESSING", "SUCCESS", "REFUNDED", "FAILED", "EXPIRED"]),
   originTxHash: z.string().nullable(),
-  destinationTxHash: bytes32.nullable(),
+  /** On the destination chain, which is not always an EVM chain for a withdrawal. */
+  destinationTxHash: z.string().nullable(),
   amountOutRaw: usdRaw.nullable(),
   updatedAt: unixSeconds,
 });
