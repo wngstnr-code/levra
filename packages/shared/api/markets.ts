@@ -25,6 +25,7 @@ export const market = z.object({
   enabled: z.boolean(),
 
   oraclePriceE8: priceE8,
+  oracleFeedUpdatedAt: unixSeconds,
   oraclePublishedAt: unixSeconds,
   oracleStale: z.boolean(),
   dexMidPriceE8: priceE8.nullable(),

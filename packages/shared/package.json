@@ -6,7 +6,8 @@
   "exports": {
     "./abis": "./abis/index.ts",
     "./api": "./api/index.ts",
-    "./addresses": "./addresses.ts"
+    "./addresses": "./addresses.ts",
+    "./deployments": "./deployments.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
