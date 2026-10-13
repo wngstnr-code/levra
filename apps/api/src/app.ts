@@ -6,6 +6,7 @@ import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
 import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
+import { earnRoutes } from "./routes/earn";
 import { marketRoutes, type DexMids } from "./routes/markets";
 import { latestDexMids } from "@levra/db";
 import { createCache } from "./chain/cache";
@@ -52,6 +53,7 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
     app.route("/", marketRoutes(reader, mids));
     app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
+    app.route("/", earnRoutes(reader, store));
     if (swap) app.route("/", quoteRoutes(reader, swap, store));
     if (db) app.route("/", statusRoutes(reader, db, version));
   }
