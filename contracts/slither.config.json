@@ -1,0 +1,6 @@
+{
+  "filter_paths": "lib/|test/|script/",
+  "exclude_informational": true,
+  "exclude_optimization": true,
+  "detectors_to_exclude": "reentrancy-balance,unused-return,uninitialized-local,incorrect-equality,missing-zero-check,calls-loop,reentrancy-benign,reentrancy-events,timestamp"
+}
