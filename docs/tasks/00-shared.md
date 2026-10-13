@@ -8,9 +8,10 @@ Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Every task has 
 
 ## M0. Foundation
 
-- [ ] **X-01 · Monorepo and repo rules** (driver: Wangsit)
+- [~] **X-01 · Monorepo and repo rules** (driver: Wangsit)
   - Do: create the repo with the layout in 02; pnpm workspaces and Turborepo; `CODEOWNERS` per 06; branch protection on `main`; PR template; MIT license file.
   - Done when: all three have cloned it, a PR to `main` requires passing CI, and GitHub requests review from the right owner automatically.
+  - Note: done so far: private repo `wngstnr-code/levra`, pnpm workspaces, Turborepo, PR template, MIT license. Still to do: add Dharu and Nabil as collaborators, `CODEOWNERS` (needs their GitHub usernames), branch protection on `main`, and a required CI check once SC-01, BE-01 and FE-01 add their workflows.
 
 - [~] **X-02 · Product name and domain** (driver: Nabil)
   - Do: agree on a name; check the domain and social handles; answer Q-01.

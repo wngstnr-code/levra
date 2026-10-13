@@ -45,7 +45,7 @@ Refresh with the command above.
 | Smart contracts | Wangsit | 30 | 0 | 0 |
 | Backend | Dharu | 33 | 0 | 0 |
 | Frontend | Nabil | 25 | 0 | 0 |
-| Shared tasks | All three | 15 | 0 | 1 |
+| Shared tasks | All three | 15 | 0 | 2 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
 ## What each person can start today without waiting
@@ -117,6 +117,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Wangsit: X-01 started. Private repo created at `github.com/wngstnr-code/levra` with the monorepo root. Collaborators, `CODEOWNERS` and branch protection are still open.
 - All: decided together: name Levra (D-15), sign-in by email or passkey in scope (D-16), private repo under `wngstnr-code` (D-17), scope and split of work approved (D-18).
 - All: development docs written. Nothing is built yet. Next: X-01, SC-01, SC-03, BE-01, BE-02, BE-03, FE-01 to FE-04.
 - Early findings from quick read-only checks (not a replacement for the spikes):
