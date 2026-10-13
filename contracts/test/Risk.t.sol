@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {Authorization} from "morpho-blue/src/interfaces/IMorpho.sol";
 import {IAnchoredStockOracle} from "../src/interfaces/IAnchoredStockOracle.sol";
 import {IMarginRouter} from "../src/interfaces/IMarginRouter.sol";
 import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
@@ -13,12 +11,6 @@ import {RiskManager} from "../src/RiskManager.sol";
 import {BaseTest} from "./Base.t.sol";
 
 contract RiskTest is BaseTest {
-    bytes32 private constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-    bytes32 private constant AUTHORIZATION_TYPEHASH = keccak256(
-        "Authorization(address authorizer,address authorized,bool isAuthorized,uint256 nonce,uint256 deadline)"
-    );
-
     function _mockOracle(Session session, uint256 feedAge, uint256 publishAge, int128 price) internal {
         IAnchoredStockOracle.PricePayload memory payload = IAnchoredStockOracle.PricePayload({
             price: price,
@@ -217,22 +209,8 @@ contract RiskTest is BaseTest {
         deal(address(USDC), newcomer, 500e6);
         uint256 deadline = block.timestamp + 1 hours;
 
-        bytes32 permitDigest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                IERC20Permit(address(USDC)).DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(PERMIT_TYPEHASH, newcomer, address(router), 100e6, 0, deadline))
-            )
-        );
-        (uint8 pv, bytes32 pr, bytes32 ps) = vm.sign(key, permitDigest);
-
-        Authorization memory authorization = Authorization(newcomer, address(router), true, 0, deadline);
-        bytes32 authDigest = keccak256(
-            abi.encodePacked(
-                "\x19\x01", MORPHO.DOMAIN_SEPARATOR(), keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization))
-            )
-        );
-        (uint8 av, bytes32 ar, bytes32 as_) = vm.sign(key, authDigest);
+        (uint8 pv, bytes32 pr, bytes32 ps) = _signPermit(key, address(router), 100e6, 0, deadline);
+        (uint8 av, bytes32 ar, bytes32 as_) = _signAuthorization(key, address(router), true, 0, deadline);
 
         bytes[] memory calls = new bytes[](3);
         calls[0] = abi.encodeCall(IMarginRouter.permitToken, (address(USDC), 100e6, deadline, pv, pr, ps));
