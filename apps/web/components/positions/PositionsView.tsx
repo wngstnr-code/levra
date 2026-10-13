@@ -1,17 +1,21 @@
 "use client";
 
 import { tokens } from "@levra/shared/addresses";
-import type { Position } from "@levra/shared/api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useBalance, useReadContract } from "wagmi";
-import { apiConfigured, useAccountData } from "@/lib/api/hooks";
+import { apiConfigured, queryKeys, useAccountData, useMarkets } from "@/lib/api/hooks";
 import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
+import { stockOf } from "@/lib/deployment";
 import { formatToken, formatUsd, formatUsdSigned } from "@/lib/units";
+import { useProtection } from "@/lib/useProtection";
+import { PreCloseCard } from "../protection/PreCloseCard";
+import { ProtectionToggle } from "../protection/ProtectionToggle";
+import { Banner } from "../ui/Banner";
 import { useSignIn } from "../SignIn";
 import { Button, ButtonLink } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -24,7 +28,7 @@ import { HistoryList } from "./HistoryList";
 import { ManageSheet } from "./ManageSheet";
 import { PositionCard, type ManageTab } from "./PositionCard";
 
-export function PositionsView({ protectionControl, topRight }: { protectionControl?: (p: Position) => React.ReactNode; topRight?: React.ReactNode }) {
+export function PositionsView() {
   const m = useT();
   const router = useRouter();
   const pathname = usePathname();
@@ -37,6 +41,9 @@ export function PositionsView({ protectionControl, topRight }: { protectionContr
   const usdc = useReadContract({ address: tokens.USDC.address, abi: erc20Abi, functionName: "balanceOf", args: address ? [address] : undefined, chainId: monad.id, query: { enabled: !!address } });
   const mon = useBalance({ address, chainId: monad.id, query: { enabled: !!address } });
   const managed = account.data?.positions.find((p) => p.marketId === manage?.marketId) ?? null;
+  const protection = useProtection(address);
+  const markets = useMarkets();
+  const openSoft = (marketId: string) => markets.data?.markets.find((x) => x.marketId === marketId)?.softLtvOpenWad;
 
   const header = (
     <div className="flex flex-wrap items-center gap-4 pt-2 pb-4">
@@ -78,6 +85,7 @@ export function PositionsView({ protectionControl, topRight }: { protectionContr
   const totals = account.data?.totals;
   const pnl = totals ? BigInt(totals.unrealizedPnlUsdRaw) : 0n;
   const positions = account.data?.positions ?? [];
+  const over = positions.filter((p) => p.overSoftLimit);
 
   return (
     <div className="space-y-4">
@@ -96,8 +104,27 @@ export function PositionsView({ protectionControl, topRight }: { protectionContr
             <StatBox label={m.positions.gas} value={mon.data ? `${formatToken(mon.data.value, 18, 2)} MON` : "—"} />
           </div>
         </Card>
-        {topRight}
+        <PreCloseCard overCount={over.length} onReview={over[0] ? () => setManage({ marketId: over[0]!.marketId, tab: "add" }) : null} />
       </div>
+      {over.map((p) => (
+        <Banner
+          key={p.marketId}
+          tone="caution"
+          title={m.preClose.bannerTitle}
+          action={
+            <span className="flex shrink-0 gap-2">
+              <Button size="sm" variant="secondary" onClick={() => setManage({ marketId: p.marketId, tab: "add" })}>
+                {m.positions.addCollateral}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setManage({ marketId: p.marketId, tab: "reduce" })}>
+                {m.positions.reduce}
+              </Button>
+            </span>
+          }
+        >
+          {m.preClose.bannerBody(`${stockOf(p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`)}
+        </Banner>
+      ))}
 
       {!apiConfigured ? (
         <EmptyState glyph="!" title={m.status.offlineTitle} body={m.positions.offline} />
@@ -113,12 +140,15 @@ export function PositionsView({ protectionControl, topRight }: { protectionContr
             key={p.marketId}
             p={p}
             onManage={(t) => setManage({ marketId: p.marketId, tab: t })}
+            openSoftWad={openSoft(p.marketId)}
             protectionControl={
-              protectionControl?.(p) ?? (
-                <span className="text-sm text-fg-2">
-                  {m.positions.protection} · {p.protection ? m.positions.on : m.positions.off}
-                </span>
-              )
+              <ProtectionToggle
+                user={address}
+                marketId={p.marketId}
+                on={protection.isOn(p.marketId) ?? p.protection}
+                name={`${stockOf(p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`}
+                invalidate={[protection.queryKey, queryKeys.account(address)]}
+              />
             }
           />
         ))

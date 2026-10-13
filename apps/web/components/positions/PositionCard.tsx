@@ -6,6 +6,7 @@ import { stockOf } from "@/lib/deployment";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatUsdSigned, formatWadPercent, wadRatio } from "@/lib/units";
+import { GapTry } from "../GapTry";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Ring } from "../ui/Ring";
@@ -14,7 +15,7 @@ import { TokenIcon } from "../ui/TokenIcon";
 
 export type ManageTab = "add" | "remove" | "repay" | "reduce" | "close";
 
-export function PositionCard({ p, onManage, protectionControl }: { p: Position; onManage: (tab: ManageTab) => void; protectionControl: React.ReactNode }) {
+export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { p: Position; onManage: (tab: ManageTab) => void; protectionControl: React.ReactNode; openSoftWad?: string }) {
   const m = useT();
   const stock = stockOf(p.symbol);
   const long = p.side === "long";
@@ -42,7 +43,7 @@ export function PositionCard({ p, onManage, protectionControl }: { p: Position; 
       {p.overSoftLimit && <p className="-mt-2 text-sm text-fg-2">{m.positions.aboveSoftBody(formatWadPercent(p.ltvWad), formatWadPercent(p.softLtvWad), formatWadPercent(p.lltvWad))}</p>}
 
       <div className="flex flex-wrap items-center gap-8">
-        <Ring value={ltvShare} mark={wadRatio(p.softLtvWad, p.lltvWad)} tone={tone} label={`${m.positions.ltv} ${formatWadPercent(p.ltvWad)}`}>
+        <Ring value={ltvShare} mark={wadRatio(p.softLtvWad, p.lltvWad)} faintMark={openSoftWad && BigInt(openSoftWad) > BigInt(p.softLtvWad) ? wadRatio(openSoftWad, p.lltvWad) : undefined} tone={tone} label={`${m.positions.ltv} ${formatWadPercent(p.ltvWad)}`}>
           <span className="font-rounded text-[28px] font-semibold">{formatWadPercent(p.ltvWad)}</span>
           <span className="text-xs text-fg-2">{m.positions.ltv}</span>
         </Ring>
@@ -65,6 +66,7 @@ export function PositionCard({ p, onManage, protectionControl }: { p: Position; 
               />
             )}
           </div>
+          <GapTry side={p.side} ltvWad={p.ltvWad} softWad={p.softLtvWad} lltvWad={p.lltvWad} />
         </div>
       </div>
 
