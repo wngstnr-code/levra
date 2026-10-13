@@ -12,10 +12,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 
 ## M0. Foundation and spikes
 
-- [~] **SC-01 · Set up `contracts/`**
+- [x] **SC-01 · Set up `contracts/`**
   - Do: Foundry project; install the official Morpho interfaces, OpenZeppelin and forge-std; `forge fmt`; CI on GitHub Actions.
   - Done when: `forge build` and `forge test` pass on your own machine and on GitHub.
-  - Note: done: Foundry project, forge-std, morpho-blue and OpenZeppelin as submodules, `forge fmt`, a Makefile, 56 tests, and a CI workflow that runs format, build, the fork tests, an ABI freshness check and the package checks. Still to do: see the first green CI run on GitHub.
+  - Note: Foundry project, forge-std, morpho-blue and OpenZeppelin as submodules, `forge fmt`, a Makefile, 57 tests, and a CI workflow (format, build, fork tests, ABI freshness, package checks). The first CI run on PR 5 was green.
 
 - [~] **SC-02 · Local mainnet fork (spike)**
   - Do: a `make fork` command that runs Anvil as a copy of Monad at a fixed block number. Try reading Morpho, the Anchored oracle and token balances from that fork.
@@ -96,7 +96,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-12, SC-20.
   - Do: `openShort` and `closeShort` in the order given in 02; the sale proceeds are held as collateral (D-05); handling of tiny leftover stock on a full close.
   - Done when: fork tests run open, reduce and full close; a full close leaves no debt; the leftover stock reaches the user.
-  - Note: written and tested on a fork with the test swapper: open, open beyond what the margin alone could borrow, full close with leftover stock returned. Not yet run through a real KyberSwap route.
+  - Note: written and tested on a fork with the test swapper. Also run through the live KyberSwap route with `script/e2e-short.sh`: stock bought on the exchange and lent, a short of $30 opened with $50 of margin, then closed in full with leftover stock returned and the router empty. Waiting for review.
 
 - [~] **SC-22 · Markets for all stocks in scope**
   - Needs: SC-20, SC-21.
@@ -122,7 +122,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-21.
   - Do: `setProtection`, `deleverage` with its three conditions; a keeper fee with a hard-coded maximum; who may call it (Q-08).
   - Done when: router properties 3 and 4 in 07 have tests; there is a malicious keeper test (T-04) that tries a bad price and fails; it works for long and short.
-  - Note: written and tested: consent, keeper only (D-29), only above the soft limit, must lower the LTV, must trade near the oracle price, keeper fee capped at 0.30%. Waiting for review.
+  - Note: written and tested: consent, keeper only (D-29), only above the soft limit, must lower the LTV, must trade near the oracle price, keeper fee capped at 0.30%. Also run through the live KyberSwap route with `script/e2e-protection.sh`: a long at 70.2% LTV in the pre-close window was reduced to 67.3%. Waiting for review.
 
 - [~] **SC-31 · End-to-end market-hours rule tests**
   - Needs: SC-11, SC-30.

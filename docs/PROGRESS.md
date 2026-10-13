@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 3 | 13 |
+| Smart contracts | Wangsit | 30 | 4 | 12 |
 | Backend | Dharu | 33 | 1 | 4 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -146,3 +146,4 @@ Newest first. One to three lines per person per working day: what got done, what
 - Backend and frontend for the sprint are not started. They belong to Dharu and Nabil.
 - Wangsit: PR 4 opened for the contracts. SC-06 done: the missing addresses are in `packages/shared/addresses.ts`. SC-14: `packages/shared` now validates and reads the deployment file and exposes the stock list in `markets.ts`.
 - Wangsit: PR 5 opened with the CI workflow, 8 security tests (reentrancy and signature replay) and one test that walks a full weekend. 57 tests pass. SC-05 done. The aQQQ and aHOOD pools have no hook and charge a 0.90% fee per swap.
+- Wangsit: CI is green on PR 5 (SC-01 done). On a local fork, short and auto-deleverage both ran through the live KyberSwap route (`e2e-short.sh`, `e2e-protection.sh`). Two things the backend must know: KyberSwap's calldata enforces its own minimum return from the `slippageTolerance` sent when building it, and KyberSwap refuses some sender addresses.
