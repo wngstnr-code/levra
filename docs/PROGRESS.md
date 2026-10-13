@@ -119,6 +119,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Dharu: backend plan adjusted so values that wait on oracle data are picked up without code changes: BE-03 becomes a persistent logger in Postgres with generated reports, BE-10 reads `maxOracleAge` and `stale` from the chain, BE-16 checks bid and ask on every read. New question Q-22 for Wangsit. Keeper tasks (BE-30, BE-31, BE-33, BE-50) are on hold for the same review.
 - Wangsit: SC-03 written and in review: Solidity interfaces, events, errors, ABI export to `packages/shared/abis/`. SC-01 partly done along the way.
 - All: interface decisions made together: backend builds transactions (D-19), one confirmation on first use (D-20), backend stack (D-21), Privy for sign-in (D-22). Doc 03 updated to match. The full freeze (X-04) still needs SC-03 and BE-02.
 - Wangsit: X-01 started. Private repo created at `github.com/wngstnr-code/levra` with the monorepo root. Collaborators, `CODEOWNERS` and branch protection are still open.
