@@ -1,4 +1,5 @@
 import { createDb, oracleUpdates, runMigrations, syncCursors } from "@levra/db";
+import { eq } from "drizzle-orm";
 import pino from "pino";
 import type { PublicClient } from "viem";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
@@ -29,7 +30,8 @@ describe.skipIf(!url)("oracle recorder (needs TEST_DATABASE_URL)", () => {
   beforeEach(async () => {
     await runMigrations(url ?? "");
     await db.delete(oracleUpdates);
-    await db.delete(syncCursors);
+    // The indexer's tests share this database, so only this job's cursor is cleared.
+    await db.delete(syncCursors).where(eq(syncCursors.name, ORACLE_CURSOR));
   });
   afterAll(() => close());
 
@@ -45,7 +47,7 @@ describe.skipIf(!url)("oracle recorder (needs TEST_DATABASE_URL)", () => {
     ]);
     expect(first).toMatchObject({ lastBlock: 125_000, behindBlocks: 0, inserted: 3 });
 
-    const [cursor] = await db.select().from(syncCursors);
+    const [cursor] = await db.select().from(syncCursors).where(eq(syncCursors.name, ORACLE_CURSOR));
     expect(cursor).toMatchObject({ name: ORACLE_CURSOR, lastBlock: 125_000n });
   });
 
@@ -58,7 +60,7 @@ describe.skipIf(!url)("oracle recorder (needs TEST_DATABASE_URL)", () => {
     await job.run(ctx());
     expect(await job.run(ctx())).toMatchObject({ lastBlock: 130_000, behindBlocks: 0, inserted: 0 });
 
-    await db.update(syncCursors).set({ lastBlock: 99_999n });
+    await db.update(syncCursors).set({ lastBlock: 99_999n }).where(eq(syncCursors.name, ORACLE_CURSOR));
     expect(await job.run(ctx())).toMatchObject({ inserted: 0 });
     expect(await db.$count(oracleUpdates)).toBe(2);
   });
