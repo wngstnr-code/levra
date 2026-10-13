@@ -225,6 +225,37 @@ interface ILens {
 }
 ```
 
+### ILiquidator
+
+Used by the liquidator bot only. Added after the freeze (see the interface changes in PROGRESS.md).
+
+```solidity
+interface ILiquidator {
+    /// Seizes collateral from an unhealthy position, swaps swapAmountIn of it into the loan token and repays.
+    /// loanTokenDelta may be negative: the contract then covers the shortfall from its own balance.
+    function liquidate(
+        Id marketId,
+        address borrower,
+        uint256 seizedAssets,
+        uint256 swapAmountIn,
+        Swap calldata swap,
+        int256 minLoanTokenDelta,
+        uint256 minCollateralLeft
+    ) external returns (int256 loanTokenDelta, uint256 collateralLeft);
+
+    function isKeeper(address keeper) external view returns (bool);
+    function treasury() external view returns (address);
+
+    event Liquidated(
+        Id indexed marketId, address indexed borrower,
+        uint256 seizedAssets, uint256 repaidAssets,
+        int256 loanTokenDelta, uint256 collateralLeft, address keeper
+    );
+}
+```
+
+For a long market the keeper sells all the seized stock (`swapAmountIn = seizedAssets`) and the gain arrives as USDC. For a short market the seized collateral is USDC: the keeper spends part of it to buy back stock, and the rest is the gain. Gains go to the treasury.
+
 ### Events
 
 The backend reads these events. Names and field order must not change after the freeze.

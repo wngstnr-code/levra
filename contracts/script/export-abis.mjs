@@ -11,6 +11,7 @@ const artifacts = [
   { contract: "IRiskManager", name: "riskManagerAbi", file: "riskManager" },
   { contract: "ISessionOracle", name: "sessionOracleAbi", file: "sessionOracle" },
   { contract: "ILens", name: "lensAbi", file: "lens" },
+  { contract: "ILiquidator", name: "liquidatorAbi", file: "liquidator" },
   { contract: "IAnchoredStockOracle", name: "anchoredStockOracleAbi", file: "anchoredStockOracle" },
   { contract: "IMorpho", name: "morphoAbi", file: "morpho" },
 ];
