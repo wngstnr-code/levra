@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio } from "@/lib/units";
 import { GapTry } from "../GapTry";
 import { Card } from "../ui/Card";
+import { InfoLink } from "../ui/InfoLink";
 import { Money } from "../ui/Money";
 import { Ring } from "../ui/Ring";
 import { Skeleton } from "../ui/Skeleton";
@@ -73,7 +74,10 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
               <span className="text-xs text-fg-2">{m.trade.ltv}</span>
             </Ring>
             <div className="min-w-0 flex-1">
-              <p className="label-caps">{m.trade.liqPrice}</p>
+              <p className="label-caps">
+                {m.trade.liqPrice}
+                <InfoLink term="liquidation-price" label={m.trade.liqPrice} />
+              </p>
               <Money value={formatUsdE8(BigInt(pv.liqPriceE8))} className="text-display mt-1 block text-[32px] font-semibold" />
               <p className="mt-1 text-[13px] text-fg-2">{(side === "long" ? m.trade.liqBelow : m.trade.liqAbove)(formatBps(Math.abs(pv.liqDistanceBps), { fractionDigits: 0 }))}</p>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-2">
@@ -129,7 +133,10 @@ function GapCard({ quote, loading, side }: Props) {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-xl font-semibold">{m.trade.gapTitle}</h2>
+        <h2 className="text-xl font-semibold">
+          {m.trade.gapTitle}
+          <InfoLink term="price-gap" label={m.trade.gapTitle} />
+        </h2>
         <p className="mt-1 text-[13px] text-fg-2">{m.trade.gapSub}</p>
       </div>
       {scenarios.length === 0 ? (

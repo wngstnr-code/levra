@@ -14,6 +14,7 @@ import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
 import { Button, ButtonLink } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { ChangePill } from "../ui/ChangePill";
+import { InfoLink } from "../ui/InfoLink";
 import { Money } from "../ui/Money";
 import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
@@ -60,9 +61,18 @@ export function MarketsView() {
       )}
 
       <div className="grid gap-4 px-1 pt-2 text-[13px] leading-relaxed text-fg-3 md:grid-cols-3">
-        <p>{m.markets.legendSoft}</p>
-        <p>{m.markets.legendHard}</p>
-        <p>{m.markets.legendCap}</p>
+        <p>
+          {m.markets.legendSoft}
+          <InfoLink term="soft-limit" label={m.markets.softLimit} />
+        </p>
+        <p>
+          {m.markets.legendHard}
+          <InfoLink term="hard-limit" label={m.markets.legendHard} />
+        </p>
+        <p>
+          {m.markets.legendCap}
+          <InfoLink term="position-cap" label={m.markets.cap} />
+        </p>
       </div>
     </div>
   );

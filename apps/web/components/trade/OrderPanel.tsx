@@ -3,6 +3,7 @@
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
 import { formatLeverage } from "@/lib/units";
+import { InfoLink } from "../ui/InfoLink";
 
 export type ActionState =
   | { kind: "signIn"; onClick: () => void }
@@ -115,7 +116,10 @@ export function OrderPanel(p: Props) {
       </div>
 
       <div className="flex items-center px-1 text-sm">
-        <span className="text-ink/70">{m.trade.slippage}</span>
+        <span className="text-ink/70">
+          {m.trade.slippage}
+          <InfoLink term="slippage" label={m.trade.slippage} />
+        </span>
         <div className="ml-auto flex gap-1.5">
           {SLIPPAGES.map((s) => (
             <Chip key={s} active={p.slippageBps === s} onClick={() => p.onSlippage(s)} long={long}>
