@@ -119,7 +119,7 @@ Four rules for the frontend:
   - Needs: BE-14.
   - Do: in the history, auto-deleverage and liquidation events are explained in plain sentences: what happened, at what price, what it cost, what is left.
   - Done when: both test events show with the correct explanation.
-  - Note: built on 13 October 2026: every history item, including protection and liquidation, is one plain sentence with what happened, the amount, the price and the cost (`apps/web/lib/historyText.ts`, unit tested in English and Indonesian). For a liquidation the API does not yet give the collateral taken and the bonus separately (10-screens.md); the sentence uses the amounts it has. Checking both events live waits for the staging API.
+  - Note: built on 13 October 2026: every history item, including protection and liquidation, is one plain sentence with what happened, the amount, the price and the cost (`apps/web/lib/historyText.ts`, unit tested). For a liquidation the API does not yet give the collateral taken and the bonus separately (10-screens.md); the sentence uses the amounts it has. Checking both events live waits for the staging API.
 
 ---
 
@@ -148,13 +148,13 @@ Four rules for the frontend:
 
 - [~] **FE-51 · Mobile, accessibility and speed**
   - Done when: all flows are comfortable on a phone screen; the app can be used with a keyboard; colors have enough contrast; the main page opens quickly on a slow connection.
-  - Note: done on 13 October 2026 for phones and keyboards: a tab bar on phones, a skip link, visible focus rings, native controls, and secondary text raised to #8E8E93 so it passes WCAG AA (6.1:1 on the page, 5.5:1 on cards). End-to-end tests check that eight pages fit a phone screen in English and Indonesian; they found and fixed two overflows. Not measured yet: load time on a slow connection.
+  - Note: done on 13 October 2026 for phones and keyboards: a tab bar on phones, a skip link, visible focus rings, native controls, and secondary text raised to #8E8E93 so it passes WCAG AA (6.1:1 on the page, 5.5:1 on cards). End-to-end tests check that eight pages fit a phone screen; they found and fixed three overflows. Not measured yet: load time on a slow connection.
 
 - [~] **FE-52 · End-to-end UI tests**
   - Needs: SC-14.
   - Do: Playwright tests against the local fork for all seven flows.
   - Done when: the tests run on GitHub Actions on every PR to `apps/web`.
-  - Note: built on 13 October 2026: Playwright runs the production build against answers in the shared API shapes (sample data only in `apps/web/e2e`), on a desktop and a phone, in CI (`.github/workflows/web.yml`, job `e2e`). 33 tests pass: markets, a stale price, market detail, trade signed out, a blocked region, help, the language switch, an unknown page, the tab bar and page width in both languages. Still open: the seven flows with a connected wallet against a local fork (needs a fork with the deployment, SC-14, and a test wallet).
+  - Note: built on 13 October 2026: Playwright runs the production build against answers in the shared API shapes (sample data only in `apps/web/e2e`), on a desktop and a phone, in CI (`.github/workflows/web.yml`, job `e2e`). 23 tests pass: markets, a stale price, market detail, trade signed out, a blocked region, help, an unknown page, the tab bar and page width on a phone. Still open: the seven flows with a connected wallet against a local fork (needs a fork with the deployment, SC-14, and a test wallet).
 
 - [~] **FE-53 · Help page**
   - Needs: X-11, SC-61.
@@ -167,10 +167,10 @@ Four rules for the frontend:
   - Done when: a test error reaches the team; the funnel from visit to first position can be seen.
   - Note: partly built on 13 October 2026: friendly error screens for a page, the whole app and an unknown address; Vercel Web Analytics without cookies, with five funnel steps from visit to first position and no amounts or addresses. Still open: sending app errors to the team needs an error service (blocker in PROGRESS).
 
-- [x] **FE-55 · Two languages**
-  - Do: all text goes through translation files; languages as decided in Q-14.
-  - Done when: no text is embedded in components; switching language does not break the layout.
-  - Note: done on 13 October 2026 on the working assumption of Q-14: every text goes through `apps/web/lib/i18n/en.ts` and `id.ts`, and TypeScript fails the build if a sentence is missing in one language. Switch in the footer and in Settings; the choice is kept in the browser and sets the page language. End-to-end tests switch languages and check that eight pages fit a phone in both.
+- [x] **FE-55 · App language**
+  - Do: all text goes through one message file; the app is English only (D-38).
+  - Done when: no text is embedded in components.
+  - Note: done on 13 October 2026: every text the app shows is in `apps/web/lib/i18n/en.ts` and read through `useT()`. A second language was built first and removed the same day when the team chose English only (D-38); adding one later means adding a file of the same shape.
 
 ---
 
