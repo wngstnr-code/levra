@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 35 | 20 | 14 |
-| Frontend | Nabil | 28 | 5 | 20 |
+| Frontend | Nabil | 29 | 5 | 20 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -203,6 +203,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Nabil: new task FE-14, price charts (Markets sparklines, Trade chart with 1D, 1W and 1M), which the Figma design has but the tasks missed. Request for Dharu, sent on WhatsApp: a price history endpoint from the oracle logger data.
 - Nabil: the web app runs against the Railway staging API on localhost: markets, positions, earn, deposit tokens, settings and sign-in answer with real data and CORS passes. Fixed on the way: the trade form was blocked because staging has no terms version, so `/v1/eligibility` answers 404; the app now treats that as the gate being off, like the API. Deposit now lists common chains and USDC first and uses a neutral address placeholder. Open: quotes hit the KyberSwap limit, and five keepers are not healthy yet (waiting for the role grants), so the service banner shows.
 - Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).
 - Dharu: BE-34 done: `report:gaps` rebuilds the gap table from five years of daily prices (same worst gaps as the table on 14 October), and the team monitor checks it daily. Staging: `/status` is live; the four keeper role jobs report "not the role holder" until Wangsit grants the roles.
