@@ -1,11 +1,12 @@
-import { morphoEvents, routerEvents, type Db } from "@levra/db";
+import { morphoEvents, routerEvents, vaultEvents, type Db } from "@levra/db";
 import { asc, eq } from "drizzle-orm";
 import type { Address, Hex } from "viem";
 import type { ChainReader, RouterEvent } from "../chain/reader";
 
 /** One router or Morpho event as stored by the indexer, with its place in the chain. */
 export type StoredEvent = {
-  source: "router" | "morpho";
+  /** `vault` events carry the vault address as `marketId` (BE-22). */
+  source: "router" | "morpho" | "vault";
   name: string;
   marketId: Hex;
   txHash: Hex;
@@ -41,11 +42,16 @@ export function dbEventStore(db: Db): EventStore {
   return {
     async forUser(user) {
       const who = user.toLowerCase();
-      const [router, morpho] = await Promise.all([
+      const [router, morpho, vault] = await Promise.all([
         db.select().from(routerEvents).where(eq(routerEvents.user, who)).orderBy(asc(routerEvents.blockNumber), asc(routerEvents.logIndex)),
         db.select().from(morphoEvents).where(eq(morphoEvents.user, who)).orderBy(asc(morphoEvents.blockNumber), asc(morphoEvents.logIndex)),
+        db.select().from(vaultEvents).where(eq(vaultEvents.user, who)).orderBy(asc(vaultEvents.blockNumber), asc(vaultEvents.logIndex)),
       ]);
-      return [...router.map(toStored("router")), ...morpho.map(toStored("morpho"))].sort(byChainOrder);
+      return [
+        ...router.map(toStored("router")),
+        ...morpho.map(toStored("morpho")),
+        ...vault.map((r) => toStored("vault")({ ...r, marketId: r.vault })),
+      ].sort(byChainOrder);
     },
   };
 }
@@ -81,12 +87,13 @@ const big = (v: string | number | boolean | undefined) => BigInt(typeof v === "b
 /** The events the cost basis needs, from stored rows. */
 export function toCostEvents(events: StoredEvent[]): RouterEvent[] {
   return events.flatMap((e): RouterEvent[] => {
+    if (e.source === "vault") return [];
     const base = { marketId: e.marketId, block: e.blockNumber, logIndex: e.logIndex };
     if (e.name === "PositionOpened") {
       return [{ kind: "opened", ...base, margin: big(e.args.margin), collateralDelta: big(e.args.collateralDelta), debtDelta: big(e.args.debtDelta), fee: big(e.args.fee) }];
     }
     if (e.source === "morpho") {
-      return e.name === "Liquidate" ? [{ kind: "liquidated", ...base, seized: big(e.args.seizedAssets) }] : [];
+      return e.name === "Liquidate" ? [{ kind: "liquidated", ...base, seized: big(e.args.seizedAssets), repaid: big(e.args.repaidAssets) }] : [];
     }
     if (e.name === "DebtRepaid") {
       return [{ kind: "repaid", ...base, assets: big(e.args.assets) }];

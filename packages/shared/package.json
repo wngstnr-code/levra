@@ -12,7 +12,8 @@
     "./deployments/monad": "./deployments.monad.ts",
     "./markets": "./markets.ts",
     "./math": "./math.ts",
-    "./gaps": "./gaps.ts"
+    "./gaps": "./gaps.ts",
+    "./calendar": "./calendar.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

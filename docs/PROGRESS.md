@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 34 | 11 | 4 |
+| Backend | Dharu | 34 | 16 | 6 |
 | Frontend | Nabil | 26 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -125,13 +125,14 @@ Every important real transaction goes here. This is also the evidence for the ha
 | 13 October 2026 | Create the USDC vault from Morpho's factory | `0x4c308c69ce9f0031bd94d79b78d3c035284676f636439553ea8333175d8ea9c5` | Wangsit | SC-23 |
 | 13 October 2026 | Deposit 1 USDC into the USDC vault. It reached the QQQ long market | `0x6233049c3bbede60e67b0863a3389014dc1243dd795e85f9a18e234513c7817a` | Wangsit | SC-23 |
 | 13 October 2026 | Redeem all vault shares. 1 USDC came back in full | `0xa52645ee0a4d62838641791419e89b7bc8d5fb740a2207c88762de86b8eda689` | Wangsit | SC-23 |
+| 13 October 2026 | Deposit 1 USDC into the USDC vault and leave it there for the demo | `0xeb609d4b4cf13a08b5c6b6990c52aae302761d3117f19f3f2c006fcaa38294f0` | Wangsit | X-16 |
 | 13 October 2026 | Open a QQQ long that stays open for the demo (margin 1.5 USDC, borrow 1.5 USDC) | `0x291fae73e1e2c98970d57d916a288c23c56fee3f9d4dd58700f10fa225e80ad5` | Wangsit | X-16 |
 
 The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings.
 
 The first run was 30 transactions in blocks 113050112 to 113050539, all successful, sent by `make first-run-monad` from the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`. The 12 not listed are token approvals. Every position was closed in full and the router held no tokens after each close.
 
-The vault was 11 transactions in blocks 113058663 to 113058727 (create, three supply caps submitted and accepted, supply queue, fee recipient, fee, timelock), 0.73 MON. A first deposit and withdrawal of 1 USDC followed in blocks 113060117 and 113060133. The vault is empty again.
+The vault was 11 transactions in blocks 113058663 to 113058727 (create, three supply caps submitted and accepted, supply queue, fee recipient, fee, timelock), 0.73 MON. A first deposit and withdrawal of 1 USDC followed in blocks 113060117 and 113060133. A second deposit of 1 USDC in block 113063214 stays in the vault, so the Earn screen has real data: the deployer wallet holds 1 `lvUSDC`, lent to the QQQ long market.
 
 One position is open on purpose: the deployer wallet holds a QQQ long of 0.00409 aQQQ against 1.5 USDC of debt, at 49.4% loan-to-value, with protection off. It gives the Positions screen real data.
 
@@ -178,6 +179,8 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 | 13 October 2026 | Added the `NEXT_PUBLIC_PRIVY_APP_ID` environment variable (section 7) | Nabil | fe/FE-01-03-m0-foundation |
+| 13 October 2026 | Wrote down `MarketDetail` history rules in 03: 30 days, one point per hour, empty without a database, 404 for an unknown stock | Dharu, Nabil | be/BE-23-market-detail |
+| 13 October 2026 | `EarnPosition.earnedRaw` is now signed, since bad debt can make it negative. Earn option ids are `vault:<address>` and `market:<marketId>` | Dharu, Nabil | be/BE-22-earn |
 | 13 October 2026 | Added `@levra/shared/deployments/monad`, which exports `monadDeployment`: the mainnet deployment file, validated and bundled. Nothing was removed | Dharu, Nabil | sc/SC-15-mainnet-deployment |
 
 ## Daily log
@@ -187,6 +190,14 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 13 October 2026
 
 - Nabil: visual design for every screen is on the Figma page "Design" (dark, pastel bento). Decided D-37: the landing site is separate (`apps/landing`, root domain) and the app runs on `app.<domain>`. New task FE-62; FE-60 is now the app domain only.
+- Dharu: BE-31 done: the protector reduces protected positions above the soft limit to the target in the last 30 minutes before close, with the 04 formula and a live route; fork test passes for a long and a short, and leaves unprotected positions alone. Request for Wangsit: add `isKeeper()` to the `MarginRouter` ABI export (fragment until then). Next: BE-33 alerts.
+- Dharu: BE-30 calendar poster written: the keeper keeps `nextCloseAt` at the next close, regular until a weekend is observed and then the observed one, with no code change; fork test passes. Request for Wangsit: add `calendarPoster()` to the `RiskManager` ABI export; the keeper uses a fragment until then. Mainnet posting waits on the role address and hosting. Next: BE-31 protector.
+- Dharu: BE-23 done: `/v1/markets/:symbol` with both sides, the latest depth run and hourly rate and deviation history; the depth keeper now stores rate snapshots. Next: BE-30 calendar poster.
+- Dharu: BE-22 and BE-21 done: the indexer stores vault deposits and withdrawals, and `/v1/earn` and `/v1/earn/:address` give the USDC vault and stock lending with APY, supplied, borrowed share, withdrawable and earned, matching chain reads on a fork. Request for Wangsit: add MetaMorpho (`totalAssets`, `fee`, `withdrawQueue`, `maxWithdraw`) to the ABI export; the API uses a fragment until then. Next: BE-23.
+- Dharu: BE-20 done: short quotes (open, reduce, close) ran end to end on the fork from quote data, with first-use signatures; accounts and history give shorts an entry price and PnL. Also in this PR: the shared gap helper (BE-34) and the exchange calendar (BE-30), plus tables for the Earn, alert, deposit and terms tasks.
+
+- Wangsit: `make close-all-monad` written and rehearsed on a fork of the live state: a long, a short and a vault deposit were all closed and the Lens showed no position left. It is the command to run after the demo video is recorded.
+- Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.
 - Wangsit: SC-23 done. A real deposit and withdrawal went through the USDC vault on mainnet with `make first-earn-monad`: 1 USDC in, all of it lent to the QQQ long market by the vault, 1 USDC back in full. The vault is empty again. Dharu and Nabil can use `monadDeployment.usdcVault` for the Earn screen.
 - Wangsit: the USDC vault is live on mainnet (SC-23): `Levra USDC` at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, created from Morpho's factory, read back from the chain: caps 10,000 QQQ, 5,000 HOOD, 20,000 BIL, fee 10%, timelock 1 day, owner the deployer wallet. It is in `monad.json` as `usdcVault`. One QQQ long is left open in the deployer wallet for the demo. `make first-earn-monad` is written and rehearsed on a fork of the live state: 1 USDC went into the vault, reached the QQQ market and came back in full. Next: run it on mainnet.
 - Wangsit: `make set-roles-monad` written and rehearsed on a fork: it sets the router keeper, the `Liquidator` keeper, the calendar poster and the oracle age poster from the owner wallet, and skips what is already set. `Deploy.s.sol` now reads `LIQUIDATOR_KEEPER` separately, as Dharu asked for BE-55. Safe supports Monad, so the multisig can be made at app.safe.global. The Anchored message is updated for the staging deployment. Waiting for: four role addresses from Dharu, one wallet address each from Dharu and Nabil.
