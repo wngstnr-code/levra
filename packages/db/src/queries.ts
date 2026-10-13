@@ -78,28 +78,39 @@ export async function latestDepthRun(db: Db, symbol: string) {
     .map((r) => ({ direction: r.kind, sizeUsdRaw: r.size, priceImpactBps: r.impact!, deviationBps: r.deviation!, measuredAt: Number(r.at) }));
 }
 
-/** DEX mid against the oracle per mid measurement, oldest first, since `sinceSeconds` ago (BE-23). */
-export async function deviationHistory(db: Db, symbol: string, sinceSeconds: number) {
+/**
+ * DEX mid against the oracle, oldest first, since `sinceSeconds` ago (BE-23). Keeps the last measurement in each
+ * `bucketSeconds` window, so a long range stays small.
+ */
+export async function deviationHistory(db: Db, symbol: string, sinceSeconds: number, bucketSeconds = 1) {
   const rows = (await db.execute(sql`
-    select extract(epoch from measured_at)::bigint as at, oracle_price_e8::text as oracle, mid_price_e8::text as mid, deviation_bps as deviation
-    from dex_quotes
-    where symbol = ${symbol} and kind = 'mid' and error is null and mid_price_e8 is not null and deviation_bps is not null
-      and measured_at >= now() - make_interval(secs => ${sinceSeconds})
-    order by measured_at
+    select at, oracle, mid, deviation from (
+      select distinct on (bucket) at, oracle, mid, deviation from (
+        select floor(extract(epoch from measured_at) / ${bucketSeconds}) as bucket, measured_at,
+          extract(epoch from measured_at)::bigint as at, oracle_price_e8::text as oracle, mid_price_e8::text as mid, deviation_bps as deviation
+        from dex_quotes
+        where symbol = ${symbol} and kind = 'mid' and error is null and mid_price_e8 is not null and deviation_bps is not null
+          and measured_at >= now() - make_interval(secs => ${sinceSeconds})
+      ) q order by bucket, measured_at desc
+    ) b order by at
   `)) as unknown as { at: string; oracle: string; mid: string; deviation: number }[];
   return rows.map((r) => ({ timestamp: Number(r.at), oraclePriceE8: r.oracle, dexMidPriceE8: r.mid, deviationBps: r.deviation }));
 }
 
-/** Rate snapshots of some markets, oldest first, since `sinceSeconds` ago (BE-23). */
-export async function rateHistory(db: Db, marketIds: string[], sinceSeconds: number) {
+/** Rate snapshots of some markets, oldest first, since `sinceSeconds` ago, the last one per market in each `bucketSeconds` window (BE-23). */
+export async function rateHistory(db: Db, marketIds: string[], sinceSeconds: number, bucketSeconds = 1) {
   if (marketIds.length === 0) return [];
   const ids = marketIds.map((m) => m.toLowerCase());
   const rows = (await db.execute(sql`
-    select market_id, extract(epoch from measured_at)::bigint as at, borrow_apy_wad::text as borrow, supply_apy_wad::text as supply, utilization_wad::text as util
-    from market_rates
-    where market_id in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})
-      and measured_at >= now() - make_interval(secs => ${sinceSeconds})
-    order by measured_at, market_id
+    select market_id, at, borrow, supply, util from (
+      select distinct on (market_id, bucket) market_id, at, borrow, supply, util from (
+        select floor(extract(epoch from measured_at) / ${bucketSeconds}) as bucket, measured_at,
+          market_id, extract(epoch from measured_at)::bigint as at, borrow_apy_wad::text as borrow, supply_apy_wad::text as supply, utilization_wad::text as util
+        from market_rates
+        where market_id in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})
+          and measured_at >= now() - make_interval(secs => ${sinceSeconds})
+      ) q order by market_id, bucket, measured_at desc
+    ) b order by at, market_id
   `)) as unknown as { market_id: string; at: string; borrow: string; supply: string; util: string }[];
   return rows.map((r) => ({ marketId: r.market_id, timestamp: Number(r.at), borrowApyWad: r.borrow, supplyApyWad: r.supply, utilizationWad: r.util }));
 }

@@ -640,10 +640,12 @@ type MarketDetail = {
   stockToken: Address;
   session: SessionInfo;
   markets: Market[];          // one per side
-  depth: DepthPoint[];
-  rateHistory: RatePoint[];
-  deviationHistory: DeviationPoint[];
+  depth: DepthPoint[];         // the latest daily depth run; failed sizes are left out
+  rateHistory: RatePoint[];    // last 30 days, the last snapshot per market in each hour, oldest first
+  deviationHistory: DeviationPoint[]; // last 30 days, the last mid measurement in each hour, oldest first
 };
+// `:symbol` is the stock symbol without the `a` prefix, any case. 404 for a stock not in the deployment.
+// The three history arrays are empty when the API runs without a database. Window and bucket are initial proposals.
 
 type QuoteCollateralRequest = {
   user: Address;

@@ -7,7 +7,7 @@ import type { Logger } from "./logger";
 import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
 import { earnRoutes } from "./routes/earn";
-import { marketRoutes, type DexMids } from "./routes/markets";
+import { dbMarketHistory, marketRoutes, type DexMids } from "./routes/markets";
 import { latestDexMids } from "@levra/db";
 import { createCache } from "./chain/cache";
 import { quoteRoutes } from "./routes/quotes";
@@ -50,7 +50,7 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
   if (reader) {
     const store = events ?? chainEventStore(reader);
     const mids = db ? dexMidsFromDb(db) : undefined;
-    app.route("/", marketRoutes(reader, mids));
+    app.route("/", marketRoutes(reader, mids, db ? dbMarketHistory(db) : undefined));
     app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
     app.route("/", earnRoutes(reader, store));
