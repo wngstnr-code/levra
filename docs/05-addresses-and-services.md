@@ -302,6 +302,7 @@ Our geo-blocking list is an open decision (Q-24). Earlier docs said "outside the
 |---|---|---|
 | Envio | Its supported networks page lists Monad mainnet, chain 143, with HyperSync at `https://143.hypersync.xyz`. Whether an API token is required was not found | From documentation. Not run (BE-06) |
 | Privy | The embedded wallet is a normal key wallet by default (an HD wallet). It supports `signTypedData` and private key export. Smart wallets are an optional layer on top | From documentation. Run on 13 October 2026: embedded wallet creation by email and passkey, and export of its recovery phrase. `signTypedData` not run (FE-02, FE-11) |
+| Vercel | Hosts `apps/web` from Wangsit's account (root directory `apps/web`, Node.js 24.x), at `https://levra-mon.vercel.app`. An import from a Hobby account that does not own the private repo fails at "Preparing Git Repository". Each origin the app runs on must be listed in the Privy allowed domains, exactly with its scheme | Verified on 13 October 2026: the site serves `/markets`. Preview deployments per PR not checked yet (FE-01) |
 | Local fork | Anvil 1.8.3 forks Monad through the public RPC. Reads and an impersonated `approve` work | Verified for those calls only (SC-02) |
 
 ## Name and domains
