@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { ChainReader } from "../chain/reader";
 import { upstream } from "../errors";
+import { renderStatusPage, renderStatusUnavailable } from "../status-page";
 
 /** The indexer's cursor name, kept in step with apps/indexer. */
 const ROUTER_CURSOR = "router_events";
@@ -54,5 +55,14 @@ export async function buildStatus(reader: ChainReader, db: Db, version: string):
 export function statusRoutes(reader: ChainReader, db: Db, version: string) {
   const app = new Hono();
   app.get("/v1/status", async (c) => c.json(await buildStatus(reader, db, version)));
+  // The public status page (BE-61). When the chain cannot be read, the page says so instead of failing.
+  app.get("/status", async (c) => {
+    c.header("cache-control", "public, max-age=15");
+    try {
+      return c.html(renderStatusPage(await buildStatus(reader, db, version), Math.floor(Date.now() / 1000)));
+    } catch {
+      return c.html(renderStatusUnavailable(), 503);
+    }
+  });
   return app;
 }

@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 18 | 15 |
+| Backend | Dharu | 35 | 18 | 16 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -202,6 +202,7 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 14 October 2026
 
 - Dharu: mainnet keeper keys made with the BE-55 script and stored on Railway's keeper service only; the addresses went to Wangsit for `make set-roles-monad` (blocker row). The keeper is not redeployed yet, so the role jobs stay off until the grant and the MON top-up.
+- Dharu: BE-61 written: the API serves a public status page at `/status` (oracle age per stock, keepers, indexer lag, one overall line), plain HTML that refreshes itself. Next: check it live on staging after merge.
 - Dharu: BE-55 written: `docs/keys.md`, a `keys` script that makes one key per role and stores it on Railway without printing it, a capped `topup` script, and log redaction. The leak drill passed on a fork. Next: make the mainnet keys and send the addresses to Wangsit for `make set-roles-monad` (needs Dharu's go-ahead).
 - Dharu: BE-15 staging is up on Railway (D-41): API at `https://api-production-c154.up.railway.app`, indexer caught up, keeper running its data and monitor jobs. The first deploy crashed on placeholder variables; fixed. Nabil can point `NEXT_PUBLIC_API_URL` at it. Still on the public RPC.
 - Dharu: BE-51 done and BE-54 started: rate limits per IP and wallet are wired into the API (also on deposit and withdrawal quotes), with one budget on KyberSwap calls; the load test harness and its first fork report are in. Next: the staging load test after hosting.

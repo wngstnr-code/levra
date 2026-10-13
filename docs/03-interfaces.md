@@ -378,6 +378,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | GET | `/v1/health` | Alive or not | M1 |
 | GET | `/v1/config` | Chain ID and the addresses of our contracts and markets | M1 |
 | GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block | M1 |
+| GET | `/status` | Public status page: the same facts as one HTML page that refreshes every 30 seconds (BE-61). Not part of the versioned API | M6 |
 | GET | `/v1/session` | Market session, next close and open time | M1 |
 | GET | `/v1/markets` | All markets, with the current session | M1 |
 | GET | `/v1/markets/:symbol` | One stock: details, depth, history of rates and price deviation | M2 |
