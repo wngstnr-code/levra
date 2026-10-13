@@ -40,6 +40,12 @@ Four rules for the frontend:
   - Note: the visual design is on the page "Design" in the same Figma file (13 October 2026): a design system (reference analysis, colour tokens, SF Pro type scale, components, shape and motion rules) and every screen in a dark, pastel bento style with equal card edges and Apple-style continuous corners and glass sheets. An "Apple first" variant was tried and not chosen.
   - Note: Wangsit and Dharu reviewed and approved the wireframes on 14 October 2026. The data the screens need that 03 does not have yet is listed in 10-screens.md (a list of transfers per user, the liquidation collateral and bonus in history). Mobile layouts are built in code (FE-51) and not drawn in Figma.
 
+- [~] **FE-05 · Design system in code**
+  - Needs: FE-04 (the Figma page "Design").
+  - Do: the design tokens (colours, type, radius, motion) as Tailwind theme values in `apps/web/app/globals.css`; the font stack (SF Pro on Apple devices, Inter elsewhere); base components in `apps/web/components/ui/` (button, card, change pill, session badge, money with faint decimals); the header with a live market session; existing screens moved onto the tokens.
+  - Done when: the tokens and base components match the Figma design system, and no screen uses colours outside the tokens.
+  - Note: built on 13 October 2026 on `fe/FE-05-design-system`. Checked by build and the generated CSS. Not verified: the wide display width (`font-stretch`) only works with Apple's system font, and continuous corners (`corner-shape`) only work in browsers that support it; other browsers show normal width and normal rounded corners. A visual check in the browser by Nabil is still open.
+
 ---
 
 ## M1. Core long

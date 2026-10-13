@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { WalletButton } from "@/components/WalletButton";
+import { Inter } from "next/font/google";
+import { Header } from "@/components/Header";
 import "./globals.css";
 import { Providers } from "./providers";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Levra",
@@ -11,18 +13,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body className="min-h-screen">
         <Providers>
-          <header className="border-b border-neutral-800">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-              <Link href="/" className="text-lg font-semibold tracking-tight">
-                Levra
-              </Link>
-              <WalletButton />
-            </div>
-          </header>
-          <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+          <Header />
+          <main className="mx-auto max-w-[1440px] px-4 pt-6 pb-16 sm:px-12">{children}</main>
         </Providers>
       </body>
     </html>

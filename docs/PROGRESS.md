@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 16 | 6 |
-| Frontend | Nabil | 26 | 4 | 0 |
+| Frontend | Nabil | 27 | 4 | 1 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -201,6 +201,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - Dharu: BE-20 done: short quotes (open, reduce, close) ran end to end on the fork from quote data, with first-use signatures; accounts and history give shorts an entry price and PnL. Also in this PR: the shared gap helper (BE-34) and the exchange calendar (BE-30), plus tables for the Earn, alert, deposit and terms tasks.
 
 - Wangsit: `make close-all-monad` written and rehearsed on a fork of the live state: a long, a short and a vault deposit were all closed and the Lens showed no position left. It is the command to run after the demo video is recorded.
+- Nabil: FE-05 started: the Figma design system is in `apps/web` (Tailwind tokens, SF Pro with Inter fallback, base components, header with a live market session). Markets keeps its data and moves to the new look next.
 - Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.
 - Wangsit: SC-23 done. A real deposit and withdrawal went through the USDC vault on mainnet with `make first-earn-monad`: 1 USDC in, all of it lent to the QQQ long market by the vault, 1 USDC back in full. The vault is empty again. Dharu and Nabil can use `monadDeployment.usdcVault` for the Earn screen.
 - Wangsit: the USDC vault is live on mainnet (SC-23): `Levra USDC` at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, created from Morpho's factory, read back from the chain: caps 10,000 QQQ, 5,000 HOOD, 20,000 BIL, fee 10%, timelock 1 day, owner the deployer wallet. It is in `monad.json` as `usdcVault`. One QQQ long is left open in the deployer wallet for the demo. `make first-earn-monad` is written and rehearsed on a fork of the live state: 1 USDC went into the vault, reached the QQQ market and came back in full. Next: run it on mainnet.

@@ -6,8 +6,10 @@ import { stocks, type Stock } from "@levra/shared/markets";
 import { useReadContracts } from "wagmi";
 import { monad } from "@/lib/chain";
 import { formatAge, formatUsdE8 } from "@/lib/format";
-import { sessionFromIndex, sessionLabel, sessionTone } from "@/lib/session";
+import { sessionFromIndex } from "@/lib/session";
 import { useNowSeconds } from "@/lib/useNow";
+import { Button } from "./ui/Button";
+import { SessionBadge } from "./ui/SessionBadge";
 
 const REFRESH_MS = 10_000;
 const stockList: Stock[] = Object.values(stocks);
@@ -27,25 +29,25 @@ export function OracleMarkets() {
 
   if (isError) {
     return (
-      <div className="rounded-md border border-red-900 bg-red-950/40 p-4 text-sm">
-        <p className="text-red-300">Could not read prices from Monad.</p>
-        <button onClick={() => refetch()} disabled={isFetching} className="mt-2 underline disabled:opacity-60">
+      <div className="squircle flex items-center gap-4 rounded-card bg-surface-1 p-7">
+        <p className="flex-1 text-[15px] text-fg-2">Could not read prices from Monad. Your funds are not affected.</p>
+        <Button variant="secondary" onClick={() => refetch()} disabled={isFetching}>
           {isFetching ? "Retrying" : "Try again"}
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border border-neutral-800">
+    <div className="overflow-x-auto squircle rounded-card bg-surface-1">
       <table className="w-full text-sm">
-        <thead className="bg-neutral-900 text-left text-neutral-400">
+        <thead className="text-left text-fg-3">
           <tr>
-            <th className="px-4 py-2 font-medium">Stock</th>
-            <th className="px-4 py-2 text-right font-medium">Price</th>
-            <th className="px-4 py-2 text-right font-medium">Bid / Ask</th>
-            <th className="px-4 py-2 font-medium">Session</th>
-            <th className="px-4 py-2 text-right font-medium" title="Time since the source quote">
+            <th className="px-7 pt-5 pb-3 label-caps">Stock</th>
+            <th className="px-7 pt-5 pb-3 label-caps text-right">Price</th>
+            <th className="px-7 pt-5 pb-3 label-caps text-right">Bid / Ask</th>
+            <th className="px-7 pt-5 pb-3 label-caps">Session</th>
+            <th className="px-7 pt-5 pb-3 label-caps text-right" title="Time since the source quote">
               Quote age
             </th>
           </tr>
@@ -54,17 +56,17 @@ export function OracleMarkets() {
           {stockList.map((stock, i) => {
             const result = data?.[i];
             return (
-              <tr key={stock.symbol} className="border-t border-neutral-800">
-                <td className="px-4 py-3">
+              <tr key={stock.symbol} className="border-t border-line">
+                <td className="px-7 py-4">
                   <div className="font-medium">{stock.tokenSymbol}</div>
-                  <div className="text-xs text-neutral-400">{stock.name}</div>
+                  <div className="text-xs text-fg-2">{stock.name}</div>
                 </td>
                 {isPending ? (
-                  <td colSpan={4} className="px-4 py-3 text-neutral-500">
+                  <td colSpan={4} className="px-7 py-4 text-fg-3">
                     Loading
                   </td>
                 ) : result?.status !== "success" ? (
-                  <td colSpan={4} className="px-4 py-3 text-red-300">
+                  <td colSpan={4} className="px-7 py-4 text-down">
                     Price unavailable
                   </td>
                 ) : (
@@ -94,14 +96,14 @@ function PriceCells({ payload, now }: { payload: PricePayload; now: number }) {
 
   return (
     <>
-      <td className="px-4 py-3 text-right font-medium tabular-nums">{formatUsdE8(payload.price)}</td>
-      <td className="px-4 py-3 text-right tabular-nums text-neutral-300">
+      <td className="px-7 py-4 text-right font-medium tabular-nums">{formatUsdE8(payload.price)}</td>
+      <td className="px-7 py-4 text-right tabular-nums text-fg-2">
         {hasBook ? `${formatUsdE8(payload.bestBid)} / ${formatUsdE8(payload.bestAsk)}` : "No quote"}
       </td>
-      <td className="px-4 py-3">
-        <span className={`rounded px-2 py-0.5 text-xs font-medium ${sessionTone[session]}`}>{sessionLabel[session]}</span>
+      <td className="px-7 py-4">
+        <SessionBadge session={session} />
       </td>
-      <td className="px-4 py-3 text-right tabular-nums text-neutral-300">{formatAge(age)}</td>
+      <td className="px-7 py-4 text-right tabular-nums text-fg-2">{formatAge(age)}</td>
     </>
   );
 }

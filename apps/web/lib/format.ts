@@ -33,3 +33,10 @@ export function formatAge(seconds: number): string {
 export function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
+
+/** Splits a formatted amount at its last decimal point, so the decimals can be shown fainter. */
+export function splitDecimal(text: string): { whole: string; decimals: string } {
+  const i = text.lastIndexOf(".");
+  if (i < 0) return { whole: text, decimals: "" };
+  return { whole: text.slice(0, i), decimals: text.slice(i) };
+}
