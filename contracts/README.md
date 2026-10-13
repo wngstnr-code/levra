@@ -34,13 +34,15 @@ make build
 | `make fmt` | Format |
 | `make fork` | Start a local fork of Monad mainnet on port 8545. `FORK_BLOCK=<number>` pins the block |
 | `make deploy-fork` | Deploy everything to the local fork and write `deployments/fork.json` |
-| `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route |
+| `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route. `SYMBOL` picks the stock, here and in the scripts below |
 | `./script/e2e-short.sh` | On the fork: lend stock, open a short and close it through the live route |
 | `./script/e2e-liquidation.sh` | On the fork: open a long, push the oracle price down as the Anchored operator, and liquidate through the live route |
 | `./script/e2e-protection.sh` | On the fork: open a long near the limit, enter the pre-close window, and let the keeper reduce it through the live route |
 | `HandOver.s.sol` | Moves ownership of the contracts to a timelock controlled by the multisig, and the vault to the multisig. Needs `MULTISIG`. See `script/GovernancePlan.sol` |
 | `make deploy-vault-fork` | Create the USDC vault over the long markets of the fork deployment |
-| `make first-long-monad` | REAL transactions on mainnet: seed the QQQ long market, open a small long and close it. A dry run unless `CONFIRM=yes` |
+| `make first-run-monad` | REAL transactions on mainnet for every market: long on QQQ, HOOD and BIL, short on QQQ and HOOD. A dry run unless `CONFIRM=yes` |
+| `make first-long-monad` | The same for one long. `SYMBOL` picks the stock |
+| `make first-short-monad` | The same for one short, including buying the stock that is lent. `SYMBOL` picks the stock |
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
 
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
@@ -49,14 +51,29 @@ Run `make abis` after any change to an interface and commit the result in the sa
 
 ## First run on mainnet with a small budget
 
-A fresh wallet with about 20 MON and 8 USDC is enough for a real long and its close. Rehearsed on a fork with exactly 8 USDC.
+A fresh wallet with about 20 MON and 20 USDC is enough to open and close a real position in every market in scope: a long on QQQ, HOOD and BIL, and a short on QQQ and HOOD. Rehearsed on a fork with a 20 USDC wallet. One long alone needs 5 USDC.
 
 1. Copy `.env.example` to `.env` and put the key of that wallet in `DEPLOYER_PRIVATE_KEY`. Never commit it.
 2. `make deploy-monad` deploys the contracts and five markets and writes `deployments/monad.json`. About 3.5 MON.
-3. `make first-long-monad` shows what it would do. `make first-long-monad CONFIRM=yes` sends it: 5 USDC lent to the QQQ long market, a long with 3 USDC of margin and 3 USDC borrowed, then a full close. Every transaction hash is printed.
+3. `make first-run-monad` shows what the first step would do. `make first-run-monad CONFIRM=yes` sends everything, market by market, and prints every transaction hash. It stops at the first transaction that reverts.
 4. Commit `deployments/monad.json` and record the hashes in `docs/PROGRESS.md`.
 
-In the rehearsal the close returned 2.88 USDC of the 3 USDC margin. The cost is mostly the 0.90% pool fee, paid twice.
+One market at a time: `make first-long-monad SYMBOL=HOOD CONFIRM=yes` or `make first-short-monad SYMBOL=QQQ CONFIRM=yes`. `SYMBOL` is `QQQ` (default), `HOOD` or `BIL`. BIL has no short market.
+
+What each step does and what the rehearsal showed:
+
+| Market | What is sent | Result in the rehearsal |
+|---|---|---|
+| Long, each stock | 3 USDC lent to the market, a long with 2 USDC of margin and 2 USDC borrowed, a full close | QQQ opened at 49.5% LTV and returned 1.92 USDC. HOOD opened at 54.0% and returned 1.92. BIL opened at 50.3% and returned 1.97 |
+| Short, QQQ and HOOD | 3 USDC of the stock bought and lent to its short market (the seed inventory of SC-24), a short of 1.5 USDC of stock with 2 USDC of margin, a full close | QQQ opened at 43.4% and returned 1.89 USDC plus a little stock. HOOD opened at 41.9% and returned 1.89 plus a little stock |
+| End | 30 transactions, no position left open, router empty | 4.59 USDC free in the wallet, plus 9 USDC and the bought stock still lent, which can be withdrawn |
+
+Things to know:
+
+- HOOD opens at a higher LTV than QQQ for the same leverage, because aHOOD trades above its oracle price on the exchange. For the same reason the buy-back of a short is sized from the exchange quote, not from the oracle price.
+- Every transaction is sent with the gas estimate plus 50%. With the bare estimate, a close ran out of gas in the rehearsal: the router's nested calls (flash loan, callback, swap) need more than the estimate says. Monad charges for the limit, so this margin costs a little MON.
+- Settings such as `SEED`, `MARGIN`, `BORROW`, `INVENTORY_USD`, `SHORT_USD`, `CLOSE=no`, `LONGS` and `SHORTS` can be passed in the environment.
+- KyberSwap refuses to build a swap for some wallets. If that happens the short script stops before sending anything.
 
 ## Deployment settings
 

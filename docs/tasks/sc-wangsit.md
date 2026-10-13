@@ -81,7 +81,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
-  - Note: Prepared, not run: `make deploy-monad` then `make first-long-monad CONFIRM=yes` (`script/mainnet-first-long.sh`), which prints every transaction hash. Rehearsed on a fork with only 8 USDC. Waiting for a funded deployer wallet: about 20 MON and 8 to 15 USDC.
+  - Note: Prepared, not run: `make deploy-monad`, then `make first-run-monad CONFIRM=yes`, which opens and closes a long on QQQ, HOOD and BIL and a short on QQQ and HOOD and prints every transaction hash. Rehearsed on a fork with a 20 USDC wallet: 30 transactions, nothing left open. Waiting for a funded deployer wallet: about 20 MON and 20 USDC for all five markets, or 5 USDC for one long.
 
 ---
 
@@ -111,10 +111,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: lending and withdrawing USDC through the vault works on staging; the vault funds really flow into our markets; the address is in the address file.
   - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Still to do: mainnet, and moving ownership to the multisig (SC-55).
 
-- [ ] **SC-24 · Seed inventory for short markets**
+- [~] **SC-24 · Seed inventory for short markets**
   - Needs: SC-22, X-14.
   - Do: buy a little aQQQ and aHOOD, then supply them to the matching short market so there is something to borrow.
   - Done when: each short market has stock that can be borrowed; the transaction hashes are recorded.
+  - Note: Prepared, not run: `make first-short-monad SYMBOL=QQQ` and `SYMBOL=HOOD` (`script/mainnet-first-short.sh`) buy the stock on the exchange and lend it to its short market, then open and close a small short. Both rehearsed on a fork. Waiting for a funded deployer wallet.
 
 ---
 
