@@ -130,7 +130,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
-- Dharu: BE-14 done and BE-13 started: `apps/indexer` follows router events into Postgres (Envio HyperSync, RPC as fallback, D-32), and `/v1/accounts` and `/history` serve positions from `Lens` with entry price and PnL from the indexed events. Checked end to end on the fork. Waiting: a HyperSync token (Dharu) and Morpho's events in the ABI export (Wangsit).
+- Dharu: BE-14 done and BE-13 started: `apps/indexer` follows router events into Postgres (Envio HyperSync, RPC as fallback, D-34), and `/v1/accounts` and `/history` serve positions from `Lens` with entry price and PnL from the indexed events. Checked end to end on the fork. Waiting: a HyperSync token (Dharu) and Morpho's events in the ABI export (Wangsit).
 
 - Dharu: BE-16 formulas in `packages/shared/math.ts` (PR 10) match `Lens` exactly for a real long and short on the fork. BE-10 and BE-11 (chain reader, `/v1/config`, `/v1/session`, `/v1/markets`, `/v1/stream`) are written and checked against direct contract reads on the fork. Next: BE-12 quote for long.
 - Dharu: BE-12 done on the fork: open long with first-use signatures in one `multicall`, reduce, remove collateral and full close, all from quotes over the live KyberSwap route. The router held no USDC afterwards. Request for Wangsit: add `IERC20Permit` (`nonces`, `name`, `version`) to the ABI export; the API uses a minimal fragment until then. Next: BE-06 and BE-13 indexer, then BE-14 accounts.

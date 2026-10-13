@@ -21,7 +21,7 @@ Three rules for the backend:
 - [x] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
-  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-31), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. The Backend workflow passed on GitHub on PR 7.
+  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-33), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. The Backend workflow passed on GitHub on PR 7.
 
 - [x] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
@@ -49,7 +49,7 @@ Three rules for the backend:
   - Do: read one type of Morpho event on chain 143 with the indexer tool of your choice.
   - Done when: that event is in the database; if the default tool does not fit, the replacement is recorded as a decision in 09.
   - Note: Envio's documentation lists Monad mainnet (chain 143) with a HyperSync endpoint. Not run yet, and whether an API token is needed is unknown.
-  - Note (13 October 2026): the Envio CLI (HyperIndex) has no Windows build, so the indexer is our own (`apps/indexer`, D-32) and reads logs from Envio HyperSync through its JSON API, with the RPC endpoint as fallback. `monad.hypersync.xyz/height` answers without a token and matches the chain head; `/query` needs an API token (401 without one). Router events reach the database through the RPC source on the fork. Still to do: a HyperSync token (Dharu creates it at app.envio.dev), and a Morpho event, which needs Morpho's events in the shared ABI export (Wangsit).
+  - Note (13 October 2026): the Envio CLI (HyperIndex) has no Windows build, so the indexer is our own (`apps/indexer`, D-34) and reads logs from Envio HyperSync through its JSON API, with the RPC endpoint as fallback. `monad.hypersync.xyz/height` answers without a token and matches the chain head; `/query` needs an API token (401 without one). Router events reach the database through the RPC source on the fork. Still to do: a HyperSync token (Dharu creates it at app.envio.dev), and a Morpho event, which needs Morpho's events in the shared ABI export (Wangsit).
 
 ---
 
@@ -77,7 +77,7 @@ Three rules for the backend:
   - Needs: BE-06, SC-03. Addresses from SC-14.
   - Do: read router events and Morpho events for our markets; build tables for positions, history, average entry price, and profit and loss. Handle users who use Morpho directly.
   - Done when: positions in the database match `Lens` for all test addresses; replaying the reads from the start gives the same result.
-  - Note: per D-32, positions are read live from `Lens` and not copied; the database keeps the events that history, entry price and PnL need. `apps/indexer` follows the router's five events from the deployment block into `router_events` with a cursor, from HyperSync or RPC. Tests: decoding, the HyperSync page format, paging to the head, a replay from the start that gives the same rows, and a source that makes no progress. On the fork, a long opened from a quote is indexed and served. Still to do: Morpho events (users who use Morpho directly, liquidations), which need Morpho's events in the shared ABI export (Wangsit).
+  - Note: per D-34, positions are read live from `Lens` and not copied; the database keeps the events that history, entry price and PnL need. `apps/indexer` follows the router's five events from the deployment block into `router_events` with a cursor, from HyperSync or RPC. Tests: decoding, the HyperSync page format, paging to the head, a replay from the start that gives the same rows, and a source that makes no progress. On the fork, a long opened from a quote is indexed and served. Still to do: Morpho events (users who use Morpho directly, liquidations), which need Morpho's events in the shared ABI export (Wangsit).
 
 - [x] **BE-14 · Account and history**
   - Needs: BE-10, BE-13.
