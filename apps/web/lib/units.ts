@@ -39,7 +39,8 @@ export function formatWadPercent(wad: string | bigint, fractionDigits = 1): stri
 
 /** Basis points as a percentage, signed when asked: "+0.24%", "−2.6%". */
 export function formatBps(bps: number, opts: { signed?: boolean; fractionDigits?: number } = {}): string {
-  const abs = (Math.abs(bps) / 100).toFixed(opts.fractionDigits ?? 2).replace(/\.?0+$/, "");
+  const fixed = (Math.abs(bps) / 100).toFixed(opts.fractionDigits ?? 2);
+  const abs = fixed.includes(".") ? fixed.replace(/\.?0+$/, "") : fixed;
   const sign = bps < 0 ? MINUS : opts.signed && bps > 0 ? "+" : "";
   return `${sign}${abs}%`;
 }
