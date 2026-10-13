@@ -9,6 +9,7 @@
     "./addresses": "./addresses.ts",
     "./deployments": "./deployments.ts",
     "./deployments/node": "./deployments.node.ts",
+    "./deployments/monad": "./deployments.monad.ts",
     "./markets": "./markets.ts",
     "./math": "./math.ts",
     "./gaps": "./gaps.ts"

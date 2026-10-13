@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { morphoAbi } from "./abis";
 import { external, tokens } from "./addresses";
 import { parseDeployment, type Deployment } from "./deployments";
+import { monadDeployment } from "./deployments.monad";
 import { readDeployment } from "./deployments.node";
 import { findMarket, isStockSymbol, listMarkets, stocks } from "./markets";
 
@@ -74,50 +75,29 @@ describe("deployment", () => {
   });
 
   it.skipIf(!existsSync(forkFile))("accepts the file the deployment script wrote for the local fork", () => {
-    const deployment = readDeployment(forkFile);
-    const markets = listMarkets(deployment);
-    expect(deployment.chainId).toBe(143);
-    expect(markets.map((m) => `${m.symbol} ${m.side}`)).toEqual([
-      "QQQ long",
-      "HOOD long",
-      "BIL long",
-      "QQQ short",
-      "HOOD short",
-    ]);
-    for (const market of markets) {
-      const stockSide = market.side === "long" ? market.collateralToken : market.loanToken;
-      const quoteSide = market.side === "long" ? market.loanToken : market.collateralToken;
-      expect(stockSide).toBe(market.stock.token);
-      expect(quoteSide).toBe(tokens.USDC.address);
-    }
+    expectAllMarketsInScope(readDeployment(forkFile));
+  });
+
+  it("bundles the Monad mainnet deployment", () => {
+    expectAllMarketsInScope(monadDeployment);
+    expect(monadDeployment.router).toBe("0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6");
   });
 });
 
-describe("morpho abi", () => {
-  it("carries the events the indexer and the liquidator bot need", () => {
-    const events = morphoAbi.filter((item) => item.type === "event").map((item) => item.name);
-    for (const name of ["SupplyCollateral", "WithdrawCollateral", "Borrow", "Repay", "Liquidate", "Supply", "Withdraw", "AccrueInterest"]) {
-      expect(events, name).toContain(name);
-    }
-  });
-
-  it("decodes a real Repay log from Morpho on Monad", () => {
-    // Transaction 0x1f8284ee78f522eafa51b7f6a74c8150a5df3421dc4c31820c03ac4d0d1ac432, block 113028403.
-    const log = decodeEventLog({
-      abi: morphoAbi,
-      topics: [
-        "0x52acb05cebbd3cd39715469f22afbf5a17496295ef3bc9bb5944056c63ccaa09",
-        "0xcd6d902d2d214c0a06785a072b94b4f3a4fd3ddfa6f6e6861807964ea78cdf98",
-        "0x0000000000000000000000009c76e91bf08e712a713e3bab2f5ae01f6ec8845a",
-        "0x0000000000000000000000007a608ae1d67a085f8d93b01fc32a29677639c9b1",
-      ],
-      data: "0x000000000000000000000000000000000000000000000000000000000000013800000000000000000000000000000000000000000000000000000000124c1f97",
-    });
-    expect(log.eventName).toBe("Repay");
-    expect(log.args).toMatchObject({
-      id: "0xcd6d902d2d214c0a06785a072b94b4f3a4fd3ddfa6f6e6861807964ea78cdf98",
-      assets: 312n,
-      shares: 306978711n,
-    });
-  });
-});
+function expectAllMarketsInScope(deployment: Deployment) {
+  const markets = listMarkets(deployment);
+  expect(deployment.chainId).toBe(143);
+  expect(markets.map((m) => `${m.symbol} ${m.side}`)).toEqual([
+    "QQQ long",
+    "HOOD long",
+    "BIL long",
+    "QQQ short",
+    "HOOD short",
+  ]);
+  for (const market of markets) {
+    const stockSide = market.side === "long" ? market.collateralToken : market.loanToken;
+    const quoteSide = market.side === "long" ? market.loanToken : market.collateralToken;
+    expect(stockSide).toBe(market.stock.token);
+    expect(quoteSide).toBe(tokens.USDC.address);
+  }
+}

@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 4 | 18 |
+| Smart contracts | Wangsit | 30 | 4 | 19 |
 | Backend | Dharu | 34 | 10 | 5 |
 | Frontend | Nabil | 25 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -62,9 +62,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
+| 13 October 2026 | Wangsit, Dharu | Wangsit | USDC in the deployer wallet (it holds MON only), and the team multisig. Needed for the first real long and short and for the handover | X-03, SC-04, BE-05, SC-15 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
-| 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
@@ -94,7 +93,17 @@ Every important real transaction goes here. This is also the evidence for the ha
 
 | Date | What | Transaction hash | By | Task |
 |---|---|---|---|---|
-| | | | | |
+| 13 October 2026 | Deploy `RiskManager` | `0x208371c6ee6cc0307fbbc8a12bd066137a75614309de826dacbaec7cf23a0ef3` | Wangsit | SC-15 |
+| 13 October 2026 | Deploy `MarginRouter` | `0x3f36c52b3b4c24979a4d288c84889a1824c6be7de4178c26c4b6f62d057feb7d` | Wangsit | SC-15 |
+| 13 October 2026 | Deploy `Lens` | `0x485962141bac1d40e3ac5aba064e0c70c5d860dae1c3f399bcf874f3155decd4` | Wangsit | SC-15 |
+| 13 October 2026 | Deploy `Liquidator` | `0xbea209d7bc6cab1234dcbedaf2bfc2db9509f9b16eed50c86fedc86dde7e6519` | Wangsit | SC-15 |
+| 13 October 2026 | Create the QQQ long market on Morpho | `0x7ad5f7acb00402dd34030c4cc03526088d23d239f1c79f5a98adb2d0bd2ee707` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Create the HOOD long market on Morpho | `0xb58c3332667146cc047cff3e8ebc84ec330b501975351224b1e3cbb242ecb62c` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Create the BIL long market on Morpho | `0x4c963528bf82847392c4270ca45863617791ffba2d7bac933893a9a6c192a684` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Create the QQQ short market on Morpho | `0x6d4273e54978bdbec0e03c6d55f518f1270c19f41a64af0bfabbec32034b5a07` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Create the HOOD short market on Morpho | `0x54e3851ebcb8b1fe9f0d5d4057f04ce13e07018096e3495f685cfbc3addb1a3e` | Wangsit | SC-15, SC-22 |
+
+The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings. No position has been opened on mainnet yet.
 
 ## Deployed addresses
 
@@ -102,7 +111,17 @@ The binding source is `contracts/deployments/*.json`. This table is a convenienc
 
 | Environment | Contract | Address | Date |
 |---|---|---|---|
-| | | | |
+| Monad mainnet, staging | `MarginRouter` | `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` | 13 October 2026 |
+| Monad mainnet, staging | `RiskManager` | `0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F` | 13 October 2026 |
+| Monad mainnet, staging | `Lens` | `0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8` | 13 October 2026 |
+| Monad mainnet, staging | `Liquidator` | `0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39` | 13 October 2026 |
+| Monad mainnet, staging | `SessionOracle`, QQQ long | `0xbec7D067ad0071AF3B500442537A7E7622C596d3` | 13 October 2026 |
+| Monad mainnet, staging | `SessionOracle`, HOOD long | `0xB8E3ec1BCd1988D5aD35d0A0219F767944737465` | 13 October 2026 |
+| Monad mainnet, staging | `SessionOracle`, BIL long | `0x2Fd501ae3Cf16DDe20322b0985A96A53f195640B` | 13 October 2026 |
+| Monad mainnet, staging | `SessionOracle`, QQQ short | `0xB08Cb2B0ba10E6a8A3e5Bda7a240a9c6E6CF6bC7` | 13 October 2026 |
+| Monad mainnet, staging | `SessionOracle`, HOOD short | `0xaFe518da5cBa30B198e96F26074f66f85241DE95` | 13 October 2026 |
+
+Market IDs are in `contracts/deployments/monad.json`. The USDC vault is not deployed yet.
 
 ## Interface changes
 
@@ -127,6 +146,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 | 13 October 2026 | Added the `NEXT_PUBLIC_PRIVY_APP_ID` environment variable (section 7) | Nabil | fe/FE-01-03-m0-foundation |
+| 13 October 2026 | Added `@levra/shared/deployments/monad`, which exports `monadDeployment`: the mainnet deployment file, validated and bundled. Nothing was removed | Dharu, Nabil | sc/SC-15-mainnet-deployment |
 
 ## Daily log
 
@@ -134,8 +154,8 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Wangsit: the contracts are deployed on Monad mainnet (SC-15, staging): router, risk manager, lens, liquidator and five markets, in 25 transactions for 1.87 MON. Read back from the chain: owners, fees, limits, oracle ages and prices match the plan. Addresses are in `contracts/deployments/monad.json` and in `@levra/shared/deployments/monad`. Keeper, calendar poster and oracle age poster are not set yet. The source of all nine contracts is verified on Sourcify. Next: the first real long and short once the wallet holds USDC.
 - Dharu: BE-32 done: the liquidator bot watches every borrower in our markets from the indexed Morpho events and liquidates through `Liquidator` with a KyberSwap route, never using the contract's float. Long and short liquidations ran on the fork. For Wangsit: `Deploy.s.sol` gives one `KEEPER` address both the router and the Liquidator keeper role, while BE-55 asks for one key per role.
-
 - Dharu: BE-04 done: the keeper measures the DEX mid price every 10 minutes and the depth table daily (`dex_quotes`), `/v1/markets` and the stream now carry the DEX price, and 05 has a new depth table from one run. The mid price is now two-sided (D-36), which removed a 2% bias against sales. No 429 at 33 requests in 18 seconds; KyberSwap's real limit is not published.
 - Nabil: FE-04 wireframes for every screen are in Figma on one page (https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY), each with a note on its data, states and task. Next: review by Wangsit and Dharu, then the visual design.
 - Dharu: BE-13 and BE-06 done: the indexer follows Morpho's events for our markets (from Wangsit's ABI export), positions rebuilt from them equal `Morpho.position` on the fork for router and direct users, and history shows liquidations and direct Morpho actions. New history type `borrow`.
