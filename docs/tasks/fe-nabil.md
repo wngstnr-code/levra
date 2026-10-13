@@ -38,6 +38,12 @@ Four rules for the frontend:
   - Note: a first written draft of every screen, its data, actions and states is in `docs/10-screens.md`, with a list of data the API does not provide yet. Nabil still has to review it, design the layouts and the design system.
   - Note: low-fidelity wireframes of every screen are in Figma, all on one page: https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY (13 October 2026). Sections: foundations and kit, entry and gates, markets, trade, trade transaction states, positions, earn, deposit and withdraw, settings, help, shared states. Each screen has a note with its data source, states and the task it belongs to. Still open: review by Wangsit and Dharu, the visual design and design system, mobile layouts.
 
+- [~] **FE-05 · Design system in code**
+  - Needs: FE-04 (the Figma page "Design").
+  - Do: the design tokens (colours, type, radius, motion) as Tailwind theme values in `apps/web/app/globals.css`; the font stack (SF Pro on Apple devices, Inter elsewhere); base components in `apps/web/components/ui/` (button, card, change pill, session badge, money with faint decimals); the header with a live market session; existing screens moved onto the tokens.
+  - Done when: the tokens and base components match the Figma design system, and no screen uses colours outside the tokens.
+  - Note: built on 13 October 2026 on `fe/FE-05-design-system`. Checked by build and the generated CSS. Not verified: the wide display width (`font-stretch`) only works with Apple's system font, and continuous corners (`corner-shape`) only work in browsers that support it; other browsers show normal width and normal rounded corners. A visual check in the browser by Nabil is still open.
+
 ---
 
 ## M1. Core long
