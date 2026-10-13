@@ -24,3 +24,7 @@ export const deployment = z.object({
   markets: z.array(deployedMarket),
 });
 export type Deployment = z.infer<typeof deployment>;
+
+export function parseDeployment(input: unknown): Deployment {
+  return deployment.parse(input);
+}
