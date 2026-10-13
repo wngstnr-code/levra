@@ -105,6 +105,8 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
   const markets = new Map(reader.deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
   const items: HistoryItem[] = [];
   const routerTxs = new Set(events.filter((e) => e.source === "router").map((e) => e.txHash.toLowerCase()));
+  /** Borrow shares per market from Morpho events seen so far. Morpho logs before the router in the same transaction. */
+  const shares = new Map<string, bigint>();
 
   for (const [i, e] of events.entries()) {
     const market = markets.get(e.marketId.toLowerCase());
@@ -121,6 +123,8 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
     };
 
     if (e.source === "morpho") {
+      const delta = borrowSharesDelta(e);
+      if (delta !== null) shares.set(market.marketId, (shares.get(market.marketId) ?? 0n) + delta);
       const item = morphoHistoryItem(e, side, routerTxs, () => longCostBasis(toCostEvents(events.slice(0, i)), market.marketId));
       if (item) items.push({ ...base, ...item });
       continue;
@@ -139,7 +143,9 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
     } else if (e.name === "PositionReduced") {
       const before = side === "long" ? longCostBasis(toCostEvents(events.slice(0, i)), market.marketId) : emptyCostBasis();
       const sold = big("collateralDelta");
-      const type: HistoryItemType = Number(e.args.reason) === 1 ? "autoReduce" : before.shares > 0n && sold >= before.shares ? "close" : "reduce";
+      // With Morpho events indexed, a reduction that leaves no borrow shares closed the position, for long and short.
+      const closed = shares.has(market.marketId) ? shares.get(market.marketId) === 0n : before.shares > 0n && sold >= before.shares;
+      const type: HistoryItemType = Number(e.args.reason) === 1 ? "autoReduce" : closed ? "close" : "reduce";
       items.push({
         ...base,
         type,
@@ -174,6 +180,15 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
     }
   }
   return items.reverse();
+}
+
+/** Change in the owner's borrow shares from one Morpho event, or null when the event does not touch them. */
+function borrowSharesDelta(e: StoredEvent): bigint | null {
+  const v = (k: string) => BigInt(String(e.args[k] ?? "0"));
+  if (e.name === "Borrow") return v("shares");
+  if (e.name === "Repay") return -v("shares");
+  if (e.name === "Liquidate") return -(v("repaidShares") + v("badDebtShares"));
+  return null;
 }
 
 type ItemBody = Omit<HistoryItem, "id" | "marketId" | "symbol" | "txHash" | "timestamp">;
