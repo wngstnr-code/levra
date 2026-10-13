@@ -36,15 +36,21 @@ describe.skipIf(!url)("status (needs TEST_DATABASE_URL)", () => {
       { name: "liquidator", lastBeatAt: new Date((NOW - 900) * 1000), lastError: null },
     ]).onConflictDoUpdate({ target: keeperHeartbeats.name, set: { lastBeatAt: sql`excluded.last_beat_at`, lastError: sql`excluded.last_error` } });
     await db.delete(keeperHeartbeats).where(eq(keeperHeartbeats.name, "oracleAgePoster"));
+    // The team monitor learned a QQQ limit from data and is still learning BIL.
+    const limits = { QQQ: { limitSeconds: 1_620, learning: false }, BIL: { limitSeconds: 2_100, learning: true } };
+    await db.insert(keeperHeartbeats).values({ name: "monitor", lastBeatAt: new Date((NOW - 30) * 1000), lastError: null, details: { oracleLimits: limits } }).onConflictDoUpdate({ target: keeperHeartbeats.name, set: { lastBeatAt: sql`excluded.last_beat_at`, details: sql`excluded.details` } });
     await db.insert(syncCursors).values({ name: "router_events", lastBlock: 1_990n, updatedAt: new Date() });
   });
-  afterAll(() => close());
+  afterAll(async () => {
+    await db.delete(keeperHeartbeats).where(eq(keeperHeartbeats.name, "monitor"));
+    await close();
+  });
 
   it("reports oracle age per stock, keeper health and indexer lag", async () => {
     const s = statusResponse.parse(await buildStatus(reader, db, "abc123"));
     expect(s.oracle).toEqual([
-      { symbol: "QQQ", publishedAt: NOW - 900, ageSeconds: 1_500, stale: false },
-      { symbol: "BIL", publishedAt: NOW - 4_400, ageSeconds: 5_000, stale: true },
+      { symbol: "QQQ", publishedAt: NOW - 900, ageSeconds: 1_500, stale: false, ageLimitSeconds: 1_620, ageLimitLearning: false },
+      { symbol: "BIL", publishedAt: NOW - 4_400, ageSeconds: 5_000, stale: true, ageLimitSeconds: 2_100, ageLimitLearning: true },
     ]);
     const health = Object.fromEntries(s.keepers.map((k) => [k.name, k.healthy]));
     expect(health).toMatchObject({ alerts: true, protector: false, liquidator: false, oracleAgePoster: false });
