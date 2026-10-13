@@ -87,3 +87,17 @@ export function useServiceStatus() {
     retry: shouldRetry,
   });
 }
+
+export function useEarnOptions() {
+  return useQuery({ queryKey: queryKeys.earn, queryFn: ({ signal }) => api("earn", { signal }), enabled: apiConfigured, refetchInterval: 60_000, retry: shouldRetry });
+}
+
+export function useEarnAccount(address: Address | undefined) {
+  return useQuery({
+    queryKey: queryKeys.earnAccount(address ?? "none"),
+    queryFn: ({ signal }) => api("earnAccount", { params: { address: address! }, signal }),
+    enabled: apiConfigured && !!address,
+    refetchInterval: 30_000,
+    retry: shouldRetry,
+  });
+}
