@@ -574,7 +574,7 @@ type Account = {
 
 type HistoryItem = {
   id: string;
-  type: "open" | "reduce" | "close" | "addCollateral" | "removeCollateral"
+  type: "open" | "reduce" | "close" | "addCollateral" | "removeCollateral" | "repayDebt"
       | "autoReduce" | "liquidation" | "lend" | "withdrawLend";
   marketId: Hex;
   symbol: string;
@@ -648,7 +648,7 @@ type MarketDetail = {
 type QuoteCollateralRequest = {
   user: Address;
   marketId: Hex;
-  action: "add" | "remove";
+  action: "add" | "remove" | "repay"; // repay calls repayDebt with the loan token (D-32); amountRaw above the debt repays all of it
   amountRaw: string;
   signatures?: SignatureInput[];
 };
