@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 16 | 6 |
-| Frontend | Nabil | 25 | 3 | 1 |
+| Frontend | Nabil | 26 | 4 | 0 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -187,8 +187,13 @@ One line for every change to 03 after the freeze.
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
+### 14 October 2026
+
+- Nabil: FE-04 done: Wangsit and Dharu approved the wireframes and the visual design.
+
 ### 13 October 2026
 
+- Nabil: visual design for every screen is on the Figma page "Design" (dark, pastel bento). Decided D-37: the landing site is separate (`apps/landing`, root domain) and the app runs on `app.<domain>`. New task FE-62; FE-60 is now the app domain only.
 - Dharu: BE-31 done: the protector reduces protected positions above the soft limit to the target in the last 30 minutes before close, with the 04 formula and a live route; fork test passes for a long and a short, and leaves unprotected positions alone. Request for Wangsit: add `isKeeper()` to the `MarginRouter` ABI export (fragment until then). Next: BE-33 alerts.
 - Dharu: BE-30 calendar poster written: the keeper keeps `nextCloseAt` at the next close, regular until a weekend is observed and then the observed one, with no code change; fork test passes. Request for Wangsit: add `calendarPoster()` to the `RiskManager` ABI export; the keeper uses a fragment until then. Mainnet posting waits on the role address and hosting. Next: BE-31 protector.
 - Dharu: BE-23 done: `/v1/markets/:symbol` with both sides, the latest depth run and hourly rate and deviation history; the depth keeper now stores rate snapshots. Next: BE-30 calendar poster.
