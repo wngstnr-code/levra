@@ -201,10 +201,11 @@ Three rules for the backend:
 - [ ] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
 
-- [ ] **BE-52 · Region and terms acceptance**
+- [~] **BE-52 · Region and terms acceptance**
   - Needs: X-10, X-11.
   - Do: `GET /v1/eligibility` based on region; `POST /v1/terms/accept` with a wallet signature; the quote endpoints reject anyone who has not met the requirements.
   - Done when: requests from a restricted region are rejected with `REGION_BLOCKED`; the acceptance is stored together with the version of the terms.
+  - Note: written on 14 October 2026. The country comes from a header set by the CDN in front of the API (`GEO_COUNTRY_HEADER`, for example `cf-ipcountry`); with a block list (`BLOCKED_COUNTRIES`), a request without a country is refused, since it did not come through the CDN. `POST /v1/terms/accept` rebuilds the 03 text (`termsMessage` in `packages/shared/api/compliance.ts`) and checks the signature, smart wallets included, then stores the address, version, signature and country. Only opening a position (`/v1/quote/open`) and a deposit quote are gated; closing, reducing, collateral and withdrawals never are (product rule 8). Without `TERMS_VERSION` the routes are off and the web app cannot pass its gate, so a deployment without terms takes no new positions. Tests: blocked and missing country, gate on open and deposit, no gate on close and withdraw, a wrong signer or old version refused, acceptance stored. Still to do: the country list and the terms version from X-10 and X-11, and the CDN header once hosted (BE-15).
 
 - [~] **BE-53 · Backups and incident runbook**
   - Do: regular database backups and a restore test; a runbook for the six situations in 07, stored in `docs/`.
@@ -218,6 +219,13 @@ Three rules for the backend:
   - Needs: SC-55.
   - Do: one key per role (calendar poster, oracle age poster, protector, liquidator); proper secret storage, never in `.env` files on servers or in logs; keepers run apart from the public API; MON top-ups with a limit; a way to rotate keys, where the multisig removes the role from the old address.
   - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
+
+
+- [x] **BE-56 · CORS and sign-in hosts for the web app**
+  - Needs: BE-33.
+  - Do: let the web app's production, preview and local origins call the API from the browser, including the `Authorization` header, and accept a sign-in message from those hosts; refuse every other origin.
+  - Done when: a preflight and a call from a listed origin get the CORS headers and a sign-in from a listed host works; other origins and hosts are refused.
+  - Note: done on 14 October 2026 at Nabil's request. `CORS_ORIGINS` and `AUTH_DOMAIN` are comma-separated lists where `*` stands for one part made of letters, digits and dashes, never a dot, so `https://levra-mon-*-<team>.vercel.app` matches this project's previews and not every vercel.app site. Without `CORS_ORIGINS` the API sends no CORS headers. Tested: patterns, preflight with `authorization`, a refused origin, sign-in from a preview host and refusal of another project's.
 
 ---
 

@@ -815,9 +815,11 @@ Server-Sent Events. Three event types:
 
 ### Signed messages
 
-Added by Nabil on 13 October 2026 with FE-50 and FE-31. Proposed, needs Dharu's approval, because the API must check the same text.
+Added by Nabil on 13 October 2026 with FE-50 and FE-31. Approved by Dharu on 14 October 2026 and implemented in BE-52 and BE-33.
 
-Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and recovers the signer. The source is `apps/web/lib/terms.ts`.
+Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and checks the signature (smart wallets through ERC-1271 and ERC-6492). The shared source is `termsMessage` in `packages/shared/api/compliance.ts`; `apps/web/lib/terms.ts` builds the same text.
+
+Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. The routes are off when no terms version is configured.
 
 ```
 Levra terms of use
@@ -826,7 +828,7 @@ Address: <address, checksummed>
 I confirm that I am not a resident of, or located in, a restricted region, that I read the risk disclosure, and that I accept the terms of use.
 ```
 
-Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API should accept the production app domain, the Vercel preview domains and `localhost:3000`. The token is sent as `Authorization: Bearer <token>`.
+Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API accepts the hosts in `AUTH_DOMAIN` (production, this project's Vercel previews and `localhost:3000`, BE-56) and answers CORS for the origins in `CORS_ORIGINS`, with `authorization` and `content-type` allowed. The token is sent as `Authorization: Bearer <token>`.
 
 ## 5. Contents of `packages/shared`
 
