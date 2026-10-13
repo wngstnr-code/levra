@@ -1,4 +1,5 @@
 import { KEEPER_HEARTBEAT_LIMIT_S, type KeeperName } from "@levra/shared/api";
+import type { GapStats } from "@levra/shared/gaps";
 import { BPS, WAD, liquidationIncentiveFactorWad, utilizationWad } from "@levra/shared/math";
 
 /**
@@ -62,6 +63,8 @@ export type Snapshot = {
   head: bigint;
   /** Null when no API address is configured. */
   api: { ok: boolean; ms: number; detail: string } | null;
+  /** The gap table against five years of fresh daily prices (BE-34). `fresh` is null when the source could not be read. */
+  gaps: { symbol: string; table: GapStats; fresh: GapStats | null }[];
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
@@ -167,6 +170,18 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
   for (const c of s.indexer) {
     const lag = s.head > c.lastBlock ? s.head - c.lastBlock : 0n;
     out.push({ kind: "condition", key: `indexer:${c.cursor}`, active: lag > LIMITS.indexerLagBlocks, forSeconds: 0, message: `Indexer ${c.cursor} is ${lag} blocks behind the chain.` });
+  }
+
+  for (const g of s.gaps) {
+    if (!g.fresh) continue;
+    const worse = g.fresh.worstDropBps < g.table.worstDropBps || g.fresh.worstRiseBps > g.table.worstRiseBps;
+    out.push({
+      kind: "condition",
+      key: `gap-table:${g.symbol}`,
+      active: worse,
+      forSeconds: 0,
+      message: `${g.symbol} had a weekend or holiday gap worse than the gap table: drop ${g.fresh.worstDropBps} bps (table ${g.table.worstDropBps}), rise ${g.fresh.worstRiseBps} bps (table ${g.table.worstRiseBps}). Rebuild the table (report:gaps --write) and check the closed-market limits in 04.`,
+    });
   }
 
   if (s.api) {

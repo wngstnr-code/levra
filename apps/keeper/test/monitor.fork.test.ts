@@ -40,6 +40,7 @@ describe.skipIf(!onFork || !dbUrl)("team monitor on the fork (BE-50)", () => {
       channels: [async (text) => void team.push(text)],
       wallets: [{ role: "test keeper", address: poorWallet }],
       schedule: async () => REGULAR_SCHEDULE,
+      bars: async () => [],
     });
     const result = (await monitor.run(ctx)) as { oracleLimits: Record<string, { limitSeconds: number; learning: boolean }>; firing: string[] };
 
