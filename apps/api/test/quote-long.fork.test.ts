@@ -10,19 +10,7 @@ import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { createKyber } from "../src/swap/kyber";
-import { createForkClient, deal, forkDeployment, forkRpcUrl, onFork, seedMarket } from "./fork-helpers";
-
-/** Turns the decimal strings of uint256 fields back into bigint for signing, as the web app does. */
-function forSigning(typedData: any) {
-  const uints = new Set(
-    Object.values(typedData.types as Record<string, { name: string; type: string }[]>)
-      .flat()
-      .filter((f) => f.type.startsWith("uint"))
-      .map((f) => f.name),
-  );
-  const message = Object.fromEntries(Object.entries(typedData.message).map(([k, v]) => [k, uints.has(k) ? BigInt(v as string) : v]));
-  return { ...typedData, message };
-}
+import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, seedMarket } from "./fork-helpers";
 
 describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
   const deployment = forkDeployment();

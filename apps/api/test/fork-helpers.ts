@@ -39,6 +39,18 @@ export function createForkClient(rpcUrl: string) {
 
 export const randomAddress = () => privateKeyToAddress(generatePrivateKey());
 
+/** Turns the decimal strings of uint256 fields back into bigint for signing, as the web app does. */
+export function forSigning(typedData: any) {
+  const uints = new Set(
+    Object.values(typedData.types as Record<string, { name: string; type: string }[]>)
+      .flat()
+      .filter((f) => f.type.startsWith("uint"))
+      .map((f) => f.name),
+  );
+  const message = Object.fromEntries(Object.entries(typedData.message).map(([k, v]) => [k, uints.has(k) ? BigInt(v as string) : v]));
+  return { ...typedData, message };
+}
+
 export async function as<T>(chain: ForkClient, who: Address, run: () => Promise<T>): Promise<T> {
   await chain.impersonateAccount({ address: who });
   await chain.setBalance({ address: who, value: parseUnits("100", 18) });
