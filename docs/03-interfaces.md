@@ -86,6 +86,8 @@ interface ISessionOracle is IOracle {
 
     function priceId() external view returns (bytes32);
     function side() external view returns (Side);
+    function MAX_FEED_AGE() external view returns (uint64);    // seconds, hard limit while the market is not closed
+    function MAX_PUBLISH_AGE() external view returns (uint64); // seconds, hard limit while the market is closed
 }
 ```
 
@@ -121,6 +123,12 @@ interface IRiskManager {
     function tightenMarket(Id id, uint64 softLtvOpen, uint64 softLtvClosed, uint128 maxPositionUsd) external; // guardian; may only tighten
     function setOpeningPaused(bool paused) external; // guardian
     function setNextCloseAt(uint64 ts) external; // calendar poster
+
+    // oracle age poster (D-31)
+    function oracleAgePoster() external view returns (address);
+    function oracleAgeBounds(Id id) external view returns (uint32 minOracleAge, uint32 capOracleAge); // seconds
+    function setOracleAgeBounds(Id id, uint32 minOracleAge, uint32 capOracleAge) external; // owner; cap <= oracle MAX_FEED_AGE
+    function setMaxOracleAge(Id id, uint32 maxOracleAge) external; // oracle age poster; inside the bounds only
 }
 ```
 
@@ -153,6 +161,8 @@ interface IMarginRouter {
     function closeShort(CloseParams calldata p) external returns (uint256 returned);
 
     function addCollateral(Id marketId, uint256 assets) external;
+    /// Pays down the caller's debt with the loan token: USDC for a long, stock for a short (D-32).
+    function repayDebt(Id marketId, uint256 assets) external returns (uint256 repaid);
     function removeCollateral(Id marketId, uint256 assets) external; // checked against the soft limit
 
     // automatic protection
@@ -278,11 +288,14 @@ event PositionReduced(
 event CollateralAdded(address indexed user, Id indexed marketId, uint256 assets);
 event CollateralRemoved(address indexed user, Id indexed marketId, uint256 assets);
 event ProtectionSet(address indexed user, Id indexed marketId, bool enabled);
+event DebtRepaid(address indexed user, Id indexed marketId, uint256 assets);
 
 // RiskManager
 event MarketConfigured(Id indexed marketId, IRiskManager.MarketConfig config);
 event NextCloseSet(uint64 nextCloseAt);
 event OpeningPaused(bool paused);
+event OracleAgeBoundsSet(Id indexed marketId, uint32 minOracleAge, uint32 capOracleAge);
+event MaxOracleAgeSet(Id indexed marketId, uint32 maxOracleAge);
 ```
 
 The backend also reads Morpho events for our markets, because people can use Morpho directly without going through the router: `SupplyCollateral`, `WithdrawCollateral`, `Borrow`, `Repay`, `Liquidate`, `Supply`, `Withdraw`, `AccrueInterest`.
@@ -310,6 +323,7 @@ error PriceDeviationTooHigh(uint256 deviationBps, uint256 maxBps);
 error OracleStale(uint64 publishedAt);
 error SoftLimitExceeded(uint256 ltv, uint256 softLtv);
 error PositionCapExceeded(uint256 valueUsd, uint256 capUsd);
+error OracleAgeOutOfBounds(uint32 maxOracleAge, uint32 minOracleAge, uint32 capOracleAge);
 error Unauthorized();
 
 // ISessionOracle

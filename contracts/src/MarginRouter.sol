@@ -189,6 +189,24 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
         emit CollateralRemoved(msg.sender, marketId, assets);
     }
 
+    function repayDebt(Id marketId, uint256 assets) external nonReentrant returns (uint256 repaid) {
+        MarketParams memory mp = _anyMarket(marketId);
+        IERC20 loan = IERC20(mp.loanToken);
+        MORPHO.accrueInterest(mp);
+        Market memory market = MORPHO.market(marketId);
+        uint256 shares = MORPHO.position(marketId, msg.sender).borrowShares;
+        uint256 debt = shares.toAssetsUp(market.totalBorrowAssets, market.totalBorrowShares);
+
+        bool full = assets >= debt;
+        repaid = full ? debt : assets;
+        if (repaid == 0) revert InvalidParams();
+        loan.safeTransferFrom(msg.sender, address(this), repaid);
+        loan.forceApprove(address(MORPHO), repaid);
+        if (full) MORPHO.repay(mp, 0, shares, msg.sender, "");
+        else MORPHO.repay(mp, repaid, 0, msg.sender, "");
+        emit DebtRepaid(msg.sender, marketId, repaid);
+    }
+
     function setProtection(Id marketId, bool enabled) external {
         _anyMarket(marketId);
         protectionEnabled[msg.sender][marketId] = enabled;

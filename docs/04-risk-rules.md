@@ -177,7 +177,7 @@ Values from the automatic rule below on this data (initial proposal): QQQ 35 min
 
 ### Automatic `maxOracleAge`
 
-Initial proposal, depends on Q-27. A keeper (BE-17) keeps `maxOracleAge` in line with the data from the oracle logger, so nobody has to change it by hand. It follows the open-market clock of D-23, because that is the clock `RiskManager` checks.
+Decided in D-31. The rule's numbers are still an initial proposal. A keeper (BE-17) keeps `maxOracleAge` in line with the data from the oracle logger, so nobody has to change it by hand. It follows the open-market clock of D-23, because that is the clock `RiskManager` checks.
 
 | Item | Rule |
 |---|---|
@@ -186,7 +186,7 @@ Initial proposal, depends on Q-27. A keeper (BE-17) keeps `maxOracleAge` in line
 | Minimum data | 7 days, including one full weekend, and at least 500 samples per market |
 | Before the minimum is met | No post. The value set at deployment stays |
 | Smallest change worth posting | 10% of the value on chain |
-| Bounds | `[minOracleAge, capOracleAge]` per market, set only by the multisig behind the timelock. The contract rejects anything outside them. The cap stays below the hard source quote age in `SessionOracle` |
+| Bounds | `[minOracleAge, capOracleAge]` per market, set only by the multisig behind the timelock. The contract rejects anything outside them. The cap stays below the hard source quote age in `SessionOracle`, and the contract enforces that. The deployment script sets 1,500 to 3,600 seconds |
 
 The bounds are what limits the damage of a leaked keeper key: the worst it can do is set the cap, which the multisig already accepted as safe.
 

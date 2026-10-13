@@ -44,6 +44,7 @@ These become the invariant tests (SC-50). If any one of them can be broken, it i
 
 1. `currentSoftLtv` is always lower than the hard limit of its market.
 2. The guardian role can only tighten. No sequence of guardian calls loosens a limit.
+3. The oracle age poster can change one value only, `maxOracleAge`, and only inside the bounds the owner set. Those bounds never exceed the hard source quote age of the market's oracle (D-31).
 3. `setNextCloseAt` rejects a time in the past and a time more than 8 days away.
 
 ## Threat list

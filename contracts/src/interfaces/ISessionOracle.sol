@@ -24,5 +24,11 @@ interface ISessionOracle is IOracle {
 
     function priceId() external view returns (bytes32);
 
+    /// Seconds. Hard limit on the source quote age while the market is not closed.
+    function MAX_FEED_AGE() external view returns (uint64);
+
+    /// Seconds. Hard limit on the publish age while the market is closed.
+    function MAX_PUBLISH_AGE() external view returns (uint64);
+
     function side() external view returns (Side);
 }

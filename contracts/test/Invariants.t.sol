@@ -187,6 +187,11 @@ contract Handler is Test {
         vm.stopPrank();
     }
 
+    function repay(uint256 actorSeed, uint256 amount) external {
+        vm.prank(_actor(actorSeed));
+        try router.repayDebt(longId, bound(amount, 1e6, 300e6)) {} catch {}
+    }
+
     function toggleProtection(uint256 actorSeed, bool enabled) external {
         vm.prank(_actor(actorSeed));
         router.setProtection(longId, enabled);
