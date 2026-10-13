@@ -35,7 +35,7 @@ export async function quoteCloseLong({ reader, swap, events: store }: QuoteDeps,
   ]);
   const m = markets.find((x) => x.info.marketId.toLowerCase() === req.marketId.toLowerCase());
   if (!m) throw new ApiHttpError("NOT_FOUND", "Unknown market.");
-  if (m.info.side !== "long") throw new ApiHttpError("BAD_REQUEST", "Short quotes are not available yet.");
+  if (m.info.side !== "long") throw new ApiHttpError("BAD_REQUEST", "This is not a long market.");
   const pos = positions.find((p) => p.marketId.toLowerCase() === req.marketId.toLowerCase());
   if (!pos || pos.collateralRaw === 0n) throw new ApiHttpError("NOT_FOUND", "No position in this market.");
 

@@ -6,7 +6,7 @@ import { ApiHttpError, upstream } from "../errors";
 import { buildAccount, buildHistory, pageHistory } from "../positions/account";
 import type { EventStore } from "../positions/events";
 
-function userParam(raw: string): Address {
+export function userParam(raw: string): Address {
   if (!isAddress(raw, { strict: false })) throw new ApiHttpError("BAD_REQUEST", "Not an address.");
   return getAddress(raw);
 }

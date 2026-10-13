@@ -69,7 +69,6 @@ What we do not write but we deploy and configure: the markets on Morpho, and the
 
 | Page | Contents |
 |---|---|
-| Home | Product explanation and entry point |
 | Markets | List of stocks: price, market session, limits, interest |
 | Market detail | Market depth, DEX-to-oracle deviation, interest history |
 | Trade | Long and Short form with a summary before confirmation |
@@ -78,6 +77,8 @@ What we do not write but we deploy and configure: the markets on Morpho, and the
 | Deposit and Withdraw | Cross-chain |
 | Settings | Automatic protection, alerts |
 | Help | Risk explanation, FAQ, terms of use |
+
+The landing page is not part of `apps/web`. It is a separate site in `apps/landing` on the root domain, while the app runs on the `app.` subdomain (D-37). In the app, `/` opens Markets.
 
 ## Where user funds are
 

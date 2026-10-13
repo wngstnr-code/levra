@@ -129,7 +129,9 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
     expect(history.items.map((i) => i.type)).toEqual(["reduce", "open"]);
     const reduce = history.items[0]!;
     // Half the stock sold: realized = USDC returned minus half of the $50 margin.
-    expect(BigInt(reduce.realizedPnlUsdRaw!)).toBe(BigInt(reduce.usdAmountRaw!) - parseUnits("25", 6));
+    // The margin share is rounded down, so it can be one base unit under half when the stock amount is odd.
+    const gap = BigInt(reduce.realizedPnlUsdRaw!) - (BigInt(reduce.usdAmountRaw!) - parseUnits("25", 6));
+    expect(gap >= 0n && gap <= 1n).toBe(true);
     await expectIndexedPositionMatchesMorpho(user.address);
   });
 

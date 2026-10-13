@@ -32,11 +32,13 @@ Four rules for the frontend:
   - Done when: real prices and market sessions show and change with the chain, without a backend.
   - Note: done on 13 October 2026. `/markets` reads `latestPrice` for every stock in `packages/shared/markets.ts` every 10 seconds and shows price, best bid and ask, session and source quote age. Checked against mainnet: aQQQ $741.45, aHOOD $108.75, aBIL $91.51, all `PRE_MARKET`, quote age 16 minutes. A stale price flag is left to FE-13, which uses `oracleStale` from the API.
 
-- [~] **FE-04 · Screen design**
+- [x] **FE-04 · Screen design**
   - Do: wireframes for all pages in 02 and the seven flows in 01; a component list; all states of each screen (loading, empty, error, stale price, market closed, pre-close window, restricted region); colors, fonts and spacing as one system.
   - Done when: Wangsit and Dharu have seen it and there is no data that a screen needs but is missing from 03. If there is, propose an addition to 03 now.
   - Note: a first written draft of every screen, its data, actions and states is in `docs/10-screens.md`, with a list of data the API does not provide yet. Nabil still has to review it, design the layouts and the design system.
-  - Note: low-fidelity wireframes of every screen are in Figma, all on one page: https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY (13 October 2026). Sections: foundations and kit, entry and gates, markets, trade, trade transaction states, positions, earn, deposit and withdraw, settings, help, shared states. Each screen has a note with its data source, states and the task it belongs to. Still open: review by Wangsit and Dharu, the visual design and design system, mobile layouts.
+  - Note: low-fidelity wireframes of every screen are in Figma, all on one page: https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY (13 October 2026). Sections: foundations and kit, entry and gates, markets, trade, trade transaction states, positions, earn, deposit and withdraw, settings, help, shared states. Each screen has a note with its data source, states and the task it belongs to. Still open: review by Wangsit and Dharu, mobile layouts.
+  - Note: the visual design is on the page "Design" in the same Figma file (13 October 2026): a design system (reference analysis, colour tokens, SF Pro type scale, components, shape and motion rules) and every screen in a dark, pastel bento style with equal card edges and Apple-style continuous corners and glass sheets. An "Apple first" variant was tried and not chosen.
+  - Note: Wangsit and Dharu reviewed and approved the wireframes on 14 October 2026. The data the screens need that 03 does not have yet is listed in 10-screens.md (a list of transfers per user, the liquidation collateral and bonus in history). Mobile layouts are built in code (FE-51) and not drawn in Figma.
 
 - [~] **FE-05 · Design system in code**
   - Needs: FE-04 (the Figma page "Design").
@@ -157,10 +159,15 @@ Four rules for the frontend:
 
 ## M6. Launch
 
-- [ ] **FE-60 · Home page and domain name**
+- [ ] **FE-60 · App domain**
   - Needs: X-02.
-  - Do: a home page that explains the product in a few sentences; a preview image for links; the production domain name.
-  - Done when: the production app runs on its domain name against the production contracts and backend.
+  - Do: serve `apps/web` on the `app.` subdomain of the production domain (D-37); a preview image for links; `/` keeps opening Markets.
+  - Done when: the production app runs on `app.<domain>` against the production contracts and backend.
+
+- [ ] **FE-62 · Landing site**
+  - Needs: X-02, FE-60.
+  - Do: a separate Next.js project in `apps/landing` on the root domain (D-37): what Levra is in a few sentences, how it works, risks, links to the app, terms, privacy, status and audit; its own design, made after the app works; a second Vercel project.
+  - Done when: the landing site runs on the root domain, links to `app.<domain>`, and passes the same checks as `apps/web` in CI.
 
 - [ ] **FE-61 · Final check**
   - Do: go through every screen and every state one by one in production.
