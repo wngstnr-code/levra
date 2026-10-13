@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 4 | 14 |
+| Smart contracts | Wangsit | 30 | 4 | 17 |
 | Backend | Dharu | 34 | 1 | 4 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -153,3 +153,4 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: CI is green on PR 5 (SC-01 done). On a local fork, short and auto-deleverage both ran through the live KyberSwap route (`e2e-short.sh`, `e2e-protection.sh`). Two things the backend must know: KyberSwap's calldata enforces its own minimum return from the `slippageTolerance` sent when building it, and KyberSwap refuses some sender addresses.
 - Wangsit: SC-23 written. The USDC vault is created from Morpho's MetaMorpho v1.1 factory by `script/DeployVault.s.sol` and tested on a fork. 63 contract tests pass.
 - Wangsit: SC-32 written. `Liquidator` liquidates long and short positions with no capital of its own and is deployed by the deployment script. 70 contract tests pass and CI is green.
+- Wangsit: SC-50, SC-51 and SC-55 written. Invariant campaign on a fork, Slither clean after review, gas numbers recorded, and a handover of ownership to a timelock behind the multisig. Tests now fork a pinned block, which made them repeatable and fast. 75 tests plus the invariant campaign pass.

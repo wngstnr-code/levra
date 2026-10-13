@@ -150,13 +150,15 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 
 ## M5. Hardening
 
-- [ ] **SC-50 · Fuzz and invariant tests**
+- [~] **SC-50 · Fuzz and invariant tests**
   - Do: all properties in 07 for the router, the oracle and `RiskManager`.
   - Done when: each property has a passing test with a large number of runs.
+  - Note: `test/Invariants.t.sol` runs random users, a keeper and a moving price against the router on a fork and checks five properties after every call: the router holds no tokens, nobody can touch a bystander who gave every permission, no open ends above the soft limit, the soft limit stays below the hard limit, and fees stay within their caps. A campaign is 6 runs of 40 calls and takes about five minutes because it reads the chain. Still to do: more runs, a case where the keeper reduction actually succeeds inside the campaign, and invariants for the oracle on its own.
 
-- [ ] **SC-51 · Static analysis and gas report**
+- [~] **SC-51 · Static analysis and gas report**
   - Do: Slither in GitHub Actions; a gas report per function.
   - Done when: there are no severe findings left unexplained; Dharu uses the gas numbers for the gas limits.
+  - Note: `make slither` is clean with the reviewed settings in `slither.config.json`, and the reasons are in `contracts/README.md`. It led to two fixes: rounding in the `Lens` liquidation price and a reentrancy guard on `Liquidator.liquidate`. `make gas` gives the gas report and the numbers are in `contracts/README.md`. Still to do: run Slither in CI.
 
 - [ ] **SC-52 · Internal review**
   - Do: read all contracts line by line, using the threat list in 07 as a checklist. Ask Dharu to read as well, as a second pair of eyes.
@@ -170,10 +172,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 - [ ] **SC-54 · Fix audit findings**
   - Done when: severe and medium findings are fixed and re-checked by the auditor; the final report is in the repo.
 
-- [ ] **SC-55 · Multisig and timelock**
+- [~] **SC-55 · Multisig and timelock**
   - Needs: SC-06, X-03.
   - Do: the owner of `RiskManager` and of the vault is a multisig behind a timelock; the guardian and calendar poster roles go to the right addresses; test that a single key cannot loosen anything.
   - Done when: no owner role is held by a single key, proven by reads from the chain.
+  - Note: `script/GovernancePlan.sol` and `script/HandOver.s.sol` move ownership of the risk manager, the router and the liquidator to a timelock (2 days) that only the multisig can use, and make the multisig the guardian. Five fork tests show the deployer loses every right after the multisig accepts, loosening needs the multisig and the wait, and tightening and pausing are immediate. Still to do: a real multisig (X-03), the vault's owner, the keeper roles, and running it on mainnet. Q-27 may add one exception.
 
 - [ ] **SC-56 · Bug bounty program**
   - Do: scope, reward levels, how to report.
