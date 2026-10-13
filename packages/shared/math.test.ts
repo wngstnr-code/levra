@@ -77,6 +77,13 @@ describe("long (04 example)", () => {
     expect(liq).toBe(12_987_012_987n);
   });
 
+  it("divides by collateral times the hard limit in one step, as Lens does since PR 13", () => {
+    // collateral × lltv is not a whole number of WAD here, so an early rounding would show.
+    const p = { collateral: 1_234_567_890_123_456_789n, debt: 543_210_987n, lltvWad: 770_000_000_000_000_001n, stockDecimals: 18, quoteDecimals: 6 };
+    const lens = mulDiv(mulDiv(p.debt, 100_000_000n * 10n ** 18n, 10n ** 6n), WAD, p.collateral * p.lltvWad);
+    expect(liquidationPriceE8("long", p)).toBe(lens);
+  });
+
   it("LTV after a 10% drop is LTV / 0.9, rounded up", () => {
     expect(ltvAfterGapWad("long", pct(50), -pct(10))).toBe(mulDiv(pct(50), WAD, pct(90), "ceil"));
   });
