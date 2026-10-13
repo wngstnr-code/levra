@@ -1,7 +1,6 @@
 import { tokens } from "@levra/shared/addresses";
 import { lensAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import { marketsResponse, sessionInfo } from "@levra/shared/api";
-import { readDeployment } from "@levra/shared/deployments/node";
 import { cautiousPriceE8, liquidationPriceE8, maxLeverageE2, morphoOraclePrice, positionLtvWad } from "@levra/shared/math";
 import pino from "pino";
 import { parseUnits, type Hex } from "viem";
@@ -9,13 +8,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
-import { as, createForkClient, forkDeploymentFile, forkRpcUrl, onFork, openOnMorpho, randomAddress, send } from "./fork-helpers";
+import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, send } from "./fork-helpers";
 
 describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
-  const deployment = readDeployment(forkDeploymentFile ?? "");
-  const reader = createChainReader(createChainClient(forkRpcUrl ?? ""), deployment);
+  const deployment = forkDeployment();
+  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
   const app = createApp({ logger: pino({ level: "silent" }), reader });
-  const chain = createForkClient(forkRpcUrl ?? "");
+  const chain = createForkClient(forkRpcUrl);
 
   let snapshotId: Hex;
   beforeAll(async () => {

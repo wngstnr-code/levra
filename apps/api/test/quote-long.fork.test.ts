@@ -1,7 +1,6 @@
 import { tokens } from "@levra/shared/addresses";
 import { lensAbi } from "@levra/shared/abis";
 import { quoteCloseResponse, quoteCollateralResponse, quoteOpenResponse, type QuoteOpenResponse } from "@levra/shared/api";
-import { readDeployment } from "@levra/shared/deployments/node";
 import pino from "pino";
 import { erc20Abi, parseUnits, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
@@ -11,7 +10,7 @@ import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { createKyber } from "../src/swap/kyber";
-import { createForkClient, deal, forkDeploymentFile, forkRpcUrl, onFork, seedMarket } from "./fork-helpers";
+import { createForkClient, deal, forkDeployment, forkRpcUrl, onFork, seedMarket } from "./fork-helpers";
 
 /** Turns the decimal strings of uint256 fields back into bigint for signing, as the web app does. */
 function forSigning(typedData: any) {
@@ -26,11 +25,11 @@ function forSigning(typedData: any) {
 }
 
 describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
-  const deployment = readDeployment(forkDeploymentFile ?? "");
-  const reader = createChainReader(createChainClient(forkRpcUrl ?? ""), deployment);
+  const deployment = forkDeployment();
+  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
   const swap = createKyber({ baseUrl: "https://aggregator-api.kyberswap.com/monad/api/v1", clientId: "levra" });
   const app = createApp({ logger: pino({ level: "silent" }), reader, swap });
-  const chain = createForkClient(forkRpcUrl ?? "");
+  const chain = createForkClient(forkRpcUrl);
   const user = privateKeyToAccount(generatePrivateKey());
   const market = deployment.markets.find((m) => m.symbol === "QQQ" && m.side === "long")!;
   const margin = parseUnits("50", 6);

@@ -1,5 +1,7 @@
 import { external } from "@levra/shared/addresses";
 import { morphoAbi } from "@levra/shared/abis";
+import type { Deployment } from "@levra/shared/deployments";
+import { readDeployment } from "@levra/shared/deployments/node";
 import {
   createTestClient,
   encodeAbiParameters,
@@ -10,15 +12,24 @@ import {
   publicActions,
   toHex,
   walletActions,
+  zeroAddress,
   type Address,
   type Hex,
 } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { monad } from "viem/chains";
 
-export const forkRpcUrl = process.env.FORK_RPC_URL;
-export const forkDeploymentFile = process.env.FORK_DEPLOYMENT_FILE;
-export const onFork = !!forkRpcUrl && !!forkDeploymentFile;
+export const forkRpcUrl = process.env.FORK_RPC_URL ?? "http://127.0.0.1:8545";
+const forkDeploymentFile = process.env.FORK_DEPLOYMENT_FILE;
+export const onFork = !!process.env.FORK_RPC_URL && !!forkDeploymentFile;
+
+/** The fork deployment, or an empty one when the fork tests are skipped, so collecting them never touches the disk. */
+export function forkDeployment(): Deployment {
+  if (!onFork || !forkDeploymentFile) {
+    return { chainId: 143, block: 0, router: zeroAddress, riskManager: zeroAddress, lens: zeroAddress, markets: [] };
+  }
+  return readDeployment(forkDeploymentFile);
+}
 
 export type ForkClient = ReturnType<typeof createForkClient>;
 
