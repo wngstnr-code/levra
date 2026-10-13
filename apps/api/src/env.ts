@@ -52,7 +52,9 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envSchema.safeParse(source);
+  // A variable left empty on the host counts as not set, so its default applies instead of failing the start.
+  const set = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ""));
+  const parsed = envSchema.safeParse(set);
   if (!parsed.success) throw new Error(`Invalid environment: ${z.prettifyError(parsed.error)}`);
   return parsed.data;
 }
