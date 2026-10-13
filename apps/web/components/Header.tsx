@@ -16,6 +16,7 @@ const routes = [
   { href: "/trade", key: "trade" },
   { href: "/positions", key: "positions" },
   { href: "/earn", key: "earn" },
+  { href: "/deposit", key: "deposit" },
   { href: "/settings", key: "settings" },
 ] as const;
 
