@@ -18,9 +18,10 @@ Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Every task has 
   - Done when: the name is recorded in 09 and the domain is registered.
   - Note: the name is decided, Levra (D-15). A DNS check found `levra.com`, `.io`, `.xyz` and `.app` in use and no name servers for `levra.fi`, `levra.finance` and `levra.markets` (Q-25). Still to do: pick and register a domain, social handles, and the check against Levva.
 
-- [ ] **X-03 · Wallets, funds and multisig** (driver: Wangsit)
+- [~] **X-03 · Wallets, funds and multisig** (driver: Wangsit)
   - Do: one development wallet per person with a little MON and USDC; a team treasury; a multisig on Monad with all three as signers.
   - Done when: each person has sent one real transaction on Monad mainnet, and the multisig address is in 05.
+  - Note: Wangsit's deployer wallet has sent real transactions. Safe supports Monad mainnet (verified on 13 October 2026: its configuration service lists chain 143 with a transaction service), so the multisig can be created at app.safe.global. Still to do: wallet addresses from Dharu and Nabil, then a 2 of 3 Safe, then the handover (SC-55).
 
 - [x] **X-04 · Interface freeze** (driver: Dharu)
   - Needs: SC-03, BE-02, FE-04.
@@ -78,7 +79,7 @@ Without these the product can be built but cannot be opened to the public.
 - [~] **X-12 · Talk to Anchored** (driver: Wangsit, start in M0)
   - Do: ask in writing: may their tokens be used as collateral and lent in Morpho markets; can the Morpho or router address be denylisted; what happens to dividends for tokens held by Morpho; how short borrowers are treated on dividend dates; how to become a partner so large liquidations can be redeemed instead of sold on a thin exchange.
   - Done when: Q-04 and Q-05 are answered in 09, or Anchored has declined to answer and that is recorded.
-  - Note: the message is drafted in `docs/outreach/anchored-questions.md`. Not sent yet.
+  - Note: the message is drafted in `docs/outreach/anchored-questions.md` and now mentions the staging deployment. Not sent yet: it needs the sender's name and contact, and the recipient.
 
 - [ ] **X-13 · Auditor** (driver: Wangsit, start in M3)
   - Do: collect quotes and dates from at least two audit firms; decide where the money comes from.

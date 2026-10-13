@@ -60,6 +60,7 @@ contract Deploy is Script {
         address owner = vm.envOr("OWNER", deployer);
         address feeRecipient = vm.envOr("FEE_RECIPIENT", deployer);
         address keeper = vm.envOr("KEEPER", address(0));
+        address liquidatorKeeper = vm.envOr("LIQUIDATOR_KEEPER", keeper);
         string memory environment = vm.envOr("DEPLOY_ENV", string("fork"));
 
         vm.startBroadcast();
@@ -68,10 +69,8 @@ contract Deploy is Script {
         Lens lens = new Lens(MORPHO, risk, router);
         Liquidator liquidator = new Liquidator(MORPHO, KYBER_ROUTER, deployer, feeRecipient);
         router.setFees(FEE_BPS, KEEPER_FEE_BPS, feeRecipient);
-        if (keeper != address(0)) {
-            router.setKeeper(keeper, true);
-            liquidator.setKeeper(keeper, true);
-        }
+        if (keeper != address(0)) router.setKeeper(keeper, true);
+        if (liquidatorKeeper != address(0)) liquidator.setKeeper(liquidatorKeeper, true);
 
         // Ages come from two weeks of oracle data (docs/reports/oracle-2026-10-13.md). The source quote
         // was at most 27 minutes old for QQQ, 34 for HOOD and 82 for BIL, whose feed is slow after hours.

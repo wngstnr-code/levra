@@ -83,6 +83,10 @@ Things to know:
 - Settings such as `SEED`, `MARGIN`, `BORROW`, `INVENTORY_USD`, `SHORT_USD`, `CLOSE=no`, `LONGS` and `SHORTS` can be passed in the environment.
 - KyberSwap refuses to build a swap for some wallets. If that happens the short script stops before sending anything.
 
+## First deposit into the vault
+
+After `make deploy-vault-monad`, `make first-earn-monad CONFIRM=yes` deposits 1 USDC into the vault, prints which market it reached and redeems it again. `AMOUNT` changes the size in USDC base units and `WITHDRAW=no` leaves the deposit in. Without `CONFIRM=yes` it is a dry run.
+
 ## Deployment settings
 
 Environment variables read by `script/Deploy.s.sol`. All are optional on a fork.
@@ -92,9 +96,12 @@ Environment variables read by `script/Deploy.s.sol`. All are optional on a fork.
 | `DEPLOY_ENV` | Name of the deployment file, `fork` or `monad` |
 | `OWNER` | Owner of the contracts after deployment. Defaults to the deployer |
 | `FEE_RECIPIENT` | Receives fees and liquidation gains. Defaults to the deployer |
-| `KEEPER` | May run auto-deleverage and liquidations |
+| `KEEPER` | May run auto-deleverage on the router |
+| `LIQUIDATOR_KEEPER` | May call the `Liquidator`. Defaults to `KEEPER` |
 | `CALENDAR_POSTER` | May post the next market close |
 | `ORACLE_AGE_POSTER` | May move `maxOracleAge` inside the bounds (D-31) |
+
+The four roles can also be set after deployment. `make set-roles-monad` reads the same variables, shows what it would change, and sends the transactions from the owner wallet only with `CONFIRM=yes`. It skips a role that is empty or already set. Use one key per role.
 
 Oracle ages per market are fixed in the script and come from two weeks of oracle data (`docs/reports/oracle-2026-10-13.md`):
 

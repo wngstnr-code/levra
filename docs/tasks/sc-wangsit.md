@@ -81,7 +81,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
-  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The source of all nine contracts is verified on Sourcify and on MonadVision's Sourcify instance (exact match). The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set. The first run followed the same day with `make first-run-monad CONFIRM=yes` at the 15 USDC sizes: 30 transactions, all successful, every position closed, hashes in PROGRESS.md.
+  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The source of all nine contracts is verified on Sourcify and on MonadVision's Sourcify instance (exact match). The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set: `make set-roles-monad` (`script/mainnet-set-roles.sh`, rehearsed on a fork) sets them from the owner wallet once Dharu sends the addresses, with a separate keeper for the router and for the `Liquidator`. The first run followed the same day with `make first-run-monad CONFIRM=yes` at the 15 USDC sizes: 30 transactions, all successful, every position closed, hashes in PROGRESS.md.
 
 ---
 
@@ -109,7 +109,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-06, SC-22.
   - Do: create the vault from the official Morpho factory; set the supply cap per market as in 04; the roles are held by team addresses (a multisig later); the fee share as in Q-07.
   - Done when: lending and withdrawing USDC through the vault works on staging; the vault funds really flow into our markets; the address is in the address file.
-  - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Still to do: mainnet, and moving ownership to the multisig (SC-55).
+  - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Deployed on mainnet on 13 October 2026 at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447` and recorded in `deployments/monad.json`. Read back from the chain: name, asset, the three caps, the supply queue, fee, fee recipient and timelock match the plan. No deposit yet. Still to do: a real deposit and withdrawal on mainnet with `make first-earn-monad` (rehearsed on a fork of the live state: 1 USDC reached the QQQ market and came back in full), and moving ownership to the multisig (SC-55).
 
 - [x] **SC-24 · Seed inventory for short markets**
   - Needs: SC-22, X-14.
@@ -180,9 +180,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: no owner role is held by a single key, proven by reads from the chain.
   - Note: `script/GovernancePlan.sol` and `script/HandOver.s.sol` move ownership of the risk manager, the router and the liquidator to a timelock (2 days) that only the multisig can use, and make the multisig the guardian. Five fork tests show the deployer loses every right after the multisig accepts, loosening needs the multisig and the wait, and tightening and pausing are immediate. Still to do: a real multisig (X-03), the vault's owner, the keeper roles, and running it on mainnet. Q-27 may add one exception. D-31 adds the one exception, covered by a test: after the handover the poster can still move `maxOracleAge` inside the bounds, and widening the bounds takes the multisig and the wait. The handover now also gives the vault to the multisig, and the deployment script takes the calendar poster, the oracle age poster and the keeper from the environment.
 
-- [ ] **SC-56 · Bug bounty program**
+- [~] **SC-56 · Bug bounty program**
   - Do: scope, reward levels, how to report.
   - Done when: the page is published and linked from the app.
+  - Note: drafted in `docs/drafts/bug-bounty.md`: scope, severity levels with examples, report contents, rules and response times. Not published. Still to do: reward amounts and the private reporting channel (Q-29), review of the legal sentence by counsel (X-10), and the link from the app.
 
 ---
 
@@ -193,6 +194,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Do: deploy the audited code with the final numbers; verify in the block explorer; fill the markets with seed funds.
   - Done when: `deployments/monad.json` holds the production addresses; all contracts are verified; one full round (open, close, long, short, Earn) is run in production and recorded.
 
-- [ ] **SC-61 · Public contract documentation**
+- [~] **SC-61 · Public contract documentation**
   - Do: the list of addresses, an explanation of the roles and of what the team can and cannot do, how to revoke the Morpho authorization without our app, a link to the audit report.
   - Done when: published on the Help page and in the README.
+  - Note: written in `docs/public/contracts.md` from the deployed code: addresses, market IDs, what nobody can change, the five roles and who holds them today, what the owner can and cannot do, the protection rules, how to revoke the Morpho authorization and close directly on Morpho, and the risks outside our contracts. The root README lists the addresses and links to it. Still to do: the Help page (Nabil, FE), and the audit link when there is a report.
