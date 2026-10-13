@@ -237,6 +237,28 @@ Still not verified (BE-05): a real deposit; whether an API key changes the fee; 
 
 A starting point only. The backend measures again on a regular basis.
 
+### First real run on mainnet
+
+Measured on 13 October 2026 in the pre-market session, with the deployer wallet and tiny positions (SC-15). Verified from the receipts. One sample per market, so these are not averages.
+
+| Market | Position | Margin in | Returned after a full close | Cost of the round trip |
+|---|---|---|---|---|
+| QQQ long | 3 USDC of stock | 1.500000 | 1.443299 | 0.0567 USDC, 1.89% of the position |
+| HOOD long | 3 USDC of stock | 1.500000 | 1.443299 | 0.0567 USDC, 1.89% of the position |
+| BIL long | 3 USDC of stock | 1.500000 | 1.479045 | 0.0210 USDC, 0.70% of the position |
+| QQQ short | 0.00135 aQQQ, about 1 USDC | 1.500000 | 1.430726 plus 0.000069 aQQQ | About 0.018 USDC after counting the leftover stock |
+| HOOD short | 0.00921 aHOOD, about 1 USDC | 1.500000 | 1.430223 plus 0.000421 aHOOD | About 0.024 USDC after counting the leftover stock |
+
+The cost includes our 0.10% fee, which went to the fee recipient, the same wallet in this run. A short of 1 USDC at the oracle price sold for 0.97 on QQQ and 1.06 on HOOD, so aHOOD traded above its oracle price at that moment.
+
+| Gas | Value |
+|---|---|
+| Open, charged | 1.64 to 1.78 million gas, 0.17 to 0.19 MON at 102 gwei |
+| Close, charged | 1.49 to 1.60 million gas, 0.15 to 0.16 MON at 102 gwei |
+| Whole run, 30 transactions | 2.20 MON |
+
+Monad charges the gas limit, and the scripts send the estimate plus 50%, so the charged amount is 1.5 times the estimate. On a fork, a close sent with the bare estimate ran out of gas.
+
 ### Market depth (aggregator quotes)
 
 Measured by the depth keeper (BE-04) on 13 October 2026 at 12:29 UTC, all sizes in one run. Method: every size is one KyberSwap route quote; a sale of $X sells the stock worth $X at the oracle price; the price impact is the execution price against the DEX mid price (D-36), positive when worse for the trader. The keeper repeats the full table once a day and the mid price every 10 minutes; `pnpm --filter @levra/keeper report:depth` prints the latest run.
