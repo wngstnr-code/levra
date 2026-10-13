@@ -125,14 +125,16 @@ Four rules for the frontend:
 
 ## M4. Cross-chain deposits
 
-- [ ] **FE-40 · Deposit flow**
+- [~] **FE-40 · Deposit flow**
   - Needs: BE-40.
   - Do: choose the source chain and token; show the deposit address, QR code, the amount that will arrive, the estimated time and the expiry time; a status tracker; when funds arrive, guide the user straight to the transaction form; handle expiry and refunds.
   - Done when: a real deposit from another chain is completed from start to finish through the app.
+  - Note: built on 13 October 2026 (`fe/FE-40-41-m4-deposits`): `/deposit` picks the origin chain and token from `/v1/deposit/tokens`, takes the amount, the refund address and whether to send MON, then shows the deposit address with a QR code, the memo, what arrives, the time and an expiry countdown, and follows `/v1/deposit/:id` through seen, processing and arrived, or refunded, failed or expired, with a button to Trade on arrival. Transfer ids are kept in the browser per address, since the API has no list yet (10-screens.md). Waiting for BE-40 to run a real deposit.
 
-- [ ] **FE-41 · Withdraw flow**
+- [~] **FE-41 · Withdraw flow**
   - Needs: BE-41.
   - Done when: a real withdrawal to another chain is completed through the app.
+  - Note: built on 13 October 2026: the Withdraw tab takes the USDC amount, the destination chain and token and the recipient, gets `/v1/withdraw/quote`, sends USDC on Monad to the quoted address with a plain-sentence sheet first, and follows the status. Waiting for BE-41 to run a real withdrawal.
 
 ---
 
