@@ -3,7 +3,7 @@ import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi }
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
 import { listMarkets, type MarketInfo } from "@levra/shared/markets";
-import { erc20Abi, parseAbi, type Address, type Hex, type PublicClient } from "viem";
+import { erc20Abi, getAbiItem, parseAbi, type Address, type Hex, type PublicClient } from "viem";
 import { createCache } from "./cache";
 
 /**
@@ -50,7 +50,13 @@ export type MarketState = {
   publishedAt: number;
   /** SessionOracle's hard check, or the RiskManager open check: older than `maxOracleAge` outside `CLOSED`. */
   oracleStale: boolean;
+  /** SessionOracle's hard check alone. When true, Morpho cannot price the market, so a partial withdrawal fails. */
+  oracleHardStale: boolean;
 };
+
+export type RouterEvent =
+  | { kind: "opened"; marketId: Hex; block: bigint; logIndex: number; margin: bigint; collateralDelta: bigint; debtDelta: bigint; fee: bigint }
+  | { kind: "reduced"; marketId: Hex; block: bigint; logIndex: number; collateralDelta: bigint; debtDelta: bigint; returned: bigint; fee: bigint; reason: number };
 
 export type ChainSession = {
   session: SessionName;
@@ -77,6 +83,8 @@ export type ChainReader = ReturnType<typeof createChainReader>;
 
 /** TTLs in milliseconds. Monad blocks are 0.4 s and oracle writes about 10 minutes apart. */
 const TTL = { markets: 2_000, session: 2_000, positions: 1_000, block: 1_000, fees: 30_000 } as const;
+/** Public RPC endpoints allow at most 10,000 blocks per log query (02). */
+const LOG_RANGE = 10_000n;
 
 /** The only place the API talks to the RPC endpoint. */
 export function createChainReader(client: PublicClient, deployment: Deployment) {
@@ -146,6 +154,7 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
           feedUpdatedAt,
           publishedAt: Number(v.publishedAt),
           oracleStale: v.stale || tooOldToOpen,
+          oracleHardStale: v.stale,
         };
       });
     });
@@ -172,8 +181,9 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       };
     });
 
-  const positions = (user: Address) =>
-    cached(`positions:${user.toLowerCase()}`, TTL.positions, async (): Promise<PositionState[]> => {
+  /** `fresh` skips the cache. Quotes use it, because the amounts go into calldata right after the user's last transaction. */
+  const positions = (user: Address, { fresh = false }: { fresh?: boolean } = {}) =>
+    cached(`positions:${user.toLowerCase()}`, fresh ? 0 : TTL.positions, async (): Promise<PositionState[]> => {
       const views = await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getPositions", args: [user] });
       return views.map((v) => ({
         marketId: v.marketId,
@@ -228,5 +238,36 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
     return { balance, allowance, permitNonce, authorized, morphoNonce };
   }
 
-  return { deployment, markets, session, positions, latestBlock, routerFees, permitDomain, userState, client };
+  async function borrowShares(marketId: Hex, user: Address): Promise<bigint> {
+    const position = await client.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [marketId, user] });
+    return position.borrowShares;
+  }
+
+  /**
+   * The user's router events since deployment, oldest first. Read from logs in 10,000 block ranges.
+   * Fine while the deployment is young; the indexer (BE-13) takes this over.
+   */
+  const routerEvents = (user: Address) =>
+    cached(`routerEvents:${user.toLowerCase()}`, TTL.positions, async (): Promise<RouterEvent[]> => {
+      const head = (await latestBlock()).number;
+      const events: RouterEvent[] = [];
+      const opened = getAbiItem({ abi: marginRouterAbi, name: "PositionOpened" });
+      const reduced = getAbiItem({ abi: marginRouterAbi, name: "PositionReduced" });
+      for (let from = BigInt(deployment.block); from <= head; from += LOG_RANGE) {
+        const to = from + LOG_RANGE - 1n < head ? from + LOG_RANGE - 1n : head;
+        const [o, r] = await Promise.all([
+          client.getLogs({ address: deployment.router, event: opened, args: { user }, fromBlock: from, toBlock: to, strict: true }),
+          client.getLogs({ address: deployment.router, event: reduced, args: { user }, fromBlock: from, toBlock: to, strict: true }),
+        ]);
+        for (const l of o) {
+          events.push({ kind: "opened", marketId: l.args.marketId, block: l.blockNumber, logIndex: l.logIndex, margin: l.args.margin, collateralDelta: l.args.collateralDelta, debtDelta: l.args.debtDelta, fee: l.args.fee });
+        }
+        for (const l of r) {
+          events.push({ kind: "reduced", marketId: l.args.marketId, block: l.blockNumber, logIndex: l.logIndex, collateralDelta: l.args.collateralDelta, debtDelta: l.args.debtDelta, returned: l.args.returned, fee: l.args.fee, reason: l.args.reason });
+        }
+      }
+      return events.sort((a, b) => (a.block === b.block ? a.logIndex - b.logIndex : a.block < b.block ? -1 : 1));
+    });
+
+  return { deployment, markets, session, positions, latestBlock, routerFees, permitDomain, userState, borrowShares, routerEvents, client };
 }
