@@ -74,6 +74,22 @@ describe("history and realized PnL (three hand calculations)", () => {
     expect(items[1]).toMatchObject({ side: "long", usdAmountRaw: (30n * USDC).toString(), stockAmountRaw: null });
   });
 
+  it("calls a short reduction a close when Morpho shows no borrow shares left, and a reduce otherwise", () => {
+    const shortId = `0x${"bb".repeat(32)}` as const;
+    const shortReader = { deployment: { markets: [{ symbol: "QQQ", side: "short", marketId: shortId }] } } as unknown as ChainReader;
+    const inTx = (tx: string, name: string, args: Record<string, string | number>, source: StoredEvent["source"]) => ({ ...ev(name, args, source), marketId: shortId, txHash: tx as `0x${string}` });
+    const open = `0x${"01".repeat(32)}`, half = `0x${"02".repeat(32)}`, rest = `0x${"03".repeat(32)}`;
+    const items = buildHistory(shortReader, [
+      inTx(open, "Borrow", { assets: "1", shares: "1000" }, "morpho"),
+      inTx(open, "PositionOpened", { margin: "100", collateralDelta: "150", debtDelta: "1", fee: "0", execPriceE8: "0" }, "router"),
+      inTx(half, "Repay", { assets: "1", shares: "400" }, "morpho"),
+      inTx(half, "PositionReduced", { collateralDelta: "60", debtDelta: "1", returned: "40", fee: "0", execPriceE8: "0", reason: 0 }, "router"),
+      inTx(rest, "Repay", { assets: "1", shares: "600" }, "morpho"),
+      inTx(rest, "PositionReduced", { collateralDelta: "90", debtDelta: "1", returned: "60", fee: "0", execPriceE8: "0", reason: 0 }, "router"),
+    ]);
+    expect(items.map((i) => i.type)).toEqual(["close", "reduce", "open"]);
+  });
+
   it("pages newest first and rejects an unknown cursor", () => {
     const all = buildHistory(reader, [opened(1n, 1n, 1n), opened(1n, 1n, 1n), opened(1n, 1n, 1n)]);
     const first = pageHistory(all, undefined, 2);
