@@ -12,6 +12,7 @@ import { formatToken, formatWadPercent, parseAmount } from "@/lib/units";
 import { useEarnChain, type EarnChainOption } from "@/lib/useEarnChain";
 import { useStoredFlag } from "@/lib/useStoredFlag";
 import { useTxFlow } from "@/lib/useTxFlow";
+import { useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
 import { TxSheet } from "../tx/TxSheet";
 import { Button } from "../ui/Button";
@@ -157,6 +158,8 @@ function EarnPanel({ o, mode, onMode, user, signIn, invalidate }: { o: EarnChain
   const label = amount ? amountText(amount, o) : "";
   const needsRisk = mode === "supply" && !accepted;
   const isMax = amount !== null && amount === o.user?.withdrawableRaw && o.user?.withdrawableRaw === o.user?.suppliedRaw;
+  const gated = useGatedAction();
+  const supplyGate = mode === "supply" ? gated : null;
 
   const run = () => {
     if (!user || !amount || !o.user) return;
@@ -224,6 +227,10 @@ function EarnPanel({ o, mode, onMode, user, signIn, invalidate }: { o: EarnChain
       {!user ? (
         <button onClick={signIn ?? undefined} disabled={!signIn} className="squircle h-14 rounded-full bg-ink text-base font-semibold text-peri disabled:opacity-40">
           {m.earn.connect}
+        </button>
+      ) : supplyGate ? (
+        <button onClick={supplyGate.onClick ?? undefined} disabled={!supplyGate.onClick} className="squircle h-14 rounded-full bg-ink text-base font-semibold text-peri disabled:opacity-40">
+          {supplyGate.label}
         </button>
       ) : (
         <button onClick={flow.review} disabled={!amount || amount === 0n || tooMuch || needsRisk} className="squircle h-14 rounded-full bg-ink text-base font-semibold text-peri transition-transform active:scale-[0.97] disabled:bg-ink/20 disabled:text-ink/50">

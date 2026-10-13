@@ -5,6 +5,7 @@ import { WagmiProvider as PrivyWagmiProvider } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { WagmiProvider } from "wagmi";
+import { ComplianceProvider } from "@/components/gate/Compliance";
 import { PrivySignInProvider } from "@/components/SignIn";
 import { StreamSync } from "@/lib/api/stream";
 import { monad } from "@/lib/chain";
@@ -18,7 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const inner = (
     <I18nProvider>
       <StreamSync />
-      {children}
+      <ComplianceProvider>{children}</ComplianceProvider>
     </I18nProvider>
   );
 

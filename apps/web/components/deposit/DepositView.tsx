@@ -18,6 +18,7 @@ import { useSavedTransfers } from "@/lib/transfers";
 import { formatDuration, formatToken, parseAmount } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
 import { useTxFlow } from "@/lib/useTxFlow";
+import { useGate, useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
 import { TxSheet } from "../tx/TxSheet";
 import { Button } from "../ui/Button";
@@ -41,6 +42,7 @@ export function DepositView() {
   const signIn = useSignIn();
   const list = useDepositTokens();
   const saved = useSavedTransfers(address);
+  const gateStatus = useGate().status;
 
   return (
     <div className="space-y-4">
@@ -66,6 +68,8 @@ export function DepositView() {
               <Skeleton className="h-64 w-full rounded-panel bg-ink/10" />
             ) : list.isError ? (
               <p className="text-sm">{describeError(list.error, m)}</p>
+            ) : tab === "deposit" && gateStatus === "blocked" ? (
+              <p className="text-sm">{m.gate.blockedBody}</p>
             ) : tab === "deposit" ? (
               <DepositForm user={address} tokens={list.data.tokens} onQuoted={(q, label) => saved.add({ id: q.id, kind: "deposit", label, createdAt: Math.floor(Date.now() / 1000) })} />
             ) : (
@@ -147,6 +151,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
   const [copied, setCopied] = useState(false);
   const amount = picked ? parseAmount(amountText, picked.decimals) : null;
   const belowMin = !!picked?.minAmountRaw && amount !== null && amount < BigInt(picked.minAmountRaw);
+  const gated = useGatedAction();
   const quote = useMutation({
     mutationFn: () => api("depositQuote", { body: { recipient: user, originChain: chain, originToken: tokenId, amountRaw: amount!.toString(), refundAddress: refund.trim(), includeGas } }),
     onSuccess: (q) => onQuoted(q, `${amountText} ${picked?.symbol} · ${picked?.chainName}`),
@@ -219,13 +224,19 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
         <Switch on={includeGas} onClick={() => setIncludeGas((v) => !v)} label={m.deposit.includeGas} />
       </div>
       {quote.isError && <p className="text-sm font-medium">{describeError(quote.error, m)}</p>}
-      <button
-        onClick={() => quote.mutate()}
-        disabled={!picked || !amount || belowMin || !refund.trim() || quote.isPending}
-        className="squircle h-14 rounded-full bg-ink text-base font-semibold text-lilac transition-transform active:scale-[0.97] disabled:bg-ink/20 disabled:text-ink/50"
-      >
-        {quote.isPending ? m.deposit.gettingAddress : m.deposit.getAddress}
-      </button>
+      {gated ? (
+        <button onClick={gated.onClick ?? undefined} disabled={!gated.onClick} className="squircle h-14 rounded-full bg-ink text-base font-semibold text-lilac disabled:opacity-40">
+          {gated.label}
+        </button>
+      ) : (
+        <button
+          onClick={() => quote.mutate()}
+          disabled={!picked || !amount || belowMin || !refund.trim() || quote.isPending}
+          className="squircle h-14 rounded-full bg-ink text-base font-semibold text-lilac transition-transform active:scale-[0.97] disabled:bg-ink/20 disabled:text-ink/50"
+        >
+          {quote.isPending ? m.deposit.gettingAddress : m.deposit.getAddress}
+        </button>
+      )}
     </div>
   );
 }

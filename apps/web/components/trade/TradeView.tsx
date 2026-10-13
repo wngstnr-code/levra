@@ -21,6 +21,7 @@ import { useNowSeconds } from "@/lib/useNow";
 import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
 import { useQuote } from "@/lib/useQuote";
 import { useTxFlow } from "@/lib/useTxFlow";
+import { useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
 import { TxSheet } from "../tx/TxSheet";
 import { ButtonLink } from "../ui/Button";
@@ -89,7 +90,9 @@ export function TradeView() {
   const blocked = q?.warnings.find((w) => w.severity === "block");
   const quoteError = quote.error ? describeError(quote.error, m) : null;
 
+  const gated = useGatedAction();
   const action: ActionState = (() => {
+    if (address && gated) return gated.onClick ? { kind: "ready", label: gated.label, onClick: gated.onClick } : { kind: "disabled", label: gated.label };
     if (!address) return signIn ? { kind: "signIn", onClick: signIn } : { kind: "disabled", label: m.wallet.unavailable };
     if (!apiConfigured) return { kind: "disabled", label: m.trade.serviceOffline };
     if (side === "short" && !shortAvailable) return { kind: "disabled", label: m.trade.noShortMarket };
