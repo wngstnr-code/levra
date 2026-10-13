@@ -10,16 +10,18 @@ const ROUTER_CURSOR = "router_events";
 
 /**
  * A keeper is healthy when its last heartbeat is newer than this and carries no error. Initial proposal (08 says "a few
- * minutes"); the oracle age poster runs hourly, so it gets two hours.
+ * minutes"); the oracle age poster runs hourly, so it gets two hours; the calendar poster and market depth run every
+ * 10 minutes, so they get 30.
  */
 const HEARTBEAT_LIMIT_S: Record<KeeperName, number> = {
-  calendar: 300,
+  calendar: 1_800,
   protector: 300,
   liquidator: 300,
   alerts: 300,
   oracleMonitor: 300,
   oracleAgePoster: 7_200,
   marketDepth: 1_800,
+  transfers: 300,
 };
 
 export async function buildStatus(reader: ChainReader, db: Db, version: string): Promise<StatusResponse> {
