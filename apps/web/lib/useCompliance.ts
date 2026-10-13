@@ -6,10 +6,13 @@ import { useCallback } from "react";
 import type { Address } from "viem";
 import { useConfig } from "wagmi";
 import { signMessage } from "wagmi/actions";
-import { api } from "./api/client";
+import { api, ApiRequestError } from "./api/client";
 import { apiConfigured, queryKeys, shouldRetry } from "./api/hooks";
 
 export type ComplianceStatus = "unchecked" | "loading" | "error" | "blocked" | "needsTerms" | "ok";
+
+/** The service leaves the region and terms routes off until a terms version is set (03, BE-52), and then gates nothing. */
+const gateOff = (e: unknown) => e instanceof ApiRequestError && e.code === "NOT_FOUND";
 
 /** Region and terms checks before opening, supplying or depositing (FE-50). Closing and withdrawing are never gated. */
 export function useCompliance(address: Address | undefined) {
@@ -28,7 +31,9 @@ export function useCompliance(address: Address | undefined) {
     : q.isPending
       ? "loading"
       : q.isError
-        ? "error"
+        ? gateOff(q.error)
+          ? "ok"
+          : "error"
         : !q.data.eligible
           ? "blocked"
           : address && q.data.termsAccepted !== true
