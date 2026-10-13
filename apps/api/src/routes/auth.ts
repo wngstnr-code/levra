@@ -7,6 +7,7 @@ import { getAddress, type Address, type PublicClient } from "viem";
 import { parseSiweMessage } from "viem/siwe";
 import { signToken, verifyToken } from "../auth/token";
 import { ApiHttpError, upstream } from "../errors";
+import { matchesAny } from "../origins";
 
 /** Initial proposals: a nonce is good for 10 minutes, a session for 24 hours. */
 export const NONCE_TTL_SECONDS = 600;
@@ -15,8 +16,8 @@ export const SESSION_TTL_SECONDS = 86_400;
 export type AuthOptions = {
   /** At least 32 characters. Signs the session tokens. */
   secret: string;
-  /** The web app's host, which the sign-in message must name (EIP-4361). */
-  domain: string;
+  /** Hosts of the web app that the sign-in message may name (EIP-4361): production, preview and local (BE-56). */
+  domains: RegExp[];
   chainId: number;
 };
 
@@ -38,9 +39,9 @@ export function authRoutes(client: PublicClient, db: Db, opts: AuthOptions) {
     const { message, signature } = parsed.data;
     const fields = parseSiweMessage(message);
     if (!fields.address || !fields.nonce) throw new ApiHttpError("BAD_REQUEST", "Not a sign-in message.");
-    if (fields.domain !== opts.domain || fields.chainId !== opts.chainId) throw new ApiHttpError("UNAUTHORIZED", "The message is for another site or network.");
+    if (!fields.domain || !matchesAny(opts.domains, fields.domain) || fields.chainId !== opts.chainId) throw new ApiHttpError("UNAUTHORIZED", "The message is for another site or network.");
 
-    const valid = await upstream(() => client.verifySiweMessage({ message, signature, domain: opts.domain, nonce: fields.nonce }));
+    const valid = await upstream(() => client.verifySiweMessage({ message, signature, domain: fields.domain, nonce: fields.nonce }));
     if (!valid) throw new ApiHttpError("UNAUTHORIZED", "The signature does not match the message.");
 
     // Used once, and only while fresh. Marked used only after the signature checks out.

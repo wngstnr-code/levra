@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signToken, verifyToken } from "../src/auth/token";
 import { createApp } from "../src/app";
 import type { ChainReader } from "../src/chain/reader";
+import { parsePatterns } from "../src/origins";
 
 const url = process.env.TEST_DATABASE_URL;
 const SECRET = "test-secret-that-is-at-least-32-characters-long";
@@ -32,7 +33,7 @@ describe.skipIf(!url)("wallet sign-in and alert settings (needs TEST_DATABASE_UR
   // Plain wallets are checked without the chain; a call means a smart wallet, which this test does not use.
   const client = createPublicClient({ chain: monad, transport: custom({ request: async () => { throw new Error("no chain in this test"); } }) });
   const reader = { client, deployment: { chainId: 143, markets: [] } } as unknown as ChainReader;
-  const app = createApp({ logger: pino({ level: "silent" }), reader, db, auth: { secret: SECRET, domain: DOMAIN, telegramBot: "levra_alerts_bot" } });
+  const app = createApp({ logger: pino({ level: "silent" }), reader, db, auth: { secret: SECRET, domains: parsePatterns(`${DOMAIN},levra-mon-*-team.vercel.app`), telegramBot: "levra_alerts_bot" } });
   const user = privateKeyToAccount(generatePrivateKey());
 
   const json = async (res: Response) => ({ status: res.status, body: await res.json() });
@@ -63,6 +64,9 @@ describe.skipIf(!url)("wallet sign-in and alert settings (needs TEST_DATABASE_UR
     token = siweResponse.parse(ok.body).token;
     // The nonce is spent.
     expect((await signIn(msg)).status).toBe(401);
+    // A preview address of this project signs in too; another project's preview does not.
+    expect((await signIn(message(await nonce(), { domain: "levra-mon-git-fe-x-team.vercel.app" }))).status).toBe(200);
+    expect((await signIn(message(await nonce(), { domain: "levra-mon-x.other.vercel.app" }))).status).toBe(401);
   });
 
   it("needs a session for the alert settings", async () => {

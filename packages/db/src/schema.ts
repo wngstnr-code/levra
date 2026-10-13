@@ -152,6 +152,20 @@ export const telegramLinks = pgTable("telegram_links", {
   usedAt: timestamp("used_at", { withTimezone: true }),
 });
 
+/**
+ * State of each team monitor check (BE-50). `since` is when the condition last became true, `notified` whether the team
+ * has been told, `value` the last value seen for checks that alert on a change (risk values posted by keepers).
+ */
+export const monitorState = pgTable("monitor_state", {
+  key: text("key").primaryKey(),
+  active: boolean("active").notNull(),
+  since: timestamp("since", { withTimezone: true }),
+  notified: boolean("notified").notNull(),
+  value: text("value"),
+  message: text("message"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
 /** Alerts already sent, so each one goes out once per channel (BE-33). */
 export const alertDeliveries = pgTable(
   "alert_deliveries",

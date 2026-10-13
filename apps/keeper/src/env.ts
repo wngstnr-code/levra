@@ -29,6 +29,11 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: optional(),
   /** Aurora Intents partner token (BE-40). Optional for reading transfer status. Never commit it. */
   INTENTS_JWT: optional(),
+  /** Team alerts (BE-50): a Telegram group for the alert bot, and/or a Discord or Slack incoming webhook. */
+  TEAM_TELEGRAM_CHAT_ID: optional(),
+  TEAM_WEBHOOK_URL: optional().pipe(z.url().optional()),
+  /** Public API address the monitor checks for errors and response time, for example https://api.levra.xyz. */
+  MONITOR_API_URL: optional().pipe(z.url().optional()),
   KYBER_BASE_URL: optional().pipe(z.url().optional()),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),

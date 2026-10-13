@@ -1,6 +1,8 @@
 import type { Db } from "@levra/db";
 import type { HealthResponse } from "@levra/shared/api";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { matchesAny } from "./origins";
 import type { ChainReader } from "./chain/reader";
 import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
@@ -8,6 +10,7 @@ import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
 import { alertRoutes } from "./routes/alerts";
 import { depositRoutes } from "./routes/deposit";
+import { complianceRoutes, createCompliance, type ComplianceOptions } from "./routes/compliance";
 import type { IntentsSource } from "@levra/intents";
 import { authRoutes } from "./routes/auth";
 import { earnRoutes } from "./routes/earn";
@@ -30,9 +33,13 @@ export type AppDeps = {
   db?: Db;
   version?: string;
   /** Wallet sign-in and alert settings (BE-33). Off without it; needs `db`. */
-  auth?: { secret: string; domain: string; telegramBot?: string };
+  auth?: { secret: string; domains: RegExp[]; telegramBot?: string };
+  /** Web origins allowed to call the API from a browser (BE-56). None: no CORS headers, same-origin only. */
+  corsOrigins?: RegExp[];
   /** Cross-chain deposits and withdrawals (BE-40, BE-41). Needs `db`. */
   intents?: IntentsSource;
+  /** Region and terms (BE-52). Needs `db` and `reader`. Without it, opening and depositing are not gated. */
+  compliance?: ComplianceOptions;
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
@@ -41,8 +48,20 @@ function dexMidsFromDb(db: Db): DexMids {
   return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
 }
 
-export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents }: AppDeps) {
+export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [] }: AppDeps) {
   const app = new Hono();
+  if (corsOrigins.length > 0) {
+    app.use(
+      "*",
+      cors({
+        origin: (origin) => (origin && matchesAny(corsOrigins, origin) ? origin : null),
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["content-type", "authorization"],
+        maxAge: 600,
+      }),
+    );
+  }
+  const compliance = db && complianceOpts ? createCompliance(db, complianceOpts) : undefined;
 
   app.use(async (c, next) => {
     const started = performance.now();
@@ -62,15 +81,16 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
     app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
     app.route("/", earnRoutes(reader, store));
-    if (swap) app.route("/", quoteRoutes(reader, swap, store));
+    if (swap) app.route("/", quoteRoutes(reader, swap, store, compliance));
+    if (db && compliance && complianceOpts) app.route("/", complianceRoutes(db, reader.client, compliance, complianceOpts));
     if (db) app.route("/", statusRoutes(reader, db, version));
     if (db && auth) {
-      app.route("/", authRoutes(reader.client, db, { secret: auth.secret, domain: auth.domain, chainId: reader.deployment.chainId }));
+      app.route("/", authRoutes(reader.client, db, { secret: auth.secret, domains: auth.domains, chainId: reader.deployment.chainId }));
       app.route("/", alertRoutes(db, { secret: auth.secret, telegramBot: auth.telegramBot }));
     }
   }
 
-  if (db && intents) app.route("/", depositRoutes(db, intents));
+  if (db && intents) app.route("/", depositRoutes(db, intents, compliance));
 
   app.notFound(() => {
     throw new ApiHttpError("NOT_FOUND", "No such endpoint");
