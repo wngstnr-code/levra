@@ -157,6 +157,43 @@ export const riskManagerAbi = [
   },
   {
     "type": "function",
+    "name": "oracleAgeBounds",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "Id"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "minOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "capOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "oracleAgePoster",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "positionLtv",
     "inputs": [
       {
@@ -254,6 +291,24 @@ export const riskManagerAbi = [
   },
   {
     "type": "function",
+    "name": "setMaxOracleAge",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "Id"
+      },
+      {
+        "name": "maxOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setNextCloseAt",
     "inputs": [
       {
@@ -273,6 +328,29 @@ export const riskManagerAbi = [
         "name": "paused",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setOracleAgeBounds",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "Id"
+      },
+      {
+        "name": "minOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "capOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
       }
     ],
     "outputs": [],
@@ -369,6 +447,25 @@ export const riskManagerAbi = [
   },
   {
     "type": "event",
+    "name": "MaxOracleAgeSet",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "Id"
+      },
+      {
+        "name": "maxOracleAge",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "NextCloseSet",
     "inputs": [
       {
@@ -394,6 +491,31 @@ export const riskManagerAbi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "OracleAgeBoundsSet",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "Id"
+      },
+      {
+        "name": "minOracleAge",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "capOracleAge",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "MarketNotEnabled",
     "inputs": [
@@ -408,6 +530,27 @@ export const riskManagerAbi = [
     "type": "error",
     "name": "OpeningIsPaused",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OracleAgeOutOfBounds",
+    "inputs": [
+      {
+        "name": "maxOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "minOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "capOracleAge",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
   },
   {
     "type": "error",
