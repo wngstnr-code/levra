@@ -128,7 +128,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-11, SC-30.
   - Do: a test that moves time forward through the pre-close window, the close and the next open, and checks the soft limit, the rejection of new positions and the `deleverage` conditions at each point.
   - Done when: the order in the "Pre-close timeline" table in 04 is proven in tests.
-  - Note: the pre-close window and the session regimes are tested one by one. The full Friday to Monday sequence in one test is not written yet.
+  - Note: `test/MarketHours.t.sol` walks one weekend in a single test: the soft limit drops four hours before the close, a new position above it is refused, the keeper reduces the protected position thirty minutes before the close, closing still works while the market is closed, and after a 5.4% gap on Monday the protected position is healthy while the unprotected one at the open limit is liquidated. Waiting for review.
 
 - [ ] **SC-32 · `Liquidator`**
   - Needs: SC-22.
