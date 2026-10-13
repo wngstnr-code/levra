@@ -164,6 +164,23 @@ Trading runs from Sunday evening to Friday evening. It stops on weekends and US 
 
 `marketParams` contains `loanToken`, `collateralToken`, `oracle`, `irm`, `lltv`.
 
+## Our deployment on Monad mainnet
+
+Staging deployment of 13 October 2026 (SC-15). Verified by reading the contracts back from the chain. The binding source is `contracts/deployments/monad.json`, and `packages/shared` exports it as `monadDeployment`.
+
+| Item | Value |
+|---|---|
+| `MarginRouter` | `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` |
+| `RiskManager` | `0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F` |
+| `Lens` | `0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8` |
+| `Liquidator` | `0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39` |
+| Markets | QQQ, HOOD and BIL long, QQQ and HOOD short. IDs and oracles are in the deployment file |
+| Owner and fee recipient | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the deployer wallet, a single key until the handover of SC-55 |
+| Keeper, calendar poster, oracle age poster | Not set |
+| Block before the first transaction | 113046434 |
+| Cost | 25 transactions, 18,325,235 gas charged, 1.87 MON at a gas price of 102 gwei |
+| Code verified in a block explorer | Not yet |
+
 ## Off-chain services
 
 ### KyberSwap, aggregator API

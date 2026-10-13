@@ -75,13 +75,13 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-10 to SC-13.
   - Do: one script that deploys the oracle, creates the aQQQ long market on Morpho (hard limit 77%), deploys `RiskManager`, the router and `Lens`, fills in the settings, and writes `contracts/deployments/<environment>.json` as defined in 03. `make fork` runs it on the local fork.
   - Done when: Dharu and Nabil can run `make fork` and get the same addresses; `packages/shared/addresses.ts` and `markets.ts` read that file.
-  - Note: the script deploys everything and writes the deployment file. `packages/shared` validates that file (`deployments.ts`), reads it from disk for Node (`deployments.node.ts`) and joins it with the stock list (`markets.ts`). A test parses the real file written on a local fork. Still to do: commit `monad.json` and a static import of it after the mainnet deployment (SC-15), and Dharu and Nabil running `make fork` and `make deploy-fork`. Fork addresses match between machines only with the same `FORK_BLOCK`.
+  - Note: the script deploys everything and writes the deployment file. `packages/shared` validates that file (`deployments.ts`), reads it from disk for Node (`deployments.node.ts`) and joins it with the stock list (`markets.ts`). A test parses the real file written on a local fork. `monad.json` is committed and `deployments.monad.ts` bundles it for the browser. Still to do: Dharu and Nabil running `make fork` and `make deploy-fork`. Fork addresses match between machines only with the same `FORK_BLOCK`.
 
-- [ ] **SC-15 · Staging on mainnet**
+- [~] **SC-15 · Staging on mainnet**
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
-  - Note: Prepared, not run: `make deploy-monad`, then `make first-run-monad CONFIRM=yes`, which opens and closes a long on QQQ, HOOD and BIL and a short on QQQ and HOOD and prints every transaction hash. Rehearsed on a fork with a 20 USDC wallet: 30 transactions, nothing left open. Waiting for a funded deployer wallet: about 20 MON and 20 USDC for all five markets, or 5 USDC for one long.
+  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set. Still to do: `make first-run-monad CONFIRM=yes` once the wallet holds USDC (rehearsed on a fork with 15 USDC, 30 transactions), and code verification in the block explorer.
 
 ---
 
@@ -103,7 +103,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-20, SC-21.
   - Do: aQQQ short, aHOOD long and short, aBIL long markets, with the limits in 04. Review the short soft limit (Q-15).
   - Done when: all five markets are in the staging address file; each market has one real open and close transaction recorded.
-  - Note: the deployment script creates all five markets. Not deployed on mainnet yet. Q-15 is still open.
+  - Note: all five markets are deployed on mainnet and listed in `deployments/monad.json`. No open and close transaction yet. Q-15 is still open.
 
 - [~] **SC-23 · USDC vault**
   - Needs: SC-06, SC-22.
