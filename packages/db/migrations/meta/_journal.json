@@ -43,6 +43,13 @@
       "when": 1791903191118,
       "tag": "0005_earn_alerts_deposits_terms",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791910788872,
+      "tag": "0006_telegram_links",
+      "breakpoints": true
     }
   ]
 }

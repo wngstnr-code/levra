@@ -396,6 +396,8 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
 | POST | `/v1/auth/siwe` | Sign in with a wallet signature, for settings | M3 |
 | GET, PUT | `/v1/alerts` | User alert settings (sign-in required) | M3 |
+| POST | `/v1/alerts/telegram` | One-time t.me link that links a Telegram chat to the wallet (sign-in required) | M3 |
+| DELETE | `/v1/alerts/telegram` | Unlinks the Telegram chat (sign-in required) | M3 |
 
 ### Main data shapes
 
@@ -720,6 +722,10 @@ type TermsAcceptResponse = { accepted: true; acceptedAt: number };
 type AuthNonceResponse = { nonce: string };
 type SiweRequest = { message: string; signature: Hex };
 type SiweResponse = { token: string; expiresAt: number };
+// Sign-in (D-38): GET /v1/auth/nonce, then an EIP-4361 message with that nonce, the web app's host as domain and
+// chain 143, signed by the wallet. The token goes in `Authorization: Bearer <token>` on the alert routes; 401
+// UNAUTHORIZED without it. A nonce is good for 10 minutes and once; a token for 24 hours.
+type TelegramLinkResponse = { url: string; expiresAt: number }; // https://t.me/<bot>?start=<code>, good for 15 minutes
 
 type AlertSettings = {
   channels: { email: string | null; telegramLinked: boolean };
@@ -731,6 +737,11 @@ type AlertSettings = {
     depositArrived: boolean;
   };
 };
+// A wallet that never saved settings gets every event on and no channel. PUT changes only the fields it sends;
+// `ltvThresholdWad` must be above 0 and below 1e18, or null to turn it off.
+// When alerts go out (alerts keeper): 24 hours, 4 hours and 1 hour before a close, for positions above the closed-market
+// limit; once when a position's LTV passes the threshold, again only after it went back under; on auto-deleverage,
+// liquidation and an arrived deposit, for events less than a day old.
 
 type ConfigResponse = {
   chainId: number;

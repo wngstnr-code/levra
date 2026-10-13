@@ -49,6 +49,7 @@ How to use it:
 | D-35 | Hard oracle ages per market: source quote age while open is 1 hour for QQQ and HOOD and 3 hours for BIL; publish age while closed is 4 days for all. Ages to open a position start at 35, 36 and 51 minutes. Proposed from the BE-03 data and implemented in the deployment script. Confirmed by Wangsit on 13 October 2026 and deployed on mainnet with these numbers. The hard ages are now fixed for this deployment | BIL's source quote reached 81.5 minutes after hours, so 1 hour would block its liquidations at times. BIL barely moves, so a longer age costs little. 4 days covers a holiday weekend with a day to spare | One hard age for all markets; 2 hours for BIL, which leaves little room above the 81.5 minutes seen |
 | D-36 | The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price, both through KyberSwap. Quotes, `/v1/markets`, the stream and the depth table all use it, and price impact is measured against it. The client lives in `packages/kyber` (owner: Dharu), shared by the API and the keeper | Chosen by Dharu on 13 October 2026. A one-sided probe carries the pool fee and half the spread, which made every sale look about 2% worse than a buy of the same size | A 10 USDC buy only; the pool's own spot price |
 | D-37 | The landing page is a separate site from the app. The landing site lives at the root domain and the app at the `app.` subdomain of the same domain (for example `levra.xyz` and `app.levra.xyz`; the real domain is still Q-25). The landing site is its own Next.js project in `apps/landing`, deployed as a second Vercel project. Its design is done after the app works and may use its own style | Chosen by Nabil on 13 October 2026 | Home page inside the app; two unrelated domains; a separate repository |
+| D-38 | Wallet sign-in (SIWE, EIP-4361) gives a stateless session token signed with HMAC-SHA256 (`AUTH_SECRET`), good for 24 hours; a sign-in nonce is used once and is good for 10 minutes. The message must name the web app's host and chain 143. Smart wallets are checked with ERC-1271 and ERC-6492 | No session table, works with more than one API instance, nothing to clean up. The times are initial proposals | Sessions in the database; JWT library |
 | D-39 | The app is English only. All text stays in one message file (`apps/web/lib/i18n/en.ts`), so no sentence is written inside a component and another language can be added later as a file | Chosen by Nabil on 13 October 2026. Answers Q-14 | English and Indonesian with a switch |
 
 ## Open questions
@@ -86,6 +87,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-27 | Answered: see D-31 | - | - | - | - |
 | Q-28 | Answered: see D-35 | - | - | - | - |
 | Q-29 | Bug bounty: how large are the rewards, who pays them, and which private channel takes the reports? | Wangsit | Before public launch | SC-56 | See "Decisions waiting for the team". Until decided, the draft in `drafts/bug-bounty.md` is not published |
+| Q-30 | Which services deliver user alerts? | Dharu | M3 | BE-33 | See "Decisions waiting for the team". The code has email through Resend and a Telegram bot, both off until their keys are set |
 
 ## Decisions waiting for the team
 
@@ -121,6 +123,16 @@ Channel:
 | C. A bounty platform | Reaches more researchers. Takes a fee and an application. Fits after the audit |
 
 Nothing here is decided.
+
+### Q-30. Alert delivery services
+
+| Option | State |
+|---|---|
+| A. Email through Resend and a Telegram bot | Written and tested with a stand-in channel (BE-33). Resend has a free tier; needs a sending domain (Q-25). The bot needs a token from BotFather. Suggested |
+| B. Telegram only | No domain needed, works today with one bot token. Users without Telegram get no alerts |
+| C. Another email provider (Postmark, SES) | Only the `resendEmail` function changes |
+
+Email addresses are not verified yet: a user can enter any address. Alerts only describe that user's own positions. Nothing here is decided.
 
 ## Differences between this document set and the idea PDF
 

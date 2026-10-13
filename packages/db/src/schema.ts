@@ -141,6 +141,17 @@ export const alertSettings = pgTable("alert_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
+/**
+ * One-time codes that link a Telegram chat to a wallet (BE-33). The API hands out the code in a t.me start link; the
+ * alerts keeper sees `/start <code>` from the bot and stores the chat id in `alert_settings`.
+ */
+export const telegramLinks = pgTable("telegram_links", {
+  code: text("code").primaryKey(),
+  address: text("address").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+});
+
 /** Alerts already sent, so each one goes out once per channel (BE-33). */
 export const alertDeliveries = pgTable(
   "alert_deliveries",
