@@ -200,7 +200,7 @@ This is the initial choice (D-10). The owner of a part may replace it, as long a
 |---|---|
 | Contracts | Solidity 0.8.x, Foundry, OpenZeppelin, official Morpho interfaces |
 | Backend | Node.js 24, TypeScript, Hono, Postgres with Drizzle, viem, zod |
-| Indexer | Envio HyperIndex (Monad support is proven in BE-06) |
+| Indexer | Our own log follower in `apps/indexer`, reading from Envio HyperSync with the RPC endpoint as fallback (D-34) |
 | Frontend | Next.js App Router, TypeScript, Tailwind, wagmi and viem, TanStack Query |
 | Wallet | Plain wallets through wagmi, plus sign-in by email or passkey through Privy (D-16, D-22) |
 | Tests | Foundry (contracts), Vitest (backend and formulas), Playwright (on-screen flows) |

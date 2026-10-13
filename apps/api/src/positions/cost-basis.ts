@@ -9,6 +9,7 @@ import type { RouterEvent } from "../chain/reader";
  *   the share of stock it sells.
  * - `buyCost` and `shares`: what the stock cost including the fee, for the average entry price.
  * - `realized`: USDC returned by reductions minus the margin they took out.
+ * - Repaying debt with USDC (D-32) is margin added: it raises `invested` and leaves the stock alone.
  *
  * Positions changed outside the router (straight on Morpho) are not seen here.
  */
@@ -20,7 +21,9 @@ export function longCostBasis(events: RouterEvent[], marketId: Hex): CostBasis {
   const basis = emptyCostBasis();
   for (const e of events) {
     if (e.marketId.toLowerCase() !== marketId.toLowerCase()) continue;
-    if (e.kind === "opened") {
+    if (e.kind === "repaid") {
+      basis.invested += e.assets;
+    } else if (e.kind === "opened") {
       basis.shares += e.collateralDelta;
       basis.buyCost += e.margin + e.debtDelta;
       basis.invested += e.margin;

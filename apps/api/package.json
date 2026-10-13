@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
+    "@levra/db": "workspace:*",
     "@levra/shared": "workspace:*",
+    "drizzle-orm": "0.45.4",
     "hono": "^4.13.13",
     "pino": "^10.4.0",
     "viem": "2.57.5",

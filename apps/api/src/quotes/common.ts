@@ -2,6 +2,7 @@ import type { Warning } from "@levra/shared/api";
 import { BPS, mulDiv } from "@levra/shared/math";
 import { erc20Abi, type Address } from "viem";
 import type { ChainReader } from "../chain/reader";
+import type { EventStore } from "../positions/events";
 import type { SwapSource } from "../swap/kyber";
 
 /** Initial proposals (04 and 03). */
@@ -12,7 +13,7 @@ export const NEAR_SOFT_LIMIT_BPS = 200n;
 /** Size of the reference swap for the DEX mid price: 10 USDC. */
 export const MID_PRICE_PROBE_RAW = 10_000_000n;
 
-export type QuoteDeps = { reader: ChainReader; swap: SwapSource };
+export type QuoteDeps = { reader: ChainReader; swap: SwapSource; events: EventStore };
 
 /** MarginRouter._priceE8: quote token per stock token as a dollar price with 8 decimals. */
 export function execPriceE8(quoteAmount: bigint, stockAmount: bigint, quoteDecimals: number, stockDecimals: number): bigint {

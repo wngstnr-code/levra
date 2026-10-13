@@ -24,7 +24,7 @@ describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYM
     await chain.revert({ id: snapshotId });
   });
 
-  it("serves markets whose numbers match direct reads from the contracts", async () => {
+  it("serves markets whose numbers match direct reads from the contracts", { timeout: 30_000 }, async () => {
     const body = marketsResponse.parse(await (await app.request("/v1/markets")).json());
     expect(body.markets).toHaveLength(deployment.markets.length);
 

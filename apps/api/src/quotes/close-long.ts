@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { encodeFunctionData, type Hex } from "viem";
 import { ApiHttpError, upstream } from "../errors";
 import { longCostBasis, realizedOnReduce } from "../positions/cost-basis";
+import { toCostEvents } from "../positions/events";
 import {
   PRICE_IMPACT_WARN_BPS,
   QUOTE_TTL_SECONDS,
@@ -21,7 +22,7 @@ import { simulate } from "./simulate";
 /** Debt keeps accruing between the quote and the transaction. 1 bps of the debt covers far more than 20 seconds. */
 const DEBT_BUFFER_BPS = 1n;
 
-export async function quoteCloseLong({ reader, swap }: QuoteDeps, req: QuoteCloseRequest): Promise<QuoteCloseResponse> {
+export async function quoteCloseLong({ reader, swap, events: store }: QuoteDeps, req: QuoteCloseRequest): Promise<QuoteCloseResponse> {
   const fraction = BigInt(req.fractionWad);
   if (fraction === 0n || fraction > WAD) throw new ApiHttpError("BAD_REQUEST", "fractionWad must be above 0 and at most 1e18.");
 
@@ -30,7 +31,7 @@ export async function quoteCloseLong({ reader, swap }: QuoteDeps, req: QuoteClos
     upstream(reader.routerFees),
     upstream(reader.latestBlock),
     upstream(() => reader.positions(req.user, { fresh: true })),
-    upstream(() => reader.routerEvents(req.user)),
+    upstream(() => store.forUser(req.user)),
   ]);
   const m = markets.find((x) => x.info.marketId.toLowerCase() === req.marketId.toLowerCase());
   if (!m) throw new ApiHttpError("NOT_FOUND", "Unknown market.");
@@ -114,7 +115,7 @@ export async function quoteCloseLong({ reader, swap }: QuoteDeps, req: QuoteClos
       priceImpactBps: priceImpact,
       feeRaw: fee.toString(),
       ltvAfterWad: ltvAfter.toString(),
-      realizedPnlUsdRaw: realizedOnReduce(longCostBasis(events, m.info.marketId), withdraw, settled).toString(),
+      realizedPnlUsdRaw: realizedOnReduce(longCostBasis(toCostEvents(events), m.info.marketId), withdraw, settled).toString(),
     },
     requirements: check.requirements,
     tx: { to: reader.deployment.router, data, value: "0", gasLimit: gasLimit.toString() },
