@@ -10,6 +10,8 @@ const envSchema = z.object({
   KYBER_BASE_URL: z.url().default("https://aggregator-api.kyberswap.com/monad/api/v1"),
   /** Sent as x-client-id. Routes work with any value (05); a registered id raises the rate limit. */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
+  /** Shown in /v1/status, for example the git commit of the deployed build. */
+  APP_VERSION: z.string().min(1).default("dev"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 

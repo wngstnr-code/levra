@@ -85,10 +85,11 @@ Three rules for the backend:
   - Done when: a newly opened position shows up within a few seconds; profit and loss match hand calculations on three examples.
   - Note: done on 13 October 2026. Positions come from `Lens` on every request, so a new position shows at once; entry price, unrealized and realized PnL come from the indexed router events. Fork test: a long opened and then halved from quotes shows the same collateral and debt as `Lens`, an entry price within the 0.10% fee of the swap price, and a reduction whose realized PnL is the USDC returned minus half the margin. Unit tests check three hand calculations (+$30, +$10, -$20). Short positions show value and equity; their entry price and PnL come with BE-20. A position built straight on Morpho shows entry price and PnL as 0 until BE-13 reads Morpho events.
 
-- [ ] **BE-15 · Backend staging**
+- [~] **BE-15 · Backend staging**
   - Needs: BE-11, BE-14.
   - Do: deploy the API, indexer and database on the service of your choice; choose a paid RPC endpoint provider; `GET /v1/status`.
   - Done when: Nabil uses the staging address from the deployed web app.
+  - Note: `GET /v1/status` is written and tested: source quote age and stale flag per stock, health of every keeper from its heartbeat, indexer cursor against the chain head, and `APP_VERSION`. Still to do: the hosting and the paid RPC provider (Dharu and Nabil), and the mainnet deployment (Wangsit) that staging points at.
 
 - [~] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.

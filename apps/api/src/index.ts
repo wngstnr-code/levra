@@ -15,7 +15,7 @@ const deployment = readDeployment(env.DEPLOYMENT_FILE);
 const { db, close } = createDb(env.DATABASE_URL);
 const reader = createChainReader(createChainClient(env.MONAD_RPC_URL), deployment);
 const swap = createKyber({ baseUrl: env.KYBER_BASE_URL, clientId: env.KYBER_CLIENT_ID });
-const app = createApp({ logger, reader, swap, events: dbEventStore(db) });
+const app = createApp({ logger, reader, swap, events: dbEventStore(db), db, version: env.APP_VERSION });
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   logger.info({ port: info.port, chainId: deployment.chainId, markets: deployment.markets.length }, "api listening");
