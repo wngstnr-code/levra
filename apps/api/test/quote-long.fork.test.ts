@@ -135,6 +135,26 @@ describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
     expect(after.ltv - BigInt(q.preview.ltvAfterWad) < 10n ** 12n).toBe(true);
   });
 
+  it("repays part of the debt with USDC from the collateral quote (D-32)", { timeout: 120_000 }, async () => {
+    const before = (await position())!;
+    const amount = 5_000_000n;
+    const body = { user: user.address, marketId: market.marketId, action: "repay", amountRaw: amount.toString() };
+    // The permit from opening was used up, so the quote asks for a new USDC permit first.
+    const first = quoteCollateralResponse.parse(await post("/v1/quote/collateral", body));
+    const approve = first.requirements.find((r) => r.type === "approve");
+    expect(approve).toMatchObject({ satisfied: false, amountRaw: amount.toString() });
+    expect(first.tx.gasLimit).toBe("0");
+    const typedData = forSigning(approve!.typedData);
+    const signatures = [{ type: "approve", signature: await user.signTypedData(typedData), deadline: Number(typedData.message.deadline) }];
+    const q = quoteCollateralResponse.parse(await post("/v1/quote/collateral", { ...body, signatures }));
+    expect(q.warnings.filter((w) => w.severity === "block")).toEqual([]);
+    expect(q.preview.collateralAfterRaw).toBe(before.collateral.toString());
+    await execute(q.tx);
+    const after = (await position())!;
+    expect(before.debt - after.debt >= amount - 1n).toBe(true);
+    expect(after.ltv < before.ltv).toBe(true);
+  });
+
   it("closes the rest from the close quote and leaves nothing in the router", { timeout: 120_000 }, async () => {
     const q = quoteCloseResponse.parse(
       await post("/v1/quote/close", { user: user.address, marketId: market.marketId, fractionWad: (10n ** 18n).toString(), slippageBps: 100 }),

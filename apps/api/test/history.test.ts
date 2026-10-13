@@ -46,6 +46,11 @@ describe("history and realized PnL (three hand calculations)", () => {
     expect(items[0]).toMatchObject({ type: "autoReduce", realizedPnlUsdRaw: (-20n * USDC).toString() });
   });
 
+  it("lists a debt repayment as repayDebt with its USDC amount", () => {
+    const items = buildHistory(reader, [opened(100n * USDC, 100n * USDC, SHARE), ev("DebtRepaid", { assets: (20n * USDC).toString() })]);
+    expect(items[0]).toMatchObject({ type: "repayDebt", usdAmountRaw: (20n * USDC).toString(), stockAmountRaw: null });
+  });
+
   it("pages newest first and rejects an unknown cursor", () => {
     const all = buildHistory(reader, [opened(1n, 1n, 1n), opened(1n, 1n, 1n), opened(1n, 1n, 1n)]);
     const first = pageHistory(all, undefined, 2);

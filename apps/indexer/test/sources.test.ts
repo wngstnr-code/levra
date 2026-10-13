@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { toRouterRow } from "../src/router";
+import { toEventSelector } from "viem";
+import { routerTopics, toRouterRow } from "../src/router";
 import { hyperSyncSource, parseHyperSyncPage } from "../src/sources/hypersync";
 import { marketId, openedLog, user } from "./fixtures";
 
 describe("router events", () => {
+  it("follows every router event the API shows, including DebtRepaid", () => {
+    expect(routerTopics).toHaveLength(6);
+    expect(routerTopics).toContain(toEventSelector("DebtRepaid(address,bytes32,uint256)"));
+  });
+
   it("decodes PositionOpened with every integer as a decimal string", () => {
     const row = toRouterRow(openedLog(100n));
     expect(row).toMatchObject({ name: "PositionOpened", user, marketId, blockNumber: 100n, logIndex: 0 });
