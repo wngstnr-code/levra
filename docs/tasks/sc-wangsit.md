@@ -31,12 +31,12 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 - [~] **SC-04 · A real swap from a contract (spike)**
   - Do: a small test contract that swaps $5 of USDC for aQQQ and back, using calldata from the KyberSwap API, on mainnet. Read from the chain: the quote token of each pool, and the hook address of the Uniswap v4 pools for aQQQ and aHOOD.
   - Done when: the transaction hash is recorded in PROGRESS.md; 05 is updated with the quote tokens and whether a hook exists; Q-16 is answered.
-  - Note: proven on a local fork on 13 October 2026: KyberSwap calldata built for the router executes from the router through the Uniswap v4 aQQQ pool, both buying and selling. All three pools pair with USDC. Still to do: the same on mainnet with real funds, and reading the hook address from the pool.
+  - Note: proven on a local fork: KyberSwap calldata built for the router executes from the router through the Uniswap v4 aQQQ pool, both ways. All three pools pair with USDC. The aQQQ and aHOOD pools have no hook, verified by recomputing their pool IDs, and charge a 0.90% fee. Still to do: the same swap on mainnet with real funds (comes with SC-15).
 
-- [~] **SC-05 · Token behavior (spike)**
+- [x] **SC-05 · Token behavior (spike)**
   - Do: read the aQQQ, aHOOD, aBIL and USDC contracts. Find out: whether they are upgradeable, whether they can be paused, how the denylist works, whether there is a fee on transfer, whether a contract may hold them, and whether USDC supports `permit`.
   - Done when: the result is written as a table in 05; Q-18 is answered; any dangerous finding is added to the threat list in 07.
-  - Note: read from chain and written up in 05 under "Token behavior". On a fork, aQQQ bought from the exchange moved into Morpho as collateral and back out, so a plain transfer to Morpho is allowed today. Still to do: add the findings to the threat list in 07.
+  - Note: token behavior is in 05 under "Token behavior", Q-18 is answered, a transfer of aQQQ into and out of Morpho works on a fork, and the findings are in the threat list in 07 (T-07, T-08, T-17, and the new T-18 and T-19).
 
 - [x] **SC-06 · Addresses we have not found yet (spike)**
   - Do: find and confirm on chain: the Morpho vault factory, the Morpho public allocator, Safe, Permit2, Multicall3. Also check how much USDC can be flash loaned from Morpho.

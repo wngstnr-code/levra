@@ -84,8 +84,9 @@ Verified on 13 October 2026 from aggregator routes for a $100 buy: all three poo
 
 Still not verified (SC-04):
 
-- Whether those Uniswap v4 pools have extra rules (a hook). The aggregator reports no hook data, but it has not been read from the contract.
 - No real swap has been sent on mainnet yet.
+
+Verified on 13 October 2026: the aQQQ and aHOOD pools on Uniswap v4 have no hook. Each pool ID equals the hash of (stock token, USDC, fee 9000, tick spacing 90, hook address zero), and a pool ID commits to its hook. The fee of 9000 means each swap pays 0.90% to the pool, so a round trip pays 1.8% in pool fees before any price impact.
 
 Verified on a local fork on 13 October 2026 (`contracts/script/e2e-long.sh`): calldata built by KyberSwap for our router executed from the router through the aQQQ pool in both directions. A long with 50 USDC of margin and 50 USDC borrowed bought 0.13588 aQQQ, and closing it returned 47.44 USDC, so the round trip cost about 2.6% of the $100 position, most of it price impact in the thin pool.
 
