@@ -12,10 +12,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 
 ## M0. Foundation and spikes
 
-- [~] **SC-01 · Set up `contracts/`**
+- [x] **SC-01 · Set up `contracts/`**
   - Do: Foundry project; install the official Morpho interfaces, OpenZeppelin and forge-std; `forge fmt`; CI on GitHub Actions.
   - Done when: `forge build` and `forge test` pass on your own machine and on GitHub.
-  - Note: done: Foundry project, forge-std, morpho-blue and OpenZeppelin as submodules, `forge fmt`, a Makefile, 48 tests. Still to do: CI on GitHub Actions.
+  - Note: Foundry project, forge-std, morpho-blue and OpenZeppelin as submodules, `forge fmt`, a Makefile, 57 tests, and a CI workflow (format, build, fork tests, ABI freshness, package checks). The first CI run on PR 5 was green.
 
 - [~] **SC-02 · Local mainnet fork (spike)**
   - Do: a `make fork` command that runs Anvil as a copy of Monad at a fixed block number. Try reading Morpho, the Anchored oracle and token balances from that fork.
@@ -31,12 +31,12 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 - [~] **SC-04 · A real swap from a contract (spike)**
   - Do: a small test contract that swaps $5 of USDC for aQQQ and back, using calldata from the KyberSwap API, on mainnet. Read from the chain: the quote token of each pool, and the hook address of the Uniswap v4 pools for aQQQ and aHOOD.
   - Done when: the transaction hash is recorded in PROGRESS.md; 05 is updated with the quote tokens and whether a hook exists; Q-16 is answered.
-  - Note: proven on a local fork on 13 October 2026: KyberSwap calldata built for the router executes from the router through the Uniswap v4 aQQQ pool, both buying and selling. All three pools pair with USDC. Still to do: the same on mainnet with real funds, and reading the hook address from the pool.
+  - Note: proven on a local fork: KyberSwap calldata built for the router executes from the router through the Uniswap v4 aQQQ pool, both ways. All three pools pair with USDC. The aQQQ and aHOOD pools have no hook, verified by recomputing their pool IDs, and charge a 0.90% fee. Still to do: the same swap on mainnet with real funds (comes with SC-15).
 
-- [~] **SC-05 · Token behavior (spike)**
+- [x] **SC-05 · Token behavior (spike)**
   - Do: read the aQQQ, aHOOD, aBIL and USDC contracts. Find out: whether they are upgradeable, whether they can be paused, how the denylist works, whether there is a fee on transfer, whether a contract may hold them, and whether USDC supports `permit`.
   - Done when: the result is written as a table in 05; Q-18 is answered; any dangerous finding is added to the threat list in 07.
-  - Note: read from chain and written up in 05 under "Token behavior". On a fork, aQQQ bought from the exchange moved into Morpho as collateral and back out, so a plain transfer to Morpho is allowed today. Still to do: add the findings to the threat list in 07.
+  - Note: token behavior is in 05 under "Token behavior", Q-18 is answered, a transfer of aQQQ into and out of Morpho works on a fork, and the findings are in the threat list in 07 (T-07, T-08, T-17, and the new T-18 and T-19).
 
 - [x] **SC-06 · Addresses we have not found yet (spike)**
   - Do: find and confirm on chain: the Morpho vault factory, the Morpho public allocator, Safe, Permit2, Multicall3. Also check how much USDC can be flash loaned from Morpho.
@@ -63,7 +63,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-10, SC-11, SC-04.
   - Do: `openLong`, `closeLong` (partial and full), `addCollateral`, `removeCollateral`; Morpho flash loan; allowlist of swap targets; fees with a hard-coded maximum; `multicall`, `permitToken`, `authorizeWithSig`; reentrancy guard; events.
   - Done when: fork tests run open, add collateral, reduce and full close against the real Morpho and KyberSwap; threats T-01, T-02, T-03, T-10, T-12 and T-17 in 07 each have a test; the router holds no tokens after each test.
-  - Note: written and tested on a fork: open, add and remove collateral, partial and full close, one confirmation with two signatures, the swap target lock, the flash callback guard. Threats T-01, T-02 and T-12 have tests. T-03 (reentrancy) and T-10 (signature replay) have no dedicated test yet.
+  - Note: written and tested on a fork: open, add and remove collateral, partial and full close, one confirmation with two signatures, the swap target lock, the flash callback guard. Threats T-01, T-02, T-03, T-10 and T-12 have tests (`test/Security.t.sol` covers reentrancy and signature replay). T-17 is covered by measuring swap output from balances. Waiting for review.
 
 - [~] **SC-13 · `Lens`**
   - Needs: SC-11.
@@ -96,7 +96,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-12, SC-20.
   - Do: `openShort` and `closeShort` in the order given in 02; the sale proceeds are held as collateral (D-05); handling of tiny leftover stock on a full close.
   - Done when: fork tests run open, reduce and full close; a full close leaves no debt; the leftover stock reaches the user.
-  - Note: written and tested on a fork with the test swapper: open, open beyond what the margin alone could borrow, full close with leftover stock returned. Not yet run through a real KyberSwap route.
+  - Note: written and tested on a fork with the test swapper. Also run through the live KyberSwap route with `script/e2e-short.sh`: stock bought on the exchange and lent, a short of $30 opened with $50 of margin, then closed in full with leftover stock returned and the router empty. Waiting for review.
 
 - [~] **SC-22 · Markets for all stocks in scope**
   - Needs: SC-20, SC-21.
@@ -104,10 +104,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: all five markets are in the staging address file; each market has one real open and close transaction recorded.
   - Note: the deployment script creates all five markets. Not deployed on mainnet yet. Q-15 is still open.
 
-- [ ] **SC-23 · USDC vault**
+- [~] **SC-23 · USDC vault**
   - Needs: SC-06, SC-22.
   - Do: create the vault from the official Morpho factory; set the supply cap per market as in 04; the roles are held by team addresses (a multisig later); the fee share as in Q-07.
   - Done when: lending and withdrawing USDC through the vault works on staging; the vault funds really flow into our markets; the address is in the address file.
+  - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Still to do: mainnet, and moving ownership to the multisig (SC-55).
 
 - [ ] **SC-24 · Seed inventory for short markets**
   - Needs: SC-22, X-14.
@@ -122,18 +123,19 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-21.
   - Do: `setProtection`, `deleverage` with its three conditions; a keeper fee with a hard-coded maximum; who may call it (Q-08).
   - Done when: router properties 3 and 4 in 07 have tests; there is a malicious keeper test (T-04) that tries a bad price and fails; it works for long and short.
-  - Note: written and tested: consent, keeper only (D-29), only above the soft limit, must lower the LTV, must trade near the oracle price, keeper fee capped at 0.30%. Waiting for review.
+  - Note: written and tested: consent, keeper only (D-29), only above the soft limit, must lower the LTV, must trade near the oracle price, keeper fee capped at 0.30%. Also run through the live KyberSwap route with `script/e2e-protection.sh`: a long at 70.2% LTV in the pre-close window was reduced to 67.3%. Waiting for review.
 
 - [~] **SC-31 · End-to-end market-hours rule tests**
   - Needs: SC-11, SC-30.
   - Do: a test that moves time forward through the pre-close window, the close and the next open, and checks the soft limit, the rejection of new positions and the `deleverage` conditions at each point.
   - Done when: the order in the "Pre-close timeline" table in 04 is proven in tests.
-  - Note: the pre-close window and the session regimes are tested one by one. The full Friday to Monday sequence in one test is not written yet.
+  - Note: `test/MarketHours.t.sol` walks one weekend in a single test: the soft limit drops four hours before the close, a new position above it is refused, the keeper reduces the protected position thirty minutes before the close, closing still works while the market is closed, and after a 5.4% gap on Monday the protected position is healthy while the unprotected one at the open limit is liquidated. Waiting for review.
 
-- [ ] **SC-32 · `Liquidator`**
+- [~] **SC-32 · `Liquidator`**
   - Needs: SC-22.
   - Do: a contract that liquidates positions in our markets using the Morpho callback and a swap through KyberSwap, with no capital of its own; only the guardian address can call it; the profit goes to the team treasury.
   - Done when: fork tests make a position unhealthy (by changing the oracle price on the fork) and then liquidate it, for long and short; the ABI and address are available to Dharu.
+  - Note: `Liquidator` is written and tested on a fork: a long after a 10% fall, a short after a 20% rise, refusing a loss unless told to cover it from its own float, healthy positions, keepers only, the swap target lock and the callback guard. The deployment script deploys it and records it, and `liquidatorAbi` is in `packages/shared/abis/`. Still to do: a run through the live KyberSwap route, and Dharu's bot (BE-32).
 
 ---
 

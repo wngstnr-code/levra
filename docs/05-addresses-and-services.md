@@ -84,8 +84,9 @@ Verified on 13 October 2026 from aggregator routes for a $100 buy: all three poo
 
 Still not verified (SC-04):
 
-- Whether those Uniswap v4 pools have extra rules (a hook). The aggregator reports no hook data, but it has not been read from the contract.
 - No real swap has been sent on mainnet yet.
+
+Verified on 13 October 2026: the aQQQ and aHOOD pools on Uniswap v4 have no hook. Each pool ID equals the hash of (stock token, USDC, fee 9000, tick spacing 90, hook address zero), and a pool ID commits to its hook. The fee of 9000 means each swap pays 0.90% to the pool, so a round trip pays 1.8% in pool fees before any price impact.
 
 Verified on a local fork on 13 October 2026 (`contracts/script/e2e-long.sh`): calldata built by KyberSwap for our router executed from the router through the aQQQ pool in both directions. A long with 50 USDC of margin and 50 USDC borrowed bought 0.13588 aQQQ, and closing it returned 47.44 USDC, so the round trip cost about 2.6% of the $100 position, most of it price impact in the thin pool.
 
@@ -177,7 +178,13 @@ Verified on 13 October 2026:
 - Finding a route works with any text as the client ID. We used `levra`.
 - Building calldata works when `sender` and `recipient` are a contract that holds no funds. The request body was `routeSummary`, `sender`, `recipient` and `slippageTolerance` (in basis points). The answer has `routerAddress` (the router above), `data` (about 3,600 bytes for a one-hop route), `amountOut`, `gas` and `transactionValue`.
 
-Still not verified (BE-04): request limits, whether a registered client ID is needed for production use, and that the built calldata executes from a contract (SC-04).
+Also verified on a local fork on 13 October 2026:
+
+- The built calldata executes from our router, for buying and for selling.
+- The calldata carries its own minimum return, derived from the `slippageTolerance` sent when building. If the pool moved more than that, the swap reverts with "Return amount is not enough" before our own check. So the user's slippage setting must be passed to the build request.
+- The build request is refused with "wallets invalid" for some addresses. The well-known first account of a local node is one of them.
+
+Still not verified (BE-04): request limits, and whether a registered client ID is needed for production use.
 
 ### Morpho, data API
 
