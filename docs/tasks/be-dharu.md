@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -21,6 +21,7 @@ Three rules for the backend:
 - [~] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
+  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-31), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. Still to do: CI passing on GitHub.
 
 - [x] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
