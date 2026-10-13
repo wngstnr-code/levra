@@ -36,6 +36,7 @@ Four rules for the frontend:
   - Do: wireframes for all pages in 02 and the seven flows in 01; a component list; all states of each screen (loading, empty, error, stale price, market closed, pre-close window, restricted region); colors, fonts and spacing as one system.
   - Done when: Wangsit and Dharu have seen it and there is no data that a screen needs but is missing from 03. If there is, propose an addition to 03 now.
   - Note: a first written draft of every screen, its data, actions and states is in `docs/10-screens.md`, with a list of data the API does not provide yet. Nabil still has to review it, design the layouts and the design system.
+  - Note: low-fidelity wireframes of every screen are in Figma, all on one page: https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY (13 October 2026). Sections: foundations and kit, entry and gates, markets, trade, trade transaction states, positions, earn, deposit and withdraw, settings, help, shared states. Each screen has a note with its data source, states and the task it belongs to. Still open: review by Wangsit and Dharu, the visual design and design system, mobile layouts.
 
 ---
 

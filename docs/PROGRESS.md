@@ -135,7 +135,7 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 13 October 2026
 
 - Dharu: BE-04 done: the keeper measures the DEX mid price every 10 minutes and the depth table daily (`dex_quotes`), `/v1/markets` and the stream now carry the DEX price, and 05 has a new depth table from one run. The mid price is now two-sided (D-36), which removed a 2% bias against sales. No 429 at 33 requests in 18 seconds; KyberSwap's real limit is not published.
-
+- Nabil: FE-04 wireframes for every screen are in Figma on one page (https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY), each with a note on its data, states and task. Next: review by Wangsit and Dharu, then the visual design.
 - Dharu: BE-13 and BE-06 done: the indexer follows Morpho's events for our markets (from Wangsit's ABI export), positions rebuilt from them equal `Morpho.position` on the fork for router and direct users, and history shows liquidations and direct Morpho actions. New history type `borrow`.
 
 - Dharu: `/v1/status` written (BE-15): oracle age per stock, keeper health, indexer lag. Backend CI now runs package tests one at a time, since they share one test database.
