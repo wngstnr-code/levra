@@ -23,6 +23,8 @@ const envSchema = z.object({
   AUTH_DOMAIN: optional(),
   /** Username of the alert bot, without @. The Telegram link route is off without it. */
   TELEGRAM_BOT_USERNAME: optional(),
+  /** Aurora Intents partner token (BE-40). Optional: without it the service adds its own 0.2% fee to every transfer. */
+  INTENTS_JWT: optional(),
   /** Shown in /v1/status, for example the git commit of the deployed build. */
   APP_VERSION: z.string().min(1).default("dev"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
