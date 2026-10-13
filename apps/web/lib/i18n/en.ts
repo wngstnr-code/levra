@@ -240,6 +240,7 @@ export const en = {
     repaid: "Repay",
     withdrawn: "Collateral back",
     youReceive: "You receive",
+    stockBack: "Stock back to you",
     realized: "Realized P&L",
     fee: "Fee",
     neverPaused: "Adding collateral and closing are never paused.",

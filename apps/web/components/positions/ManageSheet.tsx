@@ -163,6 +163,9 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
               <Line k={m.positions.repaid} v={`${formatToken(close.data.preview.debtRepaidRaw, loanToken.decimals, 4)} ${loanToken.symbol}`} />
               <Line k={m.positions.withdrawn} v={`${formatToken(close.data.preview.collateralWithdrawnRaw, collateralToken.decimals, 4)} ${collateralToken.symbol}`} />
               <Line k={m.positions.youReceive} v={formatUsd(close.data.preview.returnedRaw)} />
+              {!long && BigInt(close.data.preview.stockAmountRaw) > BigInt(close.data.preview.debtRepaidRaw) && (
+                <Line k={m.positions.stockBack} v={`${formatToken(BigInt(close.data.preview.stockAmountRaw) - BigInt(close.data.preview.debtRepaidRaw), stock.decimals)} ${stock.tokenSymbol}`} />
+              )}
               <Line k={m.positions.realized} v={formatUsdSigned(close.data.preview.realizedPnlUsdRaw)} tone={BigInt(close.data.preview.realizedPnlUsdRaw) < 0n ? "text-down" : "text-up"} />
               <Line k={m.positions.fee} v={formatUsd(close.data.preview.feeRaw)} />
               {tab === "reduce" && <Line k={m.positions.ltvAfter} v={formatWadPercent(close.data.preview.ltvAfterWad)} />}

@@ -242,6 +242,7 @@ export const id: Messages = {
     repaid: "Bayar",
     withdrawn: "Jaminan kembali",
     youReceive: "Kamu terima",
+    stockBack: "Saham kembali ke kamu",
     realized: "P&L terealisasi",
     fee: "Biaya",
     neverPaused: "Menambah jaminan dan menutup posisi tidak pernah dijeda.",
