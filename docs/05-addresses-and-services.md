@@ -51,6 +51,7 @@ Common infrastructure, confirmed to have code at the usual addresses:
 | Safe 1.4.1 singleton | `0x41675C099F32341bf84BFc5382aF534df5C7461a` |
 | Safe 1.4.1 L2 singleton | `0x29fcB43b46531BcA003ddC8FCB67FFE91900C762` |
 | Safe 1.4.1 proxy factory | `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67` |
+| Safe app and transaction service | Monad mainnet is supported: `safe-config.safe.global` lists chain 143 with the transaction service `api.safe.global/tx-service/monad` (verified 13 October 2026) |
 
 Flash loan room: Morpho held about 10.5 million idle USDC on 13 October 2026.
 
@@ -176,7 +177,7 @@ Staging deployment of 13 October 2026 (SC-15). Verified by reading the contracts
 | `Liquidator` | `0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39` |
 | Markets | QQQ, HOOD and BIL long, QQQ and HOOD short. IDs and oracles are in the deployment file |
 | Owner and fee recipient | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the deployer wallet, a single key until the handover of SC-55 |
-| Keeper, calendar poster, oracle age poster | Not set |
+| Keeper, calendar poster, oracle age poster | Not set. `make set-roles-monad` sets them once the addresses are known |
 | Block before the first transaction | 113046434 |
 | Cost | 25 transactions, 18,325,235 gas charged, 1.87 MON at a gas price of 102 gwei |
 | Source code verified | All nine contracts, exact match, on Sourcify (`sourcify.dev`) and on the Sourcify instance behind MonadVision (`sourcify-api-monad.blockvision.org`). Not submitted to Monadscan |
