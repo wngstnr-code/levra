@@ -29,12 +29,10 @@ contract Deploy is Script {
     address internal constant AHOOD = 0x5a4860adDCc094FcE026384caeEcb1e634DD9af4;
     address internal constant ABIL = 0x4FC5B9f8933597D3ecf84d0611687E1Dc8DD576f;
 
-    uint64 internal constant MAX_FEED_AGE = 1 hours;
+    /// Hard age of the oracle price while the market is closed. The longest close is a holiday weekend, about 72 hours.
     uint64 internal constant MAX_PUBLISH_AGE = 4 days;
-    uint32 internal constant MAX_ORACLE_AGE_TO_OPEN = 45 minutes;
-    /// Bounds for the oracle age poster (D-31). The floor is the lowest max age Anchored suggests.
+    /// Lowest max age the oracle age poster may set (D-31). Anchored suggests no less than this.
     uint32 internal constant MIN_ORACLE_AGE = 1_500;
-    uint32 internal constant CAP_ORACLE_AGE = uint32(MAX_FEED_AGE);
     uint32 internal constant PRE_CLOSE_WINDOW = 4 hours;
     uint256 internal constant FEE_BPS = 10;
     uint256 internal constant KEEPER_FEE_BPS = 30;
@@ -48,6 +46,10 @@ contract Deploy is Script {
         uint64 softClosed;
         uint32 maxDeviationBps;
         uint128 maxPositionUsd;
+        /// Hard age of the source quote while the market is open. Fixed forever at deployment.
+        uint64 maxFeedAge;
+        /// Soft age for opening a position. The oracle age poster moves it up to maxFeedAge.
+        uint32 maxOracleAge;
     }
 
     RiskManager internal risk;
@@ -71,17 +73,21 @@ contract Deploy is Script {
             liquidator.setKeeper(keeper, true);
         }
 
+        // Ages come from two weeks of oracle data (docs/reports/oracle-2026-10-13.md). The source quote
+        // was at most 27 minutes old for QQQ, 34 for HOOD and 82 for BIL, whose feed is slow after hours.
         Plan[5] memory plans = [
-            Plan("QQQ", AQQQ, Side.Long, 0.77e18, 0.73e18, 0.7e18, 500, 500e6),
-            Plan("HOOD", AHOOD, Side.Long, 0.625e18, 0.58e18, 0.5e18, 1_000, 1_000e6),
-            Plan("BIL", ABIL, Side.Long, 0.915e18, 0.9e18, 0.9e18, 100, 1_000e6),
-            Plan("QQQ", AQQQ, Side.Short, 0.77e18, 0.73e18, 0.7e18, 500, 500e6),
-            Plan("HOOD", AHOOD, Side.Short, 0.625e18, 0.58e18, 0.5e18, 1_000, 1_000e6)
+            Plan("QQQ", AQQQ, Side.Long, 0.77e18, 0.73e18, 0.7e18, 500, 500e6, 1 hours, 35 minutes),
+            Plan("HOOD", AHOOD, Side.Long, 0.625e18, 0.58e18, 0.5e18, 1_000, 1_000e6, 1 hours, 36 minutes),
+            Plan("BIL", ABIL, Side.Long, 0.915e18, 0.9e18, 0.9e18, 100, 1_000e6, 3 hours, 51 minutes),
+            Plan("QQQ", AQQQ, Side.Short, 0.77e18, 0.73e18, 0.7e18, 500, 500e6, 1 hours, 35 minutes),
+            Plan("HOOD", AHOOD, Side.Short, 0.625e18, 0.58e18, 0.5e18, 1_000, 1_000e6, 1 hours, 36 minutes)
         ];
         for (uint256 i; i < plans.length; ++i) {
             _addMarket(plans[i], i == plans.length - 1);
         }
 
+        address calendarPoster = vm.envOr("CALENDAR_POSTER", address(0));
+        if (calendarPoster != address(0)) risk.setCalendarPoster(calendarPoster);
         address agePoster = vm.envOr("ORACLE_AGE_POSTER", address(0));
         if (agePoster != address(0)) risk.setOracleAgePoster(agePoster);
 
@@ -121,7 +127,7 @@ contract Deploy is Script {
             plan.side,
             stockDecimals,
             quoteDecimals,
-            MAX_FEED_AGE,
+            plan.maxFeedAge,
             MAX_PUBLISH_AGE
         );
         MarketParams memory mp = plan.side == Side.Long
@@ -138,11 +144,11 @@ contract Deploy is Script {
                 softLtvOpen: plan.softOpen,
                 softLtvClosed: plan.softClosed,
                 maxDeviationBps: plan.maxDeviationBps,
-                maxOracleAge: MAX_ORACLE_AGE_TO_OPEN,
+                maxOracleAge: plan.maxOracleAge,
                 maxPositionUsd: plan.maxPositionUsd
             })
         );
-        risk.setOracleAgeBounds(id, MIN_ORACLE_AGE, CAP_ORACLE_AGE);
+        risk.setOracleAgeBounds(id, MIN_ORACLE_AGE, uint32(plan.maxFeedAge));
         marketsJson = string.concat(
             marketsJson,
             '{"symbol":"',
