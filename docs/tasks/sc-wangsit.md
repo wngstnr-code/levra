@@ -17,28 +17,30 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: `forge build` and `forge test` pass on your own machine and on GitHub.
   - Note: partly done with SC-03: Foundry project, forge-std and morpho-blue as submodules, `forge fmt`, a Makefile. Still to do: OpenZeppelin, a first test, and CI on GitHub Actions.
 
-- [ ] **SC-02 · Local mainnet fork (spike)**
+- [~] **SC-02 · Local mainnet fork (spike)**
   - Do: a `make fork` command that runs Anvil as a copy of Monad at a fixed block number. Try reading Morpho, the Anchored oracle and token balances from that fork.
   - Done when: one test reads the QQQ price from the Anchored oracle and the state of one Morpho market on the fork, and how to run it is written in `contracts/README.md`. The answer to Q-17 is written in 09.
   - If it fails: write down why and propose another way before moving on to M1.
+  - Note: a quick check showed Anvil 1.8.3 forks Monad and that reads and an impersonated `approve` work. Still to do: the `make fork` command, the fork test in the repo, and a full swap and Morpho flow on the fork.
 
-- [~] **SC-03 · Interfaces, events and errors**
+- [x] **SC-03 · Interfaces, events and errors**
   - Do: write `ISessionOracle`, `IRiskManager`, `IMarginRouter`, `ILens`, the shared types, events and errors as defined in 03. Write a script that copies the ABIs to `packages/shared/abis/`.
   - Done when: Dharu and Nabil have read and approved it; the ABIs are in `packages/shared/abis/`; the status in 03 is changed to "frozen".
-  - Note: this task unblocks the other two people. Do it first, together with SC-01.
-  - Note: interfaces, events, errors and the ABI export script are written and the ABIs are in `packages/shared/abis/`. Waiting for Dharu and Nabil to read and approve the PR. The freeze happens when it merges.
+  - Note: merged as PR 1 on 13 October 2026. The contract side of the interface agreement is frozen.
 
 - [ ] **SC-04 · A real swap from a contract (spike)**
   - Do: a small test contract that swaps $5 of USDC for aQQQ and back, using calldata from the KyberSwap API, on mainnet. Read from the chain: the quote token of each pool, and the hook address of the Uniswap v4 pools for aQQQ and aHOOD.
   - Done when: the transaction hash is recorded in PROGRESS.md; 05 is updated with the quote tokens and whether a hook exists; Q-16 is answered.
 
-- [ ] **SC-05 · Token behavior (spike)**
+- [~] **SC-05 · Token behavior (spike)**
   - Do: read the aQQQ, aHOOD, aBIL and USDC contracts. Find out: whether they are upgradeable, whether they can be paused, how the denylist works, whether there is a fee on transfer, whether a contract may hold them, and whether USDC supports `permit`.
   - Done when: the result is written as a table in 05; Q-18 is answered; any dangerous finding is added to the threat list in 07.
+  - Note: read from chain on 13 October 2026 and written up in 05 under "Token behavior": the stock tokens are beacon proxies with a compliance contract and no `permit`; USDC has `permit`, a pauser and a blacklist; Morpho is not on the denylist. Still to do: confirm which compliance check a plain transfer uses, simulate a transfer to Morpho, and add findings to the threat list in 07.
 
-- [ ] **SC-06 · Addresses we have not found yet (spike)**
+- [~] **SC-06 · Addresses we have not found yet (spike)**
   - Do: find and confirm on chain: the Morpho vault factory, the Morpho public allocator, Safe, Permit2, Multicall3. Also check how much USDC can be flash loaned from Morpho.
   - Done when: the addresses are in 05 and in `packages/shared/addresses.ts`; Q-11 is answered.
+  - Note: addresses found in Morpho's SDK address list and confirmed to have code on chain: both vault factories, the public allocator, Permit2, Multicall3 and Safe 1.4.1. They are in 05. Still to do: add them to `packages/shared/addresses.ts`, and decide the vault type (Q-11).
 
 ---
 

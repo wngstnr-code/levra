@@ -21,18 +21,20 @@ Four rules for the frontend:
   - Do: Next.js project; Tailwind; style and type checks; CI on GitHub Actions; a preview deployment for every PR.
   - Done when: an empty page is deployed and every PR gets a preview address.
 
-- [ ] **FE-02 · Wallet and network**
+- [~] **FE-02 · Wallet and network**
   - Do: connect a plain wallet on Monad (chain 143); sign in by email or passkey without an existing wallet (D-16); switch network automatically; show the MON and USDC balances. The provider is Privy (D-22). Confirm with Wangsit that its embedded wallet is a normal key wallet, because that decides whether the signature path in 03 section 3 works.
   - Done when: both sign-in paths work, real balances show, a user can export or recover the created wallet, and the wallet type finding is recorded under Q-02 in 09.
+  - Note: provider chosen: Privy (D-22). Its documentation says the embedded wallet is a normal key wallet that supports typed-data signing and export. Nothing is built yet, and a Privy app ID is needed first.
 
 - [ ] **FE-03 · Markets page with data straight from the chain**
   - Do: read the price and market session of QQQ, HOOD and BIL directly from the Anchored oracle (address and data layout in 05). Show them in a simple list.
   - Done when: real prices and market sessions show and change with the chain, without a backend.
   - Note: this task does not wait for anyone. Do it while waiting for SC-03 and BE-02.
 
-- [ ] **FE-04 · Screen design**
+- [~] **FE-04 · Screen design**
   - Do: wireframes for all pages in 02 and the seven flows in 01; a component list; all states of each screen (loading, empty, error, stale price, market closed, pre-close window, restricted region); colors, fonts and spacing as one system.
   - Done when: Wangsit and Dharu have seen it and there is no data that a screen needs but is missing from 03. If there is, propose an addition to 03 now.
+  - Note: a first written draft of every screen, its data, actions and states is in `docs/10-screens.md`, with a list of data the API does not provide yet. Nabil still has to review it, design the layouts and the design system.
 
 ---
 

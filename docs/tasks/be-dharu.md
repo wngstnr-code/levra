@@ -22,28 +22,30 @@ Three rules for the backend:
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
 
-- [~] **BE-02 · API data shapes**
+- [x] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
   - Done when: Nabil and Wangsit have read and approved it; the status in 03 is changed to "frozen"; the frontend can import the types.
-  - Note: this task unblocks Nabil. Do it first, together with BE-01.
-  - Note: schemas for all 23 endpoints are written in `packages/shared/api/` with tests. Shapes that 03 did not define yet were added to 03 under "More data shapes". Waiting for Nabil and Wangsit to read and approve the PR. The freeze happens when it merges.
+  - Note: merged as PR 2 on 13 October 2026. The API side of the interface agreement is frozen.
 
-- [ ] **BE-03 · Oracle logger (spike)**
+- [~] **BE-03 · Oracle logger (spike)**
   - Do: a small program that records every price change for QQQ, HOOD and BIL in the Anchored oracle: the price, best bid and best ask, market session, publish time. Run it for at least 7 days, and it must cover one weekend.
   - Done when: there is a short report on how often the price is updated in each market session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value.
-  - Note: start on day one, because it needs a week. This logger later becomes the oracle monitor (BE-50).
+  - Note: Anchored's documentation answers part of this (heartbeat, delay, session hours, carry-forward while closed) and is summarized in 05 and 04. The logger itself is not written or running yet, so nothing is confirmed by observation.
 
-- [ ] **BE-04 · KyberSwap (spike)**
+- [~] **BE-04 · KyberSwap (spike)**
   - Do: get an identifier; try to find a route and build calldata with a contract address as the recipient; record the rate limit. Write a script that measures market depth (buy and sell $100, $300, $1,000, $3,000, $10,000 for each stock, against the DEX mid price and against the oracle), runs daily and stores the results.
   - Done when: 05 is updated with how to use it and its limits; the depth table in 05 is replaced with the new measurements using one consistent method; Wangsit uses the calldata in SC-04.
+  - Note: checked by hand on 13 October 2026: routes work with any client ID, all three pools pair with USDC in one hop, and calldata builds with a contract as sender and recipient. Details in 05. Still to do: the daily depth script, request limits, and re-measuring the depth table one consistent way.
 
-- [ ] **BE-05 · Real cross-chain deposit (spike)**
+- [~] **BE-05 · Real cross-chain deposit (spike)**
   - Do: get an Aurora Intents API key; send $5 from another chain to USDC on Monad; record the time and fee; try a small transfer of MON; read the documentation on running a step when the funds arrive.
   - Done when: the source and destination transaction hashes are recorded in PROGRESS.md; 05 is updated; Q-10 is answered; the material for Q-09 is handed to Wangsit.
+  - Note: price-only quotes from Base, Arbitrum and Ethereum to USDC on Monad work without an API key, and so does a small quote into MON. Results in 05. Still to do: a real deposit, the API key, and the run-on-arrival feature.
 
-- [ ] **BE-06 · Indexer on Monad (spike)**
+- [~] **BE-06 · Indexer on Monad (spike)**
   - Do: read one type of Morpho event on chain 143 with the indexer tool of your choice.
   - Done when: that event is in the database; if the default tool does not fit, the replacement is recorded as a decision in 09.
+  - Note: Envio's documentation lists Monad mainnet (chain 143) with a HyperSync endpoint. Not run yet, and whether an API token is needed is unknown.
 
 ---
 
