@@ -161,11 +161,12 @@ Three rules for the backend:
   - Done when: a test address receives all three before-close alerts at the right times.
   - Note: written on 14 October 2026. API: `/v1/auth/nonce` and `/v1/auth/siwe` (D-38), `GET` and `PUT /v1/alerts`, and `POST`/`DELETE /v1/alerts/telegram` for linking a Telegram chat with a one-time code; on only when `AUTH_SECRET` and `AUTH_DOMAIN` are set. Keeper job `alerts` (every minute): before-close alerts at 24 hours, 4 hours and 1 hour from the BE-30 calendar for positions above the closed-market limit; LTV over the user's threshold, once per crossing; auto-deleverage, liquidation and arrived deposits from the indexed events. Each alert goes out once per channel (`alert_deliveries`), a failed send is retried. It also links Telegram chats from the bot's `/start <code>` messages. Fork test: a position above the closed limit got the three before-close alerts at the right stages and once each, a position below it got none, plus the LTV, deleverage and liquidation alerts. Still to do: pick the delivery services (Q-30), set `RESEND_API_KEY`, `ALERT_EMAIL_FROM` and `TELEGRAM_BOT_TOKEN`, and see one real email and one Telegram message arrive; email addresses are not verified yet.
 
-- [~] **BE-34 · Gap scenarios**
+- [x] **BE-34 · Gap scenarios**
   - Needs: BE-16.
   - Do: fill `gapScenarios` in quotes and in accounts; a periodic job that updates the gap table from the market data source and tells the team when the worst number changes.
   - Done when: the scenarios in the summary match the formula in 04; the gap table can be regenerated from a script.
-  - Note: one `gapScenarios` helper in `packages/shared/gaps.ts` fills quotes and accounts for long and short, with tests against the formula in 04; `gapStatsFromBars` rebuilds a table row from daily bars. Still to do: the regeneration script with a data source, and the daily check that alerts the team (needs BE-50).
+  - Note: one `gapScenarios` helper in `packages/shared/gaps.ts` fills quotes and accounts for long and short, with tests against the formula in 04; `gapStatsFromBars` rebuilds a table row from daily bars.
+  - Note: done on 14 October 2026. `pnpm --filter @levra/keeper report:gaps` reads five years of daily prices from Yahoo Finance's chart API (the table's source, split-adjusted, no key) and prints the rebuilt table next to the current one; `--write` replaces it in `gaps.ts`. A run on 14 October gave the same worst drop and rise as the table for all eight stocks. It counts 275 events per stock where the table says 261, because it also counts single holidays in the middle of a week, so the "gaps over 2%" share moves by up to 1.3 points; the table was not rewritten. The team monitor (BE-50) reads the prices once a day and alerts when a stock we list had a gap worse than the table, which asks for a rebuild and a check of the closed-market limits in 04.
 
 ---
 
