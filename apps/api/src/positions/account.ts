@@ -1,24 +1,23 @@
 import { morphoAbi } from "@levra/shared/abis";
-import type { Account, GapScenario, HistoryItem, HistoryItemType, Position } from "@levra/shared/api";
-import { gapTable } from "@levra/shared/gaps";
-import { BPS, ORACLE_PRICE_SCALE, WAD, cautiousPriceE8, collateralValue, ltvAfterGapWad, morphoOraclePrice, mulDiv } from "@levra/shared/math";
+import type { Account, HistoryItem, HistoryItemType, Position } from "@levra/shared/api";
+import { gapScenarios } from "@levra/shared/gaps";
+import { BPS, ORACLE_PRICE_SCALE, cautiousPriceE8, collateralValue, morphoOraclePrice, mulDiv } from "@levra/shared/math";
 import { external, tokens } from "@levra/shared/addresses";
-import { erc20Abi, type Address } from "viem";
+import { erc20Abi, type Address, type Hex } from "viem";
 import type { ChainReader, MarketState } from "../chain/reader";
-import { emptyCostBasis, entryPriceE8, longCostBasis, realizedOnReduce, type CostBasis } from "./cost-basis";
+import { costBasis, entryPriceE8, longCostBasis, realizedOnReduce, type CostBasis } from "./cost-basis";
 import { toCostEvents, type StoredEvent } from "./events";
 
 const STOCK_DECIMALS = 18;
 const QUOTE_DECIMALS = tokens.USDC.decimals;
+/**
+ * History items need a market id and a symbol. Vault deposits and withdrawals have no market, so they carry the zero id
+ * and the symbol `USDC` (BE-22). The frontend tells them apart by `marketId`.
+ */
+export const VAULT_HISTORY_MARKET_ID: Hex = `0x${"00".repeat(32)}`;
 
-export function gapScenarios(side: "long" | "short", symbol: string, ltvWad: bigint, lltvWad: bigint): GapScenario[] {
-  const gap = gapTable[symbol as keyof typeof gapTable];
-  if (!gap || ltvWad === 0n) return [];
-  const move = side === "long" ? gap.worstDropBps : gap.worstRiseBps;
-  const ltvAfter = ltvAfterGapWad(side, ltvWad, (BigInt(move) * WAD) / BPS);
-  const label = side === "long" ? "Worst weekend or holiday drop in 5 years" : "Worst weekend or holiday rise in 5 years";
-  return [{ label, moveBps: move, ltvWad: ltvAfter.toString(), liquidated: ltvAfter >= lltvWad }];
-}
+/** One helper for both sides (BE-34), kept under its old name for callers. */
+export { gapScenarios };
 
 function liqDistance(oracleE8: bigint, liqE8: bigint, side: "long" | "short"): number {
   if (liqE8 === 0n || oracleE8 === 0n) return Number(BPS);
@@ -28,7 +27,7 @@ function liqDistance(oracleE8: bigint, liqE8: bigint, side: "long" | "short"): n
 
 /**
  * Builds the account from live chain reads (positions through `Lens`) and the indexed router events (entry price, PnL).
- * Short positions show value and equity; their entry price and PnL come with the short quote engine (BE-20) and are 0 until then.
+ * Long and short both get an entry price and PnL from the router events (BE-20); a position built straight on Morpho has none.
  */
 export async function buildAccount(reader: ChainReader, events: StoredEvent[], user: Address): Promise<Account> {
   const [positions, markets, block] = await Promise.all([reader.positions(user), reader.markets(), reader.latestBlock()]);
@@ -57,12 +56,12 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
     if (!m) continue;
     const side = m.info.side;
     const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), STOCK_DECIMALS, QUOTE_DECIMALS);
-    const basis: CostBasis = side === "long" ? longCostBasis(costEvents, m.info.marketId) : emptyCostBasis();
+    const basis: CostBasis = costBasis(side, costEvents, m.info.marketId);
 
     const value = side === "long" ? collateralValue(p.collateralRaw, price) : mulDiv(p.debtRaw, ORACLE_PRICE_SCALE, price);
     const positionDebtUsd = side === "long" ? p.debtRaw : value;
     const positionEquity = side === "long" ? value - p.debtRaw : p.collateralRaw - value;
-    const pnl = side === "long" && basis.shares > 0n ? positionEquity - basis.invested : 0n;
+    const pnl = basis.shares > 0n ? positionEquity - basis.invested : 0n;
 
     equity += positionEquity;
     debtUsd += positionDebtUsd;
@@ -109,6 +108,24 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
   const shares = new Map<string, bigint>();
 
   for (const [i, e] of events.entries()) {
+    if (e.source === "vault") {
+      const assets = String(e.args.assets ?? "0");
+      items.push({
+        id: `${e.txHash}:${e.logIndex}`,
+        type: e.name === "Deposit" ? "lend" : "withdrawLend",
+        marketId: VAULT_HISTORY_MARKET_ID,
+        symbol: "USDC",
+        side: null,
+        txHash: e.txHash,
+        timestamp: e.blockTime,
+        stockAmountRaw: null,
+        usdAmountRaw: assets,
+        execPriceE8: null,
+        feeRaw: null,
+        realizedPnlUsdRaw: null,
+      });
+      continue;
+    }
     const market = markets.get(e.marketId.toLowerCase());
     if (!market) continue;
     const side = market.side;
@@ -125,7 +142,7 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
     if (e.source === "morpho") {
       const delta = borrowSharesDelta(e);
       if (delta !== null) shares.set(market.marketId, (shares.get(market.marketId) ?? 0n) + delta);
-      const item = morphoHistoryItem(e, side, routerTxs, () => longCostBasis(toCostEvents(events.slice(0, i)), market.marketId));
+      const item = morphoHistoryItem(e, side, routerTxs, () => costBasis(side, toCostEvents(events.slice(0, i)), market.marketId));
       if (item) items.push({ ...base, ...item });
       continue;
     }
@@ -141,19 +158,20 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
         realizedPnlUsdRaw: null,
       });
     } else if (e.name === "PositionReduced") {
-      const before = side === "long" ? longCostBasis(toCostEvents(events.slice(0, i)), market.marketId) : emptyCostBasis();
-      const sold = big("collateralDelta");
+      const before = costBasis(side, toCostEvents(events.slice(0, i)), market.marketId);
+      // The stock leaving the position: sold collateral for a long, repaid debt for a short.
+      const sold = side === "long" ? big("collateralDelta") : big("debtDelta");
       // With Morpho events indexed, a reduction that leaves no borrow shares closed the position, for long and short.
       const closed = shares.has(market.marketId) ? shares.get(market.marketId) === 0n : before.shares > 0n && sold >= before.shares;
       const type: HistoryItemType = Number(e.args.reason) === 1 ? "autoReduce" : closed ? "close" : "reduce";
       items.push({
         ...base,
         type,
-        stockAmountRaw: (side === "long" ? sold : big("debtDelta")).toString(),
+        stockAmountRaw: sold.toString(),
         usdAmountRaw: big("returned").toString(),
         execPriceE8: big("execPriceE8").toString(),
         feeRaw: big("fee").toString(),
-        realizedPnlUsdRaw: side === "long" ? realizedOnReduce(before, sold, big("returned")).toString() : null,
+        realizedPnlUsdRaw: realizedOnReduce(before, sold, big("returned")).toString(),
       });
     } else if (e.name === "DebtRepaid") {
       const amount = big("assets").toString();
@@ -212,7 +230,7 @@ function morphoHistoryItem(e: StoredEvent, side: "long" | "short", routerTxs: Se
       usdAmountRaw: (side === "long" ? repaid : seized).toString(),
       execPriceE8: null,
       feeRaw: null,
-      realizedPnlUsdRaw: side === "long" ? realizedOnReduce(basisBefore(), seized, 0n).toString() : null,
+      realizedPnlUsdRaw: realizedOnReduce(basisBefore(), side === "long" ? seized : repaid, 0n).toString(),
     };
   }
   if (routerTxs.has(e.txHash.toLowerCase())) return null;

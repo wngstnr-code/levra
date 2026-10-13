@@ -640,10 +640,12 @@ type MarketDetail = {
   stockToken: Address;
   session: SessionInfo;
   markets: Market[];          // one per side
-  depth: DepthPoint[];
-  rateHistory: RatePoint[];
-  deviationHistory: DeviationPoint[];
+  depth: DepthPoint[];         // the latest daily depth run; failed sizes are left out
+  rateHistory: RatePoint[];    // last 30 days, the last snapshot per market in each hour, oldest first
+  deviationHistory: DeviationPoint[]; // last 30 days, the last mid measurement in each hour, oldest first
 };
+// `:symbol` is the stock symbol without the `a` prefix, any case. 404 for a stock not in the deployment.
+// The three history arrays are empty when the API runs without a database. Window and bucket are initial proposals.
 
 type QuoteCollateralRequest = {
   user: Address;
@@ -664,7 +666,7 @@ type QuoteCollateralResponse = {
 type HistoryResponse = { items: HistoryItem[]; nextCursor: string | null }; // query: cursor, limit (1 to 100)
 
 type EarnOption = {
-  id: string;
+  id: string;                 // "vault:<vault address>" or "market:<marketId>", lowercase
   kind: "vault" | "market";
   asset: Address;
   assetSymbol: string;
@@ -677,6 +679,7 @@ type EarnOption = {
   feeWad: string | null;      // share of interest taken by the vault
 };
 type EarnResponse = { options: EarnOption[] };
+// earnedRaw: supplied now minus net deposits, signed (negative after bad debt). Stock options are the short markets.
 type EarnPosition = { optionId: string; suppliedRaw: string; earnedRaw: string; withdrawableRaw: string };
 type EarnAccount = { address: Address; positions: EarnPosition[] };
 
@@ -780,7 +783,7 @@ Server-Sent Events. Three event types:
 - If there is a warning with `severity: "block"`, `tx` is still sent but the frontend does not show the confirm button.
 - In `typedData`, every `uint256` value is a decimal string so the payload survives JSON. The frontend turns them into `bigint` before signing.
 - `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
-- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for short positions until the short quote engine (BE-20) and for positions built straight on Morpho, whose cost is not known. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
+- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for positions built straight on Morpho, whose cost is not known. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
 - `/history` takes `cursor` (the `id` of the last item shown) and `limit` (1 to 100, default 20) as query parameters, newest first. An unknown cursor answers `BAD_REQUEST`.
 - Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.

@@ -7,7 +7,7 @@ import { loadEnv } from "./env";
 import { createLogger } from "./logger";
 import { hyperSyncSource } from "./sources/hypersync";
 import { rpcSource } from "./sources/rpc";
-import { morphoStream, routerStream, syncStream } from "./sync";
+import { morphoStream, routerStream, syncStream, vaultStream, type Stream } from "./sync";
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");
@@ -17,7 +17,7 @@ const source = env.ENVIO_API_TOKEN
   ? hyperSyncSource({ url: env.HYPERSYNC_URL, token: env.ENVIO_API_TOKEN })
   : rpcSource(createPublicClient({ chain: monad, transport: http(env.MONAD_RPC_URL, { retryCount: 3, timeout: 20_000 }) }));
 
-const streams = [routerStream(deployment), morphoStream(deployment)];
+const streams = [routerStream(deployment), morphoStream(deployment), vaultStream(deployment)].filter((s): s is Stream => s !== null);
 let stopping = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
