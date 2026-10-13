@@ -18,6 +18,7 @@ import { splitRequirements } from "@/lib/typedData";
 import { formatToken, formatUsd, formatWadPercent, parseAmount, stockValueUsd } from "@/lib/units";
 import { useDebounced } from "@/lib/useDebounced";
 import { useNowSeconds } from "@/lib/useNow";
+import { useChainLimits } from "@/lib/useChainLimits";
 import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
 import { useQuote } from "@/lib/useQuote";
 import { trackStep } from "@/lib/metrics";
@@ -58,6 +59,7 @@ export function TradeView() {
   const oracle = useOracleSnapshots();
   const market = markets.data?.markets.find((x) => x.symbol === symbol && x.side === side) ?? null;
   const snap = oracle.snapshots[symbol];
+  const chainLimits = useChainLimits(symbol, side);
 
   const [marginText, setMarginText] = useState("100");
   const [leverageBySide, setLeverageBySide] = useState<Record<Side, number>>({ long: 200, short: 50 });
@@ -68,7 +70,8 @@ export function TradeView() {
   const now = useNowSeconds();
 
   const minE2 = side === "long" ? 100 : 10;
-  const maxE2 = Math.max(minE2, market?.maxLeverageE2 ?? minE2);
+  const maxE2 = Math.max(minE2, market?.maxLeverageE2 ?? chainLimits.maxLeverageE2 ?? minE2);
+  const capRaw = market ? BigInt(market.maxPositionUsdRaw) : chainLimits.maxPositionUsdRaw;
   const leverageE2 = Math.min(maxE2, Math.max(minE2, leverageBySide[side]));
   const marginRaw = parseAmount(marginText, USDC_DECIMALS);
   const positionUsd = marginRaw ? (marginRaw * BigInt(leverageE2)) / 100n : 0n;
@@ -196,8 +199,8 @@ export function TradeView() {
           maxE2={maxE2}
           slippageBps={slippageBps}
           onSlippage={setSlippageBps}
-          capShare={market ? Number((positionUsd * 1000n) / (BigInt(market.maxPositionUsdRaw) || 1n)) / 1000 : null}
-          capText={market ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(market.maxPositionUsdRaw, 0)) : null}
+          capShare={capRaw ? Number((positionUsd * 1000n) / capRaw) / 1000 : null}
+          capText={capRaw ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(capRaw, 0)) : null}
           firstTimeSignatures={pending.toSign.length}
           notes={q?.warnings.filter((w) => w.severity !== "block").map((w) => w.message) ?? []}
           action={action}
