@@ -284,7 +284,16 @@ The frontend turns each error into a sentence the user can understand. The list 
 
 Lending does not go through the router (D-07). The frontend calls the vault (`deposit`, `redeem` as in ERC-4626) and Morpho (`supply`, `withdraw`) directly.
 
-To keep first use at one confirmation: the frontend asks for two gasless signatures (the permit and the Morpho authorization), then wraps them together with `openLong` inside `multicall`. Whether USDC on Monad supports `permit` is not verified (SC-05). If it does not, first use takes two confirmations, or uses the wallet's transaction batching feature.
+First use is one confirmation (D-20), and the backend builds every transaction (D-19):
+
+1. The frontend requests a quote. Unmet requirements come back with `typedData` to sign.
+2. The user signs them. Signatures cost no gas.
+3. The frontend requests the quote again with `signatures`. The backend returns a `tx` that is a `multicall`: apply the permit, apply the Morpho authorization, then open the position. Its `gasLimit` comes from simulating the whole `multicall`.
+4. The user confirms that one transaction.
+
+After first use, the plain quote already returns a ready `tx`.
+
+Whether USDC on Monad supports `permit` is not verified (SC-05). If it does not, first use takes two confirmations, or uses the wallet's transaction batching feature. This path needs a normal key wallet. Privy embedded wallets are expected to be that type, to be confirmed in FE-02.
 
 ## 4. Backend API
 
@@ -378,6 +387,7 @@ type QuoteOpenRequest = {
   marginRaw: string;          // USDC
   leverageE2: number;         // stock position value divided by margin, times 100
   slippageBps: number;
+  signatures?: SignatureInput[]; // second request of first use
 };
 
 type Warning = {
@@ -402,6 +412,14 @@ type Requirement = {
   token?: Address;
   spender?: Address;
   amountRaw?: string;
+  typedData?: unknown;        // EIP-712 payload to sign, when a signature can replace a transaction
+};
+
+type SignatureInput = {
+  type: "approve" | "morphoAuthorization";
+  signature: Hex;
+  deadline: number;
+  nonce?: string;
 };
 
 type TxRequest = { to: Address; data: Hex; value: string; gasLimit: string };
@@ -426,7 +444,6 @@ type QuoteOpenResponse = {
     gapScenarios: GapScenario[];
   };
   requirements: Requirement[];
-  call: { functionName: "openLong" | "openShort"; args: unknown[] }; // to be wrapped in multicall
   tx: TxRequest;              // direct call, when all approvals are in place
   warnings: Warning[];
 };
@@ -455,7 +472,6 @@ type QuoteCloseResponse = {
     realizedPnlUsdRaw: string; // can be negative
   };
   requirements: Requirement[];
-  call: { functionName: "closeLong" | "closeShort"; args: unknown[] };
   tx: TxRequest;
   warnings: Warning[];
 };
@@ -551,6 +567,7 @@ Server-Sent Events. Three event types:
 - A quote is valid for a short time (initial proposal: 20 seconds). The frontend asks again when it is stale.
 - `tx.gasLimit` comes from simulation plus a small reserve. The frontend uses it as is.
 - If there is a warning with `severity: "block"`, `tx` is still sent but the frontend does not show the confirm button.
+- The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.
 - The backend never holds user keys and never sends transactions on behalf of a user.
 
 ## 5. Contents of `packages/shared`
