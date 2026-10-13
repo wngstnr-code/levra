@@ -28,8 +28,10 @@ Three rules for the backend:
   - Note: merged as PR 2 on 13 October 2026. The API side of the interface agreement is frozen.
 
 - [~] **BE-03 · Oracle logger (spike)**
-  - Do: a small program that records every price change for QQQ, HOOD and BIL in the Anchored oracle: the price, best bid and best ask, market session, publish time. Run it for at least 7 days, and it must cover one weekend.
-  - Done when: there is a short report on how often the price is updated in each market session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value.
+  - Needs: Postgres from BE-01.
+  - Do: a long-running process that records every price change for QQQ, HOOD and BIL in the Anchored oracle into Postgres: the price, best bid and best ask, market session, publish time. It keeps running after the spike. Add queries for the update interval per session (p50, p95, max) and for every session change with its time. Check whether the oracle emits an event on each update; if it does, backfill past weeks from the logs. Add a query that proposes `maxOracleAge` per market from the data.
+  - Done when: the data covers at least 7 days including one weekend; the report on how often the price is updated in each session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense is generated from the queries, not written by hand. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value and the proposed `maxOracleAge`, marked as a proposal.
+  - Note: start on day one, because it needs a week. A partial report after the first day is fine if it says clearly that the weekend is not covered yet. This logger later becomes the oracle monitor (BE-50).
   - Note: Anchored's documentation answers part of this (heartbeat, delay, session hours, carry-forward while closed) and is summarized in 05 and 04. The logger itself is not written or running yet, so nothing is confirmed by observation.
 
 - [~] **BE-04 · KyberSwap (spike)**
@@ -53,8 +55,8 @@ Three rules for the backend:
 
 - [ ] **BE-10 · Chain reader**
   - Needs: SC-03.
-  - Do: one layer for reading the oracle, the Morpho market state and positions through `Lens`, with a short cache and handling of RPC endpoint limits.
-  - Done when: all endpoints use it; no other part calls the RPC endpoint directly.
+  - Do: one layer for reading the oracle, the Morpho market state and positions through `Lens`, with a short cache and handling of RPC endpoint limits. Risk parameters such as `maxOracleAge` and the `stale` flag from `SessionOracle.snapshot()` are always read from the chain, never kept as constants in the backend.
+  - Done when: all endpoints use it; no other part calls the RPC endpoint directly; changing `maxOracleAge` on chain changes `oracleStale` and the `ORACLE_STALE` warning without a backend deploy.
 
 - [ ] **BE-11 · Markets, market session and price stream**
   - Needs: BE-10.
@@ -83,8 +85,8 @@ Three rules for the backend:
 
 - [ ] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
-  - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table.
-  - Done when: tests compare the results with `Lens` on the local fork for long and short; Wangsit has reviewed it.
+  - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table. Include the "price used" rule from 04 (long: lower of price and best bid, short: higher of price and best ask) with the fallback to the price alone, checked on every read so the code does not depend on the answer to Q-19. The fallback condition must match the contract exactly (Q-22).
+  - Done when: tests compare the results with `Lens` on the local fork for long and short, including a zero and a non-sensible bid and ask; Wangsit has reviewed it.
 
 ---
 
