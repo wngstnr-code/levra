@@ -156,13 +156,21 @@ How this design withstands those weaknesses:
 
 The hard max age cannot be filled in until BE-03 is done. Until then, `SessionOracle` is written with max age as a number set at deployment.
 
-Max ages used by the deployment script, all initial proposals until BE-03 has a week of data:
+Max ages used by the deployment script, per market, chosen from the BE-03 data (D-33):
 
-| Setting | Value | Where |
-|---|---|---|
-| Source quote age while the market is open | 1 hour | `SessionOracle`, hard |
-| Publish age while the market is closed | 4 days | `SessionOracle`, hard |
-| Source quote age to open a new position | 45 minutes | `RiskManager`, soft |
+| Market | Hard source quote age while open | Hard publish age while closed | Age to open a position | Largest source quote age seen |
+|---|---|---|---|---|
+| QQQ | 1 hour | 4 days | 35 minutes | 26.8 minutes |
+| HOOD | 1 hour | 4 days | 36 minutes | 33.6 minutes |
+| BIL | 3 hours | 4 days | 51 minutes | 81.5 minutes |
+
+The two hard ages live in `SessionOracle` and cannot be changed after deployment. The age to open a position lives in `RiskManager` and follows the automatic rule below, between 1,500 seconds and the hard source quote age.
+
+Why BIL gets 3 hours: its feed is slow after hours, and at 1 hour its `price()` would have reverted at times, which blocks liquidations. A stale BIL price is a small risk, because the worst weekend move in five years was 0.4%.
+
+Why 4 days while closed: `publishedAt` stops when the market closes, so this age measures time since the close. A normal weekend is about 48 hours and a holiday weekend about 72 hours. No holiday is in the data yet.
+
+One risk the data shows: on Fridays the session flips between `POST_MARKET` and `CLOSED` for about 15 minutes after 20:00. If the last write before a weekend ever left the session as `POST_MARKET`, the open-market clock would apply all weekend and `price()` would revert after the hard source quote age, blocking liquidations until Sunday evening. Both observed weekends ended on `CLOSED`. The oracle monitor must alert on this (BE-50).
 
 Staleness needs two clocks (decided in D-23). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
 
