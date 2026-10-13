@@ -22,8 +22,8 @@ Four rules for the frontend:
   - Done when: an empty page is deployed and every PR gets a preview address.
 
 - [ ] **FE-02 · Wallet and network**
-  - Do: connect a plain wallet on Monad (chain 143); sign in by email or passkey without an existing wallet (D-16); switch network automatically; show the MON and USDC balances. Choose the provider with Wangsit and answer Q-02, because the wallet type decides whether the signature path in 03 section 3 works.
-  - Done when: both sign-in paths work, real balances show, a user can export or recover the created wallet, and the choice for Q-02 is recorded in 09.
+  - Do: connect a plain wallet on Monad (chain 143); sign in by email or passkey without an existing wallet (D-16); switch network automatically; show the MON and USDC balances. The provider is Privy (D-22). Confirm with Wangsit that its embedded wallet is a normal key wallet, because that decides whether the signature path in 03 section 3 works.
+  - Done when: both sign-in paths work, real balances show, a user can export or recover the created wallet, and the wallet type finding is recorded under Q-02 in 09.
 
 - [ ] **FE-03 · Markets page with data straight from the chain**
   - Do: read the price and market session of QQQ, HOOD and BIL directly from the Anchored oracle (address and data layout in 05). Show them in a simple list.

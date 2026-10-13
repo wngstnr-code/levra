@@ -30,6 +30,10 @@ How to use it:
 | D-16 | Sign-in without an existing wallet (email or passkey) is in scope from the start, next to plain wallets | Chosen by the team on 13 October 2026. Users arriving from other chains should not need to set up a Monad wallet first | Plain wallets only at launch |
 | D-17 | The repo is private under the `wngstnr-code` GitHub account, with Dharu and Nabil as collaborators. It becomes public at submission | Chosen by the team on 13 October 2026 | Public from the start; a new GitHub organization; local only |
 | D-18 | The scope in 01 and the split of work in 06 and `docs/tasks/` are approved by all three | Agreed together on 13 October 2026 | - |
+| D-19 | The backend builds every router transaction, simulates it and returns it ready to sign. The frontend only checks and displays it | Chosen by the team on 13 October 2026. The logic lives in one place | The frontend encoding router calls from the ABI; both sides encoding |
+| D-20 | First use is one confirmation: two gasless signatures (USDC permit and Morpho authorization) applied inside one `multicall` together with the open | Chosen by the team on 13 October 2026. Best experience for new users | Three separate transactions on first use; relying on wallet batching only |
+| D-21 | Backend stack: TypeScript, Hono (REST plus SSE), Postgres with Drizzle, Envio for the indexer | Chosen by Dharu on 13 October 2026. Light, and Envio has a bounty. Envio on Monad is still to be proven in BE-06 | NestJS with Prisma; Ponder |
+| D-22 | Sign-in provider: Privy, next to plain wallets through wagmi | Chosen by Nabil and Wangsit on 13 October 2026. Privy's docs list Monad as a supported network. Answers Q-02 | Dynamic; deciding later |
 
 ## Open questions
 
@@ -38,7 +42,7 @@ Every question has an owner and a milestone to answer it by.
 | No | Question | Owner | Due by | Via task | Working assumption |
 |---|---|---|---|---|---|
 | Q-01 | Answered: Levra (D-15). Still open under X-02: domain, social handles, and a conflict check. A quick search found no project named exactly Levra, but found close names in the same field: Levva (DeFi vaults, formerly Marginly), Levr (token launchpad) and Levana (perps) | Nabil | M0 | X-02 | Keep Levra unless the conflict check finds a real problem |
-| Q-02 | Which provider gives sign-in by email or passkey (D-16)? Does it create a normal key wallet or a smart account? | Nabil, Wangsit | M0 | FE-02 | Prefer a provider whose embedded wallet is a normal key wallet, so `permit` and the Morpho authorization signature work unchanged. With a smart account, first use must batch `approve` and `setAuthorization` calls instead of using signatures |
+| Q-02 | Answered: Privy (D-22). Still to confirm in FE-02: the embedded wallet is a normal key wallet, so the signature path of D-20 works, and the user can export or recover it | Nabil, Wangsit | M0 | FE-02 | If it turns out to be a smart account, first use batches `approve` and `setAuthorization` calls instead of using signatures |
 | Q-03 | What is the max age of the oracle price, and what happens to the price when the exchange is closed? | Dharu, Wangsit | M1 | BE-03, SC-10 | Numbers are filled in at deployment after a week of data |
 | Q-04 | What happens to dividends for stocks held by Morpho? What about the stock borrower (short) when there is a dividend? | Wangsit | M2 | X-12 | Write it in the risk disclosure until it is clear |
 | Q-05 | Does Anchored allow its token to be used in a lending venue? Can the Morpho or router address be put on a denylist? | Wangsit | M1 | X-12, SC-05 | Run staging with small funds while waiting for the answer |
@@ -49,7 +53,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-10 | How does a user from another chain pay their first transaction fee on Monad? | Dharu, Nabil | M4 | BE-05, BE-40 | A second transfer of a little MON through the same service |
 | Q-11 | Which version of the Morpho vault is available on Monad and do we use it? | Wangsit | M2 | SC-06, SC-23 | The one with an official factory on Monad |
 | Q-12 | Which auditor, when, and paid from what funds? | All three | M5 | X-13 | Get quotes from M3 |
-| Q-13 | Which sponsor bounties do we go for? | All three | M0 | X-16 | Aurora Intents and Envio |
+| Q-13 | Which sponsor bounties do we go for? | All three | M0 | X-16 | Aurora Intents, Envio and Privy |
 | Q-14 | Display language of the app? | Nabil | M5 | FE-55 | English as the main, Indonesian as the second |
 | Q-15 | Does the short soft limit need its own number, different from long? | Wangsit, Dharu | M2 | SC-22, BE-34 | Same as long, whichever is more cautious |
 | Q-16 | What is the pair token in the aQQQ, aHOOD, aBIL pools? Does it need to go through another token? | Wangsit | M0 | SC-04 | Assume the aggregator finds a route from USDC |

@@ -201,7 +201,7 @@ This is the initial choice (D-10). The owner of a part may replace it, as long a
 | Backend | Node.js 24, TypeScript, Hono, Postgres with Drizzle, viem, zod |
 | Indexer | Envio HyperIndex (Monad support is proven in BE-06) |
 | Frontend | Next.js App Router, TypeScript, Tailwind, wagmi and viem, TanStack Query |
-| Wallet | Plain wallets plus sign-in by email or passkey (D-16). Provider: see Q-02 |
+| Wallet | Plain wallets through wagmi, plus sign-in by email or passkey through Privy (D-16, D-22) |
 | Tests | Foundry (contracts), Vitest (backend and formulas), Playwright (on-screen flows) |
 | Automation | GitHub Actions: tests, type checks, and style checks on every PR |
 

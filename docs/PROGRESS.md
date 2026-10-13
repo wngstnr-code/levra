@@ -70,7 +70,7 @@ The full list is in 09. These must be answered in M0.
 
 | Question | Owner | Via task |
 |---|---|---|
-| Q-02 Sign-in provider and wallet type | Nabil, Wangsit | FE-02 |
+| Q-02 Is the Privy embedded wallet a normal key wallet | Nabil, Wangsit | FE-02 |
 | Q-16 Quote token of each pool | Wangsit | SC-04 |
 | Q-17 Does Anvil fork Monad correctly | Wangsit | SC-02 |
 | Q-18 Does USDC on Monad support `permit` | Wangsit | SC-05 |
@@ -117,6 +117,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- All: interface decisions made together: backend builds transactions (D-19), one confirmation on first use (D-20), backend stack (D-21), Privy for sign-in (D-22). Doc 03 updated to match. The full freeze (X-04) still needs SC-03 and BE-02.
 - Wangsit: X-01 started. Private repo created at `github.com/wngstnr-code/levra` with the monorepo root. Collaborators, `CODEOWNERS` and branch protection are still open.
 - All: decided together: name Levra (D-15), sign-in by email or passkey in scope (D-16), private repo under `wngstnr-code` (D-17), scope and split of work approved (D-18).
 - All: development docs written. Nothing is built yet. Next: X-01, SC-01, SC-03, BE-01, BE-02, BE-03, FE-01 to FE-04.
