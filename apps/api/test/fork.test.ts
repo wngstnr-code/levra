@@ -62,15 +62,20 @@ describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYM
       return body.markets.find((m) => m.marketId === market.marketId)!;
     };
 
-    const before = await staleOf();
-    if (before.oracleStale) throw new Error("oracle is already stale on this fork; restart the fork at a fresher block");
-    await as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, { ...config, maxOracleAge: 1 }]));
+    // Two values far apart, so the result does not depend on how old the fork is: one day never trips the open check,
+    // one second always does. Only the hard check in SessionOracle could still mark it stale on a fork older than its limit.
+    const setAge = (maxOracleAge: number) =>
+      as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, { ...config, maxOracleAge }]));
     try {
+      await setAge(86_400);
+      if ((await staleOf()).oracleStale) throw new Error("SessionOracle reports the price stale; restart the fork at a fresher block");
+      await setAge(1);
       expect((await staleOf()).oracleStale).toBe(true);
+      await setAge(86_400);
+      expect((await staleOf()).oracleStale).toBe(false);
     } finally {
       await as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, config]));
     }
-    expect((await staleOf()).oracleStale).toBe(false);
   });
 
   it("serves the session from RiskManager and the oracle", async () => {

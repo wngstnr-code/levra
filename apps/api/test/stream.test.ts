@@ -76,6 +76,13 @@ describe("stream events", () => {
     expect(next.events).toEqual([expect.objectContaining({ event: "price", data: expect.objectContaining({ oraclePriceE8: "74600000000" }) })]);
   });
 
+  it("carries the DEX mid price and its deviation from the oracle when one was measured", async () => {
+    const { events } = await readEvents(fakeReader([market()]), empty(), async () => new Map([["QQQ", 73_816_000_000n]]));
+    expect(events.find((e) => e.event === "price")?.data).toMatchObject({ dexMidPriceE8: "73816000000" });
+    const noMid = await readEvents(fakeReader([market()]), empty());
+    expect(noMid.events.find((e) => e.event === "price")?.data).toMatchObject({ dexMidPriceE8: null });
+  });
+
   it("sends the session when the regime changes", async () => {
     const first = await readEvents(fakeReader([market()]), empty());
     const next = await readEvents(fakeReader([market()], { ...session, closedRegime: true }), first.next);
