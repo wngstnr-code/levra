@@ -22,7 +22,7 @@ contract ShortTest is BaseTest {
             borrowAssets: borrow,
             swap: _swapData(AQQQ, USDC, borrow, proceeds),
             maxLtv: SOFT_OPEN,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
     }
 
@@ -50,7 +50,10 @@ contract ShortTest is BaseTest {
         ILens.PositionView[] memory views = lens.getPositions(user);
         assertEq(views.length, 1);
         assertEq(uint8(views[0].side), uint8(Side.Short));
-        assertGt(views[0].liqPriceE8, _priceE8() * 2);
+        // Liquidation price = collateral * hard limit / debt, about 131% above the entry price.
+        uint256 expected = uint256(position.collateral) * 1e20 * LLTV / (uint256(p.borrowAssets) * 1e18);
+        assertApproxEqAbs(views[0].liqPriceE8, expected, 2);
+        assertApproxEqRel(views[0].liqPriceE8, _priceE8() * 231 / 100, 0.01e18);
     }
 
     function test_openShortBeyondWhatMarginAloneCouldBorrow() public {
@@ -83,7 +86,7 @@ contract ShortTest is BaseTest {
             swapAmountIn: spend,
             swap: _swapData(USDC, AQQQ, spend, buyBack),
             minReturn: 99e6,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
         vm.prank(user);
         uint256 returned = router.closeShort(close);

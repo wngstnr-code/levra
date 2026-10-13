@@ -31,7 +31,7 @@ Restriction from the issuer: Anchored aims its tokens at professional and qualif
 
 | Part | Contents |
 |---|---|
-| Long | aQQQ, aHOOD, aBIL. Open, add collateral, reduce, close |
+| Long | aQQQ, aHOOD, aBIL. Open, add margin (pay down debt with USDC), add collateral, reduce, close |
 | Short | aQQQ, aHOOD. Open, add collateral, reduce, close |
 | Earn | USDC through a vault that we manage. Stocks (aQQQ, aHOOD) go directly to their lending market |
 | Sign-in | With an existing wallet, or without one through email or passkey (D-16) |
@@ -112,7 +112,7 @@ Difference from the PDF: in the PDF this example says "rises about 54%" because 
 ### Flow 5. Monitor and close
 
 1. The Positions page shows for each position: value, debt, profit and loss, LTV, distance to the liquidation price, and protection status.
-2. The user can add collateral, take out some collateral, reduce the position, or close it fully.
+2. The user can add margin, take out some collateral, reduce the position, or close it fully. On a long, adding margin means paying down part of the debt with USDC (`repayDebt`). On a short, it means adding USDC collateral.
 3. When closing, the program sells the stock (or buys it back for a short), repays the debt, and sends the rest to the user's wallet.
 
 Rule: closing and reducing a position must always be possible, including when the team stops opening new positions.

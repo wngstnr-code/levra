@@ -1,0 +1,56 @@
+name: Backend
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/indexer/**"
+      - "apps/keeper/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/backend.yml"
+  push:
+    branches: [main]
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: levra
+          POSTGRES_PASSWORD: levra
+          POSTGRES_DB: levra
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U levra"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://levra:levra@localhost:5432/levra
+      TEST_DATABASE_URL: postgres://levra:levra@localhost:5432/levra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrations apply
+        run: pnpm --filter @levra/db migrate
+      - name: Migrations match the schema
+        run: |
+          pnpm --filter @levra/db generate
+          git diff --exit-code -- packages/db/migrations
+          test -z "$(git status --porcelain -- packages/db/migrations)"
+      - name: Type check and test
+        run: pnpm turbo run typecheck test --filter=@levra/db --filter=@levra/api --filter=@levra/keeper --filter=@levra/indexer --filter=@levra/shared

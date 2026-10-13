@@ -29,15 +29,23 @@ contract RiskManager is IRiskManager, Ownable2Step {
 
     address public guardian;
     address public calendarPoster;
+    address public oracleAgePoster;
     uint64 public nextCloseAt;
     uint32 public preCloseWindow;
     bool public openingPaused;
 
+    struct OracleAgeBounds {
+        uint32 min;
+        uint32 cap;
+    }
+
     mapping(Id => MarketConfig) private _config;
+    mapping(Id => OracleAgeBounds) private _oracleAgeBounds;
     Id[] private _marketIds;
 
     event GuardianSet(address guardian);
     event CalendarPosterSet(address calendarPoster);
+    event OracleAgePosterSet(address oracleAgePoster);
     event PreCloseWindowSet(uint32 preCloseWindow);
 
     error InvalidConfig();
@@ -56,6 +64,11 @@ contract RiskManager is IRiskManager, Ownable2Step {
 
     function marketIds() external view returns (Id[] memory) {
         return _marketIds;
+    }
+
+    function oracleAgeBounds(Id id) external view returns (uint32 minOracleAge, uint32 capOracleAge) {
+        OracleAgeBounds memory b = _oracleAgeBounds[id];
+        return (b.min, b.cap);
     }
 
     function isClosedRegime() public view returns (bool) {
@@ -142,6 +155,32 @@ contract RiskManager is IRiskManager, Ownable2Step {
         if (ts <= block.timestamp || ts > block.timestamp + MAX_CLOSE_HORIZON) revert InvalidCloseTime();
         nextCloseAt = ts;
         emit NextCloseSet(ts);
+    }
+
+    function setOracleAgeBounds(Id id, uint32 minOracleAge, uint32 capOracleAge) external onlyOwner {
+        address oracle = _config[id].oracle;
+        if (oracle == address(0) || minOracleAge > capOracleAge) revert InvalidConfig();
+        if (capOracleAge > ISessionOracle(oracle).MAX_FEED_AGE()) revert InvalidConfig();
+        _oracleAgeBounds[id] = OracleAgeBounds(minOracleAge, capOracleAge);
+        emit OracleAgeBoundsSet(id, minOracleAge, capOracleAge);
+    }
+
+    /// The one value a single key may loosen, and only inside the bounds the owner accepted.
+    function setMaxOracleAge(Id id, uint32 maxOracleAge) external {
+        if (msg.sender != oracleAgePoster && msg.sender != owner()) revert Unauthorized();
+        OracleAgeBounds memory b = _oracleAgeBounds[id];
+        if (b.cap == 0 || maxOracleAge < b.min || maxOracleAge > b.cap) {
+            revert OracleAgeOutOfBounds(maxOracleAge, b.min, b.cap);
+        }
+        MarketConfig storage c = _config[id];
+        c.maxOracleAge = maxOracleAge;
+        emit MaxOracleAgeSet(id, maxOracleAge);
+        emit MarketConfigured(id, c);
+    }
+
+    function setOracleAgePoster(address oracleAgePoster_) external onlyOwner {
+        oracleAgePoster = oracleAgePoster_;
+        emit OracleAgePosterSet(oracleAgePoster_);
     }
 
     function setGuardian(address guardian_) external onlyOwner {

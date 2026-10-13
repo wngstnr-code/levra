@@ -63,7 +63,7 @@ What we do not write but we deploy and configure: the markets on Morpho, and the
 |---|---|
 | `apps/api` | Provides market data, full transaction quotes with their call data, account data, cross-chain deposits, alerts, region checks |
 | `apps/indexer` | Reads events from our contracts and from Morpho, then stores them as positions and history |
-| `apps/keeper` | Programs that run all the time: calendar poster for market closes, protector (auto-deleverage), liquidator bot, alert sender, oracle monitor |
+| `apps/keeper` | Programs that run all the time: calendar poster for market closes, oracle age poster, protector (auto-deleverage), liquidator bot, alert sender, oracle monitor |
 
 ### Frontend (Nabil)
 
@@ -182,6 +182,7 @@ One repo for everything (monorepo), managed with pnpm and Turborepo.
 │   ├── keeper/           Dharu. Keeper
 │   └── web/              Nabil. Web app
 ├── packages/
+│   ├── db/               Dharu. Postgres schema and migrations (Drizzle), used by api, indexer and keeper
 │   └── shared/           Shared, each file has an owner
 │       ├── abis/         generated from contracts/, do not edit by hand
 │       ├── addresses.ts  addresses of external services and our contracts
@@ -199,7 +200,7 @@ This is the initial choice (D-10). The owner of a part may replace it, as long a
 |---|---|
 | Contracts | Solidity 0.8.x, Foundry, OpenZeppelin, official Morpho interfaces |
 | Backend | Node.js 24, TypeScript, Hono, Postgres with Drizzle, viem, zod |
-| Indexer | Envio HyperIndex (Monad support is proven in BE-06) |
+| Indexer | Our own log follower in `apps/indexer`, reading from Envio HyperSync with the RPC endpoint as fallback (D-34) |
 | Frontend | Next.js App Router, TypeScript, Tailwind, wagmi and viem, TanStack Query |
 | Wallet | Plain wallets through wagmi, plus sign-in by email or passkey through Privy (D-16, D-22) |
 | Tests | Foundry (contracts), Vitest (backend and formulas), Playwright (on-screen flows) |

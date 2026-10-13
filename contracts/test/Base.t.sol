@@ -3,7 +3,8 @@ pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Id, IMorpho, MarketParams, Position} from "morpho-blue/src/interfaces/IMorpho.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {Authorization, Id, IMorpho, MarketParams, Position} from "morpho-blue/src/interfaces/IMorpho.sol";
 import {MarketParamsLib} from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import {IAnchoredStockOracle} from "../src/interfaces/IAnchoredStockOracle.sol";
 import {IMarginRouter} from "../src/interfaces/IMarginRouter.sol";
@@ -34,6 +35,7 @@ abstract contract BaseTest is Test {
     IERC20 internal constant AQQQ = IERC20(0x1446501E886c7f830DB9b494A1890cBCCC072f57);
     bytes32 internal constant QQQ = keccak256("QQQ");
 
+    uint256 internal constant FORK_BLOCK = 112_980_350;
     uint256 internal constant LLTV = 0.77e18;
     uint64 internal constant SOFT_OPEN = 0.73e18;
     uint64 internal constant SOFT_CLOSED = 0.7e18;
@@ -57,7 +59,10 @@ abstract contract BaseTest is Test {
     address internal user = vm.addr(userKey);
 
     function setUp() public virtual {
-        vm.createSelectFork(vm.envOr("MONAD_RPC_URL", string("https://rpc2.monad.xyz")));
+        // A pinned block makes the tests repeatable and lets Foundry cache the chain state on disk.
+        vm.createSelectFork(
+            vm.envOr("MONAD_RPC_URL", string("https://rpc.monad.xyz")), vm.envOr("FORK_BLOCK", FORK_BLOCK)
+        );
 
         longOracle = new SessionOracle(STOCK_ORACLE, QQQ, Side.Long, 18, 6, 2 hours, 4 days);
         shortOracle = new SessionOracle(STOCK_ORACLE, QQQ, Side.Short, 18, 6, 2 hours, 4 days);
@@ -147,7 +152,7 @@ abstract contract BaseTest is Test {
             borrowAssets: borrow,
             swap: _swapData(USDC, AQQQ, swapIn, _stockFor(swapIn, fillBps)),
             maxLtv: SOFT_OPEN,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
     }
 
@@ -155,6 +160,54 @@ abstract contract BaseTest is Test {
         IMarginRouter.OpenParams memory p = _openLongParams(margin, borrow, 0);
         vm.prank(user);
         (collateral,) = router.openLong(p);
+    }
+
+    bytes32 internal constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    bytes32 internal constant AUTHORIZATION_TYPEHASH = keccak256(
+        "Authorization(address authorizer,address authorized,bool isAuthorized,uint256 nonce,uint256 deadline)"
+    );
+
+    function _signPermit(uint256 key, address spender, uint256 value, uint256 nonce, uint256 deadline)
+        internal
+        view
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                IERC20Permit(address(USDC)).DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(PERMIT_TYPEHASH, vm.addr(key), spender, value, nonce, deadline))
+            )
+        );
+        return vm.sign(key, digest);
+    }
+
+    function _signAuthorization(uint256 key, address authorized, bool isAuthorized, uint256 nonce, uint256 deadline)
+        internal
+        view
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        Authorization memory authorization = Authorization(vm.addr(key), authorized, isAuthorized, nonce, deadline);
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01", MORPHO.DOMAIN_SEPARATOR(), keccak256(abi.encode(AUTHORIZATION_TYPEHASH, authorization))
+            )
+        );
+        return vm.sign(key, digest);
+    }
+
+    function _mockOracle(Session session, uint256 feedAge, uint256 publishAge, int128 price) internal {
+        IAnchoredStockOracle.PricePayload memory payload = IAnchoredStockOracle.PricePayload({
+            price: price,
+            bestBid: price - 5e6,
+            bestAsk: price + 5e6,
+            feedUpdateTimestamp: uint64(vm.getBlockTimestamp() - feedAge),
+            publishedAt: uint64(vm.getBlockTimestamp() - publishAge),
+            roundId: 1,
+            session: session
+        });
+        vm.mockCall(address(STOCK_ORACLE), abi.encodeCall(IAnchoredStockOracle.latestPrice, (QQQ)), abi.encode(payload));
     }
 
     function _assertRouterEmpty() internal view {

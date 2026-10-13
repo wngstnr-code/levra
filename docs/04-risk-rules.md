@@ -99,7 +99,7 @@ The Anchored oracle gives three numbers: price, best bid, and best ask.
 | Long | The lower of price and best bid | Collateral is valued carefully |
 | Short | The higher of price and best ask | Debt is valued carefully |
 
-If the best bid or best ask is zero or not sensible, use the price alone. Whether these two numbers are always filled is not verified (BE-03).
+If the best bid or best ask is zero or not sensible, use the price alone. The exact condition is the one in `SessionOracle`: for long, the best bid is used only when it is above zero and below the price; for short, the best ask is used only when it is above the price. `math.ts` uses the same condition (BE-16). Whether these two numbers are always filled is not verified (BE-03).
 
 ### Reducing a position to a target
 
@@ -140,10 +140,11 @@ The Anchored oracle is the weakest point of this design. What we know and do not
 | Live on Monad, gives price and market session for QQQ, HOOD, BIL | Verified |
 | Price delayed 15 to 23 minutes when measured | Verified, one measurement. Anchored's documentation says the source quote can be about 15 minutes delayed |
 | Controlled by one party and they can change it | Verified. It is an upgradeable proxy, and prices are written by an operator role held by Anchored |
-| Best bid and best ask are positive and ordered | From Anchored's documentation: the oracle rejects a write that breaks this. One live read agreed |
-| How often the price is updated | From Anchored's documentation: a 10 minute heartbeat by default. Not verified by observation (BE-03) |
-| What happens when the market is closed | From Anchored's documentation: the last price is carried forward and `feedUpdateTimestamp` stops advancing. Not verified by observation (BE-03) |
-| The schedule of each market session | From Anchored's documentation, see 05. Weekly close Friday 8:00 PM and weekly open Sunday 8:00 PM, US Eastern Time. Not verified by observation (BE-03) |
+| Best bid and best ask are positive and ordered | Verified by observation (BE-03, 4,603 writes, 29 September to 13 October 2026): always positive, bid never above ask, and the price always between them. 99th percentile spread: QQQ 16.6 bps, HOOD 46.9 bps, BIL 16.4 bps. Largest: HOOD 198 bps |
+| How often the price is updated | Verified by observation (BE-03): about every 10 minutes in every open session. QQQ and HOOD: 95% of gaps at most 10.2 minutes. BIL is slower outside regular hours: 99th percentile gap up to 43 minutes after hours |
+| What happens when the market is closed | Verified by observation (BE-03): over both weekends there were no writes at all for about 47.7 hours. `feedUpdateTimestamp` and `publishedAt` both stop. The price is carried forward |
+| The schedule of each market session | Verified by observation (BE-03), US Eastern Time: sessions match 05. The session field changes on the first write after each boundary: about 04:15, 09:45 and 16:15, and 20:00 sharp. On Fridays the session flips between `POST_MARKET` and `CLOSED` many times from 20:00 to 20:15, then stays `CLOSED` until Sunday 20:00. No holiday is in the data yet |
+| Source quote age outside `CLOSED` | Verified by observation (BE-03), 99th percentile and maximum: QQQ 25.0 and 26.8 minutes, HOOD 25.8 and 33.6 minutes, BIL 41.0 and 81.5 minutes. Full numbers in `docs/reports/oracle-2026-10-13.md` |
 | Stock splits and other corporate actions | Not known. A split that changes the price per token without changing balances would liquidate positions. Asked in X-12 |
 
 How this design withstands those weaknesses:
@@ -155,15 +156,47 @@ How this design withstands those weaknesses:
 
 The hard max age cannot be filled in until BE-03 is done. Until then, `SessionOracle` is written with max age as a number set at deployment.
 
-Max ages used by the deployment script, all initial proposals until BE-03 has a week of data:
+Max ages used by the deployment script, per market, chosen from the BE-03 data (D-35):
 
-| Setting | Value | Where |
-|---|---|---|
-| Source quote age while the market is open | 1 hour | `SessionOracle`, hard |
-| Publish age while the market is closed | 4 days | `SessionOracle`, hard |
-| Source quote age to open a new position | 45 minutes | `RiskManager`, soft |
+| Market | Hard source quote age while open | Hard publish age while closed | Age to open a position | Largest source quote age seen |
+|---|---|---|---|---|
+| QQQ | 1 hour | 4 days | 35 minutes | 26.8 minutes |
+| HOOD | 1 hour | 4 days | 36 minutes | 33.6 minutes |
+| BIL | 3 hours | 4 days | 51 minutes | 81.5 minutes |
+
+The two hard ages live in `SessionOracle` and cannot be changed after deployment. The age to open a position lives in `RiskManager` and follows the automatic rule below, between 1,500 seconds and the hard source quote age.
+
+Why BIL gets 3 hours: its feed is slow after hours, and at 1 hour its `price()` would have reverted at times, which blocks liquidations. A stale BIL price is a small risk, because the worst weekend move in five years was 0.4%.
+
+Why 4 days while closed: `publishedAt` stops when the market closes, so this age measures time since the close. A normal weekend is about 48 hours and a holiday weekend about 72 hours. No holiday is in the data yet.
+
+One risk the data shows: on Fridays the session flips between `POST_MARKET` and `CLOSED` for about 15 minutes after 20:00. If the last write before a weekend ever left the session as `POST_MARKET`, the open-market clock would apply all weekend and `price()` would revert after the hard source quote age, blocking liquidations until Sunday evening. Both observed weekends ended on `CLOSED`. The oracle monitor must alert on this (BE-50).
 
 Staleness needs two clocks (decided in D-23). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
+
+What the BE-03 data means for these numbers (for Wangsit to decide, Q-28):
+
+- BIL's source quote reached 81.5 minutes after hours, above the 1 hour hard age. With that setting, `price()` of an aBIL market would revert at those moments and block liquidations. QQQ and HOOD stayed under 34 minutes.
+- `publishedAt` does not advance while `CLOSED`, so it measures time since the close, not a heartbeat. A normal weekend is about 48 hours, inside the 4 day setting. A long holiday weekend can reach about 72 hours. No holiday was observed yet.
+- The 45 minute soft value is above the QQQ and HOOD data but below BIL's after-hours maximum, so opening an aBIL position would sometimes be refused after hours.
+- Because the session flips on Friday evenings, any rule keyed on `CLOSED` switches on and off for about 15 minutes before it settles.
+
+Values from the automatic rule below on this data (initial proposal): QQQ 35 minutes, HOOD 36 minutes, BIL 51 minutes.
+
+### Automatic `maxOracleAge`
+
+Decided in D-31. The rule's numbers are still an initial proposal. A keeper (BE-17) keeps `maxOracleAge` in line with the data from the oracle logger, so nobody has to change it by hand. It follows the open-market clock of D-23, because that is the clock `RiskManager` checks.
+
+| Item | Rule |
+|---|---|
+| Input | Age of the source quote (block time minus `feedUpdateTimestamp`) per market, sampled in every session except `CLOSED`, from the BE-03 tables |
+| Value | The 99th percentile of that age plus one heartbeat (10 minutes), rounded up to whole minutes, never below 1,500 seconds |
+| Minimum data | 7 days, including one full weekend, and at least 500 samples per market |
+| Before the minimum is met | No post. The value set at deployment stays |
+| Smallest change worth posting | 10% of the value on chain |
+| Bounds | `[minOracleAge, capOracleAge]` per market, set only by the multisig behind the timelock. The contract rejects anything outside them. The cap stays below the hard source quote age in `SessionOracle`, and the contract enforces that. The deployment script sets 1,500 to 3,600 seconds |
+
+The bounds are what limits the damage of a leaked keeper key: the worst it can do is set the cap, which the multisig already accepted as safe.
 
 Be careful: if `price()` reverts, Morpho cannot run borrowing, collateral withdrawal, or liquidation in that market. So a hard max age that is too short is as dangerous as one that is too long.
 

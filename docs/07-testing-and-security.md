@@ -44,6 +44,7 @@ These become the invariant tests (SC-50). If any one of them can be broken, it i
 
 1. `currentSoftLtv` is always lower than the hard limit of its market.
 2. The guardian role can only tighten. No sequence of guardian calls loosens a limit.
+3. The oracle age poster can change one value only, `maxOracleAge`, and only inside the bounds the owner set. Those bounds never exceed the hard source quote age of the market's oracle (D-31).
 3. `setNextCloseAt` rejects a time in the past and a time more than 8 days away.
 
 ## Threat list
@@ -58,8 +59,8 @@ Every row must have a test that shows its mitigation works.
 | T-04 | A malicious keeper deleverages a user's position at a bad price | The user loses money | `deleverage` conditions; limit on deviation from the oracle price; keeper fee is capped; at first only registered keepers (Q-08) |
 | T-05 | The DEX price is pushed down to trigger a liquidation | Users are liquidated unfairly | The hard limit uses only the Anchored oracle (D-03) |
 | T-06 | A stale oracle price is exploited | Loss for lenders | Room in the hard limit; max age; supply cap per market; oracle monitor |
-| T-07 | Anchored changes or shuts down the oracle | Market stuck or wrong price | Cannot be closed with code. Monitoring, small supply cap, incident runbook |
-| T-08 | Anchored blocks the Morpho or router address, or pauses the token | Collateral is locked | Cannot be closed with code. Ask Anchored (X-12); small supply cap; explain in the risk disclosure |
+| T-07 | Anchored changes or shuts down the oracle | Market stuck or wrong price | Cannot be closed with code. Verified in SC-05: the oracle is an upgradeable proxy and prices are written by an operator role. Monitoring, small supply cap, incident runbook |
+| T-08 | Anchored blocks the Morpho or router address, or changes the token | Collateral is locked | Cannot be closed with code. Verified in SC-05: one call adds an address to the denylist of the compliance contract, and both the tokens (one beacon for all) and the compliance contract are upgradeable. Morpho is not on the denylist today. Ask Anchored (X-12); small supply cap; explain in the risk disclosure |
 | T-09 | Backend is compromised and gives bad routes | Users get a bad price | Minimum output signed by the user; the contract rejects deviation above the limit; frontend shows the price before confirmation |
 | T-10 | A permit signature is reused or used by someone else | Authorization given against the user's will | Nonce and deadline from Morpho and the token; frontend shows what is being signed |
 | T-11 | Multisig key or guardian key leaks | Limits are loosened, opening is paused | Timelock for loosening; guardian can only tighten; funds stay untouched |
@@ -68,7 +69,10 @@ Every row must have a test that shows its mitigation works.
 | T-14 | Price impact during liquidation is larger than the bonus | Liquidator loses money, the position is left open | Position cap and supply cap follow market depth (04) |
 | T-15 | The keeper is down before market close | Protection does not run | Heartbeat monitor; alert to the team; users were told 24 hours before |
 | T-16 | A fake site imitates the app | Users give authorization to a fake contract | Contract addresses are announced; one domain name; teach users to check the address |
-| T-17 | A token has a fee on transfer or unusual behavior | Wrong calculation | Check in SC-05; the router calculates from the balance difference, not from the requested amount |
+| T-17 | A token has a fee on transfer or unusual behavior | Wrong calculation | Checked in SC-05: no fee on transfer in the current stock token or USDC. An upgrade could add one, so the router still calculates from the balance difference, not from the requested amount |
+| T-18 | A stock split or dividend changes the price per token without changing balances | Positions are liquidated for no market reason | Not known how Anchored applies these (Q-23). Until answered, a stock with an announced split is not eligible |
+| T-20 | The last oracle write before a weekend leaves the session as an open one, not `CLOSED` | `price()` reverts after the hard source quote age and liquidations are blocked until the market reopens | Cannot be closed with code without accepting stale prices. Seen flipping for 15 minutes every Friday, always ending on `CLOSED` so far. The oracle monitor alerts on it (BE-50) |
+| T-19 | The stock tokens have no `permit` | A user approves an unlimited amount to save a step | The app asks for exact approvals. Applies to lending stock and to adding stock collateral |
 
 ## Backend and keeper security
 

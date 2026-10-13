@@ -1,0 +1,35 @@
+name: Invariants
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+  workflow_dispatch:
+
+concurrency:
+  group: invariants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: Contract invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: contracts
+    env:
+      MONAD_RPC_URL: ${{ secrets.MONAD_RPC_URL || 'https://rpc.monad.xyz' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.3
+      - uses: actions/cache@v4
+        with:
+          path: ~/.foundry/cache/rpc
+          key: foundry-rpc-invariants-${{ hashFiles('contracts/test/Base.t.sol') }}
+      - name: Random actions against the router on a fork of Monad
+        run: forge test --network monad --match-contract InvariantsTest -vv

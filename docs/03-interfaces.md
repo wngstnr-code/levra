@@ -86,6 +86,8 @@ interface ISessionOracle is IOracle {
 
     function priceId() external view returns (bytes32);
     function side() external view returns (Side);
+    function MAX_FEED_AGE() external view returns (uint64);    // seconds, hard limit while the market is not closed
+    function MAX_PUBLISH_AGE() external view returns (uint64); // seconds, hard limit while the market is closed
 }
 ```
 
@@ -121,6 +123,12 @@ interface IRiskManager {
     function tightenMarket(Id id, uint64 softLtvOpen, uint64 softLtvClosed, uint128 maxPositionUsd) external; // guardian; may only tighten
     function setOpeningPaused(bool paused) external; // guardian
     function setNextCloseAt(uint64 ts) external; // calendar poster
+
+    // oracle age poster (D-31)
+    function oracleAgePoster() external view returns (address);
+    function oracleAgeBounds(Id id) external view returns (uint32 minOracleAge, uint32 capOracleAge); // seconds
+    function setOracleAgeBounds(Id id, uint32 minOracleAge, uint32 capOracleAge) external; // owner; cap <= oracle MAX_FEED_AGE
+    function setMaxOracleAge(Id id, uint32 maxOracleAge) external; // oracle age poster; inside the bounds only
 }
 ```
 
@@ -153,6 +161,8 @@ interface IMarginRouter {
     function closeShort(CloseParams calldata p) external returns (uint256 returned);
 
     function addCollateral(Id marketId, uint256 assets) external;
+    /// Pays down the caller's debt with the loan token: USDC for a long, stock for a short (D-32).
+    function repayDebt(Id marketId, uint256 assets) external returns (uint256 repaid);
     function removeCollateral(Id marketId, uint256 assets) external; // checked against the soft limit
 
     // automatic protection
@@ -225,6 +235,37 @@ interface ILens {
 }
 ```
 
+### ILiquidator
+
+Used by the liquidator bot only. Added after the freeze (see the interface changes in PROGRESS.md).
+
+```solidity
+interface ILiquidator {
+    /// Seizes collateral from an unhealthy position, swaps swapAmountIn of it into the loan token and repays.
+    /// loanTokenDelta may be negative: the contract then covers the shortfall from its own balance.
+    function liquidate(
+        Id marketId,
+        address borrower,
+        uint256 seizedAssets,
+        uint256 swapAmountIn,
+        Swap calldata swap,
+        int256 minLoanTokenDelta,
+        uint256 minCollateralLeft
+    ) external returns (int256 loanTokenDelta, uint256 collateralLeft);
+
+    function isKeeper(address keeper) external view returns (bool);
+    function treasury() external view returns (address);
+
+    event Liquidated(
+        Id indexed marketId, address indexed borrower,
+        uint256 seizedAssets, uint256 repaidAssets,
+        int256 loanTokenDelta, uint256 collateralLeft, address keeper
+    );
+}
+```
+
+For a long market the keeper sells all the seized stock (`swapAmountIn = seizedAssets`) and the gain arrives as USDC. For a short market the seized collateral is USDC: the keeper spends part of it to buy back stock, and the rest is the gain. Gains go to the treasury.
+
 ### Events
 
 The backend reads these events. Names and field order must not change after the freeze.
@@ -247,11 +288,14 @@ event PositionReduced(
 event CollateralAdded(address indexed user, Id indexed marketId, uint256 assets);
 event CollateralRemoved(address indexed user, Id indexed marketId, uint256 assets);
 event ProtectionSet(address indexed user, Id indexed marketId, bool enabled);
+event DebtRepaid(address indexed user, Id indexed marketId, uint256 assets);
 
 // RiskManager
 event MarketConfigured(Id indexed marketId, IRiskManager.MarketConfig config);
 event NextCloseSet(uint64 nextCloseAt);
 event OpeningPaused(bool paused);
+event OracleAgeBoundsSet(Id indexed marketId, uint32 minOracleAge, uint32 capOracleAge);
+event MaxOracleAgeSet(Id indexed marketId, uint32 maxOracleAge);
 ```
 
 The backend also reads Morpho events for our markets, because people can use Morpho directly without going through the router: `SupplyCollateral`, `WithdrawCollateral`, `Borrow`, `Repay`, `Liquidate`, `Supply`, `Withdraw`, `AccrueInterest`.
@@ -279,6 +323,7 @@ error PriceDeviationTooHigh(uint256 deviationBps, uint256 maxBps);
 error OracleStale(uint64 publishedAt);
 error SoftLimitExceeded(uint256 ltv, uint256 softLtv);
 error PositionCapExceeded(uint256 valueUsd, uint256 capUsd);
+error OracleAgeOutOfBounds(uint32 maxOracleAge, uint32 minOracleAge, uint32 capOracleAge);
 error Unauthorized();
 
 // ISessionOracle
@@ -381,8 +426,8 @@ type Market = {
   oraclePriceE8: string;
   oracleFeedUpdatedAt: number; // time of the source quote
   oraclePublishedAt: number;
-  oracleStale: boolean;
-  dexMidPriceE8: string | null;
+  oracleStale: boolean;       // SessionOracle's hard check, or older than maxOracleAge outside CLOSED (opening is refused)
+  dexMidPriceE8: string | null; // null until the DEX depth measurement (BE-04) has a value
   dexDeviationBps: number | null; // DEX price compared to oracle; can be negative
 
   lltvWad: string;
@@ -529,7 +574,7 @@ type Account = {
 
 type HistoryItem = {
   id: string;
-  type: "open" | "reduce" | "close" | "addCollateral" | "removeCollateral"
+  type: "open" | "reduce" | "close" | "addCollateral" | "removeCollateral" | "repayDebt"
       | "autoReduce" | "liquidation" | "lend" | "withdrawLend";
   marketId: Hex;
   symbol: string;
@@ -603,7 +648,7 @@ type MarketDetail = {
 type QuoteCollateralRequest = {
   user: Address;
   marketId: Hex;
-  action: "add" | "remove";
+  action: "add" | "remove" | "repay"; // repay calls repayDebt with the loan token (D-32); amountRaw above the debt repays all of it
   amountRaw: string;
   signatures?: SignatureInput[];
 };
@@ -728,8 +773,14 @@ Server-Sent Events. Three event types:
 ### Quote rules
 
 - A quote is valid for a short time (initial proposal: 20 seconds). The frontend asks again when it is stale.
-- `tx.gasLimit` comes from simulation plus a small reserve. The frontend uses it as is.
+- `tx.gasLimit` comes from simulation plus a small reserve (15%). The frontend uses it as is.
+- `tx.gasLimit` is `"0"` when the transaction was not simulated: a requirement is not met and no signature covers it, the user holds less than the amount the action pulls, or a warning blocks it. The frontend never sends a transaction with a gas limit of `"0"`; it asks for signatures or shows the warning, then asks again.
 - If there is a warning with `severity: "block"`, `tx` is still sent but the frontend does not show the confirm button.
+- In `typedData`, every `uint256` value is a decimal string so the payload survives JSON. The frontend turns them into `bigint` before signing.
+- `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
+- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for short positions until the short quote engine (BE-20) and for positions built straight on Morpho until the indexer reads Morpho events (BE-13).
+- `/history` takes `cursor` (the `id` of the last item shown) and `limit` (1 to 100, default 20) as query parameters, newest first. An unknown cursor answers `BAD_REQUEST`.
+- Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.
 - The backend never holds user keys and never sends transactions on behalf of a user.
 
@@ -737,7 +788,7 @@ Server-Sent Events. Three event types:
 
 | File | Content | Owner | Used by |
 |---|---|---|---|
-| `abis/*.ts` | ABIs of our contracts, Morpho, vault, Anchored oracle, ERC-20 | Wangsit (generated by script) | BE, FE |
+| `abis/*.ts` | ABIs of our contracts, Morpho (functions and events), the Anchored oracle and the liquidator. ERC-20 and ERC-4626 come from viem | Wangsit (generated by script) | BE, FE |
 | `addresses.ts` | Addresses of external services and our contracts per environment | Wangsit | BE, FE |
 | `markets.ts` | The stock list (symbol, name, token, price ID) and helpers that join it with a deployment's markets | Wangsit | BE, FE |
 | `deployments.ts` | Schema of the deployment file and `parseDeployment`. `deployments.node.ts` reads the file from disk for Node | Wangsit | BE, FE |

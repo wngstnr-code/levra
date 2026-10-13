@@ -84,8 +84,9 @@ Verified on 13 October 2026 from aggregator routes for a $100 buy: all three poo
 
 Still not verified (SC-04):
 
-- Whether those Uniswap v4 pools have extra rules (a hook). The aggregator reports no hook data, but it has not been read from the contract.
 - No real swap has been sent on mainnet yet.
+
+Verified on 13 October 2026: the aQQQ and aHOOD pools on Uniswap v4 have no hook. Each pool ID equals the hash of (stock token, USDC, fee 9000, tick spacing 90, hook address zero), and a pool ID commits to its hook. The fee of 9000 means each swap pays 0.90% to the pool, so a round trip pays 1.8% in pool fees before any price impact.
 
 Verified on a local fork on 13 October 2026 (`contracts/script/e2e-long.sh`): calldata built by KyberSwap for our router executed from the router through the aQQQ pool in both directions. A long with 50 USDC of margin and 50 USDC borrowed bought 0.13588 aQQQ, and closing it returned 47.44 USDC, so the round trip cost about 2.6% of the $100 position, most of it price impact in the thin pool.
 
@@ -110,6 +111,7 @@ enum Session { UNKNOWN, PRE_MARKET, REGULAR, POST_MARKET, OVERNIGHT, CLOSED }
 - `priceId` is the `keccak256` of the uppercase symbol, for example `keccak256("QQQ")`.
 - Prices have 8 decimals.
 - The layout above matches Anchored's own documentation and was read successfully from the live contract on 13 October 2026.
+- Every write emits `PriceUpdated(bytes32 indexed priceId, int256 price, int256 bestBid, int256 bestAsk, uint64 feedUpdateTimestamp, uint64 publishedAt, uint80 roundId, Session session)`, topic `0x2e2fc593...c07f`. Verified on 13 October 2026: the topic matches the signature, and logs filtered by `priceId` read back to at least 29 September 2026 through `rpc2.monad.xyz` in 10,000 block ranges. QQQ showed about 5 updates per 10,000 blocks. The oracle logger (BE-03) uses these logs, so its history starts weeks back instead of on the day it is started.
 
 What Anchored's documentation says about the oracle (read on 13 October 2026, not independently verified unless marked):
 
@@ -133,7 +135,7 @@ Consequence for our design: `ISessionOracle.snapshot()` and the API expose `publ
 
 ### Market sessions
 
-From Anchored's documentation. Times are US Eastern Time.
+From Anchored's documentation, and confirmed by two weeks of oracle writes (BE-03, see 04 and `docs/reports/oracle-2026-10-13.md`). Times are US Eastern Time.
 
 | Session | Hours |
 |---|---|
@@ -177,7 +179,13 @@ Verified on 13 October 2026:
 - Finding a route works with any text as the client ID. We used `levra`.
 - Building calldata works when `sender` and `recipient` are a contract that holds no funds. The request body was `routeSummary`, `sender`, `recipient` and `slippageTolerance` (in basis points). The answer has `routerAddress` (the router above), `data` (about 3,600 bytes for a one-hop route), `amountOut`, `gas` and `transactionValue`.
 
-Still not verified (BE-04): request limits, whether a registered client ID is needed for production use, and that the built calldata executes from a contract (SC-04).
+Also verified on a local fork on 13 October 2026:
+
+- The built calldata executes from our router, for buying and for selling.
+- The calldata carries its own minimum return, derived from the `slippageTolerance` sent when building. If the pool moved more than that, the swap reverts with "Return amount is not enough" before our own check. So the user's slippage setting must be passed to the build request.
+- The build request is refused with "wallets invalid" for some addresses. The well-known first account of a local node is one of them.
+
+Still not verified (BE-04): request limits, and whether a registered client ID is needed for production use.
 
 ### Morpho, data API
 
