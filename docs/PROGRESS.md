@@ -73,11 +73,7 @@ The full list, with options for each, is in 09 under "Decisions waiting for the 
 
 | Question | Owner | Why it is urgent |
 |---|---|---|
-| Q-26 Submit to Monad Metropolis or not | All three | The deadline is 14 October 2026 at 10:59 WIB |
-| Q-22 Which clock decides oracle staleness | Wangsit, Dharu | Changes the frozen interface, so decide before `SessionOracle` is written |
-| Q-11 Which Morpho vault type | Wangsit | Needed before the vault is created |
 | Q-25 Domain | Nabil | `levra.com`, `.io`, `.xyz` and `.app` are in use |
-| Q-24 Which places the app blocks | All three | The issuer's list is longer than we assumed |
 
 ## Integration checkpoint results
 
@@ -142,3 +138,4 @@ Newest first. One to three lines per person per working day: what got done, what
   - Eligibility: Anchored's prohibited list is longer than "United States and China". This opens Q-24.
 - New documents: `docs/10-screens.md` (screen draft for FE-04), `docs/outreach/anchored-questions.md` (X-12 draft, not sent), `docs/drafts/risk-disclosure.md` (X-11 draft, not reviewed).
 - No product code was written in this round, by the team's choice. Spikes that need code or funds are still open.
+- All: decisions D-23 to D-30 taken. Levra will be submitted to Monad Metropolis (D-30). Sprint order: real long on aQQQ, positions and close, cross-chain deposit, short, sign-in by email. Deadline 14 October 2026 at 10:59 WIB.

@@ -34,6 +34,14 @@ How to use it:
 | D-20 | First use is one confirmation: two gasless signatures (USDC permit and Morpho authorization) applied inside one `multicall` together with the open | Chosen by the team on 13 October 2026. Best experience for new users | Three separate transactions on first use; relying on wallet batching only |
 | D-21 | Backend stack: TypeScript, Hono (REST plus SSE), Postgres with Drizzle, Envio for the indexer | Chosen by Dharu on 13 October 2026. Light, and Envio has a bounty. Envio on Monad is still to be proven in BE-06 | NestJS with Prisma; Ponder |
 | D-22 | Sign-in provider: Privy, next to plain wallets through wagmi | Chosen by Nabil and Wangsit on 13 October 2026. Privy's docs list Monad as a supported network. Answers Q-02 | Dynamic; deciding later |
+| D-23 | Staleness uses two clocks. Market open: the source quote time, `feedUpdateTimestamp`. Market `CLOSED`: the carried price is accepted and freshness is judged on `publishedAt`. The interface gains the source quote time in `snapshot()`, `Lens` and the API | Chosen by the team on 13 October 2026. Matches how the oracle behaves and does not block liquidations over a weekend. Answers Q-22 | `publishedAt` only; Anchored's `latestPriceNoOlderThan` |
+| D-24 | The USDC vault is a MetaMorpho v1.1 vault | Chosen by the team on 13 October 2026. Simpler and enough for our case. Answers Q-11 | Vault V2 |
+| D-25 | The web app blocks Anchored's full list of prohibited jurisdictions (in 05). Counsel confirms the final list | Chosen by the team on 13 October 2026. Matches the issuer. Answers Q-24 | United States and China only; adding address screening now |
+| D-26 | Sponsor bounties to go for: Aurora Intents, Envio and Privy | Chosen by the team on 13 October 2026. They match choices already made. Answers Q-13 | Aurora Intents only; none |
+| D-27 | Seed funds for now: staging only, a few hundred dollars of USDC and a little MON. Production seed is decided later | Chosen by the team on 13 October 2026. Answers Q-21 for staging | One tenth of the caps; the full caps |
+| D-28 | Fees: 0.10% on open and close, 10% of vault interest, auto-deleverage fee at most 0.30% | Chosen by the team on 13 October 2026. Answers Q-07 | Free at launch; 0.20% and 15% |
+| D-29 | Only registered keepers may run auto-deleverage | Chosen by the team on 13 October 2026. Safest at the start. Answers Q-08 | Anyone; a switch to open it later |
+| D-30 | Levra is submitted to Monad Metropolis, Track 01, by 14 October 2026 at 10:59 WIB, and the goal is to win. Before the deadline the team builds one real flow on mainnet first (long on aQQQ in one confirmation), then adds what time allows in this order: positions and close, cross-chain deposit, short, sign-in by email. This is the first slice of the final product, built to the same rules, not a throwaway demo | Chosen by the team on 13 October 2026. Answers Q-26 | Not submitting; submitting docs only |
 
 ## Open questions
 
@@ -47,13 +55,13 @@ Every question has an owner and a milestone to answer it by.
 | Q-04 | What happens to dividends for stocks held by Morpho? What about the stock borrower (short) when there is a dividend? | Wangsit | M2 | X-12 | Write it in the risk disclosure until it is clear |
 | Q-05 | Does Anchored allow its token to be used in a lending venue? Can the Morpho or router address be put on a denylist? | Wangsit | M1 | X-12, SC-05 | Run staging with small funds while waiting for the answer |
 | Q-06 | How do the margin and short rules on stocks apply to this product? What kind of legal entity and where? | All three | M5 | X-10, X-20 | There is no strong answer yet |
-| Q-07 | What are the transaction fee, the auto-deleverage fee, and the share of interest? | All three | M5 | - | 0.10%, at most 0.30%, 10% of interest |
-| Q-08 | Auto-deleverage only by registered keepers, or by anyone? | Wangsit | M3 | SC-30 | Registered keepers first; open it later after it is tested |
+| Q-07 | Answered: see D-28 | - | - | - | - |
+| Q-08 | Answered: see D-29 | - | - | - | - |
 | Q-09 | Can a cross-chain deposit open a position directly when the funds arrive? | Dharu, Wangsit | M4 | BE-05, SC-40 | Two steps: funds arrive in the wallet, then one confirmation |
 | Q-10 | Partly answered: a price-only quote shows 1 USDC on Base can arrive as about 39 MON on Monad in about 39 seconds. Still open: a real transfer | Dharu, Nabil | M4 | BE-05, BE-40 | A second small transfer of MON through the same service |
-| Q-11 | Both exist on Monad: the MetaMorpho v1.1 factory and the Vault V2 factory (addresses in 05). Which one do we use? See "Decisions waiting for the team" | Wangsit | M2 | SC-23 | MetaMorpho v1.1 unless a reason for V2 appears |
+| Q-11 | Answered: see D-24 | - | - | - | - |
 | Q-12 | Which auditor, when, and paid from what funds? | All three | M5 | X-13 | Get quotes from M3 |
-| Q-13 | Which sponsor bounties do we go for? | All three | M0 | X-16 | Aurora Intents, Envio and Privy |
+| Q-13 | Answered: see D-26 | - | - | - | - |
 | Q-14 | Display language of the app? | Nabil | M5 | FE-55 | English as the main, Indonesian as the second |
 | Q-15 | Does the short soft limit need its own number, different from long? | Wangsit, Dharu | M2 | SC-22, BE-34 | Same as long, whichever is more cautious |
 | Q-16 | Answered: all three pools pair the stock directly with USDC and routes are a single hop (aggregator routes on 13 October 2026) | Wangsit | M0 | SC-04 | - |
@@ -61,43 +69,16 @@ Every question has an owner and a milestone to answer it by.
 | Q-18 | Answered: yes for USDC (`DOMAIN_SEPARATOR` and `nonces` answer). No for aQQQ, aHOOD and aBIL, so lending stock needs a normal `approve` first | Wangsit | M0 | SC-05 | - |
 | Q-19 | Partly answered: Anchored's documentation says the oracle rejects any write where a price is not positive or bid exceeds ask. One live read agreed. Still to confirm over a week | Dharu | M1 | BE-03 | Keep the fallback to the price alone |
 | Q-20 | When and how to accept stocks from xStocks? Which oracle is used for them? | All three | After M6 | X-18 | The design already allows a different oracle per market |
-| Q-21 | How much of the team treasury goes in as seed funds for markets, and does part of it become liquidity on the exchange? | All three | M2 | X-14 | Start from the supply cap in 04 |
-| Q-22 | Which clock decides that the oracle price is stale: `feedUpdateTimestamp`, `publishedAt`, or both depending on the session? The frozen interface exposes only `publishedAt` | Wangsit, Dharu | M1 | SC-10 | See "Decisions waiting for the team" |
+| Q-21 | Answered: see D-27 | - | - | - | - |
+| Q-22 | Answered: see D-23 | - | - | - | - |
 | Q-23 | How is a stock split applied to the token balance and to the oracle price? | Wangsit | M1 | X-12 | Asked of Anchored. Until answered, treat any stock with an announced split as not eligible |
-| Q-24 | Which places does the web app block? | All three | M5 | BE-52, X-10 | See "Decisions waiting for the team" |
+| Q-24 | Answered: see D-25 | - | - | - | - |
 | Q-25 | Which domain? `levra.com`, `.io`, `.xyz` and `.app` are in use | Nabil | M0 | X-02 | See "Decisions waiting for the team" |
-| Q-26 | Do we submit to Monad Metropolis on 14 October 2026, and with what? | All three | Now | X-16 | See "Decisions waiting for the team" |
+| Q-26 | Answered: see D-30 | - | - | - | - |
 
 ## Decisions waiting for the team
 
 Each has options and a suggestion. Nothing here is decided. When the team picks, the choice moves to the Decisions table.
-
-### Q-22. Which clock decides staleness
-
-| Option | What it means | Trade-off |
-|---|---|---|
-| A. Two clocks by session (suggested) | Market open: stale when the source quote (`feedUpdateTimestamp`) is too old. Market `CLOSED`: accept the carried price and check the heartbeat (`publishedAt`) | Matches how the oracle behaves. Needs `feedUpdateTimestamp` added to `snapshot()`, `Lens` and the API, which is an interface change |
-| B. `publishedAt` only | Keep the frozen interface as it is | Simple, but a fresh write of an old quote looks fresh. Hides the 15 minute delay |
-| C. Use Anchored's `latestPriceNoOlderThan` | Let their contract decide | Reverts all weekend, because the quote time stops while closed. Would block liquidations |
-
-### Q-11. Which Morpho vault for lending USDC
-
-| Option | What it means | Trade-off |
-|---|---|---|
-| A. MetaMorpho v1.1 (suggested) | The established vault type. Allocates only to Morpho markets, with a supply cap per market | Simpler, widely integrated. Enough for our case |
-| B. Vault V2 | The newer type with adapters | More flexible, more moving parts, more to audit and explain |
-
-Not verified: which type the Morpho app on Monad lists and promotes. Check before deciding.
-
-### Q-24. Which places the web app blocks
-
-| Option | What it means | Trade-off |
-|---|---|---|
-| A. Anchored's full prohibited list (suggested) | The list in 05, including the United States, China, Canada and sanctioned places | Matches the issuer. Lowest risk of being cut off by them |
-| B. United States and China only | What earlier docs assumed | Easier, but allows people the issuer forbids |
-| C. Option A plus sanctions screening of wallet addresses | Adds a screening provider | Strongest, costs money and adds a provider |
-
-Counsel (X-10) should confirm the final list.
 
 ### Q-25. Domain
 
@@ -109,54 +90,6 @@ Counsel (X-10) should confirm the final list.
 | D. Change the name | `levra.com`, `.io`, `.xyz`, `.app` are in use, and Levva is a DeFi project one letter away |
 
 Availability is only confirmed by a registrar.
-
-### Q-26. Monad Metropolis submission
-
-The deadline is 14 October 2026 at 10:59 WIB. The rules ask for a demo video with real Monad transactions. Today the repo has design docs, frozen interfaces and API schemas. No contract is deployed and no transaction exists.
-
-| Option | What it means | Trade-off |
-|---|---|---|
-| A. Do not submit, keep building the final product | Follows the team's choice to build the final version and ignore the deadline | No prize, no judge feedback |
-| B. Submit what exists | Docs, interfaces and schemas, with a video that explains the design | Does not meet the real-transaction requirement. Likely scored low |
-| C. Build one real flow before the deadline | A long on aQQQ on mainnet with a small amount | Needs funds today and nearly all remaining hours. Goes against "not an MVP" |
-
-No suggestion here. It depends on what the team wants from the hackathon.
-
-### Q-13. Sponsor bounties
-
-| Option | Bounties |
-|---|---|
-| A. Aurora Intents, Envio and Privy (suggested) | They match choices already made (D-21, D-22, cross-chain deposits) |
-| B. Aurora Intents only | The largest one that fits the core flow |
-| C. None | Skip bounty work |
-
-Only matters if the answer to Q-26 is not A.
-
-### Q-21. Seed funds
-
-| Option | Amount | Use |
-|---|---|---|
-| A. Staging only for now (suggested) | A few hundred dollars of USDC plus a little MON | Enough for the spikes and the first real flows. Decide production seed later |
-| B. One tenth of the proposed caps | About $3,500 | Markets feel real from the start |
-| C. The full proposed caps | About $35,000 | Only after the audit |
-
-### Q-07. Fees
-
-| Option | Transaction fee | Share of vault interest |
-|---|---|---|
-| A. As proposed (suggested) | 0.10% on open and close | 10% |
-| B. Free at launch | 0% | 0%, switched on later |
-| C. Higher | 0.20% | 15% |
-
-With position caps of $500 to $1,000, any of these earns very little. The fee mostly signals the business model.
-
-### Q-08. Who may run auto-deleverage
-
-| Option | What it means | Trade-off |
-|---|---|---|
-| A. Registered keepers only (suggested) | Only our keeper address can call it | Safest at the start. Depends on our keeper being up |
-| B. Anyone | Open to all, bounded by the price deviation check | No single point of failure, more exposure to bad execution |
-| C. Registered first, opened later | Start with A, move to B after it is proven | Needs a switch in the contract |
 
 ## Differences between this document set and the idea PDF
 
