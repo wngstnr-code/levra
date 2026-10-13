@@ -26,7 +26,9 @@ if (!auth) logger.info("sign-in and alert routes off: AUTH_SECRET or AUTH_DOMAIN
 const intents = createIntents({ jwt: env.INTENTS_JWT });
 const blockedCountries = new Set((env.BLOCKED_COUNTRIES ?? "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
 if (blockedCountries.size > 0 && !env.GEO_COUNTRY_HEADER) throw new Error("BLOCKED_COUNTRIES needs GEO_COUNTRY_HEADER to know the visitor's country");
-const compliance = env.TERMS_VERSION ? { termsVersion: env.TERMS_VERSION, countryHeader: env.GEO_COUNTRY_HEADER, blockedCountries } : undefined;
+const blockedRegions = new Set((env.BLOCKED_REGIONS ?? "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
+if (blockedRegions.size > 0 && !(env.GEO_REGION_HEADER && env.GEO_COUNTRY_HEADER)) throw new Error("BLOCKED_REGIONS needs GEO_REGION_HEADER and GEO_COUNTRY_HEADER");
+const compliance = env.TERMS_VERSION ? { termsVersion: env.TERMS_VERSION, countryHeader: env.GEO_COUNTRY_HEADER, blockedCountries, regionHeader: env.GEO_REGION_HEADER, blockedRegions } : undefined;
 if (!compliance) logger.warn("region and terms routes off: TERMS_VERSION is not set; the web app cannot pass its gate");
 const app = createApp({ logger, reader, swap, events: dbEventStore(db), db, version: env.APP_VERSION, auth, intents, compliance, corsOrigins, rateLimit: { trustProxyHeader: env.TRUST_PROXY_HEADER } });
 
