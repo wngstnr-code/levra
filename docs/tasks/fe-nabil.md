@@ -17,19 +17,20 @@ Four rules for the frontend:
 
 ## M0. Foundation and spikes
 
-- [ ] **FE-01 · Set up `apps/web`**
+- [~] **FE-01 · Set up `apps/web`**
   - Do: Next.js project; Tailwind; style and type checks; CI on GitHub Actions; a preview deployment for every PR.
   - Done when: an empty page is deployed and every PR gets a preview address.
+  - Note: `apps/web` exists with Next.js 16, Tailwind 4, ESLint, type checks, Vitest and a CI workflow (`.github/workflows/web.yml`). Not done yet: hosting and preview deployments, which wait for the hosting choice (blocker in PROGRESS). `apps/web` uses TypeScript 6 because typescript-eslint does not support TypeScript 7 yet.
 
-- [~] **FE-02 · Wallet and network**
+- [x] **FE-02 · Wallet and network**
   - Do: connect a plain wallet on Monad (chain 143); sign in by email or passkey without an existing wallet (D-16); switch network automatically; show the MON and USDC balances. The provider is Privy (D-22). Confirm with Wangsit that its embedded wallet is a normal key wallet, because that decides whether the signature path in 03 section 3 works.
   - Done when: both sign-in paths work, real balances show, a user can export or recover the created wallet, and the wallet type finding is recorded under Q-02 in 09.
-  - Note: provider chosen: Privy (D-22). Its documentation says the embedded wallet is a normal key wallet that supports typed-data signing and export. Nothing is built yet, and a Privy app ID is needed first.
+  - Note: provider chosen: Privy (D-22). Its documentation says the embedded wallet is a normal key wallet that supports typed-data signing and export. Built: Privy with wagmi, sign-in by wallet, email or passkey, an embedded wallet for users without one, automatic switch to Monad, MON and USDC balances, export of the embedded wallet key. Done on 13 October 2026 with the Privy app ID: sign-in by email, passkey and external wallets (Rabby and others) works, an embedded wallet is created for users without one, MON and USDC balances read from Monad, and export of the embedded wallet opens Privy's export window with the recovery phrase. A `signTypedData` call is not run yet. It is checked in FE-11 with the first-use signatures. The Privy dashboard must list each origin exactly, for example `http://localhost:3000` (not `https://`). Without `NEXT_PUBLIC_PRIVY_APP_ID` the app shows "Sign-in unavailable" and chain reads still work.
 
-- [ ] **FE-03 · Markets page with data straight from the chain**
+- [x] **FE-03 · Markets page with data straight from the chain**
   - Do: read the price and market session of QQQ, HOOD and BIL directly from the Anchored oracle (address and data layout in 05). Show them in a simple list.
   - Done when: real prices and market sessions show and change with the chain, without a backend.
-  - Note: this task does not wait for anyone. Do it while waiting for SC-03 and BE-02.
+  - Note: done on 13 October 2026. `/markets` reads `latestPrice` for every stock in `packages/shared/markets.ts` every 10 seconds and shows price, best bid and ask, session and source quote age. Checked against mainnet: aQQQ $741.45, aHOOD $108.75, aBIL $91.51, all `PRE_MARKET`, quote age 16 minutes. A stale price flag is left to FE-13, which uses `oracleStale` from the API.
 
 - [~] **FE-04 · Screen design**
   - Do: wireframes for all pages in 02 and the seven flows in 01; a component list; all states of each screen (loading, empty, error, stale price, market closed, pre-close window, restricted region); colors, fonts and spacing as one system.

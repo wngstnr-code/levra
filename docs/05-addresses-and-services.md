@@ -293,7 +293,7 @@ Our geo-blocking list is an open decision (Q-24). Earlier docs said "outside the
 | Service | Finding | Status |
 |---|---|---|
 | Envio | Its supported networks page lists Monad mainnet, chain 143, with HyperSync at `https://143.hypersync.xyz`. Whether an API token is required was not found | From documentation. Not run (BE-06) |
-| Privy | The embedded wallet is a normal key wallet by default (an HD wallet). It supports `signTypedData` and private key export. Smart wallets are an optional layer on top | From documentation. Not run (FE-02) |
+| Privy | The embedded wallet is a normal key wallet by default (an HD wallet). It supports `signTypedData` and private key export. Smart wallets are an optional layer on top | From documentation. Run on 13 October 2026: embedded wallet creation by email and passkey, and export of its recovery phrase. `signTypedData` not run (FE-02, FE-11) |
 | Local fork | Anvil 1.8.3 forks Monad through the public RPC. Reads and an impersonated `approve` work | Verified for those calls only (SC-02) |
 
 ## Name and domains

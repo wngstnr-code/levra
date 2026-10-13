@@ -62,7 +62,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Nabil | Nabil | Accept the repo invitation on GitHub | X-01 |
+| 13 October 2026 | Nabil | Nabil | Hosting for the web app with a preview deployment per PR (for example Vercel connected to the repo) | FE-01 |
 | 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
@@ -120,6 +120,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Nabil: repo access works. FE-03 done: `/markets` shows live prices and sessions from the Anchored oracle. FE-01 and FE-02 built on `fe/FE-01-03-m0-foundation`: Next.js app, CI, Privy sign-in, switch to Monad, balances. FE-02 done: sign-in by email, passkey and external wallet works on localhost, with an embedded wallet, real balances and key export. Fixed on the way: export used the active wallet address instead of the embedded one. Next: hosting (blocker), then FE-10 and FE-11.
 - Wangsit: SC-03 written and in review: Solidity interfaces, events, errors, ABI export to `packages/shared/abis/`. SC-01 partly done along the way.
 - All: interface decisions made together: backend builds transactions (D-19), one confirmation on first use (D-20), backend stack (D-21), Privy for sign-in (D-22). Doc 03 updated to match. The full freeze (X-04) still needs SC-03 and BE-02.
 - Wangsit: X-01 started. Private repo created at `github.com/wngstnr-code/levra` with the monorepo root. Collaborators, `CODEOWNERS` and branch protection are still open.
