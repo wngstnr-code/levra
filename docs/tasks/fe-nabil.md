@@ -50,7 +50,7 @@ Four rules for the frontend:
   - Needs: FE-04 (the visual style on the Figma page "Design").
   - Do: a mark and a wordmark for Levra on the Figma page "Brand", checked on dark and light, as an app icon and at 32 px and 16 px. The wordmark uses a font whose license allows a logo (not SF Pro). Then the files in `apps/web`: favicon, app icons and the header lockup.
   - Done when: the team picks one concept, and the app shows the logo in the header, the browser tab and the home screen icon.
-  - Note: four concepts (Lever, Rising L, Bento L, Pivot L) and three open-license wordmark fonts were drawn on 14 October 2026 on the page "Brand". A second round (Long and short, Session, The gap, Lift, Badge) ties each mark to one thing Levra does, and a "References" frame collects the team's examples. Nothing is picked yet.
+  - Note: four concepts (Lever, Rising L, Bento L, Pivot L) and three open-license wordmark fonts were drawn on 14 October 2026 on the page "Brand". A second round (Long and short, Session, The gap, Lift, Badge) ties each mark to one thing Levra does, and a "References" frame collects the team's examples. Round 3 is custom lettering after Nabil's references (starz, brhd): heavy lowercase "levra" on League Spartan Black (OFL) with letters pushed into each other, a thin knockout gap and an optional lime seam, upright and italic. Nothing is picked yet.
 
 ---
 
