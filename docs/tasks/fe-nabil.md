@@ -170,9 +170,9 @@ Four rules for the frontend:
   - Note: partly built on 13 October 2026: friendly error screens for a page, the whole app and an unknown address; Vercel Web Analytics without cookies, with five funnel steps from visit to first position and no amounts or addresses. Still open: sending app errors to the team needs an error service (blocker in PROGRESS).
 
 - [x] **FE-55 · App language**
-  - Do: all text goes through one message file; the app is English only (D-38).
+  - Do: all text goes through one message file; the app is English only (D-39).
   - Done when: no text is embedded in components.
-  - Note: done on 13 October 2026: every text the app shows is in `apps/web/lib/i18n/en.ts` and read through `useT()`. A second language was built first and removed the same day when the team chose English only (D-38); adding one later means adding a file of the same shape.
+  - Note: done on 13 October 2026: every text the app shows is in `apps/web/lib/i18n/en.ts` and read through `useT()`. A second language was built first and removed the same day when the team chose English only (D-39); adding one later means adding a file of the same shape.
 
 ---
 

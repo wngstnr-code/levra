@@ -49,7 +49,7 @@ How to use it:
 | D-35 | Hard oracle ages per market: source quote age while open is 1 hour for QQQ and HOOD and 3 hours for BIL; publish age while closed is 4 days for all. Ages to open a position start at 35, 36 and 51 minutes. Proposed from the BE-03 data and implemented in the deployment script. Confirmed by Wangsit on 13 October 2026 and deployed on mainnet with these numbers. The hard ages are now fixed for this deployment | BIL's source quote reached 81.5 minutes after hours, so 1 hour would block its liquidations at times. BIL barely moves, so a longer age costs little. 4 days covers a holiday weekend with a day to spare | One hard age for all markets; 2 hours for BIL, which leaves little room above the 81.5 minutes seen |
 | D-36 | The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price, both through KyberSwap. Quotes, `/v1/markets`, the stream and the depth table all use it, and price impact is measured against it. The client lives in `packages/kyber` (owner: Dharu), shared by the API and the keeper | Chosen by Dharu on 13 October 2026. A one-sided probe carries the pool fee and half the spread, which made every sale look about 2% worse than a buy of the same size | A 10 USDC buy only; the pool's own spot price |
 | D-37 | The landing page is a separate site from the app. The landing site lives at the root domain and the app at the `app.` subdomain of the same domain (for example `levra.xyz` and `app.levra.xyz`; the real domain is still Q-25). The landing site is its own Next.js project in `apps/landing`, deployed as a second Vercel project. Its design is done after the app works and may use its own style | Chosen by Nabil on 13 October 2026 | Home page inside the app; two unrelated domains; a separate repository |
-| D-38 | The app is English only. All text stays in one message file (`apps/web/lib/i18n/en.ts`), so no sentence is written inside a component and another language can be added later as a file | Chosen by Nabil on 13 October 2026. Answers Q-14 | English and Indonesian with a switch |
+| D-39 | The app is English only. All text stays in one message file (`apps/web/lib/i18n/en.ts`), so no sentence is written inside a component and another language can be added later as a file | Chosen by Nabil on 13 October 2026. Answers Q-14 | English and Indonesian with a switch |
 
 ## Open questions
 
@@ -70,7 +70,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-11 | Answered: see D-24 | - | - | - | - |
 | Q-12 | Which auditor, when, and paid from what funds? | All three | M5 | X-13 | Get quotes from M3 |
 | Q-13 | Answered: see D-26 | - | - | - | - |
-| Q-14 | Answered: English only (D-38) | - | - | - | - |
+| Q-14 | Answered: English only (D-39) | - | - | - | - |
 | Q-15 | Does the short soft limit need its own number, different from long? | Wangsit, Dharu | M2 | SC-22, BE-34 | Same as long, whichever is more cautious |
 | Q-16 | Answered: all three pools pair the stock directly with USDC and routes are a single hop (aggregator routes on 13 October 2026) | Wangsit | M0 | SC-04 | - |
 | Q-17 | Answered: yes. Anvil 1.8.3 forks Monad. Forge needs `--network monad`. The full long flow through real Morpho and a real KyberSwap route runs on the fork | - | - | - | - |
