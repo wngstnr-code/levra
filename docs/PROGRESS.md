@@ -72,7 +72,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
-| 14 October 2026 | Dharu | Nabil | Show `gasDeposit` on the deposit screen when `includeGas` is on: the second address and how much of the same token to send there (D-40) | FE-40 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
 | 14 October 2026 | Nabil | Wangsit | Set `NEXT_PUBLIC_API_URL=https://api-production-c154.up.railway.app` on the Vercel project (Production and Preview) and redeploy. The Vercel project is on Wangsit's account. This is the last step of BE-15 | FE-10, FE-11, FE-12, FE-13, BE-15 |
 | 14 October 2026 | Nabil | Dharu | Trade quotes on staging fail most of the time with 429 `RATE_LIMITED` "The swap aggregator is rate limiting us" (1 of 3 tries worked). Likely the missing KyberSwap client ID on Railway | FE-11, BE-04, BE-12 |
