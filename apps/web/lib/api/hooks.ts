@@ -101,3 +101,20 @@ export function useEarnAccount(address: Address | undefined) {
     retry: shouldRetry,
   });
 }
+
+export function useDepositTokens() {
+  return useQuery({ queryKey: queryKeys.depositTokens, queryFn: ({ signal }) => api("depositTokens", { signal }), enabled: apiConfigured, staleTime: 10 * 60_000, retry: shouldRetry });
+}
+
+const TERMINAL = new Set(["SUCCESS", "REFUNDED", "FAILED", "EXPIRED"]);
+
+/** Follows one cross-chain transfer until it ends. */
+export function useDepositStatus(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.depositStatus(id ?? "none"),
+    queryFn: ({ signal }) => api("depositStatus", { params: { id: id! }, signal }),
+    enabled: apiConfigured && !!id,
+    refetchInterval: (q) => (q.state.data && TERMINAL.has(q.state.data.status) ? false : 5_000),
+    retry: shouldRetry,
+  });
+}
