@@ -160,5 +160,6 @@ Results so far:
 |---|---|---|
 | 13 October 2026 | Dharu's machine, docker Postgres, `levra_staging` (7 tables, 11 router events, 32 Morpho events) | Passed, 2.1 s with host tools, 5.4 s inside the container |
 | 13 October 2026 | Dharu's machine, docker Postgres, `levra` (4,621 oracle updates) | Passed, 1.1 s |
+| 14 October 2026 | Dharu's machine, docker Postgres in the container, `levra_test` with every table up to migration 0007 | Passed |
 
 **Not available yet:** scheduled backups and off-site copies on the hosted database (needs hosting, BE-15). When hosting is chosen, run `backup.ts` on a daily schedule, copy each file to storage outside that host, and run `restore-check.ts` once a month.
