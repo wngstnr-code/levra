@@ -62,7 +62,11 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| | | | | |
+| 13 October 2026 | Dharu, Nabil | All three | Review and merge PR 1 (SC-03) and PR 2 (BE-02). That freezes the interface agreement | X-04 |
+| 13 October 2026 | Nabil | Nabil | Accept the repo invitation on GitHub | X-01 |
+| 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
+| 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
+| 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
 
