@@ -53,4 +53,4 @@ jobs:
           git diff --exit-code -- packages/db/migrations
           test -z "$(git status --porcelain -- packages/db/migrations)"
       - name: Type check and test
-        run: pnpm turbo run typecheck test --concurrency=1 --filter=@levra/db --filter=@levra/api --filter=@levra/keeper --filter=@levra/indexer --filter=@levra/shared
+        run: pnpm turbo run typecheck test --concurrency=1 --filter=@levra/db --filter=@levra/api --filter=@levra/keeper --filter=@levra/indexer --filter=@levra/kyber --filter=@levra/shared
