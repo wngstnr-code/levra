@@ -1,5 +1,5 @@
 import { account, historyQuery, historyResponse } from "./accounts";
-import { alertSettings, alertSettingsUpdate } from "./alerts";
+import { alertSettings, alertSettingsUpdate, telegramLinkResponse } from "./alerts";
 import { authNonceResponse, siweRequest, siweResponse } from "./auth";
 import { configResponse } from "./config";
 import { eligibilityQuery, eligibilityResponse, termsAcceptRequest, termsAcceptResponse } from "./compliance";
@@ -72,6 +72,8 @@ export const endpoints = {
   authSiwe: { method: "POST", path: "/v1/auth/siwe", body: siweRequest, response: siweResponse },
   alertsGet: { method: "GET", path: "/v1/alerts", response: alertSettings, auth: true },
   alertsPut: { method: "PUT", path: "/v1/alerts", body: alertSettingsUpdate, response: alertSettings, auth: true },
+  alertsTelegramLink: { method: "POST", path: "/v1/alerts/telegram", response: telegramLinkResponse, auth: true },
+  alertsTelegramUnlink: { method: "DELETE", path: "/v1/alerts/telegram", response: alertSettings, auth: true },
 } as const;
 
 export type EndpointName = keyof typeof endpoints;
