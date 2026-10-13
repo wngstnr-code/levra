@@ -214,10 +214,11 @@ Three rules for the backend:
 - [ ] **BE-54 · Load test**
   - Done when: the quote and account endpoints hold up at the target load without passing the limits of the RPC endpoint and outside services; the result is recorded.
 
-- [ ] **BE-55 · Keeper key management**
+- [~] **BE-55 · Keeper key management**
   - Needs: SC-55.
   - Do: one key per role (calendar poster, oracle age poster, protector, liquidator); proper secret storage, never in `.env` files on servers or in logs; keepers run apart from the public API; MON top-ups with a limit; a way to rotate keys, where the multisig removes the role from the old address.
   - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
+  - Note: written on 14 October 2026. `docs/keys.md` covers the four roles, where keys live (only the keeper service's variables on Railway), making them, MON top-ups and rotation. `pnpm --filter @levra/keeper keys` makes keys and stores them on Railway through stdin, printing only addresses and the line for `make set-roles-monad`; `topup` funds role wallets from a person's funding key within limits (10 MON target, 10 per wallet, 30 per run, initial proposals). The keeper log blanks key fields. Leak drill passed on a fork: one owner call moved the oracle age poster role, the leaked key was refused, the new key posted. Still to do: making the mainnet keys, the owner granting them, and the drill on mainnet after SC-55.
 
 
 - [x] **BE-56 · CORS and sign-in hosts for the web app**

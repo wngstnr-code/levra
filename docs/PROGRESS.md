@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 17 | 12 |
+| Backend | Dharu | 35 | 17 | 13 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -63,7 +63,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
-| 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet | BE-17, BE-30, BE-31, BE-32 |
+| 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet. The tool to make them is ready (`docs/keys.md`) | BE-17, BE-30, BE-31, BE-32, BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | The restricted country list from counsel (X-10) and a published terms version (X-11), set as `BLOCKED_COUNTRIES` and `TERMS_VERSION` | BE-52 |
 | 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
@@ -201,6 +201,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-55 written: `docs/keys.md`, a `keys` script that makes one key per role and stores it on Railway without printing it, a capped `topup` script, and log redaction. The leak drill passed on a fork. Next: make the mainnet keys and send the addresses to Wangsit for `make set-roles-monad` (needs Dharu's go-ahead).
 - Dharu: BE-56 done: CORS for the web app's origins (`CORS_ORIGINS`, with `*` for one dash-separated part so only this project's Vercel previews match) and sign-in from several hosts (`AUTH_DOMAIN` as a list). This removes Nabil's CORS blocker; the signed texts were approved in BE-52, which removes the other. Still needed for the web app: the staging address (BE-15).
 - Dharu: BE-52 written: `/v1/eligibility` from a CDN country header and a block list, `/v1/terms/accept` checking the signed 03 text and storing it with the version and country, and a gate on opening and deposit quotes only (closing and withdrawing are never gated). Waiting on X-10 and X-11 for the country list and the terms version. Next: CORS and sign-in domains for the web app.
 - Dharu: BE-50 written: the `monitor` keeper checks every row of the 08 monitoring table (oracle age with a per-session limit from data, session against the calendar, DEX deviation, heartbeats, risk value changes, keeper MON, unhealthy positions, bad debt, utilization, depth against the cap rule, indexer lag, API) and alerts a team Telegram group or webhook once per problem, with a RESOLVED message. Waiting on Dharu: the team channel. Next: BE-52.
