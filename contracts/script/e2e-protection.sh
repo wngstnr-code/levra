@@ -12,7 +12,7 @@ SELL_USD=${SELL_USD:-45000000}
 REPAY_SHARE_BPS=${REPAY_SHARE_BPS:-1700}
 MARKET=$(market long marketId)
 ORACLE=$(market long oracle)
-PARAMS="($USDC,$STOCK,$ORACLE,$IRM,770000000000000000)"
+PARAMS=$(market_params long)
 
 echo "Funding the test account and seeding the long market"
 fund_usdc 2000000000
@@ -28,7 +28,7 @@ quote "$USDC" "$STOCK" "$SWAP_IN" "$ROUTER"
 MIN_OUT=$(min_of "$(built "d['amountOut']")")
 DEADLINE=$(( $(now) + 600 ))
 send "$ROUTER" "openLong((bytes32,uint256,uint256,(address,bytes,uint256),uint256,uint256))" \
-  "($MARKET,$MARGIN,$BORROW,$(swap_tuple "$MIN_OUT"),730000000000000000,$DEADLINE)"
+  "($MARKET,$MARGIN,$BORROW,$(swap_tuple "$MIN_OUT"),$(call "$RISK" "currentSoftLtv(bytes32)(uint256)" "$MARKET" | first),$DEADLINE)"
 echo "Opened. LTV $(ltv "$MARKET"), soft limit $(call "$RISK" "currentSoftLtv(bytes32)(uint256)" "$MARKET" | first)"
 
 # The fork deployer owns the contracts, so it can act as calendar poster and keeper here.
