@@ -15,13 +15,24 @@ const statusByCode: Record<ApiErrorCode, ContentfulStatusCode> = {
   UPSTREAM_ERROR: 502,
 };
 
+/** Runs a chain or outside-service read. A failure becomes UPSTREAM_ERROR, never an approximate answer. */
+export async function upstream<T>(read: () => Promise<T>): Promise<T> {
+  try {
+    return await read();
+  } catch (err) {
+    if (err instanceof ApiHttpError) throw err;
+    throw new ApiHttpError("UPSTREAM_ERROR", "Could not read the chain. Try again shortly.", undefined, err);
+  }
+}
+
 export class ApiHttpError extends Error {
   constructor(
     readonly code: ApiErrorCode,
     message: string,
     readonly details?: unknown,
+    cause?: unknown,
   ) {
-    super(message);
+    super(message, { cause });
   }
 
   get status(): ContentfulStatusCode {
