@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 14 |
-| Backend | Dharu | 34 | 3 | 3 |
+| Backend | Dharu | 34 | 3 | 6 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -66,6 +66,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Wangsit | Answer Q-27 and, if yes, a `setMaxOracleAge` role with owner-set bounds in `RiskManager` (SC-11), plus the matching change in 03 | BE-17 |
+| 13 October 2026 | Dharu | Wangsit | Review PR 8 (oracle event ABI, needed by BE-03) and the formulas in PR 10 (BE-16) | BE-03, BE-16 |
+| 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
@@ -114,6 +116,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
+| 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 
 ## Daily log
@@ -121,6 +124,8 @@ One line for every change to 03 after the freeze.
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
 ### 13 October 2026
+
+- Dharu: BE-16 formulas in `packages/shared/math.ts` (PR 10) match `Lens` exactly for a real long and short on the fork. BE-10 and BE-11 (chain reader, `/v1/config`, `/v1/session`, `/v1/markets`, `/v1/stream`) are written and checked against direct contract reads on the fork. Next: BE-12 quote for long.
 
 - Dharu: BE-01 done (PR 7): api with `/v1/health`, keeper job runner with heartbeats, `packages/db`, local Postgres, backend CI passing on GitHub.
 - Dharu: BE-03 done: the oracle logger backfilled two weeks of `PriceUpdated` logs and keeps following them. Report in `docs/reports/oracle-2026-10-13.md`. For Wangsit (Q-28): BIL's source quote reached 81.5 minutes after hours, above the 1 hour hard age in `SessionOracle`; nothing is written while `CLOSED`, so `publishedAt` stops too; the session flips for about 15 minutes every Friday at 20:00 ET. Needs PR 8 (event ABI) reviewed by Wangsit.

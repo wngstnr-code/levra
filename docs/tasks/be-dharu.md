@@ -54,15 +54,17 @@ Three rules for the backend:
 
 ## M1. Core long
 
-- [ ] **BE-10 · Chain reader**
+- [~] **BE-10 · Chain reader**
   - Needs: SC-03.
   - Do: one layer for reading the oracle, the Morpho market state and positions through `Lens`, with a short cache and handling of RPC endpoint limits. Risk parameters such as `maxOracleAge` and the `stale` flag from `SessionOracle.snapshot()` are always read from the chain, never kept as constants in the backend.
   - Done when: all endpoints use it; no other part calls the RPC endpoint directly; changing `maxOracleAge` on chain changes `oracleStale` and the `ORACLE_STALE` warning without a backend deploy.
+  - Note: `apps/api/src/chain/` reads `Lens.getMarkets`, `getPositions`, `RiskManager.config`, the session values and Morpho's market fee with multicall, JSON-RPC batching and a 1 to 2 second single-flight cache. A failed read answers `UPSTREAM_ERROR`. A fork test sets `maxOracleAge` through the owner and sees `oracleStale` flip without a restart. Still to do: the `ORACLE_STALE` quote warning, which comes with BE-12 from the same field.
 
-- [ ] **BE-11 · Markets, market session and price stream**
+- [~] **BE-11 · Markets, market session and price stream**
   - Needs: BE-10.
   - Do: `GET /v1/markets`, `GET /v1/session`, `GET /v1/stream`.
   - Done when: the numbers match direct reads from the chain; the stream sends a new price within a few seconds of it being published on chain.
+  - Note: `GET /v1/config`, `/v1/session`, `/v1/markets` and `/v1/stream` (SSE: `price` per stock, `market`, `session`, only on change, read every 2 seconds) are written. A fork test checks every market number against direct contract reads. `nextOpenAt` stays null until the calendar (BE-30) and the DEX price fields stay null until BE-04 measures them. Still to do: timing of the stream against a live oracle write. A fork does not receive new writes, so this needs the mainnet deployment (Wangsit).
 
 - [ ] **BE-12 · Quote engine for long**
   - Needs: BE-04, BE-10, BE-16, the ABI from SC-03. For simulation it needs SC-14.
@@ -88,7 +90,7 @@ Three rules for the backend:
   - Needs: SC-13 for comparison tests.
   - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table. Include the "price used" rule from 04 (long: lower of price and best bid, short: higher of price and best ask) with the fallback to the price alone, checked on every read so the code does not depend on the answer to Q-19. The fallback condition must match `SessionOracle` exactly, as written in 04.
   - Done when: tests compare the results with `Lens` on the local fork for long and short, including a zero and a non-sensible bid and ask; Wangsit has reviewed it.
-  - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). Still to do: the comparison test against `Lens` on the fork (with BE-10) and Wangsit's review.
+  - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). The fork test in `apps/api/test/fork.test.ts` opens a real long and short on Morpho and gets exactly the same LTV and liquidation price as `Lens`, and the same Morpho price as `SessionOracle.price()`. A zero or non-sensible bid and ask cannot be produced on a fork of the live oracle, so those cases are covered by unit tests only. Still to do: Wangsit's review.
 
 - [ ] **BE-17 · Oracle age poster (keeper)**
   - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (Q-27, requested from Wangsit).

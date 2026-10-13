@@ -412,8 +412,8 @@ type Market = {
   oraclePriceE8: string;
   oracleFeedUpdatedAt: number; // time of the source quote
   oraclePublishedAt: number;
-  oracleStale: boolean;
-  dexMidPriceE8: string | null;
+  oracleStale: boolean;       // SessionOracle's hard check, or older than maxOracleAge outside CLOSED (opening is refused)
+  dexMidPriceE8: string | null; // null until the DEX depth measurement (BE-04) has a value
   dexDeviationBps: number | null; // DEX price compared to oracle; can be negative
 
   lltvWad: string;
