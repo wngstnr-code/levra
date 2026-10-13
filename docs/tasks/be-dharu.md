@@ -142,10 +142,11 @@ Three rules for the backend:
   - Do: watch positions that have protection switched on; take the close time from the calendar (BE-30), never from a schedule of its own; when the time comes (see the order in 04) and a position is above the soft limit, compute the deleverage size with the formula in 04, request a route, call `deleverage`. Retry on failure; log every action.
   - Done when: on the local fork, positions above the limit are reduced to the target; positions without protection are not touched.
 
-- [ ] **BE-32 · Liquidator bot**
+- [x] **BE-32 · Liquidator bot**
   - Needs: SC-32.
   - Do: watch all positions in our markets, including those of people who use Morpho directly; call `Liquidator` when a position passes the hard limit.
   - Done when: on the local fork, a position made unhealthy is liquidated within a few blocks.
+  - Note: done on 13 October 2026. The keeper job `liquidator` (on only when `LIQUIDATOR_KEY` and `DEPLOYMENT_FILE` are set) takes every borrower in our markets from the indexed Morpho events, so users who borrow straight on Morpho are watched too, and checks health on chain with Morpho's own rounding (`morphoIsHealthy` in `math.ts`). It seizes as much as repays the whole debt (all the collateral when there is bad debt), sells the stock for a long or buys the stock back with part of the USDC for a short through KyberSwap, and halves the seizure when the DEX cannot cover the debt. It never lets the contract cover a shortfall from its own balance. Fork tests: a long after a 12% price drop and a short after a 25% rise were liquidated in the next run, a healthy position was left alone, and the `Liquidator` kept no tokens. Note for SC: the deployment script gives one `KEEPER` address both the router keeper role and the Liquidator keeper role; BE-55 asks for one key per role.
 
 - [ ] **BE-33 · Alerts for users**
   - Do: sign in with a wallet signature (`/v1/auth/siwe`); `GET` and `PUT /v1/alerts`; delivery channels (proposal: email and Telegram); a schedule of 24 hours, 4 hours and 1 hour before close, with the close time taken from the calendar (BE-30); alerts when the LTV passes a threshold, when auto-deleverage happens, and when liquidation happens.
