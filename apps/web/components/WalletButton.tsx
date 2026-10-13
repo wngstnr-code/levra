@@ -5,15 +5,17 @@ import { useEffect, useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 import { monad } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { Balances } from "./Balances";
 import { Button } from "./ui/Button";
 
 export function WalletButton() {
+  const m = useT();
   if (!privyAppId) {
     return (
       <span className="text-sm text-fg-3" title="NEXT_PUBLIC_PRIVY_APP_ID is not set">
-        Sign-in unavailable
+        {m.wallet.unavailable}
       </span>
     );
   }
@@ -21,6 +23,7 @@ export function WalletButton() {
 }
 
 function PrivyWalletButton() {
+  const m = useT();
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { exportWallet } = useExportWallet();
   const { address, chainId, isConnected } = useAccount();
@@ -33,25 +36,25 @@ function PrivyWalletButton() {
   }, [onWrongChain, switchChain]);
 
   if (!ready) {
-    return <span className="text-sm text-fg-3">Loading</span>;
+    return <span className="text-sm text-fg-3">{m.common.loading}</span>;
   }
 
   if (!authenticated) {
     return (
       <Button size="sm" onClick={login}>
-        Sign in
+        {m.wallet.signIn}
       </Button>
     );
   }
 
   if (!address) {
-    return <span className="text-sm text-fg-3">Connecting wallet</span>;
+    return <span className="text-sm text-fg-3">{m.wallet.connecting}</span>;
   }
 
   if (onWrongChain) {
     return (
       <Button size="sm" variant="caution" onClick={() => switchChain({ chainId: monad.id })} disabled={isSwitching} title={switchError?.message}>
-        {isSwitching ? "Switching to Monad" : "Switch to Monad"}
+        {isSwitching ? m.wallet.switching : m.wallet.switchToMonad}
       </Button>
     );
   }
@@ -74,7 +77,7 @@ function PrivyWalletButton() {
             <ExportWalletButton onExport={() => exportWallet({ address: embeddedWallet.address })} />
           )}
           <button onClick={logout} className="text-left text-fg-2 transition-colors hover:text-fg">
-            Sign out
+            {m.wallet.signOut}
           </button>
         </div>
       </div>
@@ -83,6 +86,7 @@ function PrivyWalletButton() {
 }
 
 function ExportWalletButton({ onExport }: { onExport: () => Promise<void> }) {
+  const m = useT();
   const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
@@ -90,14 +94,14 @@ function ExportWalletButton({ onExport }: { onExport: () => Promise<void> }) {
     try {
       await onExport();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The wallet key could not be exported.");
+      setError(e instanceof Error ? e.message : m.wallet.exportFailed);
     }
   }
 
   return (
     <div>
       <button onClick={handleClick} className="text-left text-fg-2 transition-colors hover:text-fg">
-        Export wallet key
+        {m.wallet.exportKey}
       </button>
       {error && <p className="mt-1 text-xs text-down">{error}</p>}
     </div>
