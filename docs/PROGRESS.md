@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 16 | 6 |
-| Frontend | Nabil | 26 | 3 | 1 |
+| Frontend | Nabil | 26 | 4 | 0 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -186,6 +186,10 @@ One line for every change to 03 after the freeze.
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+
+### 14 October 2026
+
+- Nabil: FE-04 done: Wangsit and Dharu approved the wireframes and the visual design.
 
 ### 13 October 2026
 
