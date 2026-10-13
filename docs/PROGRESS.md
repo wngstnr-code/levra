@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 34 | 16 | 11 |
+| Backend | Dharu | 34 | 16 | 12 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -65,6 +65,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
 | 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet | BE-17, BE-30, BE-31, BE-32 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
+| 14 October 2026 | Wangsit, Nabil | Dharu | The restricted country list from counsel (X-10) and a published terms version (X-11), set as `BLOCKED_COUNTRIES` and `TERMS_VERSION` | BE-52 |
 | 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
 | 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
@@ -187,6 +188,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 | 13 October 2026 | Added the `NEXT_PUBLIC_PRIVY_APP_ID` environment variable (section 7) | Nabil | fe/FE-01-03-m0-foundation |
+| 14 October 2026 | Approved the signed terms text in 03; it is also `termsMessage` in `packages/shared/api/compliance.ts`, which the web app can import instead of its own copy. Wrote down which routes the region and terms gate covers | Dharu, Nabil | be/BE-52-compliance |
 | 14 October 2026 | `/v1/status` oracle rows gained `ageLimitSeconds` and `ageLimitLearning` from the team monitor; `monitor` added to the keeper names | Dharu, Nabil | be/BE-50-team-monitor |
 | 14 October 2026 | `DepositQuoteResponse.gasDeposit` for the MON top-up (D-40); `DepositStatus.destinationTxHash` is any string, since a withdrawal can land on a chain that is not EVM; `transfers` added to the keeper names in `/v1/status` | Dharu, Nabil | be/BE-40-deposits |
 | 14 October 2026 | Added `POST` and `DELETE /v1/alerts/telegram` and `TelegramLinkResponse`; wrote down the sign-in rules (D-38) and when alerts go out | Dharu, Nabil | be/BE-33-alerts |
@@ -200,6 +202,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-52 written: `/v1/eligibility` from a CDN country header and a block list, `/v1/terms/accept` checking the signed 03 text and storing it with the version and country, and a gate on opening and deposit quotes only (closing and withdrawing are never gated). Waiting on X-10 and X-11 for the country list and the terms version. Next: CORS and sign-in domains for the web app.
 - Dharu: BE-50 written: the `monitor` keeper checks every row of the 08 monitoring table (oracle age with a per-session limit from data, session against the calendar, DEX deviation, heartbeats, risk value changes, keeper MON, unhealthy positions, bad debt, utilization, depth against the cap rule, indexer lag, API) and alerts a team Telegram group or webhook once per problem, with a RESOLVED message. Waiting on Dharu: the team channel. Next: BE-52.
 - Dharu: BE-40, BE-41 and BE-42 written: cross-chain deposits and withdrawals through 1Click (new `packages/intents`), the MON top-up as a second transfer (D-40, answers Q-10), every transfer stored and followed by the `transfers` keeper. Found: without a partner token 1Click adds a 0.2% fee. Waiting on Dharu: real test transfers. Next: BE-50.
 - Dharu: BE-33 written: wallet sign-in (D-38), alert settings, Telegram linking, and the alerts keeper (before-close at 24, 4 and 1 hours, LTV threshold, auto-deleverage, liquidation, deposits). Fork test passes with a stand-in email channel. Waiting on Dharu: the delivery services (Q-30) and their keys. Next: BE-50 team monitor.

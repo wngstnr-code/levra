@@ -8,6 +8,7 @@ import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
 import { alertRoutes } from "./routes/alerts";
 import { depositRoutes } from "./routes/deposit";
+import { complianceRoutes, createCompliance, type ComplianceOptions } from "./routes/compliance";
 import type { IntentsSource } from "@levra/intents";
 import { authRoutes } from "./routes/auth";
 import { earnRoutes } from "./routes/earn";
@@ -33,6 +34,8 @@ export type AppDeps = {
   auth?: { secret: string; domain: string; telegramBot?: string };
   /** Cross-chain deposits and withdrawals (BE-40, BE-41). Needs `db`. */
   intents?: IntentsSource;
+  /** Region and terms (BE-52). Needs `db` and `reader`. Without it, opening and depositing are not gated. */
+  compliance?: ComplianceOptions;
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
@@ -41,8 +44,9 @@ function dexMidsFromDb(db: Db): DexMids {
   return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
 }
 
-export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents }: AppDeps) {
+export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts }: AppDeps) {
   const app = new Hono();
+  const compliance = db && complianceOpts ? createCompliance(db, complianceOpts) : undefined;
 
   app.use(async (c, next) => {
     const started = performance.now();
@@ -62,7 +66,8 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
     app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
     app.route("/", earnRoutes(reader, store));
-    if (swap) app.route("/", quoteRoutes(reader, swap, store));
+    if (swap) app.route("/", quoteRoutes(reader, swap, store, compliance));
+    if (db && compliance && complianceOpts) app.route("/", complianceRoutes(db, reader.client, compliance, complianceOpts));
     if (db) app.route("/", statusRoutes(reader, db, version));
     if (db && auth) {
       app.route("/", authRoutes(reader.client, db, { secret: auth.secret, domain: auth.domain, chainId: reader.deployment.chainId }));
@@ -70,7 +75,7 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
     }
   }
 
-  if (db && intents) app.route("/", depositRoutes(db, intents));
+  if (db && intents) app.route("/", depositRoutes(db, intents, compliance));
 
   app.notFound(() => {
     throw new ApiHttpError("NOT_FOUND", "No such endpoint");

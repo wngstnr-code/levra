@@ -25,6 +25,15 @@ const envSchema = z.object({
   TELEGRAM_BOT_USERNAME: optional(),
   /** Aurora Intents partner token (BE-40). Optional: without it the service adds its own 0.2% fee to every transfer. */
   INTENTS_JWT: optional(),
+  /**
+   * Terms version users must accept (BE-52). Region and terms routes are off without it, and the web app then cannot
+   * pass its gate, so a deployment without terms cannot take new positions or deposits.
+   */
+  TERMS_VERSION: optional(),
+  /** Request header with the visitor's ISO country, set by the CDN in front of the API, for example cf-ipcountry. */
+  GEO_COUNTRY_HEADER: optional(),
+  /** Comma-separated ISO 3166-1 alpha-2 codes to refuse, decided with counsel (X-10). Needs GEO_COUNTRY_HEADER. */
+  BLOCKED_COUNTRIES: optional(),
   /** Shown in /v1/status, for example the git commit of the deployed build. */
   APP_VERSION: z.string().min(1).default("dev"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),

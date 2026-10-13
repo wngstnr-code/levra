@@ -19,7 +19,11 @@ const swap = createKyber({ baseUrl: env.KYBER_BASE_URL, clientId: env.KYBER_CLIE
 const auth = env.AUTH_SECRET && env.AUTH_DOMAIN ? { secret: env.AUTH_SECRET, domain: env.AUTH_DOMAIN, telegramBot: env.TELEGRAM_BOT_USERNAME } : undefined;
 if (!auth) logger.info("sign-in and alert routes off: AUTH_SECRET or AUTH_DOMAIN is not set");
 const intents = createIntents({ jwt: env.INTENTS_JWT });
-const app = createApp({ logger, reader, swap, events: dbEventStore(db), db, version: env.APP_VERSION, auth, intents });
+const blockedCountries = new Set((env.BLOCKED_COUNTRIES ?? "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
+if (blockedCountries.size > 0 && !env.GEO_COUNTRY_HEADER) throw new Error("BLOCKED_COUNTRIES needs GEO_COUNTRY_HEADER to know the visitor's country");
+const compliance = env.TERMS_VERSION ? { termsVersion: env.TERMS_VERSION, countryHeader: env.GEO_COUNTRY_HEADER, blockedCountries } : undefined;
+if (!compliance) logger.warn("region and terms routes off: TERMS_VERSION is not set; the web app cannot pass its gate");
+const app = createApp({ logger, reader, swap, events: dbEventStore(db), db, version: env.APP_VERSION, auth, intents, compliance });
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   logger.info({ port: info.port, chainId: deployment.chainId, markets: deployment.markets.length }, "api listening");
