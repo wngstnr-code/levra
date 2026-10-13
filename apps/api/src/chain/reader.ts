@@ -1,10 +1,28 @@
 import { external } from "@levra/shared/addresses";
-import { lensAbi, morphoAbi, riskManagerAbi } from "@levra/shared/abis";
+import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
 import { listMarkets, type MarketInfo } from "@levra/shared/markets";
-import type { Address, Hex, PublicClient } from "viem";
+import { erc20Abi, parseAbi, type Address, type Hex, type PublicClient } from "viem";
 import { createCache } from "./cache";
+
+/**
+ * Standard ERC-2612 reads plus `version()`, which USDC on Monad has (05).
+ * Temporary until the ABI export in packages/shared includes IERC20Permit (requested from Wangsit).
+ */
+const permitAbi = parseAbi([
+  "function name() view returns (string)",
+  "function version() view returns (string)",
+  "function nonces(address owner) view returns (uint256)",
+]);
+
+export type UserState = {
+  balance: bigint;
+  allowance: bigint;
+  permitNonce: bigint;
+  authorized: boolean;
+  morphoNonce: bigint;
+};
 
 const sessions: SessionName[] = ["UNKNOWN", "PRE_MARKET", "REGULAR", "POST_MARKET", "OVERNIGHT", "CLOSED"];
 
@@ -24,6 +42,9 @@ export type MarketState = {
   borrowRatePerSecondWad: bigint;
   morphoFeeWad: bigint;
   oraclePriceE8: bigint;
+  /** Zero when the oracle has no positive value. */
+  bidE8: bigint;
+  askE8: bigint;
   session: SessionName;
   feedUpdatedAt: number;
   publishedAt: number;
@@ -55,7 +76,7 @@ export type PositionState = {
 export type ChainReader = ReturnType<typeof createChainReader>;
 
 /** TTLs in milliseconds. Monad blocks are 0.4 s and oracle writes about 10 minutes apart. */
-const TTL = { markets: 2_000, session: 2_000, positions: 1_000, block: 1_000 } as const;
+const TTL = { markets: 2_000, session: 2_000, positions: 1_000, block: 1_000, fees: 30_000 } as const;
 
 /** The only place the API talks to the RPC endpoint. */
 export function createChainReader(client: PublicClient, deployment: Deployment) {
@@ -81,22 +102,31 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
         client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" }),
         latestBlock(),
       ]);
+      const infos = views.map((v) => findInfo(v.marketId));
       const extra = await client.multicall({
-        allowFailure: false,
-        contracts: views.flatMap((v) => [
+        allowFailure: true,
+        contracts: views.flatMap((v, i) => [
           { address: deployment.riskManager, abi: riskManagerAbi, functionName: "config", args: [v.marketId] } as const,
           { address: external.morpho, abi: morphoAbi, functionName: "market", args: [v.marketId] } as const,
+          { address: infos[i]!.oracle, abi: sessionOracleAbi, functionName: "snapshot" } as const,
         ]),
       });
+      const ok = <T>(r: (typeof extra)[number]): T => {
+        if (r.status !== "success") throw r.error;
+        return r.result as T;
+      };
 
       return views.map((v, i) => {
-        const config = extra[2 * i] as { maxDeviationBps: number; maxOracleAge: number };
-        const { fee } = extra[2 * i + 1] as { fee: bigint };
+        const config = ok<{ maxDeviationBps: number; maxOracleAge: number }>(extra[3 * i]!);
+        const { fee } = ok<{ fee: bigint }>(extra[3 * i + 1]!);
+        // snapshot() reverts on a non-positive price; Lens then reports the market as stale.
+        const snapshot = extra[3 * i + 2]!;
+        const [, bidE8, askE8] = snapshot.status === "success" ? (snapshot.result as readonly bigint[]) : [0n, 0n, 0n];
         const session = sessions[v.session] ?? "UNKNOWN";
         const feedUpdatedAt = Number(v.feedUpdatedAt);
         const tooOldToOpen = session !== "CLOSED" && block.time > feedUpdatedAt + config.maxOracleAge;
         return {
-          info: findInfo(v.marketId),
+          info: infos[i]!,
           enabled: v.enabled,
           lltvWad: v.lltv,
           softLtvOpenWad: v.softLtvOpen,
@@ -110,6 +140,8 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
           borrowRatePerSecondWad: v.borrowRatePerSecond,
           morphoFeeWad: fee,
           oraclePriceE8: v.priceE8,
+          bidE8: bidE8 ?? 0n,
+          askE8: askE8 ?? 0n,
           session,
           feedUpdatedAt,
           publishedAt: Number(v.publishedAt),
@@ -156,5 +188,45 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       }));
     });
 
-  return { deployment, markets, session, positions, latestBlock, client };
+  const routerFees = () =>
+    cached("routerFees", TTL.fees, async () => {
+      const [feeBps, keeperFeeBps] = await client.multicall({
+        allowFailure: false,
+        contracts: [
+          { address: deployment.router, abi: marginRouterAbi, functionName: "feeBps" },
+          { address: deployment.router, abi: marginRouterAbi, functionName: "keeperFeeBps" },
+        ],
+      });
+      return { feeBps, keeperFeeBps };
+    });
+
+  /** EIP-712 domain fields of a token with `permit`. They never change, so they are read once. */
+  const permitDomain = (token: Address) =>
+    cached(`permitDomain:${token.toLowerCase()}`, Number.POSITIVE_INFINITY, async () => {
+      const [name, version] = await client.multicall({
+        allowFailure: false,
+        contracts: [
+          { address: token, abi: permitAbi, functionName: "name" },
+          { address: token, abi: permitAbi, functionName: "version" },
+        ],
+      });
+      return { name, version };
+    });
+
+  /** What a user has in place for the router. Not cached: it changes with the user's own transactions. */
+  async function userState(user: Address, token: Address): Promise<UserState> {
+    const [balance, allowance, permitNonce, authorized, morphoNonce] = await client.multicall({
+      allowFailure: false,
+      contracts: [
+        { address: token, abi: erc20Abi, functionName: "balanceOf", args: [user] },
+        { address: token, abi: erc20Abi, functionName: "allowance", args: [user, deployment.router] },
+        { address: token, abi: permitAbi, functionName: "nonces", args: [user] },
+        { address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router] },
+        { address: external.morpho, abi: morphoAbi, functionName: "nonce", args: [user] },
+      ],
+    });
+    return { balance, allowance, permitNonce, authorized, morphoNonce };
+  }
+
+  return { deployment, markets, session, positions, latestBlock, routerFees, permitDomain, userState, client };
 }
