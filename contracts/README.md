@@ -8,6 +8,7 @@ Foundry project for the Levra contracts. Owner: Wangsit.
 | `RiskManager` | Soft limits that follow market hours, position caps, and the pause for opening |
 | `MarginRouter` | Opens and closes long and short positions in one transaction through a Morpho flash loan and one swap |
 | `Lens` | Reads every market and every position of a user in one call |
+| `Liquidator` | Lets our keeper liquidate unhealthy positions with no capital: seize, swap, repay in one call |
 
 The USDC vault is not our code. `script/DeployVault.s.sol` creates it from Morpho's MetaMorpho v1.1 factory and `script/VaultPlan.sol` holds its settings: supply caps per stock, a 10% fee on interest, and a one day timelock.
 
