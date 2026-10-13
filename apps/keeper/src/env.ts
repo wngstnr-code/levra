@@ -16,6 +16,8 @@ const envSchema = z.object({
   DEPLOYMENT_FILE: optional(),
   /** Key of the oracle age poster role (BE-17). The job runs only when it is set. One key per role (BE-55). */
   ORACLE_AGE_POSTER_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+  /** Key of a Liquidator keeper (BE-32). The bot runs only when it is set. One key per role (BE-55). */
+  LIQUIDATOR_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   KYBER_BASE_URL: optional().pipe(z.url().optional()),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
