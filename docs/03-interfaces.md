@@ -7,8 +7,8 @@ This document is the agreement between smart contracts (SC), backend (BE), and f
 | Part | Status | Frozen by |
 |---|---|---|
 | Units and number format | In effect | - |
-| Contract interfaces, events, errors | Proposal v0 | SC-03, after Dharu and Nabil have read it |
-| API endpoints and data shapes | Proposal v0 | BE-02, after Wangsit and Nabil have read it |
+| Contract interfaces, events, errors | Frozen on 13 October 2026 | PR 1 (SC-03), merged |
+| API endpoints and data shapes | Frozen on 13 October 2026 | PR 2 (BE-02), merged |
 | Contents of `packages/shared` | In effect | - |
 
 After a part is frozen, changes only go through a PR with the label `interface`, approved by everyone affected. The PR must change this document and the code together. Adding something new is allowed at any time. Changing or removing something that exists must be discussed first.
