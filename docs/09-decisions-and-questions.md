@@ -48,6 +48,7 @@ How to use it:
 | D-34 | The indexer is our own log follower in `apps/indexer`, reading from Envio HyperSync through its JSON API (RPC as fallback) into `packages/db`. Positions are read live from `Lens`; the database keeps the events that history, entry price and PnL need | Chosen by Dharu on 13 October 2026. The Envio CLI (HyperIndex) has no Windows build and needs extra containers, while HyperSync works from any platform and keeps Envio in the stack. Changes D-21 for the indexer. Whether the Envio bounty (D-26) accepts HyperSync without HyperIndex is not verified | Envio HyperIndex in WSL; RPC only |
 | D-35 | Hard oracle ages per market: source quote age while open is 1 hour for QQQ and HOOD and 3 hours for BIL; publish age while closed is 4 days for all. Ages to open a position start at 35, 36 and 51 minutes. Proposed from the BE-03 data and implemented in the deployment script. Confirmed by Wangsit on 13 October 2026 and deployed on mainnet with these numbers. The hard ages are now fixed for this deployment | BIL's source quote reached 81.5 minutes after hours, so 1 hour would block its liquidations at times. BIL barely moves, so a longer age costs little. 4 days covers a holiday weekend with a day to spare | One hard age for all markets; 2 hours for BIL, which leaves little room above the 81.5 minutes seen |
 | D-36 | The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price, both through KyberSwap. Quotes, `/v1/markets`, the stream and the depth table all use it, and price impact is measured against it. The client lives in `packages/kyber` (owner: Dharu), shared by the API and the keeper | Chosen by Dharu on 13 October 2026. A one-sided probe carries the pool fee and half the spread, which made every sale look about 2% worse than a buy of the same size | A 10 USDC buy only; the pool's own spot price |
+| D-38 | Wallet sign-in (SIWE, EIP-4361) gives a stateless session token signed with HMAC-SHA256 (`AUTH_SECRET`), good for 24 hours; a sign-in nonce is used once and is good for 10 minutes. The message must name the web app's host and chain 143. Smart wallets are checked with ERC-1271 and ERC-6492 | No session table, works with more than one API instance, nothing to clean up. The times are initial proposals | Sessions in the database; JWT library |
 
 ## Open questions
 
@@ -84,6 +85,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-27 | Answered: see D-31 | - | - | - | - |
 | Q-28 | Answered: see D-35 | - | - | - | - |
 | Q-29 | Bug bounty: how large are the rewards, who pays them, and which private channel takes the reports? | Wangsit | Before public launch | SC-56 | See "Decisions waiting for the team". Until decided, the draft in `drafts/bug-bounty.md` is not published |
+| Q-30 | Which services deliver user alerts? | Dharu | M3 | BE-33 | See "Decisions waiting for the team". The code has email through Resend and a Telegram bot, both off until their keys are set |
 
 ## Decisions waiting for the team
 
@@ -119,6 +121,16 @@ Channel:
 | C. A bounty platform | Reaches more researchers. Takes a fee and an application. Fits after the audit |
 
 Nothing here is decided.
+
+### Q-30. Alert delivery services
+
+| Option | State |
+|---|---|
+| A. Email through Resend and a Telegram bot | Written and tested with a stand-in channel (BE-33). Resend has a free tier; needs a sending domain (Q-25). The bot needs a token from BotFather. Suggested |
+| B. Telegram only | No domain needed, works today with one bot token. Users without Telegram get no alerts |
+| C. Another email provider (Postmark, SES) | Only the `resendEmail` function changes |
+
+Email addresses are not verified yet: a user can enter any address. Alerts only describe that user's own positions. Nothing here is decided.
 
 ## Differences between this document set and the idea PDF
 
