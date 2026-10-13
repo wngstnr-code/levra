@@ -327,7 +327,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | GET | `/v1/health` | Alive or not | M1 |
 | GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block | M1 |
 | GET | `/v1/session` | Market session, next close and open time | M1 |
-| GET | `/v1/markets` | All markets | M1 |
+| GET | `/v1/markets` | All markets, with the current session | M1 |
 | GET | `/v1/markets/:symbol` | One stock: details, depth, history of rates and price deviation | M2 |
 | GET | `/v1/stream` | Stream of prices and market session (SSE) | M1 |
 | POST | `/v1/quote/open` | Quote to open long or short | M1 long, M2 short |
@@ -343,6 +343,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | POST | `/v1/withdraw/quote` | Quote to withdraw to another network | M4 |
 | GET | `/v1/eligibility` | Allowed to use or not, based on region | M5 |
 | POST | `/v1/terms/accept` | Records acceptance of the terms, with a wallet signature | M5 |
+| GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
 | POST | `/v1/auth/siwe` | Sign in with a wallet signature, for settings | M3 |
 | GET, PUT | `/v1/alerts` | User alert settings (sign-in required) | M3 |
 
@@ -562,6 +563,131 @@ type DepositStatus = {
   destinationTxHash: Hex | null;
   amountOutRaw: string | null;
   updatedAt: number;
+};
+```
+
+### More data shapes
+
+Added while writing the schemas in BE-02. The binding source for every shape is `packages/shared/api/`. `endpoints.ts` there maps each endpoint to its request and response schema.
+
+```ts
+type MarketsResponse = { session: SessionInfo; markets: Market[] };
+
+type DepthPoint = {
+  direction: "buy" | "sell";
+  sizeUsdRaw: string;
+  priceImpactBps: number;     // against the DEX mid price
+  deviationBps: number;       // against the oracle price
+  measuredAt: number;
+};
+type RatePoint = { marketId: Hex; timestamp: number; borrowApyWad: string; supplyApyWad: string; utilizationWad: string };
+type DeviationPoint = { timestamp: number; oraclePriceE8: string; dexMidPriceE8: string; deviationBps: number };
+
+type MarketDetail = {
+  symbol: string;
+  name: string;
+  stockToken: Address;
+  session: SessionInfo;
+  markets: Market[];          // one per side
+  depth: DepthPoint[];
+  rateHistory: RatePoint[];
+  deviationHistory: DeviationPoint[];
+};
+
+type QuoteCollateralRequest = {
+  user: Address;
+  marketId: Hex;
+  action: "add" | "remove";
+  amountRaw: string;
+  signatures?: SignatureInput[];
+};
+type QuoteCollateralResponse = {
+  quoteId: string;
+  expiresAt: number;
+  preview: { collateralAfterRaw: string; ltvAfterWad: string; liqPriceE8: string; liqDistanceBps: number };
+  requirements: Requirement[];
+  tx: TxRequest;
+  warnings: Warning[];
+};
+
+type HistoryResponse = { items: HistoryItem[]; nextCursor: string | null }; // query: cursor, limit (1 to 100)
+
+type EarnOption = {
+  id: string;
+  kind: "vault" | "market";
+  asset: Address;
+  assetSymbol: string;
+  target: Address;            // the vault, or Morpho for a market
+  marketId: Hex | null;
+  supplyApyWad: string;
+  totalSuppliedRaw: string;
+  utilizationWad: string;
+  availableToWithdrawRaw: string;
+  feeWad: string | null;      // share of interest taken by the vault
+};
+type EarnResponse = { options: EarnOption[] };
+type EarnPosition = { optionId: string; suppliedRaw: string; earnedRaw: string; withdrawableRaw: string };
+type EarnAccount = { address: Address; positions: EarnPosition[] };
+
+type DepositToken = {
+  chain: string;
+  chainName: string;
+  token: string;
+  symbol: string;
+  decimals: number;
+  minAmountRaw: string | null;
+};
+type DepositTokensResponse = { tokens: DepositToken[] };
+
+type WithdrawQuoteRequest = {
+  user: Address;
+  destinationChain: string;
+  destinationToken: string;
+  amountRaw: string;          // USDC on Monad
+  recipient: string;          // address on the destination chain
+};
+type WithdrawQuoteResponse = {
+  id: string;
+  depositAddress: Address;    // send the USDC here on Monad
+  amountOutRaw: string;
+  estimatedSeconds: number;
+  expiresAt: number;
+};
+
+type EligibilityResponse = {
+  eligible: boolean;
+  reason: "REGION_BLOCKED" | null;
+  termsVersion: string;
+  termsAccepted: boolean | null; // null when no address was given
+};
+type TermsAcceptRequest = { address: Address; termsVersion: string; signature: Hex };
+type TermsAcceptResponse = { accepted: true; acceptedAt: number };
+
+type AuthNonceResponse = { nonce: string };
+type SiweRequest = { message: string; signature: Hex };
+type SiweResponse = { token: string; expiresAt: number };
+
+type AlertSettings = {
+  channels: { email: string | null; telegramLinked: boolean };
+  events: {
+    preClose: boolean;
+    ltvThresholdWad: string | null;
+    autoDeleverage: boolean;
+    liquidation: boolean;
+    depositArrived: boolean;
+  };
+};
+
+type HealthResponse = { ok: true };
+type StatusResponse = {
+  oracle: { symbol: string; publishedAt: number; ageSeconds: number; stale: boolean }[];
+  keepers: {
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor";
+    lastHeartbeatAt: number | null;
+    healthy: boolean;
+  }[];
+  indexer: { lastBlock: number; chainHead: number; lagBlocks: number };
+  api: { version: string };
 };
 ```
 

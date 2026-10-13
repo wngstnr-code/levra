@@ -22,10 +22,11 @@ Three rules for the backend:
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
 
-- [ ] **BE-02 · API data shapes**
+- [~] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
   - Done when: Nabil and Wangsit have read and approved it; the status in 03 is changed to "frozen"; the frontend can import the types.
   - Note: this task unblocks Nabil. Do it first, together with BE-01.
+  - Note: schemas for all 23 endpoints are written in `packages/shared/api/` with tests. Shapes that 03 did not define yet were added to 03 under "More data shapes". Waiting for Nabil and Wangsit to read and approve the PR. The freeze happens when it merges.
 
 - [ ] **BE-03 · Oracle logger (spike)**
   - Do: a small program that records every price change for QQQ, HOOD and BIL in the Anchored oracle: the price, best bid and best ask, market session, publish time. Run it for at least 7 days, and it must cover one weekend.
