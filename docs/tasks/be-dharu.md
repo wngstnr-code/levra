@@ -28,8 +28,10 @@ Three rules for the backend:
   - Note: merged as PR 2 on 13 October 2026. The API side of the interface agreement is frozen.
 
 - [~] **BE-03 · Oracle logger (spike)**
-  - Do: a small program that records every price change for QQQ, HOOD and BIL in the Anchored oracle: the price, best bid and best ask, market session, publish time. Run it for at least 7 days, and it must cover one weekend.
-  - Done when: there is a short report on how often the price is updated in each market session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value.
+  - Needs: Postgres from BE-01.
+  - Do: a long-running process that records every price change for QQQ, HOOD and BIL in the Anchored oracle into Postgres: the price, best bid and best ask, market session, source quote time (`feedUpdateTimestamp`) and publish time (`publishedAt`), plus the block time of each read. It keeps running after the spike. Add queries for the update interval and the source quote age per session (p50, p95, p99, max), and for every session change with its time. Check whether the oracle emits an event on each update; if it does, backfill past weeks from the logs. Add a query that computes `maxOracleAge` per market with the formula in 04.
+  - Done when: the data covers at least 7 days including one weekend; the report on how often the price is updated in each session, what happens at the close, the exact schedule of each session, and whether the best bid and best ask always make sense is generated from the queries, not written by hand. 04 is updated. Q-03 and Q-19 are answered. Wangsit gets the max age value. BE-17 can read the tables it needs.
+  - Note: start on day one, because it needs a week. A partial report after the first day is fine if it says clearly that the weekend is not covered yet. This logger later becomes the oracle monitor (BE-50).
   - Note: Anchored's documentation answers part of this (heartbeat, delay, session hours, carry-forward while closed) and is summarized in 05 and 04. The logger itself is not written or running yet, so nothing is confirmed by observation.
 
 - [~] **BE-04 · KyberSwap (spike)**
@@ -53,8 +55,8 @@ Three rules for the backend:
 
 - [ ] **BE-10 · Chain reader**
   - Needs: SC-03.
-  - Do: one layer for reading the oracle, the Morpho market state and positions through `Lens`, with a short cache and handling of RPC endpoint limits.
-  - Done when: all endpoints use it; no other part calls the RPC endpoint directly.
+  - Do: one layer for reading the oracle, the Morpho market state and positions through `Lens`, with a short cache and handling of RPC endpoint limits. Risk parameters such as `maxOracleAge` and the `stale` flag from `SessionOracle.snapshot()` are always read from the chain, never kept as constants in the backend.
+  - Done when: all endpoints use it; no other part calls the RPC endpoint directly; changing `maxOracleAge` on chain changes `oracleStale` and the `ORACLE_STALE` warning without a backend deploy.
 
 - [ ] **BE-11 · Markets, market session and price stream**
   - Needs: BE-10.
@@ -83,8 +85,13 @@ Three rules for the backend:
 
 - [ ] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
-  - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table.
-  - Done when: tests compare the results with `Lens` on the local fork for long and short; Wangsit has reviewed it.
+  - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table. Include the "price used" rule from 04 (long: lower of price and best bid, short: higher of price and best ask) with the fallback to the price alone, checked on every read so the code does not depend on the answer to Q-19. The fallback condition must match `SessionOracle` exactly, as written in 04.
+  - Done when: tests compare the results with `Lens` on the local fork for long and short, including a zero and a non-sensible bid and ask; Wangsit has reviewed it.
+
+- [ ] **BE-17 · Oracle age poster (keeper)**
+  - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (Q-27, requested from Wangsit).
+  - Do: a keeper in `apps/keeper` that computes `maxOracleAge` per market from the BE-03 tables with the formula in 04, and posts it on chain. It does nothing until the data meets the minimum in 04; until then the value set at deployment stays. It posts only when the new value differs from the chain value by more than a small step, and never outside the bounds the multisig set. Every post is logged with the input numbers. Its key is used for this role only (BE-55).
+  - Done when: on the local fork, the poster sets the value from recorded data; does nothing with too little data; is rejected outside the bounds; the team gets an alert for every change (BE-50). After launch no person has to touch code, the repo or the multisig for this value to follow the data.
 
 ---
 
@@ -116,12 +123,12 @@ Three rules for the backend:
 
 - [ ] **BE-30 · Exchange calendar and calendar poster**
   - Needs: BE-03, SC-11.
-  - Do: a close and open calendar (US exchange holidays, daylight saving changes, the Anchored session schedule from BE-03); a program that writes `nextCloseAt` to `RiskManager`.
-  - Done when: `nextCloseAt` on chain is correct for the next four weeks, including one holiday; if this program stops, the team gets an alert.
+  - Do: a close and open calendar (US exchange holidays, daylight saving changes, the Anchored session schedule); a program that writes `nextCloseAt` to `RiskManager`. The Anchored schedule is read from the session changes recorded by BE-03, never typed into the code. Until a weekend close has been observed, post the earliest possible close (the regular close on the last trading day), because an early close is safe and a late one is not. The program switches to the observed schedule by itself once the data has it.
+  - Done when: `nextCloseAt` on chain is correct for the next four weeks, including one holiday; on the local fork it posts the early close with no weekend data and the observed close after a weekend is recorded, with no code change in between; if this program stops, the team gets an alert.
 
 - [ ] **BE-31 · Protector keeper**
   - Needs: SC-30, BE-20.
-  - Do: watch positions that have protection switched on; when the time comes (see the order in 04) and a position is above the soft limit, compute the deleverage size with the formula in 04, request a route, call `deleverage`. Retry on failure; log every action.
+  - Do: watch positions that have protection switched on; take the close time from the calendar (BE-30), never from a schedule of its own; when the time comes (see the order in 04) and a position is above the soft limit, compute the deleverage size with the formula in 04, request a route, call `deleverage`. Retry on failure; log every action.
   - Done when: on the local fork, positions above the limit are reduced to the target; positions without protection are not touched.
 
 - [ ] **BE-32 · Liquidator bot**
@@ -130,7 +137,7 @@ Three rules for the backend:
   - Done when: on the local fork, a position made unhealthy is liquidated within a few blocks.
 
 - [ ] **BE-33 · Alerts for users**
-  - Do: sign in with a wallet signature (`/v1/auth/siwe`); `GET` and `PUT /v1/alerts`; delivery channels (proposal: email and Telegram); a schedule of 24 hours, 4 hours and 1 hour before close; alerts when the LTV passes a threshold, when auto-deleverage happens, and when liquidation happens.
+  - Do: sign in with a wallet signature (`/v1/auth/siwe`); `GET` and `PUT /v1/alerts`; delivery channels (proposal: email and Telegram); a schedule of 24 hours, 4 hours and 1 hour before close, with the close time taken from the calendar (BE-30); alerts when the LTV passes a threshold, when auto-deleverage happens, and when liquidation happens.
   - Done when: a test address receives all three before-close alerts at the right times.
 
 - [ ] **BE-34 · Gap scenarios**
@@ -162,8 +169,8 @@ Three rules for the backend:
 ## M5. Hardening
 
 - [ ] **BE-50 · Monitoring and alerts for the team**
-  - Do: every row in the "What we monitor" table in 08; alerts to the team channel.
-  - Done when: each row has been triggered once on purpose and its alert arrived.
+  - Do: every row in the "What we monitor" table in 08; alerts to the team channel. Grows out of the BE-03 logger. The "price too old" limit is computed per session from the BE-03 data, not typed in. Until a session has enough samples, use a strict default and mark the monitor as learning in `/v1/status`. The expected session schedule comes from the same source as BE-30.
+  - Done when: each row has been triggered once on purpose and its alert arrived; a normal weekend with no updates raises no alert once the weekend is in the data.
 
 - [ ] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
@@ -182,8 +189,8 @@ Three rules for the backend:
 
 - [ ] **BE-55 · Keeper key management**
   - Needs: SC-55.
-  - Do: one key per role; proper secret storage; MON top-ups with a limit; a way to rotate keys.
-  - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried.
+  - Do: one key per role (calendar poster, oracle age poster, protector, liquidator); proper secret storage, never in `.env` files on servers or in logs; keepers run apart from the public API; MON top-ups with a limit; a way to rotate keys, where the multisig removes the role from the old address.
+  - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
 
 ---
 
