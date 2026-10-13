@@ -87,6 +87,10 @@ Things to know:
 
 After `make deploy-vault-monad`, `make first-earn-monad CONFIRM=yes` deposits 1 USDC into the vault, prints which market it reached and redeems it again. `AMOUNT` changes the size in USDC base units and `WITHDRAW=no` leaves the deposit in. Without `CONFIRM=yes` it is a dry run.
 
+## Closing everything after a demo
+
+`make close-all-monad CONFIRM=yes` closes every open position of the deployer wallet through the router and redeems its shares of the USDC vault. It does nothing where there is no position, and it leaves the seed lending in the markets. Without `CONFIRM=yes` it only lists what it would close. `SYMBOL=HOOD SIDE=short ./script/mainnet-close.sh` closes one position.
+
 ## Deployment settings
 
 Environment variables read by `script/Deploy.s.sol`. All are optional on a fork.
