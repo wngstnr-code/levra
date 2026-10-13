@@ -1,6 +1,6 @@
 "use client";
 
-import type { AlertSettings, AlertSettingsUpdate } from "@levra/shared/api";
+import type { AlertSettings, AlertSettingsUpdate, TelegramLinkResponse } from "@levra/shared/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { Address } from "viem";
@@ -8,7 +8,9 @@ import { api } from "@/lib/api/client";
 import { apiConfigured, shouldRetry } from "@/lib/api/hooks";
 import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
+import { formatDuration } from "@/lib/units";
 import { useAlertsAuth } from "@/lib/useAlertsAuth";
+import { useNowSeconds } from "@/lib/useNow";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Switch } from "../ui/Switch";
@@ -46,13 +48,27 @@ export function AlertsCard({ user }: { user: Address }) {
       ) : !alerts.data ? (
         <p className="text-sm text-fg-2">{m.common.loading}</p>
       ) : (
-        <AlertsForm key={JSON.stringify(alerts.data)} initial={alerts.data} save={(u) => api("alertsPut", { token: auth.token!, body: u })} onSaved={(d) => queryClient.setQueryData(["alerts", user, auth.token], d)} />
+        <AlertsForm
+          key={JSON.stringify(alerts.data)}
+          initial={alerts.data}
+          save={(u) => api("alertsPut", { token: auth.token!, body: u })}
+          onSaved={(d) => queryClient.setQueryData(["alerts", user, auth.token], d)}
+          telegram={
+            <TelegramChannel
+              linked={alerts.data.channels.telegramLinked}
+              link={() => api("alertsTelegramLink", { token: auth.token! })}
+              unlink={() => api("alertsTelegramUnlink", { token: auth.token! })}
+              onUnlinked={(d) => queryClient.setQueryData(["alerts", user, auth.token], d)}
+              onCheck={() => alerts.refetch()}
+            />
+          }
+        />
       )}
     </Card>
   );
 }
 
-function AlertsForm({ initial, save, onSaved }: { initial: AlertSettings; save: (u: AlertSettingsUpdate) => Promise<AlertSettings>; onSaved: (d: AlertSettings) => void }) {
+function AlertsForm({ initial, save, onSaved, telegram }: { initial: AlertSettings; save: (u: AlertSettingsUpdate) => Promise<AlertSettings>; onSaved: (d: AlertSettings) => void; telegram: React.ReactNode }) {
   const m = useT();
   const [email, setEmail] = useState(initial.channels.email ?? "");
   const [events, setEvents] = useState(initial.events);
@@ -75,10 +91,7 @@ function AlertsForm({ initial, save, onSaved }: { initial: AlertSettings; save: 
           <span className="label-caps">{m.settings.email}</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={m.settings.emailPlaceholder} className="mt-1 block w-full bg-transparent text-[15px] font-medium outline-none placeholder:text-fg-3" />
         </label>
-        <div className="squircle rounded-panel bg-surface-2 px-4 py-3">
-          <span className="label-caps">{m.settings.telegram}</span>
-          <p className="mt-1 text-[15px] font-medium">{initial.channels.telegramLinked ? m.settings.telegramLinked : m.settings.telegramNotLinked}</p>
-        </div>
+        {telegram}
       </div>
       <p className="pt-2 text-sm font-semibold">{m.settings.sendWhen}</p>
       <Row label={m.settings.preClose} on={events.preClose} onClick={() => toggle("preClose")} />
@@ -111,6 +124,62 @@ function Row({ label, on, onClick }: { label: string; on: boolean; onClick: () =
     <div className="squircle flex items-center gap-3 rounded-[18px] bg-surface-2 px-4 py-3">
       <span className="flex-1 text-sm">{label}</span>
       <Switch on={on} onClick={onClick} label={label} />
+    </div>
+  );
+}
+
+/** Links the alert bot through a one-time t.me link (BE-33). Pressing Start in Telegram links the chat to this wallet. */
+function TelegramChannel({
+  linked,
+  link,
+  unlink,
+  onUnlinked,
+  onCheck,
+}: {
+  linked: boolean;
+  link: () => Promise<TelegramLinkResponse>;
+  unlink: () => Promise<AlertSettings>;
+  onUnlinked: (d: AlertSettings) => void;
+  onCheck: () => void;
+}) {
+  const m = useT();
+  const now = useNowSeconds();
+  const linking = useMutation({ mutationFn: link });
+  const unlinking = useMutation({ mutationFn: unlink, onSuccess: onUnlinked });
+  const pending = linking.data && linking.data.expiresAt > now ? linking.data : null;
+  const error = linking.error ?? unlinking.error;
+
+  return (
+    <div className="squircle flex flex-col gap-2 rounded-panel bg-surface-2 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <span className="label-caps">{m.settings.telegram}</span>
+          <p className="mt-1 text-[15px] font-medium">{linked ? m.settings.telegramLinked : m.settings.telegramNotLinked}</p>
+        </div>
+        {linked ? (
+          <Button variant="secondary" size="sm" onClick={() => unlinking.mutate()} disabled={unlinking.isPending}>
+            {m.settings.telegramUnlink}
+          </Button>
+        ) : (
+          !pending && (
+            <Button variant="secondary" size="sm" onClick={() => linking.mutate()} disabled={linking.isPending}>
+              {m.settings.telegramLink}
+            </Button>
+          )
+        )}
+      </div>
+      {!linked && pending && (
+        <div className="flex flex-wrap items-center gap-2">
+          <a href={pending.url} target="_blank" rel="noreferrer" className="squircle rounded-full bg-lime px-4 py-2 text-sm font-semibold text-ink">
+            {m.settings.telegramOpen}
+          </a>
+          <Button variant="secondary" size="sm" onClick={onCheck}>
+            {m.settings.telegramCheck}
+          </Button>
+          <span className="text-xs text-fg-2">{m.settings.telegramExpires(formatDuration(pending.expiresAt - now))}</span>
+        </div>
+      )}
+      {error && <p className="text-sm text-down">{describeError(error, m)}</p>}
     </div>
   );
 }
