@@ -44,7 +44,7 @@ contract LongTest is BaseTest {
             swapAmountIn: type(uint256).max,
             swap: _swapData(AQQQ, USDC, collateral, proceeds),
             minReturn: 99e6,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
 
         vm.prank(user);
@@ -70,7 +70,7 @@ contract LongTest is BaseTest {
             swapAmountIn: half,
             swap: _swapData(AQQQ, USDC, half, _usdcFor(half, 0)),
             minReturn: 0,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
 
         vm.prank(user);
@@ -129,7 +129,7 @@ contract LongTest is BaseTest {
 
     function test_revertsAfterDeadline() public {
         IMarginRouter.OpenParams memory p = _openLongParams(100e6, 100e6, 0);
-        p.deadline = block.timestamp - 1;
+        p.deadline = vm.getBlockTimestamp() - 1;
         vm.prank(user);
         vm.expectRevert(IMarginRouter.DeadlineExpired.selector);
         router.openLong(p);
@@ -151,7 +151,7 @@ contract LongTest is BaseTest {
             swapAmountIn: type(uint256).max,
             swap: _swapData(AQQQ, USDC, collateral, _usdcFor(collateral, 0)),
             minReturn: 0,
-            deadline: block.timestamp + 60
+            deadline: vm.getBlockTimestamp() + 60
         });
         vm.prank(user);
         router.closeLong(close);
