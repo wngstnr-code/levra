@@ -45,7 +45,7 @@ Refresh with the command above.
 | Smart contracts | Wangsit | 30 | 8 | 17 |
 | Backend | Dharu | 34 | 10 | 5 |
 | Frontend | Nabil | 25 | 3 | 1 |
-| Shared tasks | All three | 15 | 1 | 4 |
+| Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
 ## What each person can start today without waiting
@@ -62,7 +62,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Wangsit | Wangsit | The team multisig. Needed for the handover of ownership | X-03, SC-55 |
+| 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
+| 13 October 2026 | Wangsit | Dharu | Four addresses for the mainnet roles: router keeper, `Liquidator` keeper, calendar poster, oracle age poster. Without them auto-deleverage, liquidations and the two posters cannot run on mainnet | BE-17, BE-30, BE-31, BE-32 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
@@ -175,6 +176,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Wangsit: `make set-roles-monad` written and rehearsed on a fork: it sets the router keeper, the `Liquidator` keeper, the calendar poster and the oracle age poster from the owner wallet, and skips what is already set. `Deploy.s.sol` now reads `LIQUIDATOR_KEEPER` separately, as Dharu asked for BE-55. Safe supports Monad, so the multisig can be made at app.safe.global. The Anchored message is updated for the staging deployment. Waiting for: four role addresses from Dharu, one wallet address each from Dharu and Nabil.
 - Wangsit: public contract documentation written in `docs/public/contracts.md` (SC-61) and linked from the root README, which now shows the mainnet addresses. Bug bounty drafted in `docs/drafts/bug-bounty.md` (SC-56). New question Q-29: bounty rewards and the private reporting channel. For Nabil: the Help page can take its contract text from `docs/public/contracts.md`.
 - Wangsit: first real run on mainnet (SC-15, SC-22, SC-24, SC-04): a long on QQQ, HOOD and BIL and a short on QQQ and HOOD, each opened and closed in full through the live KyberSwap route, 30 transactions, all successful. Cost: about 0.29 USDC and 2.20 MON. The wallet started with 15.98 USDC and ends with 5.72 free, 6 supplied to the three long markets and about 3.9 of stock lent to the two short markets. Hashes are in the table above, measurements in 05.
 - Wangsit: the contracts are deployed on Monad mainnet (SC-15, staging): router, risk manager, lens, liquidator and five markets, in 25 transactions for 1.87 MON. Read back from the chain: owners, fees, limits, oracle ages and prices match the plan. Addresses are in `contracts/deployments/monad.json` and in `@levra/shared/deployments/monad`. Keeper, calendar poster and oracle age poster are not set yet. The source of all nine contracts is verified on Sourcify. Next: the first real long and short once the wallet holds USDC.
