@@ -18,7 +18,7 @@ Three rules for the backend:
 
 ## M0. Foundation and spikes
 
-- [ ] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
+- [~] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
 
