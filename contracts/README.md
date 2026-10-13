@@ -58,6 +58,14 @@ A fresh wallet with about 20 MON and 20 USDC is enough to open and close a real 
 3. `make first-run-monad` shows what the first step would do. `make first-run-monad CONFIRM=yes` sends everything, market by market, and prints every transaction hash. It stops at the first transaction that reverts.
 4. Commit `deployments/monad.json` and record the hashes in `docs/PROGRESS.md`.
 
+With only 10 USDC, run it at half size. Rehearsed on a fork with a wallet holding exactly 10 USDC: all five markets opened and closed, and 2.30 USDC was left free at the end.
+
+```bash
+SEED=1500000 MARGIN=1000000 BORROW=1000000 INVENTORY_USD=1500000 SHORT_USD=750000 make first-run-monad CONFIRM=yes
+```
+
+At the default sizes 10 USDC covers two longs only. The script stops before the third, without sending anything, because the wallet holds too little.
+
 One market at a time: `make first-long-monad SYMBOL=HOOD CONFIRM=yes` or `make first-short-monad SYMBOL=QQQ CONFIRM=yes`. `SYMBOL` is `QQQ` (default), `HOOD` or `BIL`. BIL has no short market.
 
 What each step does and what the rehearsal showed:
