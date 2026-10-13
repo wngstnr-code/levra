@@ -148,6 +148,8 @@ export const en = {
     fee: "Fee",
     gapTitle: "Price gap at the open",
     gapSub: "LTV right after the price jumps when the market opens.",
+    noLiq: "None",
+    noLiqBody: "No loan, so this position cannot be liquidated.",
     gapNoLoan: "No loan at 1×, so a price gap at the open cannot liquidate this position.",
     gapStep: (move: string) => `Price ${move} at the open`,
     gapWorst: (label: string, move: string) => `${label}: ${move}. The other bars are round gaps for comparison.`,

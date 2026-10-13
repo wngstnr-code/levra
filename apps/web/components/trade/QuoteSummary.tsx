@@ -88,8 +88,17 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
                 {m.trade.liqPrice}
                 <InfoLink term="liquidation-price" label={m.trade.liqPrice} />
               </p>
-              <Money value={formatUsdE8(BigInt(pv.liqPriceE8))} className="text-display mt-1 block text-[32px] font-semibold" />
-              <p className="mt-1 text-[13px] text-fg-2">{(side === "long" ? m.trade.liqBelow : m.trade.liqAbove)(formatBps(Math.abs(pv.liqDistanceBps), { fractionDigits: 0 }))}</p>
+              {BigInt(pv.debtRaw) === 0n ? (
+                <>
+                  <p className="text-display mt-1 text-[32px] font-semibold">{m.trade.noLiq}</p>
+                  <p className="mt-1 text-[13px] text-fg-2">{m.trade.noLiqBody}</p>
+                </>
+              ) : (
+                <>
+                  <Money value={formatUsdE8(BigInt(pv.liqPriceE8))} className="text-display mt-1 block text-[32px] font-semibold" />
+                  <p className="mt-1 text-[13px] text-fg-2">{(side === "long" ? m.trade.liqBelow : m.trade.liqAbove)(formatBps(Math.abs(pv.liqDistanceBps), { fractionDigits: 0 }))}</p>
+                </>
+              )}
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-2">
                 <Legend dot="bg-up" text={m.trade.now(formatWadPercent(pv.ltvAfterWad))} />
                 <Legend dot="bg-caution" text={m.trade.soft(formatWadPercent(quote.market.currentSoftLtvWad))} />
