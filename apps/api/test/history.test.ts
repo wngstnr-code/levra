@@ -11,10 +11,11 @@ const reader = {
 const USDC = 1_000_000n;
 const SHARE = 10n ** 18n;
 let n = 0;
-const ev = (name: string, args: Record<string, string | number>): StoredEvent => ({
+const ev = (name: string, args: Record<string, string | number>, source: StoredEvent["source"] = "router", txHash?: `0x${string}`): StoredEvent => ({
+  source,
   name,
   marketId,
-  txHash: `0x${(++n).toString(16).padStart(64, "0")}`,
+  txHash: txHash ?? `0x${(++n).toString(16).padStart(64, "0")}`,
   logIndex: 0,
   blockNumber: BigInt(n),
   blockTime: 1_791_876_000 + n,
@@ -49,6 +50,28 @@ describe("history and realized PnL (three hand calculations)", () => {
   it("lists a debt repayment as repayDebt with its USDC amount", () => {
     const items = buildHistory(reader, [opened(100n * USDC, 100n * USDC, SHARE), ev("DebtRepaid", { assets: (20n * USDC).toString() })]);
     expect(items[0]).toMatchObject({ type: "repayDebt", usdAmountRaw: (20n * USDC).toString(), stockAmountRaw: null });
+  });
+
+  it("books a liquidation as the loss of the margin behind the seized stock", () => {
+    const items = buildHistory(reader, [
+      opened(100n * USDC, 100n * USDC, 2n * SHARE),
+      ev("Liquidate", { seizedAssets: SHARE.toString(), repaidAssets: (90n * USDC).toString(), repaidShares: "0", badDebtAssets: "0", badDebtShares: "0" }, "morpho"),
+    ]);
+    expect(items[0]).toMatchObject({ type: "liquidation", stockAmountRaw: SHARE.toString(), usdAmountRaw: (90n * USDC).toString(), realizedPnlUsdRaw: (-50n * USDC).toString() });
+  });
+
+  it("shows Morpho actions taken directly, and hides the ones the router already reports", () => {
+    const routerTx = `0x${"77".repeat(32)}` as const;
+    const items = buildHistory(reader, [
+      { ...opened(100n * USDC, 100n * USDC, SHARE), txHash: routerTx },
+      ev("SupplyCollateral", { assets: SHARE.toString() }, "morpho", routerTx),
+      ev("Borrow", { assets: (100n * USDC).toString(), shares: "1" }, "morpho", routerTx),
+      ev("Borrow", { assets: (30n * USDC).toString(), shares: "1" }, "morpho"),
+      ev("Supply", { assets: (500n * USDC).toString(), shares: "1" }, "morpho"),
+    ]);
+    expect(items.map((i) => i.type)).toEqual(["lend", "borrow", "open"]);
+    expect(items[0]).toMatchObject({ side: null, usdAmountRaw: (500n * USDC).toString() });
+    expect(items[1]).toMatchObject({ side: "long", usdAmountRaw: (30n * USDC).toString(), stockAmountRaw: null });
   });
 
   it("pages newest first and rejects an unknown cursor", () => {

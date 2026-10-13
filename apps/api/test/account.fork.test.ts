@@ -1,6 +1,6 @@
-import { createDb, routerEvents, runMigrations, syncCursors } from "@levra/db";
-import { tokens } from "@levra/shared/addresses";
-import { lensAbi } from "@levra/shared/abis";
+import { createDb, morphoEvents, morphoPositions, routerEvents, runMigrations, syncCursors } from "@levra/db";
+import { external, tokens } from "@levra/shared/addresses";
+import { lensAbi, morphoAbi } from "@levra/shared/abis";
 import { account, historyResponse, quoteCloseResponse, quoteOpenResponse } from "@levra/shared/api";
 import pino from "pino";
 import { createPublicClient, http, parseUnits, type Hex } from "viem";
@@ -8,13 +8,13 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { monad } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { rpcSource } from "../../indexer/src/sources/rpc";
-import { syncRouter } from "../../indexer/src/sync";
+import { morphoStream, routerStream, syncStream } from "../../indexer/src/sync";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { dbEventStore } from "../src/positions/events";
 import { createKyber } from "../src/swap/kyber";
-import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, seedMarket } from "./fork-helpers";
+import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, openOnMorpho, randomAddress, seedMarket } from "./fork-helpers";
 
 const dbUrl = process.env.TEST_DATABASE_URL;
 
@@ -34,6 +34,7 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
     snapshotId = await chain.snapshot();
     await runMigrations(dbUrl ?? "");
     await db.delete(routerEvents);
+    await db.delete(morphoEvents);
     await db.delete(syncCursors);
     await seedMarket(chain, market.marketId, parseUnits("5000", 6));
     await deal(chain, tokens.USDC.address, user.address, parseUnits("200", 6));
@@ -44,6 +45,21 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
     await chain.revert({ id: snapshotId });
     await close();
   });
+
+  /** Runs the indexer once over both streams. Returns what the router stream inserted. */
+  const index = async () => {
+    const routed = await syncStream(db, source, deployment, routerStream(deployment));
+    await syncStream(db, source, deployment, morphoStream(deployment));
+    return routed;
+  };
+  /** BE-13: the position rebuilt from indexed Morpho events must equal Morpho's own record. */
+  const expectIndexedPositionMatchesMorpho = async (who: `0x${string}`) => {
+    const [onChain] = await Promise.all([
+      chain.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [market.marketId, who] }),
+    ]);
+    const [indexed] = await morphoPositions(db, { user: who, marketId: market.marketId });
+    expect(indexed).toMatchObject({ collateral: onChain.collateral, borrowShares: onChain.borrowShares });
+  };
 
   const post = async (path: string, payload: unknown) => {
     const res = await app.request(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
@@ -77,9 +93,10 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
       }),
     );
     const quote = quoteOpenResponse.parse(await post("/v1/quote/open", { ...openBody, signatures }));
+    expect(quote.warnings.filter((w) => w.severity === "block")).toEqual([]);
     await send(quote.tx);
 
-    expect((await syncRouter(db, source, deployment)).inserted).toBe(1);
+    expect((await index()).inserted).toBe(1);
 
     const acc = account.parse(await get(`/v1/accounts/${user.address}`));
     const pos = acc.positions.find((p) => p.marketId === market.marketId);
@@ -98,6 +115,7 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
 
     const history = historyResponse.parse(await get(`/v1/accounts/${user.address}/history`));
     expect(history.items.map((i) => i.type)).toEqual(["open"]);
+    await expectIndexedPositionMatchesMorpho(user.address);
   });
 
   it("records a reduction with its realized PnL", { timeout: 180_000 }, async () => {
@@ -105,12 +123,25 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
       await post("/v1/quote/close", { user: user.address, marketId: market.marketId, fractionWad: (5n * 10n ** 17n).toString(), slippageBps: 100 }),
     );
     await send(q.tx);
-    expect((await syncRouter(db, source, deployment)).inserted).toBe(1);
+    expect((await index()).inserted).toBe(1);
 
     const history = historyResponse.parse(await get(`/v1/accounts/${user.address}/history`));
     expect(history.items.map((i) => i.type)).toEqual(["reduce", "open"]);
     const reduce = history.items[0]!;
     // Half the stock sold: realized = USDC returned minus half of the $50 margin.
     expect(BigInt(reduce.realizedPnlUsdRaw!)).toBe(BigInt(reduce.usdAmountRaw!) - parseUnits("25", 6));
+    await expectIndexedPositionMatchesMorpho(user.address);
+  });
+
+  it("indexes a position built straight on Morpho and shows it in the history", { timeout: 180_000 }, async () => {
+    const direct = randomAddress();
+    await openOnMorpho(chain, market.marketId, direct, parseUnits("1", 18), parseUnits("200", 6));
+    await index();
+    await expectIndexedPositionMatchesMorpho(direct);
+
+    const history = historyResponse.parse(await get(`/v1/accounts/${direct}/history`));
+    expect(history.items.map((i) => i.type)).toEqual(["borrow", "addCollateral"]);
+    const acc = account.parse(await get(`/v1/accounts/${direct}`));
+    expect(acc.positions[0]).toMatchObject({ collateralRaw: parseUnits("1", 18).toString(), entryPriceE8: "0" });
   });
 });

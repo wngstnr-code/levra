@@ -36,6 +36,29 @@ export const routerEvents = pgTable(
   ],
 );
 
+/**
+ * One row per Morpho event in our markets. `user` is the position owner (`onBehalf`, or `borrower` for `Liquidate`).
+ * `args` holds the decoded event with every integer as a decimal string.
+ */
+export const morphoEvents = pgTable(
+  "morpho_events",
+  {
+    name: text("name").notNull(),
+    marketId: text("market_id").notNull(),
+    user: text("user").notNull(),
+    args: jsonb("args").$type<Record<string, string | number | boolean>>().notNull(),
+    blockNumber: bigint("block_number", { mode: "bigint" }).notNull(),
+    blockTime: timestamp("block_time", { withTimezone: true }).notNull(),
+    txHash: text("tx_hash").notNull(),
+    logIndex: integer("log_index").notNull(),
+  },
+  (t) => [
+    uniqueIndex("morpho_events_log").on(t.txHash, t.logIndex),
+    index("morpho_events_user_order").on(t.user, t.blockNumber, t.logIndex),
+    index("morpho_events_market").on(t.marketId),
+  ],
+);
+
 /** One row per `PriceUpdated` log of the Anchored oracle for our stocks. Prices have 8 decimals. */
 export const oracleUpdates = pgTable(
   "oracle_updates",

@@ -69,11 +69,11 @@ export function hyperSyncSource({ url, token, fetchFn = fetch, timeoutMs = 20_00
   return {
     name: "hypersync",
     head: async () => BigInt((await call<{ height: number }>("/height")).height),
-    async logs({ address, topic0, fromBlock, toBlock }) {
+    async logs({ address, topic0, topic1, fromBlock, toBlock }) {
       const body = await call<HsResponse>("/query", {
         from_block: Number(fromBlock),
         to_block: Number(toBlock + 1n),
-        logs: [{ address: [address], topics: [topic0] }],
+        logs: [{ address: [address], topics: topic1 ? [topic0, topic1] : [topic0] }],
         field_selection: {
           block: ["number", "timestamp"],
           log: ["block_number", "log_index", "transaction_hash", "address", "topic0", "topic1", "topic2", "topic3", "data"],

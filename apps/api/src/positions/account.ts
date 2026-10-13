@@ -104,6 +104,7 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
 export function buildHistory(reader: ChainReader, events: StoredEvent[]): HistoryItem[] {
   const markets = new Map(reader.deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
   const items: HistoryItem[] = [];
+  const routerTxs = new Set(events.filter((e) => e.source === "router").map((e) => e.txHash.toLowerCase()));
 
   for (const [i, e] of events.entries()) {
     const market = markets.get(e.marketId.toLowerCase());
@@ -118,6 +119,12 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
       txHash: e.txHash,
       timestamp: e.blockTime,
     };
+
+    if (e.source === "morpho") {
+      const item = morphoHistoryItem(e, side, routerTxs, () => longCostBasis(toCostEvents(events.slice(0, i)), market.marketId));
+      if (item) items.push({ ...base, ...item });
+      continue;
+    }
 
     if (e.name === "PositionOpened") {
       items.push({
@@ -167,6 +174,51 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
     }
   }
   return items.reverse();
+}
+
+type ItemBody = Omit<HistoryItem, "id" | "marketId" | "symbol" | "txHash" | "timestamp">;
+
+/**
+ * History for a Morpho event. A liquidation always shows; other actions show only when no router event shares the
+ * transaction, which means the user acted on Morpho directly. Lending has no side.
+ */
+function morphoHistoryItem(e: StoredEvent, side: "long" | "short", routerTxs: Set<string>, basisBefore: () => CostBasis): ItemBody | null {
+  const big = (k: string) => BigInt(String(e.args[k] ?? "0"));
+  const none = { execPriceE8: null, feeRaw: null, realizedPnlUsdRaw: null };
+  const stockIf = (onSide: "long" | "short", amount: bigint) => (side === onSide ? amount.toString() : null);
+
+  if (e.name === "Liquidate") {
+    const seized = big("seizedAssets");
+    const repaid = big("repaidAssets");
+    return {
+      type: "liquidation",
+      side,
+      stockAmountRaw: (side === "long" ? seized : repaid).toString(),
+      usdAmountRaw: (side === "long" ? repaid : seized).toString(),
+      execPriceE8: null,
+      feeRaw: null,
+      realizedPnlUsdRaw: side === "long" ? realizedOnReduce(basisBefore(), seized, 0n).toString() : null,
+    };
+  }
+  if (routerTxs.has(e.txHash.toLowerCase())) return null;
+
+  const assets = big("assets");
+  switch (e.name) {
+    case "SupplyCollateral":
+      return { type: "addCollateral", side, stockAmountRaw: stockIf("long", assets), usdAmountRaw: stockIf("short", assets), ...none };
+    case "WithdrawCollateral":
+      return { type: "removeCollateral", side, stockAmountRaw: stockIf("long", assets), usdAmountRaw: stockIf("short", assets), ...none };
+    case "Borrow":
+      return { type: "borrow", side, stockAmountRaw: stockIf("short", assets), usdAmountRaw: stockIf("long", assets), ...none };
+    case "Repay":
+      return { type: "repayDebt", side, stockAmountRaw: stockIf("short", assets), usdAmountRaw: stockIf("long", assets), ...none };
+    case "Supply":
+      return { type: "lend", side: null, stockAmountRaw: stockIf("short", assets), usdAmountRaw: stockIf("long", assets), ...none };
+    case "Withdraw":
+      return { type: "withdrawLend", side: null, stockAmountRaw: stockIf("short", assets), usdAmountRaw: stockIf("long", assets), ...none };
+    default:
+      return null;
+  }
 }
 
 export type HistoryPage = { items: HistoryItem[]; nextCursor: string | null };
