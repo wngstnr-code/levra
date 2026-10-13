@@ -1,3 +1,4 @@
+import { SwapError } from "@levra/kyber";
 import type { ApiError, ApiErrorCode } from "@levra/shared/api";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
@@ -15,12 +16,18 @@ const statusByCode: Record<ApiErrorCode, ContentfulStatusCode> = {
   UPSTREAM_ERROR: 502,
 };
 
+/** A swap aggregator error keeps its own code (`NO_ROUTE`, `RATE_LIMITED`, `UPSTREAM_ERROR`), which the API shares. */
+export function fromSwapError(err: SwapError): ApiHttpError {
+  return new ApiHttpError(err.code, err.message, err.details, err.cause);
+}
+
 /** Runs a chain or outside-service read. A failure becomes UPSTREAM_ERROR, never an approximate answer. */
 export async function upstream<T>(read: () => Promise<T>): Promise<T> {
   try {
     return await read();
   } catch (err) {
     if (err instanceof ApiHttpError) throw err;
+    if (err instanceof SwapError) throw fromSwapError(err);
     throw new ApiHttpError("UPSTREAM_ERROR", "Could not read the chain. Try again shortly.", undefined, err);
   }
 }

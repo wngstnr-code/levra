@@ -51,7 +51,7 @@ export async function quoteCloseLong({ reader, swap, events: store }: QuoteDeps,
 
   const [route, midE8] = await Promise.all([
     swap.quote({ tokenIn: stock, tokenOut: quote, amountIn: withdraw, sender: reader.deployment.router, slippageBps: req.slippageBps }),
-    midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals),
+    midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, m.oraclePriceE8),
   ]);
   const proceeds = route.amountOut;
   const minProceeds = (proceeds * (BPS - BigInt(req.slippageBps))) / BPS;

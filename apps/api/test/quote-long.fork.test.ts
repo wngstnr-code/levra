@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
-import { createKyber } from "../src/swap/kyber";
+import { createKyber } from "@levra/kyber";
 import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, seedMarket } from "./fork-helpers";
 
 describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
