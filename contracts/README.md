@@ -41,6 +41,7 @@ make build
 | `HandOver.s.sol` | Moves ownership of the contracts to a timelock controlled by the multisig, and the vault to the multisig. Needs `MULTISIG`. See `script/GovernancePlan.sol` |
 | `make deploy-vault-fork` | Create the USDC vault over the long markets of the fork deployment |
 | `make first-long-monad` | REAL transactions on mainnet: seed the QQQ long market, open a small long and close it. A dry run unless `CONFIRM=yes` |
+| `make first-short-monad` | REAL transactions on mainnet: buy stock and lend it to the QQQ short market, open a small short and close it. A dry run unless `CONFIRM=yes` |
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
 
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
@@ -49,14 +50,24 @@ Run `make abis` after any change to an interface and commit the result in the sa
 
 ## First run on mainnet with a small budget
 
-A fresh wallet with about 20 MON and 8 USDC is enough for a real long and its close. Rehearsed on a fork with exactly 8 USDC.
+A fresh wallet with about 20 MON and 15 USDC is enough for a real long and a real short, each opened and closed. Rehearsed on a fork with a 16 USDC wallet. For the long alone, 8 USDC is enough.
 
 1. Copy `.env.example` to `.env` and put the key of that wallet in `DEPLOYER_PRIVATE_KEY`. Never commit it.
 2. `make deploy-monad` deploys the contracts and five markets and writes `deployments/monad.json`. About 3.5 MON.
-3. `make first-long-monad` shows what it would do. `make first-long-monad CONFIRM=yes` sends it: 5 USDC lent to the QQQ long market, a long with 3 USDC of margin and 3 USDC borrowed, then a full close. Every transaction hash is printed.
-4. Commit `deployments/monad.json` and record the hashes in `docs/PROGRESS.md`.
+3. `make first-long-monad` shows what it would do. `make first-long-monad CONFIRM=yes` sends it: 5 USDC lent to the QQQ long market, a long with 3 USDC of margin and 3 USDC borrowed, then a full close.
+4. `make first-short-monad CONFIRM=yes`: 5 USDC of aQQQ bought and lent to the QQQ short market (the seed inventory of SC-24), a short of 2 USDC of stock with 3 USDC of margin, then a full close.
+5. Commit `deployments/monad.json` and record the printed transaction hashes in `docs/PROGRESS.md`.
 
-In the rehearsal the close returned 2.88 USDC of the 3 USDC margin. The cost is mostly the 0.90% pool fee, paid twice.
+What the rehearsal showed:
+
+| Step | Result |
+|---|---|
+| Long, 3 USDC margin and 3 USDC borrowed | Opened at 49.5% LTV. The close returned 2.88 USDC |
+| Stock bought with 5 USDC | 0.00682 aQQQ, all lent to the short market |
+| Short, 3 USDC margin and 2 USDC of stock | Opened at 40.5% LTV. The close returned 2.86 USDC and 0.00014 aQQQ |
+| Wallet at the end | 5.74 USDC free, plus 5 USDC and 0.00682 aQQQ still lent, which can be withdrawn |
+
+The cost of each round trip is mostly the 0.90% pool fee, paid twice. Settings such as `SEED`, `MARGIN`, `BORROW`, `INVENTORY_USD`, `SHORT_USD` and `CLOSE=no` can be passed in the environment. KyberSwap refuses to build a swap for some wallets. If that happens the short script stops before sending anything.
 
 ## Deployment settings
 

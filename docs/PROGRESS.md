@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 4 | 17 |
+| Smart contracts | Wangsit | 30 | 4 | 18 |
 | Backend | Dharu | 34 | 6 | 6 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -177,3 +177,4 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: Q-28 proposed and implemented as D-35 (per-market hard oracle ages), waiting for confirmation. Liquidation ran through the live route on a fork. Oracle fuzz tests, Slither in CI, the vault in the ownership handover. 91 contract tests pass.
 - Wangsit: the first mainnet run is scripted and rehearsed on a fork with 8 USDC (`make deploy-monad`, `make first-long-monad CONFIRM=yes`). The invariant campaign now includes keeper reductions that succeed.
 - Wangsit: `morphoAbi` in `packages/shared/abis/` now includes Morpho's events, which unblocks the indexer and the liquidator bot for users who use Morpho directly. A test decodes a real `Repay` log from Monad with it.
+- Wangsit: the first short on mainnet and the seed inventory of SC-24 are scripted (`make first-short-monad CONFIRM=yes`). Long then short were rehearsed on a fork with a 16 USDC wallet: both opened and closed, and the router ended empty.
