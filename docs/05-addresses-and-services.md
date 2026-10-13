@@ -135,7 +135,7 @@ Consequence for our design: `ISessionOracle.snapshot()` and the API expose `publ
 
 ### Market sessions
 
-From Anchored's documentation. Times are US Eastern Time.
+From Anchored's documentation, and confirmed by two weeks of oracle writes (BE-03, see 04 and `docs/reports/oracle-2026-10-13.md`). Times are US Eastern Time.
 
 | Session | Hours |
 |---|---|

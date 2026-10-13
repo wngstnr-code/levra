@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 14 |
-| Backend | Dharu | 34 | 1 | 4 |
+| Backend | Dharu | 34 | 3 | 3 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -121,6 +121,9 @@ One line for every change to 03 after the freeze.
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
 ### 13 October 2026
+
+- Dharu: BE-01 done (PR 7): api with `/v1/health`, keeper job runner with heartbeats, `packages/db`, local Postgres, backend CI passing on GitHub.
+- Dharu: BE-03 done: the oracle logger backfilled two weeks of `PriceUpdated` logs and keeps following them. Report in `docs/reports/oracle-2026-10-13.md`. For Wangsit (Q-28): BIL's source quote reached 81.5 minutes after hours, above the 1 hour hard age in `SessionOracle`; nothing is written while `CLOSED`, so `publishedAt` stops too; the session flips for about 15 minutes every Friday at 20:00 ET. Needs PR 8 (event ABI) reviewed by Wangsit.
 
 - Dharu: backend plan adjusted so values that wait on oracle data are picked up without code changes: BE-03 becomes a persistent logger in Postgres with generated reports, BE-10 reads `maxOracleAge` and `stale` from the chain, BE-16 checks bid and ask on every read with the same condition as `SessionOracle`.
 - Dharu: keeper plan adjusted the same way: new BE-17 posts `maxOracleAge` from data within multisig bounds, on the source quote clock of D-23 (needs Q-27 from Wangsit); BE-30 and BE-50 take the schedule and limits from BE-03 data; BE-31 and BE-33 use the BE-30 calendar; BE-55 covers the new key.

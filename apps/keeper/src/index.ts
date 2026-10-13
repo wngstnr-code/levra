@@ -1,12 +1,14 @@
 import { createDb } from "@levra/db";
+import { createChainClient } from "./chain";
 import { loadEnv } from "./env";
-import { jobs } from "./jobs";
+import { createJobs } from "./jobs";
 import { createLogger } from "./logger";
 import { runJob } from "./runner";
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");
 const { db, close } = createDb(env.DATABASE_URL);
+const jobs = createJobs(env, createChainClient(env.MONAD_RPC_URL));
 const controller = new AbortController();
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
