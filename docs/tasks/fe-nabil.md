@@ -152,10 +152,15 @@ Four rules for the frontend:
 
 ## M6. Launch
 
-- [ ] **FE-60 · Home page and domain name**
+- [ ] **FE-60 · App domain**
   - Needs: X-02.
-  - Do: a home page that explains the product in a few sentences; a preview image for links; the production domain name.
-  - Done when: the production app runs on its domain name against the production contracts and backend.
+  - Do: serve `apps/web` on the `app.` subdomain of the production domain (D-37); a preview image for links; `/` keeps opening Markets.
+  - Done when: the production app runs on `app.<domain>` against the production contracts and backend.
+
+- [ ] **FE-62 · Landing site**
+  - Needs: X-02, FE-60.
+  - Do: a separate Next.js project in `apps/landing` on the root domain (D-37): what Levra is in a few sentences, how it works, risks, links to the app, terms, privacy, status and audit; its own design, made after the app works; a second Vercel project.
+  - Done when: the landing site runs on the root domain, links to `app.<domain>`, and passes the same checks as `apps/web` in CI.
 
 - [ ] **FE-61 · Final check**
   - Do: go through every screen and every state one by one in production.
