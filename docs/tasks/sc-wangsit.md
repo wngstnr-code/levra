@@ -81,6 +81,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
+  - Note: Prepared, not run: `make deploy-monad` then `make first-long-monad CONFIRM=yes` (`script/mainnet-first-long.sh`), which prints every transaction hash. Rehearsed on a fork with only 8 USDC. Waiting for a funded deployer wallet: about 20 MON and 8 to 15 USDC.
 
 ---
 
@@ -153,7 +154,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 - [~] **SC-50 · Fuzz and invariant tests**
   - Do: all properties in 07 for the router, the oracle and `RiskManager`.
   - Done when: each property has a passing test with a large number of runs.
-  - Note: `test/Invariants.t.sol` runs random users, a keeper and a moving price against the router on a fork and checks five properties after every call: the router holds no tokens, nobody can touch a bystander who gave every permission, no open ends above the soft limit, the soft limit stays below the hard limit, and fees stay within their caps. A campaign is 6 runs of 40 calls and takes about five minutes because it reads the chain. Still to do: more runs, a case where the keeper reduction actually succeeds inside the campaign, and invariants for the oracle on its own. Added: oracle fuzz tests without a fork, `repayDebt` and a protected reduction as campaign actions.
+  - Note: `test/Invariants.t.sol` runs random users, a keeper and a moving price against the router on a fork and checks five properties after every call: the router holds no tokens, nobody can touch a bystander who gave every permission, no open ends above the soft limit, the soft limit stays below the hard limit, and fees stay within their caps. A campaign is 6 runs of 40 calls and takes about five minutes because it reads the chain. Still to do: more runs, a case where the keeper reduction actually succeeds inside the campaign, and invariants for the oracle on its own. Added: oracle fuzz tests without a fork, `repayDebt` and a protected reduction as campaign actions. The campaign's keeper action was repaying too little to lower the LTV, so it never succeeded and the router rightly refused it. It is fixed, a direct test (`test_handlerActionsCanSucceed`) proves the actions can succeed, and the last run logged 3 keeper reductions.
 
 - [~] **SC-51 · Static analysis and gas report**
   - Do: Slither in GitHub Actions; a gas report per function.

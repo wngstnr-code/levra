@@ -40,11 +40,23 @@ make build
 | `./script/e2e-protection.sh` | On the fork: open a long near the limit, enter the pre-close window, and let the keeper reduce it through the live route |
 | `HandOver.s.sol` | Moves ownership of the contracts to a timelock controlled by the multisig, and the vault to the multisig. Needs `MULTISIG`. See `script/GovernancePlan.sol` |
 | `make deploy-vault-fork` | Create the USDC vault over the long markets of the fork deployment |
+| `make first-long-monad` | REAL transactions on mainnet: seed the QQQ long market, open a small long and close it. A dry run unless `CONFIRM=yes` |
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
 
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
 
 Run `make abis` after any change to an interface and commit the result in the same PR.
+
+## First run on mainnet with a small budget
+
+A fresh wallet with about 20 MON and 8 USDC is enough for a real long and its close. Rehearsed on a fork with exactly 8 USDC.
+
+1. Copy `.env.example` to `.env` and put the key of that wallet in `DEPLOYER_PRIVATE_KEY`. Never commit it.
+2. `make deploy-monad` deploys the contracts and five markets and writes `deployments/monad.json`. About 3.5 MON.
+3. `make first-long-monad` shows what it would do. `make first-long-monad CONFIRM=yes` sends it: 5 USDC lent to the QQQ long market, a long with 3 USDC of margin and 3 USDC borrowed, then a full close. Every transaction hash is printed.
+4. Commit `deployments/monad.json` and record the hashes in `docs/PROGRESS.md`.
+
+In the rehearsal the close returned 2.88 USDC of the 3 USDC margin. The cost is mostly the 0.90% pool fee, paid twice.
 
 ## Deployment settings
 
