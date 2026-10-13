@@ -367,6 +367,8 @@ Base path: `/v1`. All responses are JSON. Errors always have this shape:
 type ApiError = { error: { code: string; message: string; details?: unknown } };
 ```
 
+Rate limits (BE-51, initial proposals): 429 `RATE_LIMITED` with a `Retry-After` header and `details.retryAfterSeconds`, per IP address and per wallet; quotes (trade, deposit, withdrawal) have tighter limits, and a quote can also be refused when the shared KyberSwap budget is spent.
+
 Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`, `UNAUTHORIZED`, `RATE_LIMITED`, `NO_ROUTE`, `INSUFFICIENT_LIQUIDITY`, `QUOTE_EXPIRED`, `UPSTREAM_ERROR`, `INTERNAL`.
 
 ### Endpoint list
@@ -376,6 +378,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | GET | `/v1/health` | Alive or not | M1 |
 | GET | `/v1/config` | Chain ID and the addresses of our contracts and markets | M1 |
 | GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block | M1 |
+| GET | `/status` | Public status page: the same facts as one HTML page that refreshes every 30 seconds (BE-61). Not part of the versioned API | M6 |
 | GET | `/v1/session` | Market session, next close and open time | M1 |
 | GET | `/v1/markets` | All markets, with the current session | M1 |
 | GET | `/v1/markets/:symbol` | One stock: details, depth, history of rates and price deviation | M2 |
@@ -809,6 +812,7 @@ Server-Sent Events. Three event types:
 - `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
 - In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for positions built straight on Morpho, whose cost is not known. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
 - `/history` takes `cursor` (the `id` of the last item shown) and `limit` (1 to 100, default 20) as query parameters, newest first. An unknown cursor answers `BAD_REQUEST`.
+- `maxLtv` in an open transaction is the worst-case LTV of the quote plus 1 bps of it, room for interest that accrues on existing debt before the block (initial proposal).
 - Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.
 - The backend never holds user keys and never sends transactions on behalf of a user.

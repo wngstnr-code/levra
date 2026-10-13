@@ -1,8 +1,9 @@
 import { BPS, WAD, ltvAfterGapWad, type Side } from "./math";
 
 /**
- * Worst close-to-open gaps over weekends and holidays, October 2021 to October 2026, 261 events per stock,
- * from Yahoo Finance (docs/04-risk-rules.md). Basis points; drops are negative. The past is not a guarantee.
+ * Worst close-to-open gaps over weekends and holidays over five years, from Yahoo Finance (docs/04-risk-rules.md); the
+ * period is in `GAP_TABLE_SOURCE`. Basis points; drops are negative. The past is not a guarantee. Rebuilt with
+ * `pnpm --filter @levra/keeper report:gaps --write` (BE-34).
  */
 export type GapStats = {
   /** Share of events with a gap above 2%, in basis points of the event count. */

@@ -62,7 +62,7 @@ export function liquidationPriceE8(
   const stockUnit = 10n ** BigInt(p.stockDecimals);
   const quoteUnit = 10n ** BigInt(p.quoteDecimals);
   if (side === "long") {
-    return mulDiv(mulDiv(p.debt, 100_000_000n * stockUnit, quoteUnit), WAD, ((p.collateral * p.lltvWad) / WAD) * WAD);
+    return mulDiv(mulDiv(p.debt, 100_000_000n * stockUnit, quoteUnit), WAD, p.collateral * p.lltvWad);
   }
   return mulDiv(mulDiv(p.collateral, 100_000_000n * stockUnit, quoteUnit), p.lltvWad, p.debt * WAD);
 }
