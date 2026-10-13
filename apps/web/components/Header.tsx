@@ -8,6 +8,7 @@ import { useT } from "@/lib/i18n";
 import { formatDuration } from "@/lib/units";
 import { useMarketSession } from "@/lib/useMarketSession";
 import { useNowSeconds } from "@/lib/useNow";
+import { Logo } from "./brand/Logo";
 import { SessionBadge } from "./ui/SessionBadge";
 import { WalletButton } from "./WalletButton";
 
@@ -35,9 +36,8 @@ export function Header() {
       </a>
       <header className="sticky top-0 z-20 bg-bg/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-6 px-4 sm:h-[88px] sm:px-12 lg:gap-12">
-          <Link href="/markets" className="flex items-center gap-2.5">
-            <span aria-hidden className="squircle size-7 rounded-[9px] bg-lime" />
-            <span className="text-display text-xl font-semibold">Levra</span>
+          <Link href="/markets" className="flex items-center">
+            <Logo className="h-[22px] sm:h-[26px]" />
           </Link>
           <nav aria-label={m.a11y.mainNav} className="hidden items-center gap-1 rounded-full bg-surface-1 p-[5px] lg:flex">
             {routes.map((r) => {
