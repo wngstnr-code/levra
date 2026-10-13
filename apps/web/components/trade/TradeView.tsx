@@ -20,7 +20,9 @@ import { useDebounced } from "@/lib/useDebounced";
 import { useNowSeconds } from "@/lib/useNow";
 import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
 import { useQuote } from "@/lib/useQuote";
+import { trackStep } from "@/lib/metrics";
 import { useTxFlow } from "@/lib/useTxFlow";
+import { useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
 import { TxSheet } from "../tx/TxSheet";
 import { ButtonLink } from "../ui/Button";
@@ -89,7 +91,9 @@ export function TradeView() {
   const blocked = q?.warnings.find((w) => w.severity === "block");
   const quoteError = quote.error ? describeError(quote.error, m) : null;
 
+  const gated = useGatedAction();
   const action: ActionState = (() => {
+    if (address && gated) return gated.onClick ? { kind: "ready", label: gated.label, onClick: gated.onClick } : { kind: "disabled", label: gated.label };
     if (!address) return signIn ? { kind: "signIn", onClick: signIn } : { kind: "disabled", label: m.wallet.unavailable };
     if (!apiConfigured) return { kind: "disabled", label: m.trade.serviceOffline };
     if (side === "short" && !shortAvailable) return { kind: "disabled", label: m.trade.noShortMarket };
@@ -99,7 +103,14 @@ export function TradeView() {
     if (blocked) return { kind: "disabled", label: blocked.message };
     const needsSetup = pending.toSign.length + pending.toApprove.length > 0;
     const label = side === "long" ? (needsSetup ? m.trade.signAndOpenLong : m.trade.openLong) : needsSetup ? m.trade.signAndOpenShort : m.trade.openShort;
-    return { kind: "ready", label, onClick: flow.review };
+    return {
+      kind: "ready",
+      label,
+      onClick: () => {
+        trackStep("confirm_opened", { side });
+        flow.review();
+      },
+    };
   })();
 
   const sentences = q
@@ -128,7 +139,10 @@ export function TradeView() {
   };
 
   const closeFlow = () => {
-    if (flow.state.phase === "success") setSignatures([]);
+    if (flow.state.phase === "success") {
+      setSignatures([]);
+      trackStep("position_opened", { side, symbol });
+    }
     flow.reset();
   };
 

@@ -6,6 +6,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { monad } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n";
+import { trackStep } from "@/lib/metrics";
 import { privyAppId } from "@/lib/privy";
 import { Balances } from "./Balances";
 import { Button } from "./ui/Button";
@@ -41,7 +42,13 @@ function PrivyWalletButton() {
 
   if (!authenticated) {
     return (
-      <Button size="sm" onClick={login}>
+      <Button
+        size="sm"
+        onClick={() => {
+          trackStep("sign_in_opened");
+          login();
+        }}
+      >
         {m.wallet.signIn}
       </Button>
     );

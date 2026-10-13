@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 34 | 16 | 7 |
-| Frontend | Nabil | 27 | 4 | 14 |
+| Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -67,6 +67,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
+| 13 October 2026 | Nabil | Dharu | Approval of the signed message texts in 03 section 4 (terms acceptance and SIWE for alerts), and the endpoints that check them | FE-50, FE-31 |
+| 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 13 October 2026 | Nabil | Dharu | CORS on the API for the web origins (`https://levra-mon.vercel.app`, the Vercel preview addresses and `http://localhost:3000`), and a public staging address for `NEXT_PUBLIC_API_URL`. Without CORS the browser blocks every call from the web app | FE-10, FE-11, FE-12, FE-13 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
@@ -164,6 +166,7 @@ One line for every change to 03 after the freeze.
 
 | Date | What changed | Who is affected | PR |
 |---|---|---|---|
+| 13 October 2026 | Added section 4 "Signed messages": the terms acceptance text and the SIWE fields for alerts. Proposed, waiting for Dharu | Dharu, Nabil | fe/FE-50-55-m5-hardening |
 | 13 October 2026 | Added the source quote time: `feedUpdatedAt` in `ISessionOracle.snapshot()` and `ILens.MarketView`, `oracleFeedUpdatedAt` in `Market`, `feedUpdatedAt` in the `price` stream event (D-23) | All three | sprint/long-flow |
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
@@ -197,6 +200,8 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Nabil: decided D-39, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
+- Nabil: M5 frontend built on `fe/FE-50-55-m5-hardening`: region and terms gates (closing and withdrawing never gated), Help with words, risks and every address, error screens and cookieless metrics, a phone tab bar and better contrast, Playwright in CI (33 tests on desktop and phone, two languages). Waiting for BE-52, X-11 and an error service.
 - Nabil: M4 frontend built on `fe/FE-40-41-m4-deposits`: cross-chain deposit with a QR code, expiry and a status tracker, and withdraw with a checked USDC transfer. Waiting for BE-40 and BE-41.
 - Nabil: M3 frontend built on `fe/FE-30-33-m3-protection`: protection switches, the close countdown and pre-close banners, Settings with alerts behind a wallet sign-in, Morpho authorization, wallet and language, and a gap slider on the shared formula. Waiting for BE-30, BE-33 and SC-30 on mainnet.
 - Nabil: M2 frontend built on `fe/FE-20-22-m2-short-earn`: short on the trade form, Earn with the vault and stock lending read and sent straight on chain, and the market detail page. Waiting for BE-20, BE-21 and BE-23 for short quotes, APY and market detail data.

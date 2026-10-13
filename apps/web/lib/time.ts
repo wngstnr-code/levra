@@ -5,6 +5,6 @@ export function formatEastern(unix: number): string {
 }
 
 /** A unix time in the viewer's own zone, for history rows. */
-export function formatLocal(unix: number, lang: string): string {
-  return new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(unix * 1000));
+export function formatLocal(unix: number): string {
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(unix * 1000));
 }

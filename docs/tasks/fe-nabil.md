@@ -121,7 +121,7 @@ Four rules for the frontend:
   - Needs: BE-14.
   - Do: in the history, auto-deleverage and liquidation events are explained in plain sentences: what happened, at what price, what it cost, what is left.
   - Done when: both test events show with the correct explanation.
-  - Note: built on 13 October 2026: every history item, including protection and liquidation, is one plain sentence with what happened, the amount, the price and the cost (`apps/web/lib/historyText.ts`, unit tested in English and Indonesian). For a liquidation the API does not yet give the collateral taken and the bonus separately (10-screens.md); the sentence uses the amounts it has. Checking both events live waits for the staging API.
+  - Note: built on 13 October 2026: every history item, including protection and liquidation, is one plain sentence with what happened, the amount, the price and the cost (`apps/web/lib/historyText.ts`, unit tested). For a liquidation the API does not yet give the collateral taken and the bonus separately (10-screens.md); the sentence uses the amounts it has. Checking both events live waits for the staging API.
 
 ---
 
@@ -142,31 +142,37 @@ Four rules for the frontend:
 
 ## M5. Hardening
 
-- [ ] **FE-50 · Compliance gates**
+- [~] **FE-50 · Compliance gates**
   - Needs: BE-52, X-11.
   - Do: a screen for restricted regions; acceptance of the terms and the risk disclosure on the first visit, with a wallet signature.
   - Done when: a user from a restricted region cannot reach the transaction forms; a new user cannot transact before accepting.
+  - Note: built on 13 October 2026 (`fe/FE-50-55-m5-hardening`): `/v1/eligibility` is checked for the visitor; a blocked region sees a full screen on Trade and cannot supply or deposit, and is pointed to Positions, because closing, adding collateral and withdrawing are never gated. A new user signs the terms and the risk disclosure once (three boxes, then `personal_sign` of the text in 03 section 4, then `POST /v1/terms/accept`) before opening, supplying or depositing. Tested end to end for the blocked region. Waiting for BE-52 and the final terms (X-11).
 
-- [ ] **FE-51 · Mobile, accessibility and speed**
+- [~] **FE-51 · Mobile, accessibility and speed**
   - Done when: all flows are comfortable on a phone screen; the app can be used with a keyboard; colors have enough contrast; the main page opens quickly on a slow connection.
+  - Note: done on 13 October 2026 for phones and keyboards: a tab bar on phones, a skip link, visible focus rings, native controls, and secondary text raised to #8E8E93 so it passes WCAG AA (6.1:1 on the page, 5.5:1 on cards). End-to-end tests check that eight pages fit a phone screen; they found and fixed three overflows. Not measured yet: load time on a slow connection.
 
-- [ ] **FE-52 · End-to-end UI tests**
+- [~] **FE-52 · End-to-end UI tests**
   - Needs: SC-14.
   - Do: Playwright tests against the local fork for all seven flows.
   - Done when: the tests run on GitHub Actions on every PR to `apps/web`.
+  - Note: built on 13 October 2026: Playwright runs the production build against answers in the shared API shapes (sample data only in `apps/web/e2e`), on a desktop and a phone, in CI (`.github/workflows/web.yml`, job `e2e`). 23 tests pass: markets, a stale price, market detail, trade signed out, a blocked region, help, an unknown page, the tab bar and page width on a phone. Still open: the seven flows with a connected wallet against a local fork (needs a fork with the deployment, SC-14, and a test wallet).
 
-- [ ] **FE-53 · Help page**
+- [~] **FE-53 · Help page**
   - Needs: X-11, SC-61.
   - Do: how the product works, an explanation of the risks, FAQ, how to revoke the Morpho authorization, the list of contract addresses, terms of use, privacy policy.
   - Done when: every term in the app has an explanation that can be opened from the place where the term appears.
+  - Note: built on 13 October 2026: `/help` with how it works, the risks from the X-11 draft (marked as a draft under legal review), the words used in the app with anchors, questions and answers, how to revoke the router on Morpho without the app, and every contract address from `packages/shared` with explorer links. A ? next to the key words opens their explanation. Not linked yet, because they do not exist: terms of use, privacy policy, status page, audit report (X-11, SC-61 audit).
 
-- [ ] **FE-54 · Error reporting and usage metrics**
+- [~] **FE-54 · Error reporting and usage metrics**
   - Do: reporting of app errors to the team; usage metrics that respect privacy (store no more than needed).
   - Done when: a test error reaches the team; the funnel from visit to first position can be seen.
+  - Note: partly built on 13 October 2026: friendly error screens for a page, the whole app and an unknown address; Vercel Web Analytics without cookies, with five funnel steps from visit to first position and no amounts or addresses. Still open: sending app errors to the team needs an error service (blocker in PROGRESS).
 
-- [ ] **FE-55 · Two languages**
-  - Do: all text goes through translation files; languages as decided in Q-14.
-  - Done when: no text is embedded in components; switching language does not break the layout.
+- [x] **FE-55 · App language**
+  - Do: all text goes through one message file; the app is English only (D-39).
+  - Done when: no text is embedded in components.
+  - Note: done on 13 October 2026: every text the app shows is in `apps/web/lib/i18n/en.ts` and read through `useT()`. A second language was built first and removed the same day when the team chose English only (D-39); adding one later means adding a file of the same shape.
 
 ---
 

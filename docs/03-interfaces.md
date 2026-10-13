@@ -800,6 +800,21 @@ Server-Sent Events. Three event types:
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.
 - The backend never holds user keys and never sends transactions on behalf of a user.
 
+### Signed messages
+
+Added by Nabil on 13 October 2026 with FE-50 and FE-31. Proposed, needs Dharu's approval, because the API must check the same text.
+
+Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and recovers the signer. The source is `apps/web/lib/terms.ts`.
+
+```
+Levra terms of use
+Version: <termsVersion>
+Address: <address, checksummed>
+I confirm that I am not a resident of, or located in, a restricted region, that I read the risk disclosure, and that I accept the terms of use.
+```
+
+Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API should accept the production app domain, the Vercel preview domains and `localhost:3000`. The token is sent as `Authorization: Bearer <token>`.
+
 ## 5. Contents of `packages/shared`
 
 | File | Content | Owner | Used by |

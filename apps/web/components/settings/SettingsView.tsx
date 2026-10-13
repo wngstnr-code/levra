@@ -5,9 +5,8 @@ import { external } from "@levra/shared/addresses";
 import { useAccount, useReadContract } from "wagmi";
 import { queryKeys, useMarkets } from "@/lib/api/hooks";
 import { monad } from "@/lib/chain";
-import { cn } from "@/lib/cn";
 import { deployment, stockOf } from "@/lib/deployment";
-import { useI18n } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { formatWadPercent } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
@@ -23,7 +22,7 @@ import { AlertsCard } from "./AlertsCard";
 import { WalletCard } from "./WalletCard";
 
 export function SettingsView() {
-  const { m, lang, setLang } = useI18n();
+  const m = useT();
   const { address } = useAccount();
   const signIn = useSignIn();
 
@@ -38,19 +37,9 @@ export function SettingsView() {
             <ProtectionCard user={address} />
             <AlertsCard user={address} />
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 [&>*:last-child]:flex-1">
             <AuthorizationCard user={address} />
             {privyAppId && <WalletCard />}
-            <Card className="flex flex-1 flex-col gap-3">
-              <h2 className="text-xl font-semibold">{m.settings.language}</h2>
-              <div role="radiogroup" aria-label={m.settings.language} className="flex gap-1 rounded-full bg-surface-2 p-1">
-                {(["en", "id"] as const).map((l) => (
-                  <button key={l} role="radio" aria-checked={lang === l} onClick={() => setLang(l)} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", lang === l ? "bg-surface-3 font-semibold" : "text-fg-2")}>
-                    {l === "en" ? "English" : "Bahasa Indonesia"}
-                  </button>
-                ))}
-              </div>
-            </Card>
           </div>
         </div>
       )}
@@ -59,7 +48,7 @@ export function SettingsView() {
 }
 
 function ProtectionCard({ user }: { user: `0x${string}` }) {
-  const { m } = useI18n();
+  const m = useT();
   const protection = useProtection(user);
   const markets = useMarkets();
   return (
@@ -106,7 +95,7 @@ function ProtectionCard({ user }: { user: `0x${string}` }) {
 }
 
 function AuthorizationCard({ user }: { user: `0x${string}` }) {
-  const { m } = useI18n();
+  const m = useT();
   const flow = useTxFlow();
   const auth = useReadContract({ address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router], chainId: monad.id });
   const on = auth.data === true;
