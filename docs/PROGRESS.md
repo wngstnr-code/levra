@@ -187,6 +187,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Wangsit: `make close-all-monad` written and rehearsed on a fork of the live state: a long, a short and a vault deposit were all closed and the Lens showed no position left. It is the command to run after the demo video is recorded.
 - Nabil: FE-05 started: the Figma design system is in `apps/web` (Tailwind tokens, SF Pro with Inter fallback, base components, header with a live market session). Markets keeps its data and moves to the new look next.
 - Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.
 - Wangsit: SC-23 done. A real deposit and withdrawal went through the USDC vault on mainnet with `make first-earn-monad`: 1 USDC in, all of it lent to the QQQ long market by the vault, 1 USDC back in full. The vault is empty again. Dharu and Nabil can use `monadDeployment.usdcVault` for the Earn screen.
