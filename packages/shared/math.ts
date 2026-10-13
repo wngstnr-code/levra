@@ -122,6 +122,46 @@ export function stockForUsd(usdRaw: bigint, priceE8: bigint, quoteDecimals: numb
   return mulDiv(usdRaw * 100_000_000n, 10n ** BigInt(stockDecimals), priceE8 * 10n ** BigInt(quoteDecimals));
 }
 
+/** Morpho SharesMathLib: virtual shares and assets that keep share prices sane in empty markets. */
+const VIRTUAL_SHARES = 1_000_000n;
+const VIRTUAL_ASSETS = 1n;
+
+export const toAssetsUp = (shares: bigint, totalAssets: bigint, totalShares: bigint) =>
+  mulDiv(shares, totalAssets + VIRTUAL_ASSETS, totalShares + VIRTUAL_SHARES, "ceil");
+export const toAssetsDown = (shares: bigint, totalAssets: bigint, totalShares: bigint) =>
+  mulDiv(shares, totalAssets + VIRTUAL_ASSETS, totalShares + VIRTUAL_SHARES);
+export const toSharesUp = (assets: bigint, totalAssets: bigint, totalShares: bigint) =>
+  mulDiv(assets, totalShares + VIRTUAL_SHARES, totalAssets + VIRTUAL_ASSETS, "ceil");
+
+export type MorphoPosition = { collateral: bigint; borrowShares: bigint };
+export type MorphoTotals = { totalBorrowAssets: bigint; totalBorrowShares: bigint };
+
+/** Morpho._isHealthy: borrowed (rounded up) at most collateral × price / 1e36 × lltv (rounded down). */
+export function morphoIsHealthy(p: MorphoPosition, t: MorphoTotals, oraclePrice: bigint, lltvWad: bigint): boolean {
+  if (p.borrowShares === 0n) return true;
+  const borrowed = toAssetsUp(p.borrowShares, t.totalBorrowAssets, t.totalBorrowShares);
+  const maxBorrow = mulDiv(mulDiv(p.collateral, oraclePrice, ORACLE_PRICE_SCALE), lltvWad, WAD);
+  return maxBorrow >= borrowed;
+}
+
+/** Morpho.liquidate with `seizedAssets` set: the shares and assets the liquidator repays, rounded up as Morpho does. */
+export function morphoRepaidForSeize(seized: bigint, t: MorphoTotals, oraclePrice: bigint, lltvWad: bigint) {
+  const quoted = mulDiv(seized, oraclePrice, ORACLE_PRICE_SCALE, "ceil");
+  const repaidShares = toSharesUp(mulDiv(quoted, WAD, liquidationIncentiveFactorWad(lltvWad), "ceil"), t.totalBorrowAssets, t.totalBorrowShares);
+  return { repaidShares, repaidAssets: toAssetsUp(repaidShares, t.totalBorrowAssets, t.totalBorrowShares) };
+}
+
+/**
+ * The largest collateral seizure Morpho accepts for this position: it may not repay more shares than the borrower has,
+ * nor take more collateral than there is. `marginBps` leaves room for interest accrued before the transaction lands.
+ */
+export function maxSeizable(p: MorphoPosition, t: MorphoTotals, oraclePrice: bigint, lltvWad: bigint, marginBps = 10n): bigint {
+  const debt = toAssetsDown(p.borrowShares, t.totalBorrowAssets, t.totalBorrowShares);
+  const forDebt = (mulDiv(mulDiv(debt, liquidationIncentiveFactorWad(lltvWad), WAD), ORACLE_PRICE_SCALE, oraclePrice) * (BPS - marginBps)) / BPS;
+  const seized = forDebt < p.collateral ? forDebt : p.collateral;
+  return seized > 0n && morphoRepaidForSeize(seized, t, oraclePrice, lltvWad).repaidShares > p.borrowShares ? 0n : seized;
+}
+
 /** RiskManager.checkOpen: |exec - oracle| × 10,000 / oracle, rounded down. */
 export function deviationBps(execPriceE8: bigint, oraclePriceE8: bigint): bigint {
   return mulDiv(abs(execPriceE8 - oraclePriceE8), BPS, oraclePriceE8);

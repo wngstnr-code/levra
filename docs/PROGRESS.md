@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 19 |
-| Backend | Dharu | 34 | 9 | 5 |
+| Backend | Dharu | 34 | 10 | 5 |
 | Frontend | Nabil | 25 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -155,6 +155,7 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 13 October 2026
 
 - Wangsit: the contracts are deployed on Monad mainnet (SC-15, staging): router, risk manager, lens, liquidator and five markets, in 25 transactions for 1.87 MON. Read back from the chain: owners, fees, limits, oracle ages and prices match the plan. Addresses are in `contracts/deployments/monad.json` and in `@levra/shared/deployments/monad`. Keeper, calendar poster and oracle age poster are not set yet. The source of all nine contracts is verified on Sourcify. Next: the first real long and short once the wallet holds USDC.
+- Dharu: BE-32 done: the liquidator bot watches every borrower in our markets from the indexed Morpho events and liquidates through `Liquidator` with a KyberSwap route, never using the contract's float. Long and short liquidations ran on the fork. For Wangsit: `Deploy.s.sol` gives one `KEEPER` address both the router and the Liquidator keeper role, while BE-55 asks for one key per role.
 - Dharu: BE-04 done: the keeper measures the DEX mid price every 10 minutes and the depth table daily (`dex_quotes`), `/v1/markets` and the stream now carry the DEX price, and 05 has a new depth table from one run. The mid price is now two-sided (D-36), which removed a 2% bias against sales. No 429 at 33 requests in 18 seconds; KyberSwap's real limit is not published.
 - Nabil: FE-04 wireframes for every screen are in Figma on one page (https://www.figma.com/design/GaE4wHi18JRAhXl1obEpbY), each with a note on its data, states and task. Next: review by Wangsit and Dharu, then the visual design.
 - Dharu: BE-13 and BE-06 done: the indexer follows Morpho's events for our markets (from Wangsit's ABI export), positions rebuilt from them equal `Morpho.position` on the fork for router and direct users, and history shows liquidations and direct Morpho actions. New history type `borrow`.
