@@ -68,7 +68,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-11 | Answered: see D-24 | - | - | - | - |
 | Q-12 | Which auditor, when, and paid from what funds? | All three | M5 | X-13 | Get quotes from M3 |
 | Q-13 | Answered: see D-26 | - | - | - | - |
-| Q-14 | Display language of the app? | Nabil | M5 | FE-55 | English as the main, Indonesian as the second |
+| Q-14 | Display language of the app? Working assumption built on 13 October 2026 (FE-55): English first, Indonesian second, switchable in the footer and in Settings. Still to confirm by the team | Nabil | M5 | FE-55 | English as the main, Indonesian as the second |
 | Q-15 | Does the short soft limit need its own number, different from long? | Wangsit, Dharu | M2 | SC-22, BE-34 | Same as long, whichever is more cautious |
 | Q-16 | Answered: all three pools pair the stock directly with USDC and routes are a single hop (aggregator routes on 13 October 2026) | Wangsit | M0 | SC-04 | - |
 | Q-17 | Answered: yes. Anvil 1.8.3 forks Monad. Forge needs `--network monad`. The full long flow through real Morpho and a real KyberSwap route runs on the fork | - | - | - | - |
