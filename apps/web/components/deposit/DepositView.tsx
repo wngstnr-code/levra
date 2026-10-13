@@ -233,7 +233,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
           {q.gasDeposit && (
             <>
               <p className="mt-6 mb-3 text-[15px] font-semibold">{m.deposit.gasStatus}</p>
-              <TransferStatus id={q.gasDeposit.id} kind="deposit" chainName={picked.chainName} />
+              <TransferStatus id={q.gasDeposit.id} kind="deposit" chainName={picked.chainName} arrives="MON" />
             </>
           )}
         </div>
