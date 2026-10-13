@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n";
 import { formatToken, formatWadPercent, parseAmount } from "@/lib/units";
 import { useEarnChain, type EarnChainOption } from "@/lib/useEarnChain";
 import { useStoredFlag } from "@/lib/useStoredFlag";
+import { trackStep } from "@/lib/metrics";
 import { useTxFlow } from "@/lib/useTxFlow";
 import { useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
@@ -163,6 +164,7 @@ function EarnPanel({ o, mode, onMode, user, signIn, invalidate }: { o: EarnChain
 
   const run = () => {
     if (!user || !amount || !o.user) return;
+    if (mode === "supply") trackStep("supply_confirmed", { kind: o.kind });
     if (o.kind === "vault") {
       void flow.runDirect({
         account: user,

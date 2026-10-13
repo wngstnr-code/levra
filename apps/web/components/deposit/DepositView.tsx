@@ -17,6 +17,7 @@ import { useT } from "@/lib/i18n";
 import { useSavedTransfers } from "@/lib/transfers";
 import { formatDuration, formatToken, parseAmount } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
+import { trackStep } from "@/lib/metrics";
 import { useTxFlow } from "@/lib/useTxFlow";
 import { useGate, useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
@@ -154,7 +155,10 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
   const gated = useGatedAction();
   const quote = useMutation({
     mutationFn: () => api("depositQuote", { body: { recipient: user, originChain: chain, originToken: tokenId, amountRaw: amount!.toString(), refundAddress: refund.trim(), includeGas } }),
-    onSuccess: (q) => onQuoted(q, `${amountText} ${picked?.symbol} · ${picked?.chainName}`),
+    onSuccess: (q) => {
+      trackStep("deposit_address_shown", { chain: picked?.chainName ?? "" });
+      onQuoted(q, `${amountText} ${picked?.symbol} · ${picked?.chainName}`);
+    },
   });
   const q = quote.data;
 

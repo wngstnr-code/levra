@@ -20,6 +20,7 @@ import { useDebounced } from "@/lib/useDebounced";
 import { useNowSeconds } from "@/lib/useNow";
 import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
 import { useQuote } from "@/lib/useQuote";
+import { trackStep } from "@/lib/metrics";
 import { useTxFlow } from "@/lib/useTxFlow";
 import { useGatedAction } from "../gate/Compliance";
 import { useSignIn } from "../SignIn";
@@ -102,7 +103,14 @@ export function TradeView() {
     if (blocked) return { kind: "disabled", label: blocked.message };
     const needsSetup = pending.toSign.length + pending.toApprove.length > 0;
     const label = side === "long" ? (needsSetup ? m.trade.signAndOpenLong : m.trade.openLong) : needsSetup ? m.trade.signAndOpenShort : m.trade.openShort;
-    return { kind: "ready", label, onClick: flow.review };
+    return {
+      kind: "ready",
+      label,
+      onClick: () => {
+        trackStep("confirm_opened", { side });
+        flow.review();
+      },
+    };
   })();
 
   const sentences = q
@@ -131,7 +139,10 @@ export function TradeView() {
   };
 
   const closeFlow = () => {
-    if (flow.state.phase === "success") setSignatures([]);
+    if (flow.state.phase === "success") {
+      setSignatures([]);
+      trackStep("position_opened", { side, symbol });
+    }
     flow.reset();
   };
 
