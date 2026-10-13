@@ -125,13 +125,14 @@ Every important real transaction goes here. This is also the evidence for the ha
 | 13 October 2026 | Create the USDC vault from Morpho's factory | `0x4c308c69ce9f0031bd94d79b78d3c035284676f636439553ea8333175d8ea9c5` | Wangsit | SC-23 |
 | 13 October 2026 | Deposit 1 USDC into the USDC vault. It reached the QQQ long market | `0x6233049c3bbede60e67b0863a3389014dc1243dd795e85f9a18e234513c7817a` | Wangsit | SC-23 |
 | 13 October 2026 | Redeem all vault shares. 1 USDC came back in full | `0xa52645ee0a4d62838641791419e89b7bc8d5fb740a2207c88762de86b8eda689` | Wangsit | SC-23 |
+| 13 October 2026 | Deposit 1 USDC into the USDC vault and leave it there for the demo | `0xeb609d4b4cf13a08b5c6b6990c52aae302761d3117f19f3f2c006fcaa38294f0` | Wangsit | X-16 |
 | 13 October 2026 | Open a QQQ long that stays open for the demo (margin 1.5 USDC, borrow 1.5 USDC) | `0x291fae73e1e2c98970d57d916a288c23c56fee3f9d4dd58700f10fa225e80ad5` | Wangsit | X-16 |
 
 The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings.
 
 The first run was 30 transactions in blocks 113050112 to 113050539, all successful, sent by `make first-run-monad` from the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`. The 12 not listed are token approvals. Every position was closed in full and the router held no tokens after each close.
 
-The vault was 11 transactions in blocks 113058663 to 113058727 (create, three supply caps submitted and accepted, supply queue, fee recipient, fee, timelock), 0.73 MON. A first deposit and withdrawal of 1 USDC followed in blocks 113060117 and 113060133. The vault is empty again.
+The vault was 11 transactions in blocks 113058663 to 113058727 (create, three supply caps submitted and accepted, supply queue, fee recipient, fee, timelock), 0.73 MON. A first deposit and withdrawal of 1 USDC followed in blocks 113060117 and 113060133. A second deposit of 1 USDC in block 113063214 stays in the vault, so the Earn screen has real data: the deployer wallet holds 1 `lvUSDC`, lent to the QQQ long market.
 
 One position is open on purpose: the deployer wallet holds a QQQ long of 0.00409 aQQQ against 1.5 USDC of debt, at 49.4% loan-to-value, with protection off. It gives the Positions screen real data.
 
@@ -186,6 +187,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Wangsit: state left on mainnet for the demo, all in the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`: one open QQQ long (Positions screen) and 1 USDC in the vault (Earn screen). Both are to be closed after the video is recorded.
 - Wangsit: SC-23 done. A real deposit and withdrawal went through the USDC vault on mainnet with `make first-earn-monad`: 1 USDC in, all of it lent to the QQQ long market by the vault, 1 USDC back in full. The vault is empty again. Dharu and Nabil can use `monadDeployment.usdcVault` for the Earn screen.
 - Wangsit: the USDC vault is live on mainnet (SC-23): `Levra USDC` at `0xfB99A7E3f5571baA363d67F7823bb354cfd95447`, created from Morpho's factory, read back from the chain: caps 10,000 QQQ, 5,000 HOOD, 20,000 BIL, fee 10%, timelock 1 day, owner the deployer wallet. It is in `monad.json` as `usdcVault`. One QQQ long is left open in the deployer wallet for the demo. `make first-earn-monad` is written and rehearsed on a fork of the live state: 1 USDC went into the vault, reached the QQQ market and came back in full. Next: run it on mainnet.
 - Wangsit: `make set-roles-monad` written and rehearsed on a fork: it sets the router keeper, the `Liquidator` keeper, the calendar poster and the oracle age poster from the owner wallet, and skips what is already set. `Deploy.s.sol` now reads `LIQUIDATOR_KEEPER` separately, as Dharu asked for BE-55. Safe supports Monad, so the multisig can be made at app.safe.global. The Anchored message is updated for the staging deployment. Waiting for: four role addresses from Dharu, one wallet address each from Dharu and Nabil.
