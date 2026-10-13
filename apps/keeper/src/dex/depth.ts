@@ -1,13 +1,15 @@
-import { dexQuotes } from "@levra/db";
+import { dexQuotes, marketRates } from "@levra/db";
 import { MID_PROBE_USD_RAW, SwapError, dexMidPriceE8, type SwapSource } from "@levra/kyber";
 import { external, tokens } from "@levra/shared/addresses";
 import { anchoredStockOracleAbi } from "@levra/shared/abis";
 import { BPS, signedDeviationBps, stockForUsd, swapPriceE8 } from "@levra/shared/math";
+import type { Deployment } from "@levra/shared/deployments";
 import { stocks, type Stock } from "@levra/shared/markets";
 import { desc, eq } from "drizzle-orm";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { PublicClient } from "viem";
 import type { Job } from "../runner";
+import { readRates } from "./rates";
 
 /** Trade sizes for the depth table, in dollars (BE-04). */
 export const DEPTH_SIZES_USD = [100, 300, 1_000, 3_000, 10_000] as const;
@@ -86,15 +88,20 @@ export type MarketDepthOptions = {
   /** How often the full depth table is measured. */
   depthEveryMs?: number;
   pauseMs?: number;
+  /** With a deployment, each run also stores a rate snapshot of every market (BE-23). */
+  deployment?: Deployment | null;
 };
 
 /** Measures the DEX mid price of every stock on each run, and the full depth table once a day (BE-04). */
-export function createMarketDepth({ client, swap, intervalMs = 600_000, depthEveryMs = 86_400_000, pauseMs = 300 }: MarketDepthOptions): Job {
+export function createMarketDepth({ client, swap, intervalMs = 600_000, depthEveryMs = 86_400_000, pauseMs = 300, deployment = null }: MarketDepthOptions): Job {
   return {
     name: "marketDepth",
     intervalMs,
     async run({ db, logger }) {
       const at = new Date();
+      // Chain reads only, so they go first and do not wait on the aggregator.
+      const rates = deployment ? await readRates(client, deployment, at) : [];
+      if (rates.length > 0) await db.insert(marketRates).values(rates);
       const [lastFull] = await db.select({ at: dexQuotes.measuredAt }).from(dexQuotes).where(eq(dexQuotes.kind, "buy")).orderBy(desc(dexQuotes.measuredAt)).limit(1);
       const full = !lastFull || at.getTime() - lastFull.at.getTime() >= depthEveryMs;
       const ctx: Ctx = { swap, pauseMs, runId: at.toISOString(), at, calls: { n: 0, limited: 0 } };
@@ -109,7 +116,7 @@ export function createMarketDepth({ client, swap, intervalMs = 600_000, depthEve
 
       const failed = rows.filter((r) => r.error).length;
       if (failed > 0) logger.warn({ failed, limited: ctx.calls.limited }, "some DEX quotes failed");
-      return { full, rows: rows.length, failed, calls: ctx.calls.n, rateLimited: ctx.calls.limited, seconds: Math.round((Date.now() - started) / 1000) };
+      return { full, rows: rows.length, rates: rates.length, failed, calls: ctx.calls.n, rateLimited: ctx.calls.limited, seconds: Math.round((Date.now() - started) / 1000) };
     },
   };
 }
