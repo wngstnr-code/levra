@@ -39,8 +39,9 @@ deploy-fork:
 deploy-vault-fork:
 	DEPLOY_ENV=fork forge script script/DeployVault.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast
 
+# The @ keeps make from printing the private key with the command.
 deploy-vault-monad:
-	DEPLOY_ENV=monad forge script script/DeployVault.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
+	@DEPLOY_ENV=monad forge script script/DeployVault.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
 # The four targets below send real transactions on Monad mainnet. They are dry runs unless CONFIRM=yes.
 # SYMBOL picks the stock for the first two: QQQ (default), HOOD or BIL.
@@ -62,6 +63,6 @@ set-roles-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-set-roles.sh
 
 deploy-monad:
-	DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
+	@DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
 .PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad set-roles-monad
