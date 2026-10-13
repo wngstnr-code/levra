@@ -97,25 +97,29 @@ Four rules for the frontend:
 
 ## M3. Market-hours protection
 
-- [ ] **FE-30 · Protection and before close**
+- [~] **FE-30 · Protection and before close**
   - Needs: SC-30, BE-30.
   - Do: a protection toggle per market with an honest explanation (what it does, when, what it costs, what is not guaranteed); a countdown to the market close; the soft limit on the position bar moves when the pre-close window starts; a banner for positions above the limit with two buttons: add collateral and reduce the position.
   - Done when: switching protection on and off is recorded on chain; the display changes correctly in all four market-hours states.
+  - Note: built on 13 October 2026 (`fe/FE-30-33-m3-protection`): a protection switch per market on each position and in Settings, read from `protectionEnabled` and changed with a direct `setProtection` call, with a sheet that says what it does, when, what it costs and what is not guaranteed; the countdown to the close from `/v1/session`; inside the pre-close window the header badge shows the countdown, the LTV ring shows the new soft mark and the old one faintly, and a banner per position above the limit offers add collateral and reduce. Waiting for the staging API (session) and SC-30 on mainnet to check it on chain.
 
-- [ ] **FE-31 · Alert settings**
+- [~] **FE-31 · Alert settings**
   - Needs: BE-33.
   - Do: sign in with a wallet signature; choose the channel and the types of alerts.
   - Done when: the choices are saved and a test alert arrives.
+  - Note: built on 13 October 2026: Settings signs in with a wallet signature (SIWE built with viem, `/v1/auth/nonce` and `/v1/auth/siwe`), then reads and saves `/v1/alerts`: email, the Telegram link status, before-close, an LTV threshold, protection, liquidation and deposit alerts. A test alert needs an endpoint that 03 does not have yet. Waiting for BE-33.
 
-- [ ] **FE-32 · Gap scenarios panel**
+- [~] **FE-32 · Gap scenarios panel**
   - Needs: BE-34.
   - Do: in the pre-confirmation summary and on each position: what happens if the market opens with the worst five-year gap, and a slider to try other numbers.
   - Done when: the numbers match `packages/shared/math.ts`.
+  - Note: built on 13 October 2026: the trade summary and every position show the gap scenarios from the service and a slider for any gap from −50% to +50%, computed with `ltvAfterGapWad` from `packages/shared/math.ts`, so the numbers match the shared formula by construction.
 
-- [ ] **FE-33 · Explanation of auto-deleverage and liquidation**
+- [~] **FE-33 · Explanation of auto-deleverage and liquidation**
   - Needs: BE-14.
   - Do: in the history, auto-deleverage and liquidation events are explained in plain sentences: what happened, at what price, what it cost, what is left.
   - Done when: both test events show with the correct explanation.
+  - Note: built on 13 October 2026: every history item, including protection and liquidation, is one plain sentence with what happened, the amount, the price and the cost (`apps/web/lib/historyText.ts`, unit tested in English and Indonesian). For a liquidation the API does not yet give the collateral taken and the bonus separately (10-screens.md); the sentence uses the amounts it has. Checking both events live waits for the staging API.
 
 ---
 
