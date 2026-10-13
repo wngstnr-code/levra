@@ -23,6 +23,12 @@ Markets, all on Morpho (`0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee`):
 | QQQ short | USDC | aQQQ | 77% | `0xc54a4e80aecb068c56d9e79a770d68140dcad9747132af34f086f4ff907c3262` | `0xB08Cb2B0ba10E6a8A3e5Bda7a240a9c6E6CF6bC7` |
 | HOOD short | USDC | aHOOD | 62.5% | `0x53ce3f8e5560d6f80e9a219b35a9cd54472f89f75c8c970bc504a6c21391e033` | `0xaFe518da5cBa30B198e96F26074f66f85241DE95` |
 
+The USDC vault for lenders:
+
+| Contract | Address | What it does |
+|---|---|---|
+| `Levra USDC` (`lvUSDC`) | [`0xfB99A7E3f5571baA363d67F7823bb354cfd95447`](https://monadscan.com/address/0xfB99A7E3f5571baA363d67F7823bb354cfd95447) | Takes USDC deposits and lends them to the three long markets |
+
 The machine-readable list is [`contracts/deployments/monad.json`](../../contracts/deployments/monad.json).
 
 The source of all nine contracts is verified on Sourcify with an exact match. Each one can be read at `https://repo.sourcify.dev/143/<address>`. The source is in [`contracts/src`](../../contracts/src) under the MIT license.
@@ -80,6 +86,22 @@ The owner is a single key today. The plan is a 2-day timelock controlled by a te
 - Reduce your position, unless you turned protection on, and then only through a keeper under the rules below.
 
 A stricter soft limit does not close existing positions. It blocks new positions above it, and it lets a keeper reduce positions that have protection on. Taking collateral out, or a partial close that raises your loan-to-value, must also end at or below the soft limit. A full close is always allowed.
+
+## The USDC vault
+
+The vault is a MetaMorpho v1.1 vault created from Morpho's own factory (`0x33f20973275B2F574488b18929cd7DCBf1AbF275`). Its code is Morpho's, not ours. Deposits are lent to the QQQ, HOOD and BIL long markets, in that order, and nowhere else.
+
+| Setting | Value today | Who can change it |
+|---|---|---|
+| Supply cap per market | 10,000 USDC for QQQ, 5,000 for HOOD, 20,000 for BIL | The owner. Lowering is immediate. Raising, or adding a market, waits for the timelock |
+| Fee | 10% of the interest earned | The owner, at most 50% by Morpho's rule |
+| Timelock | 1 day | The owner can lengthen it, up to 2 weeks. Morpho's code does not allow less than 1 day |
+| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the same single team key | Moves to the multisig with the other contracts |
+| Curator, guardian | Not set | The owner |
+
+The owner cannot withdraw lenders' deposits. The owner does choose which markets the vault lends to, and a bad choice could lose deposits. A new market can be added only after the timelock, so lenders have 1 day to leave if they disagree. No guardian is set yet, so nobody can veto such a change during that day.
+
+A lender can withdraw only what is not lent out at that moment. When a market is fully borrowed, withdrawals wait until borrowers repay or new deposits arrive.
 
 ## Protection (auto-deleverage)
 
