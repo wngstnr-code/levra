@@ -6,8 +6,18 @@ FORK_KEY ?= 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 build:
 	forge build
 
+# The invariant campaign is slow on a fork, so it has its own target.
 test:
-	forge test --network monad
+	forge test --network monad --no-match-contract InvariantsTest
+
+invariants:
+	forge test --network monad --match-contract InvariantsTest -vv
+
+slither:
+	slither .
+
+gas:
+	forge test --network monad --no-match-contract InvariantsTest --gas-report
 
 fmt:
 	forge fmt
@@ -31,4 +41,4 @@ deploy-vault-monad:
 deploy-monad:
 	DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast
 
-.PHONY: build test fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad
+.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad

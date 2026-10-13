@@ -32,6 +32,9 @@ contract Deploy is Script {
     uint64 internal constant MAX_FEED_AGE = 1 hours;
     uint64 internal constant MAX_PUBLISH_AGE = 4 days;
     uint32 internal constant MAX_ORACLE_AGE_TO_OPEN = 45 minutes;
+    /// Bounds for the oracle age poster (D-31). The floor is the lowest max age Anchored suggests.
+    uint32 internal constant MIN_ORACLE_AGE = 1_500;
+    uint32 internal constant CAP_ORACLE_AGE = uint32(MAX_FEED_AGE);
     uint32 internal constant PRE_CLOSE_WINDOW = 4 hours;
     uint256 internal constant FEE_BPS = 10;
     uint256 internal constant KEEPER_FEE_BPS = 30;
@@ -78,6 +81,9 @@ contract Deploy is Script {
         for (uint256 i; i < plans.length; ++i) {
             _addMarket(plans[i], i == plans.length - 1);
         }
+
+        address agePoster = vm.envOr("ORACLE_AGE_POSTER", address(0));
+        if (agePoster != address(0)) risk.setOracleAgePoster(agePoster);
 
         if (owner != deployer) {
             risk.transferOwnership(owner);
@@ -136,6 +142,7 @@ contract Deploy is Script {
                 maxPositionUsd: plan.maxPositionUsd
             })
         );
+        risk.setOracleAgeBounds(id, MIN_ORACLE_AGE, CAP_ORACLE_AGE);
         marketsJson = string.concat(
             marketsJson,
             '{"symbol":"',

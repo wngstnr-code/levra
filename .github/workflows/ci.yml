@@ -25,12 +25,16 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: v1.8.3
+      - uses: actions/cache@v4
+        with:
+          path: ~/.foundry/cache/rpc
+          key: foundry-rpc-${{ hashFiles('contracts/test/Base.t.sol') }}
       - name: Format
         run: forge fmt --check
       - name: Build
         run: forge build
       - name: Test on a fork of Monad
-        run: forge test --network monad
+        run: forge test --network monad --no-match-contract InvariantsTest
       - uses: actions/setup-node@v4
         with:
           node-version: 24

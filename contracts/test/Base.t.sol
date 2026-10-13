@@ -35,6 +35,7 @@ abstract contract BaseTest is Test {
     IERC20 internal constant AQQQ = IERC20(0x1446501E886c7f830DB9b494A1890cBCCC072f57);
     bytes32 internal constant QQQ = keccak256("QQQ");
 
+    uint256 internal constant FORK_BLOCK = 112_980_350;
     uint256 internal constant LLTV = 0.77e18;
     uint64 internal constant SOFT_OPEN = 0.73e18;
     uint64 internal constant SOFT_CLOSED = 0.7e18;
@@ -58,7 +59,10 @@ abstract contract BaseTest is Test {
     address internal user = vm.addr(userKey);
 
     function setUp() public virtual {
-        vm.createSelectFork(vm.envOr("MONAD_RPC_URL", string("https://rpc2.monad.xyz")));
+        // A pinned block makes the tests repeatable and lets Foundry cache the chain state on disk.
+        vm.createSelectFork(
+            vm.envOr("MONAD_RPC_URL", string("https://rpc.monad.xyz")), vm.envOr("FORK_BLOCK", FORK_BLOCK)
+        );
 
         longOracle = new SessionOracle(STOCK_ORACLE, QQQ, Side.Long, 18, 6, 2 hours, 4 days);
         shortOracle = new SessionOracle(STOCK_ORACLE, QQQ, Side.Short, 18, 6, 2 hours, 4 days);

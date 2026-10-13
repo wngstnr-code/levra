@@ -174,6 +174,67 @@ contract RiskTest is BaseTest {
         router.setFees(50, 30, feeRecipient);
     }
 
+    // ----- oracle age poster -----
+
+    function test_posterMovesTheOracleAgeOnlyInsideTheOwnersBounds() public {
+        address poster = makeAddr("poster");
+        risk.setOracleAgePoster(poster);
+        risk.setOracleAgeBounds(longId, 25 minutes, 1 hours);
+
+        vm.startPrank(poster);
+        risk.setMaxOracleAge(longId, 35 minutes);
+        assertEq(risk.config(longId).maxOracleAge, 35 minutes);
+        risk.setMaxOracleAge(longId, 1 hours);
+        vm.expectPartialRevert(IRiskManager.OracleAgeOutOfBounds.selector);
+        risk.setMaxOracleAge(longId, 1 hours + 1);
+        vm.expectPartialRevert(IRiskManager.OracleAgeOutOfBounds.selector);
+        risk.setMaxOracleAge(longId, 25 minutes - 1);
+        vm.stopPrank();
+        assertEq(risk.config(longId).maxOracleAge, 1 hours);
+    }
+
+    function test_posterCanDoNothingWithoutBounds() public {
+        address poster = makeAddr("poster");
+        risk.setOracleAgePoster(poster);
+        vm.prank(poster);
+        vm.expectPartialRevert(IRiskManager.OracleAgeOutOfBounds.selector);
+        risk.setMaxOracleAge(longId, 30 minutes);
+    }
+
+    function test_posterCannotChangeAnythingElse() public {
+        address poster = makeAddr("poster");
+        risk.setOracleAgePoster(poster);
+        risk.setOracleAgeBounds(longId, 25 minutes, 1 hours);
+        IRiskManager.MarketConfig memory c = risk.config(longId);
+
+        vm.startPrank(poster);
+        vm.expectRevert();
+        risk.setOracleAgeBounds(longId, 0, 2 hours);
+        vm.expectRevert();
+        risk.setMarketConfig(longId, c);
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.tightenMarket(longId, 0.1e18, 0.1e18, 1);
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.setOpeningPaused(true);
+        vm.stopPrank();
+
+        vm.prank(makeAddr("stranger"));
+        vm.expectRevert(IRiskManager.Unauthorized.selector);
+        risk.setMaxOracleAge(longId, 30 minutes);
+    }
+
+    function test_boundsCannotExceedTheHardOracleAge() public {
+        // The test oracles accept a source quote up to two hours old.
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setOracleAgeBounds(longId, 25 minutes, 2 hours + 1);
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setOracleAgeBounds(longId, 1 hours, 30 minutes);
+        risk.setOracleAgeBounds(longId, 25 minutes, 2 hours);
+        (uint32 min, uint32 cap) = risk.oracleAgeBounds(longId);
+        assertEq(min, 25 minutes);
+        assertEq(cap, 2 hours);
+    }
+
     // ----- lens -----
 
     function test_lensListsBothMarkets() public view {

@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Id, IMorpho, MarketParams} from "morpho-blue/src/interfaces/IMorpho.sol";
 import {IMorphoLiquidateCallback} from "morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 import {ILiquidator} from "./interfaces/ILiquidator.sol";
@@ -12,7 +13,7 @@ import {Swap} from "./interfaces/Types.sol";
 /// Liquidates unhealthy positions in Morpho markets without capital of its own:
 /// Morpho hands over the seized collateral first, it is swapped, and the debt is repaid in the same call.
 /// Holds no user funds. Whatever it earns goes to the treasury.
-contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step {
+contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
     IMorpho public immutable MORPHO;
@@ -45,7 +46,7 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step {
         Swap calldata swap,
         int256 minLoanTokenDelta,
         uint256 minCollateralLeft
-    ) external returns (int256 loanTokenDelta, uint256 collateralLeft) {
+    ) external nonReentrant returns (int256 loanTokenDelta, uint256 collateralLeft) {
         if (!isKeeper[msg.sender]) revert Unauthorized();
         MarketParams memory mp = MORPHO.idToMarketParams(marketId);
         IERC20 loan = IERC20(mp.loanToken);

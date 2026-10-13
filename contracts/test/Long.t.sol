@@ -30,8 +30,10 @@ contract LongTest is BaseTest {
         ILens.PositionView[] memory views = lens.getPositions(user);
         assertEq(views.length, 1);
         assertApproxEqAbs(views[0].debt, 100e6, 1);
-        assertGt(views[0].liqPriceE8, 0);
-        assertLt(views[0].liqPriceE8, _priceE8());
+        // Liquidation price = debt / (collateral * hard limit), about 35% below the entry price.
+        uint256 expected = uint256(100e6) * 1e20 * 1e18 / (collateral * LLTV);
+        assertApproxEqAbs(views[0].liqPriceE8, expected, 2);
+        assertApproxEqRel(views[0].liqPriceE8, _priceE8() * 65 / 100, 0.01e18);
     }
 
     function test_closeLongInFull() public {
@@ -175,6 +177,43 @@ contract LongTest is BaseTest {
         vm.expectRevert();
         router.openLong(p);
         vm.stopPrank();
+    }
+
+    function test_repayDebtLowersTheLtv() public {
+        _openLong(100e6, 100e6);
+        uint256 ltvBefore = risk.positionLtv(longId, user);
+        vm.prank(user);
+        uint256 repaid = router.repayDebt(longId, 40e6);
+
+        assertEq(repaid, 40e6);
+        assertEq(USDC.balanceOf(user), 9_900e6 - 40e6);
+        assertApproxEqRel(risk.positionLtv(longId, user), ltvBefore * 60 / 100, 0.001e18);
+        _assertRouterEmpty();
+    }
+
+    function test_repayDebtNeverTakesMoreThanTheDebt() public {
+        uint256 collateral = _openLong(100e6, 100e6);
+        vm.prank(user);
+        uint256 repaid = router.repayDebt(longId, 500e6);
+
+        assertApproxEqAbs(repaid, 100e6, 1);
+        assertEq(USDC.balanceOf(user), 9_900e6 - repaid);
+        assertEq(_position(longId).borrowShares, 0);
+        assertEq(_position(longId).collateral, collateral);
+        _assertRouterEmpty();
+    }
+
+    function test_repayDebtWorksWhileOpeningIsPaused() public {
+        _openLong(100e6, 100e6);
+        risk.setOpeningPaused(true);
+        vm.prank(user);
+        assertEq(router.repayDebt(longId, 10e6), 10e6);
+    }
+
+    function test_repayDebtWithNoDebtReverts() public {
+        vm.prank(user);
+        vm.expectRevert();
+        router.repayDebt(longId, 10e6);
     }
 
     function test_removeCollateralRespectsSoftLimit() public {
