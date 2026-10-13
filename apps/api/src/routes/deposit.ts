@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { getAddress } from "viem";
 import { createCache } from "../chain/cache";
 import { ApiHttpError } from "../errors";
+import type { Compliance } from "./compliance";
 
 /** Initial proposals: 1% slippage, a gas top-up worth about $1, and an hour to send the deposit. */
 const SLIPPAGE_BPS = 100;
@@ -80,8 +81,11 @@ const toStatus = (r: Row): DepositStatus => ({
   updatedAt: Math.floor(r.updatedAt.getTime() / 1000),
 });
 
-/** Cross-chain deposits and withdrawals through Aurora Intents 1Click (BE-40, BE-41). Every transfer is stored. */
-export function depositRoutes(db: Db, intents: IntentsSource) {
+/**
+ * Cross-chain deposits and withdrawals through Aurora Intents 1Click (BE-40, BE-41). Every transfer is stored. With
+ * `compliance`, a deposit needs an allowed region and accepted terms (BE-52); a withdrawal never does.
+ */
+export function depositRoutes(db: Db, intents: IntentsSource, compliance?: Compliance) {
   const app = new Hono();
   const cached = createCache();
   const allTokens = () => cached("tokens", TOKENS_TTL_MS, () => intents.tokens().catch(fromIntentsError));
@@ -130,6 +134,7 @@ export function depositRoutes(db: Db, intents: IntentsSource) {
     const parsed = depositQuoteRequest.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiHttpError("BAD_REQUEST", "Invalid deposit request.", parsed.error.issues);
     const req = parsed.data;
+    if (compliance) await compliance.require(c, getAddress(req.recipient));
     const amount = BigInt(req.amountRaw);
     if (amount === 0n) throw new ApiHttpError("BAD_REQUEST", "The amount must be above zero.");
     const [origin, usdc] = await Promise.all([otherChainToken(req.originChain, req.originToken), monadAsset(monadTokens.USDC.address)]);

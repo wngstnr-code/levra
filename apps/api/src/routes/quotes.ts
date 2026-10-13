@@ -10,6 +10,7 @@ import { quoteOpenLong } from "../quotes/open-long";
 import { quoteOpenShort } from "../quotes/open-short";
 import type { EventStore } from "../positions/events";
 import type { SwapSource } from "@levra/kyber";
+import type { Compliance } from "./compliance";
 
 export async function body<T extends z.ZodType>(schema: T, raw: Promise<unknown>): Promise<z.infer<T>> {
   const parsed = schema.safeParse(await raw.catch(() => undefined));
@@ -17,12 +18,17 @@ export async function body<T extends z.ZodType>(schema: T, raw: Promise<unknown>
   return parsed.data;
 }
 
-export function quoteRoutes(reader: ChainReader, swap: SwapSource, events: EventStore) {
+/**
+ * With `compliance`, opening a position needs an allowed region and accepted terms (BE-52). Closing, reducing and
+ * collateral are never gated: they must always work (CLAUDE.md, product rules).
+ */
+export function quoteRoutes(reader: ChainReader, swap: SwapSource, events: EventStore, compliance?: Compliance) {
   const app = new Hono();
   const deps = { reader, swap, events };
 
   app.post("/v1/quote/open", async (c) => {
     const req = await body(quoteOpenRequest, c.req.json());
+    if (compliance) await compliance.require(c, req.user);
     return c.json(req.side === "short" ? await quoteOpenShort(deps, req) : await quoteOpenLong(deps, req));
   });
 
