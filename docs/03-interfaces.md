@@ -764,6 +764,8 @@ Server-Sent Events. Three event types:
 - If there is a warning with `severity: "block"`, `tx` is still sent but the frontend does not show the confirm button.
 - In `typedData`, every `uint256` value is a decimal string so the payload survives JSON. The frontend turns them into `bigint` before signing.
 - `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
+- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for short positions until the short quote engine (BE-20) and for positions built straight on Morpho until the indexer reads Morpho events (BE-13).
+- `/history` takes `cursor` (the `id` of the last item shown) and `limit` (1 to 100, default 20) as query parameters, newest first. An unknown cursor answers `BAD_REQUEST`.
 - Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.
 - The backend never holds user keys and never sends transactions on behalf of a user.

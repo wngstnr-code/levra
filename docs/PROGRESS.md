@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 4 | 14 |
-| Backend | Dharu | 34 | 5 | 5 |
+| Backend | Dharu | 34 | 6 | 6 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -68,6 +68,8 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Dharu | Wangsit | Answer Q-27 and, if yes, a `setMaxOracleAge` role with owner-set bounds in `RiskManager` (SC-11), plus the matching change in 03 | BE-17 |
 | 13 October 2026 | Dharu | Wangsit | Review PR 8 (oracle event ABI, needed by BE-03) and the formulas in PR 10 (BE-16) | BE-03, BE-16 |
 | 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
+| 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
+| 13 October 2026 | Dharu | Wangsit | Morpho's events (`EventsLib`) in the shared ABI export, for users who use Morpho directly and for liquidations | BE-06, BE-13, BE-32 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
@@ -116,6 +118,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
+| 13 October 2026 | Account and history notes in 03: positions live from `Lens`, when entry price and PnL are `"0"`, the history query parameters. No shape change | Dharu, Nabil | be/BE-13-indexer |
 | 13 October 2026 | Quote rules in 03: `gasLimit` `"0"` when not simulated, uint256 in `typedData` as decimal strings, where realized PnL comes from, warning thresholds. No shape change | Dharu, Nabil | be/BE-12-quote-long |
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
@@ -125,6 +128,8 @@ One line for every change to 03 after the freeze.
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
 ### 13 October 2026
+
+- Dharu: BE-14 done and BE-13 started: `apps/indexer` follows router events into Postgres (Envio HyperSync, RPC as fallback, D-32), and `/v1/accounts` and `/history` serve positions from `Lens` with entry price and PnL from the indexed events. Checked end to end on the fork. Waiting: a HyperSync token (Dharu) and Morpho's events in the ABI export (Wangsit).
 
 - Dharu: BE-16 formulas in `packages/shared/math.ts` (PR 10) match `Lens` exactly for a real long and short on the fork. BE-10 and BE-11 (chain reader, `/v1/config`, `/v1/session`, `/v1/markets`, `/v1/stream`) are written and checked against direct contract reads on the fork. Next: BE-12 quote for long.
 - Dharu: BE-12 done on the fork: open long with first-use signatures in one `multicall`, reduce, remove collateral and full close, all from quotes over the live KyberSwap route. The router held no USDC afterwards. Request for Wangsit: add `IERC20Permit` (`nonces`, `name`, `version`) to the ABI export; the API uses a minimal fragment until then. Next: BE-06 and BE-13 indexer, then BE-14 accounts.
