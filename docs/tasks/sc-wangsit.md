@@ -81,7 +81,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
-  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set. Still to do: `make first-run-monad CONFIRM=yes` once the wallet holds USDC (rehearsed on a fork with 15 USDC, 30 transactions), and code verification in the block explorer.
+  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The source of all nine contracts is verified on Sourcify and on MonadVision's Sourcify instance (exact match). The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set. Still to do: `make first-run-monad CONFIRM=yes` once the wallet holds USDC (rehearsed on a fork with 15 USDC, 30 transactions).
 
 ---
 

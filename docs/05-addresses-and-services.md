@@ -179,7 +179,7 @@ Staging deployment of 13 October 2026 (SC-15). Verified by reading the contracts
 | Keeper, calendar poster, oracle age poster | Not set |
 | Block before the first transaction | 113046434 |
 | Cost | 25 transactions, 18,325,235 gas charged, 1.87 MON at a gas price of 102 gwei |
-| Code verified in a block explorer | Not yet |
+| Source code verified | All nine contracts, exact match, on Sourcify (`sourcify.dev`) and on the Sourcify instance behind MonadVision (`sourcify-api-monad.blockvision.org`). Not submitted to Monadscan |
 
 ## Off-chain services
 
