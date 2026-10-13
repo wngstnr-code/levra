@@ -828,7 +828,7 @@ Address: <address, checksummed>
 I confirm that I am not a resident of, or located in, a restricted region, that I read the risk disclosure, and that I accept the terms of use.
 ```
 
-Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API should accept the production app domain, the Vercel preview domains and `localhost:3000`. The token is sent as `Authorization: Bearer <token>`.
+Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API accepts the hosts in `AUTH_DOMAIN` (production, this project's Vercel previews and `localhost:3000`, BE-56) and answers CORS for the origins in `CORS_ORIGINS`, with `authorization` and `content-type` allowed. The token is sent as `Authorization: Bearer <token>`.
 
 ## 5. Contents of `packages/shared`
 

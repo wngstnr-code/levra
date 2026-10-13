@@ -19,8 +19,13 @@ const envSchema = z.object({
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
   /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
-  /** Host of the web app, which the sign-in message must name, for example app.levra.xyz. */
+  /**
+   * Hosts of the web app that a sign-in message may name, comma-separated; `*` stands for one dash-separated part, for
+   * example app.levra.xyz,levra-mon-*-team.vercel.app,localhost:3000.
+   */
   AUTH_DOMAIN: optional(),
+  /** Web origins allowed to call the API from a browser, same pattern rules, for example https://levra-mon.vercel.app. */
+  CORS_ORIGINS: optional(),
   /** Username of the alert bot, without @. The Telegram link route is off without it. */
   TELEGRAM_BOT_USERNAME: optional(),
   /** Aurora Intents partner token (BE-40). Optional: without it the service adds its own 0.2% fee to every transfer. */

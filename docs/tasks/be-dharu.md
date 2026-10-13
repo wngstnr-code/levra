@@ -219,6 +219,13 @@ Three rules for the backend:
   - Do: one key per role (calendar poster, oracle age poster, protector, liquidator); proper secret storage, never in `.env` files on servers or in logs; keepers run apart from the public API; MON top-ups with a limit; a way to rotate keys, where the multisig removes the role from the old address.
   - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
 
+
+- [x] **BE-56 · CORS and sign-in hosts for the web app**
+  - Needs: BE-33.
+  - Do: let the web app's production, preview and local origins call the API from the browser, including the `Authorization` header, and accept a sign-in message from those hosts; refuse every other origin.
+  - Done when: a preflight and a call from a listed origin get the CORS headers and a sign-in from a listed host works; other origins and hosts are refused.
+  - Note: done on 14 October 2026 at Nabil's request. `CORS_ORIGINS` and `AUTH_DOMAIN` are comma-separated lists where `*` stands for one part made of letters, digits and dashes, never a dot, so `https://levra-mon-*-<team>.vercel.app` matches this project's previews and not every vercel.app site. Without `CORS_ORIGINS` the API sends no CORS headers. Tested: patterns, preflight with `authorization`, a refused origin, sign-in from a preview host and refusal of another project's.
+
 ---
 
 ## M6. Launch
