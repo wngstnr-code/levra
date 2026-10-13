@@ -65,7 +65,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-14 | Display language of the app? | Nabil | M5 | FE-55 | English as the main, Indonesian as the second |
 | Q-15 | Does the short soft limit need its own number, different from long? | Wangsit, Dharu | M2 | SC-22, BE-34 | Same as long, whichever is more cautious |
 | Q-16 | Answered: all three pools pair the stock directly with USDC and routes are a single hop (aggregator routes on 13 October 2026) | Wangsit | M0 | SC-04 | - |
-| Q-17 | Mostly answered: Anvil 1.8.3 forks Monad, reads work and an impersonated `approve` works. A full swap and Morpho flow on the fork is not tested yet | Wangsit | M0 | SC-02 | Use Anvil |
+| Q-17 | Answered: yes. Anvil 1.8.3 forks Monad. Forge needs `--network monad`. The full long flow through real Morpho and a real KyberSwap route runs on the fork | - | - | - | - |
 | Q-18 | Answered: yes for USDC (`DOMAIN_SEPARATOR` and `nonces` answer). No for aQQQ, aHOOD and aBIL, so lending stock needs a normal `approve` first | Wangsit | M0 | SC-05 | - |
 | Q-19 | Partly answered: Anchored's documentation says the oracle rejects any write where a price is not positive or bid exceeds ask. One live read agreed. Still to confirm over a week | Dharu | M1 | BE-03 | Keep the fallback to the price alone |
 | Q-20 | When and how to accept stocks from xStocks? Which oracle is used for them? | All three | After M6 | X-18 | The design already allows a different oracle per market |

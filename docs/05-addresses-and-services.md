@@ -85,7 +85,9 @@ Verified on 13 October 2026 from aggregator routes for a $100 buy: all three poo
 Still not verified (SC-04):
 
 - Whether those Uniswap v4 pools have extra rules (a hook). The aggregator reports no hook data, but it has not been read from the contract.
-- No real swap transaction has been run yet. So far there are only quotes and built calldata.
+- No real swap has been sent on mainnet yet.
+
+Verified on a local fork on 13 October 2026 (`contracts/script/e2e-long.sh`): calldata built by KyberSwap for our router executed from the router through the aQQQ pool in both directions. A long with 50 USDC of margin and 50 USDC borrowed bought 0.13588 aQQQ, and closing it returned 47.44 USDC, so the round trip cost about 2.6% of the $100 position, most of it price impact in the thin pool.
 
 ## Anchored oracle
 
@@ -273,7 +275,7 @@ Compliance contract checks on 13 October 2026:
 | KyberSwap router | false | false | passes | reverts with `UserNotApproved` |
 | A random address | false | false | passes | reverts with `UserNotApproved` |
 
-Reading: there are two levels. "Not blocked" is true for everyone who is not on the denylist. "Compliant" is true only for approved addresses, which fits identity-checked accounts. Since exchange pools and ordinary wallets hold and trade the tokens, plain transfers most likely need only "not blocked". This is an inference. Which check a transfer uses has not been verified, and a transfer to Morpho has not been simulated (SC-05).
+Reading: there are two levels. "Not blocked" is true for everyone who is not on the denylist. "Compliant" is true only for approved addresses, which fits identity-checked accounts. Since exchange pools and ordinary wallets hold and trade the tokens, plain transfers most likely need only "not blocked". On a local fork on 13 October 2026, aQQQ bought from the exchange was supplied to Morpho as collateral and withdrawn again, so a plain transfer to and from Morpho is allowed today.
 
 What this means for us:
 

@@ -155,7 +155,15 @@ How this design withstands those weaknesses:
 
 The hard max age cannot be filled in until BE-03 is done. Until then, `SessionOracle` is written with max age as a number set at deployment.
 
-Staleness needs two clocks (open decision Q-22). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
+Max ages used by the deployment script, all initial proposals until BE-03 has a week of data:
+
+| Setting | Value | Where |
+|---|---|---|
+| Source quote age while the market is open | 1 hour | `SessionOracle`, hard |
+| Publish age while the market is closed | 4 days | `SessionOracle`, hard |
+| Source quote age to open a new position | 45 minutes | `RiskManager`, soft |
+
+Staleness needs two clocks (decided in D-23). While the market is open, the right clock is `feedUpdateTimestamp`, the time of the source quote. Anchored suggests 1,500 seconds as the lowest sensible max age. While the market is `CLOSED`, `feedUpdateTimestamp` stops, so a max age on it would make `price()` revert all weekend and block liquidations. The proposal is: when the session is `CLOSED`, accept the carried price and judge freshness on `publishedAt`, the heartbeat.
 
 Be careful: if `price()` reverts, Morpho cannot run borrowing, collateral withdrawal, or liquidation in that market. So a hard max age that is too short is as dangerous as one that is too long.
 

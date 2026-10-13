@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 1 | 4 |
+| Smart contracts | Wangsit | 30 | 1 | 15 |
 | Backend | Dharu | 33 | 1 | 4 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -141,3 +141,6 @@ Newest first. One to three lines per person per working day: what got done, what
 - New documents: `docs/10-screens.md` (screen draft for FE-04), `docs/outreach/anchored-questions.md` (X-12 draft, not sent), `docs/drafts/risk-disclosure.md` (X-11 draft, not reviewed).
 - No product code was written in this round, by the team's choice. Spikes that need code or funds are still open.
 - All: decisions D-23 to D-30 taken. Levra will be submitted to Monad Metropolis (D-30). Sprint order: real long on aQQQ, positions and close, cross-chain deposit, short, sign-in by email. Deadline 14 October 2026 at 10:59 WIB.
+- Wangsit: contracts written on `sprint/long-flow`: `SessionOracle`, `RiskManager`, `MarginRouter` (long, short, close, auto-deleverage, one confirmation with signatures) and `Lens`. 48 tests pass on a fork of Monad with real Morpho, the real Anchored oracle and real tokens.
+- Wangsit: `script/Deploy.s.sol` deploys everything and creates five markets. On a local fork, `script/e2e-long.sh` opened and closed a long on aQQQ through the live KyberSwap route and the router ended with no tokens. Nothing is deployed on mainnet yet. That needs a funded deployer wallet (X-03).
+- Backend and frontend for the sprint are not started. They belong to Dharu and Nabil.
