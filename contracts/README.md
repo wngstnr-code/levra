@@ -45,7 +45,7 @@ make build
 
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
 
-Run `make abis` after any change to an interface and commit the result in the same PR.
+Run `make abis` after any change to an interface and commit the result in the same PR. The Morpho ABI is built from `IMorpho` plus the events in Morpho's `EventsLib`, which `src/interfaces/MorphoEvents.sol` pulls into the build.
 
 ## First run on mainnet with a small budget
 

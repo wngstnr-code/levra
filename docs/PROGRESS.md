@@ -67,7 +67,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
-| 13 October 2026 | Dharu | Wangsit | Morpho's events (`EventsLib`) in the shared ABI export, for users who use Morpho directly and for liquidations | BE-06, BE-13, BE-32 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
 ## Open questions that block work soon
@@ -121,6 +120,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `repayDebt` to the history types and `repay` to the collateral quote actions, so the app can add margin with USDC (D-32) | Dharu, Nabil | be/BE-13-indexer |
 | 13 October 2026 | Account and history notes in 03: positions live from `Lens`, when entry price and PnL are `"0"`, the history query parameters. No shape change | Dharu, Nabil | be/BE-13-indexer |
 | 13 October 2026 | `IAnchoredStockOracle` gained the other read functions of the live oracle (`latestPriceNoOlderThan`, `latestPrices`, `latestPricesNoOlderThan`, `isSupportedPriceId`, `hasPrice`, `description`). The ABI is regenerated | Dharu | sc/Q-28-oracle-ages |
+| 13 October 2026 | `morphoAbi` now also carries Morpho's 17 events (`SupplyCollateral`, `Borrow`, `Repay`, `Liquidate` and the rest), taken from Morpho's own `EventsLib` at the deployed version. Nothing was removed | Dharu | sc/morpho-events-abi |
 | 13 October 2026 | Quote rules in 03: `gasLimit` `"0"` when not simulated, uint256 in `typedData` as decimal strings, where realized PnL comes from, warning thresholds. No shape change | Dharu, Nabil | be/BE-12-quote-long |
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
@@ -176,3 +176,4 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: reviewed the shared formulas and the long quote math (BE-16, BE-12) against the contracts: they match. Dharu's fork tests pass against a fresh fork deployment, including "shared formulas match Lens". Two notes for Dharu: `liquidationPriceE8` for a long still mirrors the old `Lens` rounding (same result in practice, PR 13 changed the contract to divide by `collateral * lltv`), and `maxLtv` is set to the worst case with no headroom, so interest accrued between quote and execution on an existing position could trip `UserLimitExceeded` when the fill lands exactly on the minimum.
 - Wangsit: Q-28 proposed and implemented as D-35 (per-market hard oracle ages), waiting for confirmation. Liquidation ran through the live route on a fork. Oracle fuzz tests, Slither in CI, the vault in the ownership handover. 91 contract tests pass.
 - Wangsit: the first mainnet run is scripted and rehearsed on a fork with 8 USDC (`make deploy-monad`, `make first-long-monad CONFIRM=yes`). The invariant campaign now includes keeper reductions that succeed.
+- Wangsit: `morphoAbi` in `packages/shared/abis/` now includes Morpho's events, which unblocks the indexer and the liquidator bot for users who use Morpho directly. A test decodes a real `Repay` log from Monad with it.
