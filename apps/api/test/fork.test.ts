@@ -1,6 +1,6 @@
 import { tokens } from "@levra/shared/addresses";
 import { lensAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
-import { marketsResponse, sessionInfo } from "@levra/shared/api";
+import { marketDetail, marketsResponse, sessionInfo } from "@levra/shared/api";
 import { cautiousPriceE8, liquidationPriceE8, maxLeverageE2, morphoOraclePrice, positionLtvWad } from "@levra/shared/math";
 import pino from "pino";
 import { parseUnits, type Hex } from "viem";
@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
+import { readRates } from "../../keeper/src/dex/rates";
 import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, send } from "./fork-helpers";
 
 describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
@@ -45,6 +46,32 @@ describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYM
       expect(m.maxPositionUsdRaw).toBe(config.maxPositionUsd.toString());
       expect(m.lltvWad).toBe(deployed.lltv);
       expect(m.maxLeverageE2).toBe(maxLeverageE2(m.side, currentSoft));
+    }
+  });
+
+  it("serves every stock's detail with the same markets, and the keeper's rate snapshot matches them (BE-23)", { timeout: 30_000 }, async () => {
+    const all = marketsResponse.parse(await (await app.request("/v1/markets")).json()).markets;
+    const symbols = [...new Set(deployment.markets.map((m) => m.symbol))];
+    for (const symbol of symbols) {
+      const detail = marketDetail.parse(await (await app.request(`/v1/markets/${symbol}`)).json());
+      expect(detail.markets).toEqual(all.filter((m) => m.symbol === symbol));
+      // No database here, so the measured history is empty.
+      expect([detail.depth, detail.rateHistory, detail.deviationHistory]).toEqual([[], [], []]);
+    }
+
+    const rates = await readRates(createChainClient(forkRpcUrl), deployment, new Date());
+    expect(rates).toHaveLength(all.length);
+    for (const r of rates) {
+      const m = all.find((x) => x.marketId.toLowerCase() === r.marketId)!;
+      expect([r.symbol, r.side, r.borrowApyWad, r.supplyApyWad, r.utilizationWad, r.totalSupplyRaw, r.totalBorrowRaw]).toEqual([
+        m.symbol,
+        m.side,
+        m.borrowApyWad,
+        m.supplyApyWad,
+        m.utilizationWad,
+        m.totalSupplyRaw,
+        m.totalBorrowRaw,
+      ]);
     }
   });
 

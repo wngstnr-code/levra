@@ -1,4 +1,4 @@
-import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const keeperHeartbeats = pgTable("keeper_heartbeats", {
   name: text("name").primaryKey(),
@@ -82,6 +82,120 @@ export const dexQuotes = pgTable(
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
   },
   (t) => [index("dex_quotes_latest").on(t.symbol, t.kind, t.measuredAt)],
+);
+
+/**
+ * One row per ERC-4626 `Deposit` or `Withdraw` of the USDC vault (BE-22). `user` is the share owner.
+ * `args` holds the decoded event with every integer as a decimal string.
+ */
+export const vaultEvents = pgTable(
+  "vault_events",
+  {
+    name: text("name").notNull(),
+    vault: text("vault").notNull(),
+    user: text("user").notNull(),
+    args: jsonb("args").$type<Record<string, string | number | boolean>>().notNull(),
+    blockNumber: bigint("block_number", { mode: "bigint" }).notNull(),
+    blockTime: timestamp("block_time", { withTimezone: true }).notNull(),
+    txHash: text("tx_hash").notNull(),
+    logIndex: integer("log_index").notNull(),
+  },
+  (t) => [uniqueIndex("vault_events_log").on(t.txHash, t.logIndex), index("vault_events_user_order").on(t.user, t.blockNumber, t.logIndex)],
+);
+
+/** Rate snapshot per market from `Lens`, written by the depth keeper on each run (BE-23). Ratios WAD. */
+export const marketRates = pgTable(
+  "market_rates",
+  {
+    marketId: text("market_id").notNull(),
+    symbol: text("symbol").notNull(),
+    side: text("side").notNull(),
+    borrowApyWad: numeric("borrow_apy_wad", { precision: 78, scale: 0 }).notNull(),
+    supplyApyWad: numeric("supply_apy_wad", { precision: 78, scale: 0 }).notNull(),
+    utilizationWad: numeric("utilization_wad", { precision: 78, scale: 0 }).notNull(),
+    totalSupplyRaw: numeric("total_supply_raw", { precision: 78, scale: 0 }).notNull(),
+    totalBorrowRaw: numeric("total_borrow_raw", { precision: 78, scale: 0 }).notNull(),
+    measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("market_rates_market_time").on(t.marketId, t.measuredAt)],
+);
+
+/** One row per sign-in nonce (BE-33). A nonce is used once. */
+export const authNonces = pgTable("auth_nonces", {
+  nonce: text("nonce").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+});
+
+/** Alert choices per wallet (BE-33). Only what is needed: the address, the choices, an email if given (07). */
+export const alertSettings = pgTable("alert_settings", {
+  address: text("address").primaryKey(),
+  email: text("email"),
+  telegramChatId: text("telegram_chat_id"),
+  preClose: boolean("pre_close").notNull(),
+  ltvThresholdWad: numeric("ltv_threshold_wad", { precision: 78, scale: 0 }),
+  autoDeleverage: boolean("auto_deleverage").notNull(),
+  liquidation: boolean("liquidation").notNull(),
+  depositArrived: boolean("deposit_arrived").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+/** Alerts already sent, so each one goes out once per channel (BE-33). */
+export const alertDeliveries = pgTable(
+  "alert_deliveries",
+  {
+    address: text("address").notNull(),
+    key: text("key").notNull(),
+    channel: text("channel").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.key, t.channel] })],
+);
+
+/**
+ * Cross-chain transfers through the 1Click API (BE-40, BE-41): `deposit` into USDC on Monad, or `withdraw` out of it.
+ * `quote` keeps the whole signed quote, which 1Click asks us to keep for disputes.
+ */
+export const deposits = pgTable(
+  "deposits",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind").notNull(),
+    user: text("user").notNull(),
+    originAsset: text("origin_asset").notNull(),
+    destinationAsset: text("destination_asset").notNull(),
+    amountInRaw: numeric("amount_in_raw", { precision: 78, scale: 0 }).notNull(),
+    quotedOutRaw: numeric("quoted_out_raw", { precision: 78, scale: 0 }).notNull(),
+    depositAddress: text("deposit_address").notNull(),
+    depositMemo: text("deposit_memo"),
+    recipient: text("recipient").notNull(),
+    refundTo: text("refund_to").notNull(),
+    status: text("status").notNull(),
+    upstreamStatus: text("upstream_status"),
+    originTxHash: text("origin_tx_hash"),
+    destinationTxHash: text("destination_tx_hash"),
+    amountOutRaw: numeric("amount_out_raw", { precision: 78, scale: 0 }),
+    quote: jsonb("quote").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+  },
+  (t) => [index("deposits_open").on(t.status, t.checkedAt), index("deposits_user").on(t.user)],
+);
+
+/** Signed acceptance of a terms version per wallet (BE-52). */
+export const termsAcceptances = pgTable(
+  "terms_acceptances",
+  {
+    address: text("address").notNull(),
+    termsVersion: text("terms_version").notNull(),
+    signature: text("signature").notNull(),
+    country: text("country"),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.termsVersion] })],
 );
 
 /** One row per `PriceUpdated` log of the Anchored oracle for our stocks. Prices have 8 decimals. */

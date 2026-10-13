@@ -16,7 +16,9 @@ Data sources use the endpoint names in `packages/shared/api/endpoints.ts`. "Dire
 
 ## Screens
 
-### Home
+### Home (landing site, not in the app)
+
+Moved out of the app by D-37: the landing site is `apps/landing` on the root domain. It is designed after the app works. The table below is kept as input for that design.
 
 | | |
 |---|---|
