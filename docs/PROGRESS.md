@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 34 | 16 | 11 |
+| Backend | Dharu | 34 | 16 | 12 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -200,6 +200,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-53 in review: backup, restore and restore-check scripts for Postgres and the incident runbook (`docs/runbook.md`), updated for the BE-50 team alerts. Restore test passed on 13 October. Next: all three read the runbook, one drill, and scheduled backups once hosted.
 - Dharu: BE-50 written: the `monitor` keeper checks every row of the 08 monitoring table (oracle age with a per-session limit from data, session against the calendar, DEX deviation, heartbeats, risk value changes, keeper MON, unhealthy positions, bad debt, utilization, depth against the cap rule, indexer lag, API) and alerts a team Telegram group or webhook once per problem, with a RESOLVED message. Waiting on Dharu: the team channel. Next: BE-52.
 - Dharu: BE-40, BE-41 and BE-42 written: cross-chain deposits and withdrawals through 1Click (new `packages/intents`), the MON top-up as a second transfer (D-40, answers Q-10), every transfer stored and followed by the `transfers` keeper. Found: without a partner token 1Click adds a 0.2% fee. Waiting on Dharu: real test transfers. Next: BE-50.
 - Dharu: BE-33 written: wallet sign-in (D-38), alert settings, Telegram linking, and the alerts keeper (before-close at 24, 4 and 1 hours, LTV threshold, auto-deleverage, liquidation, deposits). Fork test passes with a stand-in email channel. Waiting on Dharu: the delivery services (Q-30) and their keys. Next: BE-50 team monitor.

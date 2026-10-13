@@ -206,9 +206,10 @@ Three rules for the backend:
   - Do: `GET /v1/eligibility` based on region; `POST /v1/terms/accept` with a wallet signature; the quote endpoints reject anyone who has not met the requirements.
   - Done when: requests from a restricted region are rejected with `REGION_BLOCKED`; the acceptance is stored together with the version of the terms.
 
-- [ ] **BE-53 · Backups and incident runbook**
+- [~] **BE-53 · Backups and incident runbook**
   - Do: regular database backups and a restore test; a runbook for the six situations in 07, stored in `docs/`.
   - Done when: a restore from backup has been tried; the runbook has been read by all three of us and practiced once.
+  - Note: backup, restore and restore-check scripts in `packages/db/scripts` (`pg_dump` custom format, restore in one transaction, the check compares every table's row count between the counts before and after the dump). The restore test passed on 13 October 2026 on `levra_staging` and `levra` (results in the runbook). Runbook: `docs/runbook.md`, the six situations in 07 plus backup and restore. Still to do: scheduled backups and off-site copies on the hosted database (BE-15), all three reading the runbook, and one drill.
 
 - [ ] **BE-54 · Load test**
   - Done when: the quote and account endpoints hold up at the target load without passing the limits of the RPC endpoint and outside services; the result is recorded.
