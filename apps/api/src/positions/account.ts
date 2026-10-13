@@ -142,6 +142,17 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
         feeRaw: big("fee").toString(),
         realizedPnlUsdRaw: side === "long" ? realizedOnReduce(before, sold, big("returned")).toString() : null,
       });
+    } else if (e.name === "DebtRepaid") {
+      const amount = big("assets").toString();
+      items.push({
+        ...base,
+        type: "repayDebt",
+        stockAmountRaw: side === "short" ? amount : null,
+        usdAmountRaw: side === "long" ? amount : null,
+        execPriceE8: null,
+        feeRaw: null,
+        realizedPnlUsdRaw: null,
+      });
     } else if (e.name === "CollateralAdded" || e.name === "CollateralRemoved") {
       const amount = big("assets").toString();
       items.push({

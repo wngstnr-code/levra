@@ -3,7 +3,7 @@ import { marginRouterAbi } from "@levra/shared/abis";
 import { decodeEventLog, toEventSelector, type Hex } from "viem";
 import type { RawLog } from "./sources/types";
 
-const routerEventNames = ["PositionOpened", "PositionReduced", "CollateralAdded", "CollateralRemoved", "ProtectionSet"] as const;
+const routerEventNames = ["PositionOpened", "PositionReduced", "CollateralAdded", "CollateralRemoved", "ProtectionSet", "DebtRepaid"] as const;
 
 export const routerTopics: Hex[] = marginRouterAbi
   .filter((item) => item.type === "event" && (routerEventNames as readonly string[]).includes(item.name))

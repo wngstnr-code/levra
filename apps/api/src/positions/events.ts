@@ -47,7 +47,7 @@ export function chainEventStore(reader: ChainReader): EventStore {
     async forUser(user) {
       const events = await reader.routerEvents(user);
       return events.map((e): StoredEvent => ({
-        name: e.kind === "opened" ? "PositionOpened" : "PositionReduced",
+        name: e.kind === "opened" ? "PositionOpened" : e.kind === "reduced" ? "PositionReduced" : "DebtRepaid",
         marketId: e.marketId,
         txHash: "0x" as Hex,
         logIndex: e.logIndex,
@@ -56,7 +56,9 @@ export function chainEventStore(reader: ChainReader): EventStore {
         args:
           e.kind === "opened"
             ? { margin: e.margin.toString(), collateralDelta: e.collateralDelta.toString(), debtDelta: e.debtDelta.toString(), fee: e.fee.toString() }
-            : { collateralDelta: e.collateralDelta.toString(), debtDelta: e.debtDelta.toString(), returned: e.returned.toString(), fee: e.fee.toString(), reason: e.reason },
+            : e.kind === "reduced"
+              ? { collateralDelta: e.collateralDelta.toString(), debtDelta: e.debtDelta.toString(), returned: e.returned.toString(), fee: e.fee.toString(), reason: e.reason }
+              : { assets: e.assets.toString() },
       }));
     },
   };
@@ -70,6 +72,9 @@ export function toCostEvents(events: StoredEvent[]): RouterEvent[] {
     const base = { marketId: e.marketId, block: e.blockNumber, logIndex: e.logIndex };
     if (e.name === "PositionOpened") {
       return [{ kind: "opened", ...base, margin: big(e.args.margin), collateralDelta: big(e.args.collateralDelta), debtDelta: big(e.args.debtDelta), fee: big(e.args.fee) }];
+    }
+    if (e.name === "DebtRepaid") {
+      return [{ kind: "repaid", ...base, assets: big(e.args.assets) }];
     }
     if (e.name === "PositionReduced") {
       return [
