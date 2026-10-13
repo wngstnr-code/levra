@@ -14,6 +14,28 @@ export const syncCursors = pgTable("sync_cursors", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
+/**
+ * One row per MarginRouter event. `args` holds the decoded event with every integer as a decimal string.
+ * The chain is the source of truth; this table is a copy for history and cost basis.
+ */
+export const routerEvents = pgTable(
+  "router_events",
+  {
+    name: text("name").notNull(),
+    user: text("user").notNull(),
+    marketId: text("market_id").notNull(),
+    args: jsonb("args").$type<Record<string, string | number | boolean>>().notNull(),
+    blockNumber: bigint("block_number", { mode: "bigint" }).notNull(),
+    blockTime: timestamp("block_time", { withTimezone: true }).notNull(),
+    txHash: text("tx_hash").notNull(),
+    logIndex: integer("log_index").notNull(),
+  },
+  (t) => [
+    uniqueIndex("router_events_log").on(t.txHash, t.logIndex),
+    index("router_events_user_order").on(t.user, t.blockNumber, t.logIndex),
+  ],
+);
+
 /** One row per `PriceUpdated` log of the Anchored oracle for our stocks. Prices have 8 decimals. */
 export const oracleUpdates = pgTable(
   "oracle_updates",

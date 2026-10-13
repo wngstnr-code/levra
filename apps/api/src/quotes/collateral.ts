@@ -31,12 +31,17 @@ export async function quoteCollateral(reader: ChainReader, req: QuoteCollateralR
   const [quoteDecimals, stockDecimals] = (await upstream(() => tokenDecimals(reader, [tokens.USDC.address, stock]))) as [number, number];
 
   const removing = req.action === "remove";
+  const repaying = req.action === "repay";
   if (removing && amount > collateral) throw new ApiHttpError("BAD_REQUEST", "Cannot remove more collateral than the position holds.");
-  const collateralAfter = removing ? collateral - amount : collateral + amount;
+  if (repaying && debt === 0n) throw new ApiHttpError("BAD_REQUEST", "There is no debt to repay in this market.");
+  const collateralAfter = removing ? collateral - amount : repaying ? collateral : collateral + amount;
+  // repayDebt never takes more than the debt (D-32).
+  const repaid = repaying ? (amount < debt ? amount : debt) : 0n;
+  const debtAfter = debt - repaid;
 
   const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals);
-  const ltvAfter = positionLtvWad(debt, collateralAfter, price);
-  const liqE8 = liquidationPriceE8(side, { collateral: collateralAfter, debt, lltvWad: m.lltvWad, stockDecimals, quoteDecimals });
+  const ltvAfter = positionLtvWad(debtAfter, collateralAfter, price);
+  const liqE8 = liquidationPriceE8(side, { collateral: collateralAfter, debt: debtAfter, lltvWad: m.lltvWad, stockDecimals, quoteDecimals });
 
   const { warnings, add, blocked } = warningList();
   if (removing && debt > 0n && m.oracleHardStale) add("ORACLE_STALE", "block", "Morpho cannot price this market right now, so collateral cannot be removed.");
@@ -44,14 +49,17 @@ export async function quoteCollateral(reader: ChainReader, req: QuoteCollateralR
 
   const actionData = encodeFunctionData({
     abi: marginRouterAbi,
-    functionName: removing ? "removeCollateral" : "addCollateral",
+    functionName: removing ? "removeCollateral" : repaying ? "repayDebt" : "addCollateral",
     args: [m.info.marketId, amount],
   });
+  const pulled = repaying ? m.info.loanToken : collateralToken;
   const check = await upstream(() =>
     checkRequirements(reader, {
       user: req.user,
       // Only USDC has permit; the stock tokens need a normal approve (05, Q-18).
-      ...(removing ? {} : { pull: { token: collateralToken, amount, permit: collateralToken.toLowerCase() === tokens.USDC.address.toLowerCase() } }),
+      ...(removing
+        ? {}
+        : { pull: { token: pulled, amount: repaying ? repaid : amount, permit: pulled.toLowerCase() === tokens.USDC.address.toLowerCase() } }),
       authorization: removing,
       signatures: req.signatures,
       blockTime: block.time,

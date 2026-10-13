@@ -45,6 +45,13 @@ describe("long cost basis", () => {
     expect(entryPriceE8(after, 6, 18)).toBe(80_000_000_000n);
   });
 
+  it("counts debt repaid with USDC as margin added", () => {
+    const repaid: RouterEvent = { kind: "repaid", marketId: market, block: 3n, logIndex: 0, assets: 20n * USDC };
+    const basis = longCostBasis([opened(100n * USDC, 100n * USDC, SHARE / 4n), repaid], market);
+    expect(basis).toMatchObject({ shares: SHARE / 4n, invested: 120n * USDC });
+    expect(realizedOnReduce(basis, SHARE / 4n, 150n * USDC)).toBe(30n * USDC);
+  });
+
   it("has no basis for a position opened outside the router", () => {
     expect(realizedOnReduce(longCostBasis([], market), SHARE, 10n * USDC)).toBe(0n);
   });

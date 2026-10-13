@@ -141,7 +141,8 @@ export type QuoteCloseResponse = z.infer<typeof quoteCloseResponse>;
 export const quoteCollateralRequest = z.object({
   user: address,
   marketId: bytes32,
-  action: z.enum(["add", "remove"]),
+  /** add and remove move collateral; repay pays down debt with the loan token (D-32). */
+  action: z.enum(["add", "remove", "repay"]),
   amountRaw: rawAmount,
   signatures: z.array(signatureInput).optional(),
 });

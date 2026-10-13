@@ -10,19 +10,7 @@ import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { createKyber } from "../src/swap/kyber";
-import { createForkClient, deal, forkDeployment, forkRpcUrl, onFork, seedMarket } from "./fork-helpers";
-
-/** Turns the decimal strings of uint256 fields back into bigint for signing, as the web app does. */
-function forSigning(typedData: any) {
-  const uints = new Set(
-    Object.values(typedData.types as Record<string, { name: string; type: string }[]>)
-      .flat()
-      .filter((f) => f.type.startsWith("uint"))
-      .map((f) => f.name),
-  );
-  const message = Object.fromEntries(Object.entries(typedData.message).map(([k, v]) => [k, uints.has(k) ? BigInt(v as string) : v]));
-  return { ...typedData, message };
-}
+import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, seedMarket } from "./fork-helpers";
 
 describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
   const deployment = forkDeployment();
@@ -145,6 +133,26 @@ describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
     const after = (await position())!;
     expect(after.collateral.toString()).toBe(q.preview.collateralAfterRaw);
     expect(after.ltv - BigInt(q.preview.ltvAfterWad) < 10n ** 12n).toBe(true);
+  });
+
+  it("repays part of the debt with USDC from the collateral quote (D-32)", { timeout: 120_000 }, async () => {
+    const before = (await position())!;
+    const amount = 5_000_000n;
+    const body = { user: user.address, marketId: market.marketId, action: "repay", amountRaw: amount.toString() };
+    // The permit from opening was used up, so the quote asks for a new USDC permit first.
+    const first = quoteCollateralResponse.parse(await post("/v1/quote/collateral", body));
+    const approve = first.requirements.find((r) => r.type === "approve");
+    expect(approve).toMatchObject({ satisfied: false, amountRaw: amount.toString() });
+    expect(first.tx.gasLimit).toBe("0");
+    const typedData = forSigning(approve!.typedData);
+    const signatures = [{ type: "approve", signature: await user.signTypedData(typedData), deadline: Number(typedData.message.deadline) }];
+    const q = quoteCollateralResponse.parse(await post("/v1/quote/collateral", { ...body, signatures }));
+    expect(q.warnings.filter((w) => w.severity === "block")).toEqual([]);
+    expect(q.preview.collateralAfterRaw).toBe(before.collateral.toString());
+    await execute(q.tx);
+    const after = (await position())!;
+    expect(before.debt - after.debt >= amount - 1n).toBe(true);
+    expect(after.ltv < before.ltv).toBe(true);
   });
 
   it("closes the rest from the close quote and leaves nothing in the router", { timeout: 120_000 }, async () => {

@@ -156,7 +156,7 @@ How this design withstands those weaknesses:
 
 The hard max age cannot be filled in until BE-03 is done. Until then, `SessionOracle` is written with max age as a number set at deployment.
 
-Max ages used by the deployment script, per market, chosen from the BE-03 data (D-33):
+Max ages used by the deployment script, per market, chosen from the BE-03 data (D-35):
 
 | Market | Hard source quote age while open | Hard publish age while closed | Age to open a position | Largest source quote age seen |
 |---|---|---|---|---|

@@ -51,7 +51,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-03. The max age value from BE-03 is filled in at deployment, so it does not block writing the code.
   - Do: read `latestPrice` from the Anchored oracle; first check the data layout against the ABI in the block explorer; use the conservative price; scale as in 04; `snapshot()`.
   - Done when: unit tests cover scaling (one aQQQ share at $745.62 is worth 745.62 USDC according to Morpho), zero price, negative price, stale price, and a best bid of zero; a fork test reads a real price.
-  - Note: written and tested: scaling, the cautious price, zero and negative price, a missing bid, staleness on both clocks (D-23). Max ages are initial proposals: 1 hour on the source quote while open, 4 days on the publish time while closed. Waiting for BE-03 data and review. Hard ages are now per market from the BE-03 data (D-33): 1 hour for QQQ and HOOD, 3 hours for BIL, 4 days while closed. Six fuzz tests in `test/OracleFuzz.t.sol` check the cautious price, the inverse relation, non-positive prices and both staleness clocks for any input.
+  - Note: written and tested: scaling, the cautious price, zero and negative price, a missing bid, staleness on both clocks (D-23). Max ages are initial proposals: 1 hour on the source quote while open, 4 days on the publish time while closed. Waiting for BE-03 data and review. Hard ages are now per market from the BE-03 data (D-35): 1 hour for QQQ and HOOD, 3 hours for BIL, 4 days while closed. Six fuzz tests in `test/OracleFuzz.t.sol` check the cautious price, the inverse relation, non-positive prices and both staleness clocks for any input.
 
 - [~] **SC-11 · `RiskManager`**
   - Needs: SC-03.

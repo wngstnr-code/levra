@@ -21,7 +21,7 @@ Three rules for the backend:
 - [x] **BE-01 · Set up `apps/api`, `apps/indexer`, `apps/keeper`**
   - Do: the skeleton of each app; Postgres and migrations; logging; CI and type checks on GitHub Actions; `.env.example`.
   - Done when: `GET /v1/health` responds on your own machine; CI passes on GitHub.
-  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-31), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. The Backend workflow passed on GitHub on PR 7.
+  - Note: `apps/api` (Hono, `GET /v1/health`, shared error shape), `apps/keeper` (job runner with heartbeats in Postgres), `packages/db` (Drizzle schema and migrations, D-33), `docker-compose.yml` for local Postgres and `.github/workflows/backend.yml` are written. `/v1/health` answered on Dharu's machine on 13 October 2026. `apps/indexer` is created by the Envio scaffold in BE-06. The Backend workflow passed on GitHub on PR 7.
 
 - [x] **BE-02 · API data shapes**
   - Do: zod schemas for all endpoints in 03, in `packages/shared/api/`, with the derived types.
@@ -49,6 +49,7 @@ Three rules for the backend:
   - Do: read one type of Morpho event on chain 143 with the indexer tool of your choice.
   - Done when: that event is in the database; if the default tool does not fit, the replacement is recorded as a decision in 09.
   - Note: Envio's documentation lists Monad mainnet (chain 143) with a HyperSync endpoint. Not run yet, and whether an API token is needed is unknown.
+  - Note (13 October 2026): the Envio CLI (HyperIndex) has no Windows build, so the indexer is our own (`apps/indexer`, D-34) and reads logs from Envio HyperSync through its JSON API, with the RPC endpoint as fallback. `monad.hypersync.xyz/height` answers without a token and matches the chain head; `/query` needs an API token (401 without one). Router events reach the database through the RPC source on the fork. Still to do: a HyperSync token (Dharu creates it at app.envio.dev), and a Morpho event, which needs Morpho's events in the shared ABI export (Wangsit).
 
 ---
 
@@ -70,17 +71,19 @@ Three rules for the backend:
   - Needs: BE-04, BE-10, BE-16, the ABI from SC-03. For simulation it needs SC-14.
   - Do: `POST /v1/quote/open`, `/v1/quote/close`, `/v1/quote/collateral` for long. Compute the loan amount from the leverage; request a route; build the router calldata; simulate against the chain; fill in the gas limit; fill in warnings and the required approvals.
   - Done when: the transaction data from a quote runs successfully on the local fork for open, reduce and full close; the displayed summary matches the real result within the requested slippage tolerance.
-  - Note: done on 13 October 2026 on the local fork with the live KyberSwap route (`apps/api/test/quote-long.fork.test.ts`): first use with a USDC permit and a Morpho authorization signed by a real key, sent as one `multicall`; then reduce by half, remove collateral, and full close, each from its quote. Collateral and returned USDC landed within 2% of the preview at 1% slippage, and the router held no USDC afterwards. `/v1/quote/collateral` also works for short markets; open and close for short come in BE-20. Realized PnL uses router events until the indexer (BE-13) exists. The DEX mid price comes from a 10 USDC KyberSwap probe.
+  - Note: done on 13 October 2026 on the local fork with the live KyberSwap route (`apps/api/test/quote-long.fork.test.ts`): first use with a USDC permit and a Morpho authorization signed by a real key, sent as one `multicall`; then reduce by half, remove collateral, and full close, each from its quote. Collateral and returned USDC landed within 2% of the preview at 1% slippage, and the router held no USDC afterwards. `/v1/quote/collateral` also works for short markets; open and close for short come in BE-20. Realized PnL uses router events until the indexer (BE-13) exists. The DEX mid price comes from a 10 USDC KyberSwap probe. `/v1/quote/collateral` also takes `repay`, which calls `repayDebt` (D-32); the fork test repays 5 USDC after a fresh permit.
 
-- [ ] **BE-13 · Indexer**
+- [~] **BE-13 · Indexer**
   - Needs: BE-06, SC-03. Addresses from SC-14.
   - Do: read router events and Morpho events for our markets; build tables for positions, history, average entry price, and profit and loss. Handle users who use Morpho directly.
   - Done when: positions in the database match `Lens` for all test addresses; replaying the reads from the start gives the same result.
+  - Note: per D-34, positions are read live from `Lens` and not copied; the database keeps the events that history, entry price and PnL need. `apps/indexer` follows the router's five events from the deployment block into `router_events` with a cursor, from HyperSync or RPC. Tests: decoding, the HyperSync page format, paging to the head, a replay from the start that gives the same rows, and a source that makes no progress. On the fork, a long opened from a quote is indexed and served. Still to do: Morpho events (users who use Morpho directly, liquidations), which need Morpho's events in the shared ABI export (Wangsit).
 
-- [ ] **BE-14 · Account and history**
+- [x] **BE-14 · Account and history**
   - Needs: BE-10, BE-13.
   - Do: `GET /v1/accounts/:address` and `/history`.
   - Done when: a newly opened position shows up within a few seconds; profit and loss match hand calculations on three examples.
+  - Note: done on 13 October 2026. Positions come from `Lens` on every request, so a new position shows at once; entry price, unrealized and realized PnL come from the indexed router events. Fork test: a long opened and then halved from quotes shows the same collateral and debt as `Lens`, an entry price within the 0.10% fee of the swap price, and a reduction whose realized PnL is the USDC returned minus half the margin. Unit tests check three hand calculations (+$30, +$10, -$20). Short positions show value and equity; their entry price and PnL come with BE-20. A position built straight on Morpho shows entry price and PnL as 0 until BE-13 reads Morpho events.
 
 - [ ] **BE-15 · Backend staging**
   - Needs: BE-11, BE-14.
@@ -94,7 +97,7 @@ Three rules for the backend:
   - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). The fork test in `apps/api/test/fork.test.ts` opens a real long and short on Morpho and gets exactly the same LTV and liquidation price as `Lens`, and the same Morpho price as `SessionOracle.price()`. A zero or non-sensible bid and ask cannot be produced on a fork of the live oracle, so those cases are covered by unit tests only. Still to do: Wangsit's review.
 
 - [ ] **BE-17 · Oracle age poster (keeper)**
-  - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (Q-27, requested from Wangsit).
+  - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (done by Wangsit: D-31, `setOracleAgeBounds` and `setMaxOracleAge`).
   - Do: a keeper in `apps/keeper` that computes `maxOracleAge` per market from the BE-03 tables with the formula in 04, and posts it on chain. It does nothing until the data meets the minimum in 04; until then the value set at deployment stays. It posts only when the new value differs from the chain value by more than a small step, and never outside the bounds the multisig set. Every post is logged with the input numbers. Its key is used for this role only (BE-55).
   - Done when: on the local fork, the poster sets the value from recorded data; does nothing with too little data; is rejected outside the bounds; the team gets an alert for every change (BE-50). After launch no person has to touch code, the repo or the multisig for this value to follow the data.
 
