@@ -784,6 +784,7 @@ Shared names. Each app has its own `.env.example`. Secrets never go into the rep
 | `MONAD_RPC_URL` | SC, BE | Monad RPC endpoint |
 | `NEXT_PUBLIC_MONAD_RPC_URL` | FE | RPC endpoint for the browser |
 | `NEXT_PUBLIC_API_URL` | FE | Backend address |
+| `NEXT_PUBLIC_PRIVY_APP_ID` | FE | Privy app ID for sign-in. Public, not a secret |
 | `DEPLOY_ENV` | All | `fork`, `staging`, or `production` |
 | `DATABASE_URL` | BE | Postgres |
 | `KYBER_CLIENT_ID` | BE | Client ID for the KyberSwap API |
