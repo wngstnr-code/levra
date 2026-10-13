@@ -196,6 +196,7 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 14 October 2026
 
 - Dharu: BE-33 written: wallet sign-in (D-38), alert settings, Telegram linking, and the alerts keeper (before-close at 24, 4 and 1 hours, LTV threshold, auto-deleverage, liquidation, deposits). Fork test passes with a stand-in email channel. Waiting on Dharu: the delivery services (Q-30) and their keys. Next: BE-50 team monitor.
+- Nabil: merged M1 to M5 into main (PRs #44 to #51). Earn now shows a loss in red, since `earnedRaw` can be negative. The English only decision is D-39, because D-38 went to wallet sign-in.
 - Nabil: FE-04 done: Wangsit and Dharu approved the wireframes and the visual design.
 
 ### 13 October 2026
