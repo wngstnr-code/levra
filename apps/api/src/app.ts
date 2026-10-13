@@ -3,6 +3,7 @@ import type { HealthResponse } from "@levra/shared/api";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { matchesAny } from "./origins";
+import { rateLimit, type RateLimitOptions } from "./rate-limit/middleware";
 import type { ChainReader } from "./chain/reader";
 import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
@@ -36,6 +37,8 @@ export type AppDeps = {
   auth?: { secret: string; domains: RegExp[]; telegramBot?: string };
   /** Web origins allowed to call the API from a browser (BE-56). None: no CORS headers, same-origin only. */
   corsOrigins?: RegExp[];
+  /** Limits per IP address and wallet (BE-51). Off when not given (tests). */
+  rateLimit?: RateLimitOptions;
   /** Cross-chain deposits and withdrawals (BE-40, BE-41). Needs `db`. */
   intents?: IntentsSource;
   /** Region and terms (BE-52). Needs `db` and `reader`. Without it, opening and depositing are not gated. */
@@ -48,7 +51,7 @@ function dexMidsFromDb(db: Db): DexMids {
   return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
 }
 
-export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [] }: AppDeps) {
+export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
   const app = new Hono();
   if (corsOrigins.length > 0) {
     app.use(
@@ -61,6 +64,8 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
       }),
     );
   }
+  // After CORS, so a 429 still carries the CORS headers and the browser can read it.
+  if (limits) app.use("*", rateLimit(limits));
   const compliance = db && complianceOpts ? createCompliance(db, complianceOpts) : undefined;
 
   app.use(async (c, next) => {
