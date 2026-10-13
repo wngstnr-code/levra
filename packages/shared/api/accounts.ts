@@ -63,6 +63,7 @@ export const historyItemType = z.enum([
   "close",
   "addCollateral",
   "removeCollateral",
+  "repayDebt",
   "autoReduce",
   "liquidation",
   "lend",
