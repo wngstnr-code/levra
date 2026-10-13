@@ -37,6 +37,7 @@ function market(overrides: Partial<MarketState> = {}): MarketState {
     feedUpdatedAt: 1_791_876_162,
     publishedAt: 1_791_876_168,
     oracleStale: false,
+    oracleHardStale: false,
     ...overrides,
   };
 }
