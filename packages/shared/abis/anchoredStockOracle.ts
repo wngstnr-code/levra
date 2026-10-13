@@ -2,6 +2,63 @@
 export const anchoredStockOracleAbi = [
   {
     "type": "function",
+    "name": "description",
+    "inputs": [
+      {
+        "name": "priceId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasPrice",
+    "inputs": [
+      {
+        "name": "priceId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isSupportedPriceId",
+    "inputs": [
+      {
+        "name": "priceId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "latestPrice",
     "inputs": [
       {
@@ -15,6 +72,184 @@ export const anchoredStockOracleAbi = [
         "name": "",
         "type": "tuple",
         "internalType": "struct IAnchoredStockOracle.PricePayload",
+        "components": [
+          {
+            "name": "price",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "bestBid",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "bestAsk",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "feedUpdateTimestamp",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "publishedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "roundId",
+            "type": "uint80",
+            "internalType": "uint80"
+          },
+          {
+            "name": "session",
+            "type": "uint8",
+            "internalType": "enum Session"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "latestPriceNoOlderThan",
+    "inputs": [
+      {
+        "name": "priceId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "maxAge",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IAnchoredStockOracle.PricePayload",
+        "components": [
+          {
+            "name": "price",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "bestBid",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "bestAsk",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "feedUpdateTimestamp",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "publishedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "roundId",
+            "type": "uint80",
+            "internalType": "uint80"
+          },
+          {
+            "name": "session",
+            "type": "uint8",
+            "internalType": "enum Session"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "latestPrices",
+    "inputs": [
+      {
+        "name": "priceIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct IAnchoredStockOracle.PricePayload[]",
+        "components": [
+          {
+            "name": "price",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "bestBid",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "bestAsk",
+            "type": "int128",
+            "internalType": "int128"
+          },
+          {
+            "name": "feedUpdateTimestamp",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "publishedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "roundId",
+            "type": "uint80",
+            "internalType": "uint80"
+          },
+          {
+            "name": "session",
+            "type": "uint8",
+            "internalType": "enum Session"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "latestPricesNoOlderThan",
+    "inputs": [
+      {
+        "name": "priceIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      },
+      {
+        "name": "maxAge",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct IAnchoredStockOracle.PricePayload[]",
         "components": [
           {
             "name": "price",
