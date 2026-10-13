@@ -3,6 +3,8 @@ import { readDeployment } from "@levra/shared/deployments/node";
 import { createWalletClient, http, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { monad } from "viem/chains";
+import { createAlerts } from "./alerts/job";
+import { resendEmail, telegramBot, type Channels } from "./alerts/channels";
 import { createCalendarPoster } from "./calendar/poster";
 import { createMarketDepth } from "./dex/depth";
 import type { Env } from "./env";
@@ -41,6 +43,17 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     jobs.push(createProtector({ client, wallet: walletFor(env.PROTECTOR_KEY), deployment, swap }));
   } else {
     logger.info("protector off: PROTECTOR_KEY or DEPLOYMENT_FILE is not set");
+  }
+
+  const bot = env.TELEGRAM_BOT_TOKEN ? telegramBot(env.TELEGRAM_BOT_TOKEN) : undefined;
+  const channels: Channels = {
+    ...(env.RESEND_API_KEY && env.ALERT_EMAIL_FROM ? { email: resendEmail(env.RESEND_API_KEY, env.ALERT_EMAIL_FROM) } : {}),
+    ...(bot ? { telegram: bot.send } : {}),
+  };
+  if (deployment && (channels.email || channels.telegram)) {
+    jobs.push(createAlerts({ client, deployment, channels, telegram: bot }));
+  } else {
+    logger.info("alerts off: no email or Telegram channel, or DEPLOYMENT_FILE is not set");
   }
 
   if (deployment && env.LIQUIDATOR_KEY) {

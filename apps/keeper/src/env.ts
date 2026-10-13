@@ -22,6 +22,11 @@ const envSchema = z.object({
   PROTECTOR_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   /** Key of a Liquidator keeper (BE-32). The bot runs only when it is set. One key per role (BE-55). */
   LIQUIDATOR_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+  /** Email alerts through Resend (BE-33, proposal). Both are needed; email is off without them. Never commit the key. */
+  RESEND_API_KEY: optional(),
+  ALERT_EMAIL_FROM: optional(),
+  /** Telegram alert bot token (BE-33). Telegram alerts and chat linking are off without it. Never commit it. */
+  TELEGRAM_BOT_TOKEN: optional(),
   KYBER_BASE_URL: optional().pipe(z.url().optional()),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
