@@ -161,14 +161,19 @@ function table(head: string[], body: (string | number)[][]): string {
 }
 
 export function renderOracleReport(r: OracleReport): string {
-  const transitionGroups = new Map<string, Map<string, number>>();
+  const transitionGroups = new Map<string, { first: string; last: string; n: number }>();
   for (const t of r.transitions) {
-    const key = `${t.prev} → ${t.session}`;
-    const clock = etClock.format(new Date(t.at));
-    const group = transitionGroups.get(key) ?? new Map<string, number>();
-    group.set(clock, (group.get(clock) ?? 0) + 1);
-    transitionGroups.set(key, group);
+    const [weekday = "", clock = ""] = etClock.format(new Date(t.at)).split(" ");
+    const key = `${t.prev} → ${t.session}|${weekday}`;
+    const group = transitionGroups.get(key);
+    if (!group) transitionGroups.set(key, { first: clock, last: clock, n: 1 });
+    else {
+      group.first = clock < group.first ? clock : group.first;
+      group.last = clock > group.last ? clock : group.last;
+      group.n += 1;
+    }
   }
+  const longClosed = r.closedStretches.filter((c) => c.hours >= 1);
 
   return [
     `# Anchored oracle report`,
@@ -196,17 +201,22 @@ export function renderOracleReport(r: OracleReport): string {
     ),
     ``,
     `## Session changes`,
-    `Time of the first write in the new session. The real boundary can be up to one write interval earlier.`,
+    `Time of the first write in the new session, all stocks together. The real boundary can be up to one write interval earlier. A count above the number of weeks times three stocks means the session went back and forth.`,
     ``,
     table(
-      ["Change", "Seen at (count)"],
-      [...transitionGroups].map(([key, clocks]) => [key, [...clocks].map(([c, n]) => `${c} (${n})`).join(", ")]),
+      ["Change", "Weekday", "Earliest", "Latest", "Count"],
+      [...transitionGroups].map(([key, g]) => {
+        const [change = "", weekday = ""] = key.split("|");
+        return [change, weekday, g.first, g.last, g.n];
+      }),
     ),
     ``,
-    `## Fully observed CLOSED stretches`,
+    `## Fully observed CLOSED stretches of one hour or more`,
+    `${r.closedStretches.length - longClosed.length} shorter stretches are left out.`,
+    ``,
     table(
       ["Stock", "From", "To", "Hours"],
-      r.closedStretches.map((c) => [c.symbol, et.format(c.from), et.format(c.to), fmt(c.hours, 1)]),
+      longClosed.map((c) => [c.symbol, et.format(c.from), et.format(c.to), fmt(c.hours, 1)]),
     ),
     ``,
     `## Best bid and best ask`,
