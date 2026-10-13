@@ -71,7 +71,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
-| 14 October 2026 | Dharu | Nabil | Show `gasDeposit` on the deposit screen when `includeGas` is on: the second address and how much of the same token to send there (D-40) | FE-40 |
 | 13 October 2026 | Nabil | Dharu | A public staging address for `NEXT_PUBLIC_API_URL` (CORS is done in BE-56) | FE-10, FE-11, FE-12, FE-13, BE-15 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
 
@@ -190,6 +189,7 @@ One line for every change to 03 after the freeze.
 | 14 October 2026 | Approved the signed terms text in 03; it is also `termsMessage` in `packages/shared/api/compliance.ts`, which the web app can import instead of its own copy. Wrote down which routes the region and terms gate covers | Dharu, Nabil | be/BE-52-compliance |
 | 14 October 2026 | `/v1/status` oracle rows gained `ageLimitSeconds` and `ageLimitLearning` from the team monitor; `monitor` added to the keeper names | Dharu, Nabil | be/BE-50-team-monitor |
 | 14 October 2026 | `DepositQuoteResponse.gasDeposit` for the MON top-up (D-40); `DepositStatus.destinationTxHash` is any string, since a withdrawal can land on a chain that is not EVM; `transfers` added to the keeper names in `/v1/status` | Dharu, Nabil | be/BE-40-deposits |
+| 14 October 2026 | Section 4 "Signed messages": the web app now imports `termsMessage` from `packages/shared` instead of keeping its own copy. No shape change | Dharu, Nabil | fe/FE-40-31-50-backend-sync |
 | 14 October 2026 | Added `POST` and `DELETE /v1/alerts/telegram` and `TelegramLinkResponse`; wrote down the sign-in rules (D-38) and when alerts go out | Dharu, Nabil | be/BE-33-alerts |
 | 13 October 2026 | Wrote down `MarketDetail` history rules in 03: 30 days, one point per hour, empty without a database, 404 for an unknown stock | Dharu, Nabil | be/BE-23-market-detail |
 | 13 October 2026 | `EarnPosition.earnedRaw` is now signed, since bad debt can make it negative. Earn option ids are `vault:<address>` and `market:<marketId>` | Dharu, Nabil | be/BE-22-earn |
@@ -201,6 +201,8 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Nabil: frontend synced with BE-33, BE-40 to BE-42, BE-50 and BE-52 on `fe/FE-40-31-50-backend-sync`: deposit shows the second transfer for network fees (D-40) with its own status in MON, Telegram link and unlink in Settings, the terms text from `packages/shared`, withdrawal destination hashes as text, and the team monitor no longer raises the user service banner. Not run against a live API yet: it waits on the staging address (BE-15). Request for Dharu: 03 says `DepositStatus.amountOutRaw` is USDC, but for the gas transfer the API returns MON in wei; please write that down in 03 (the web app already shows MON for it).
+- Nabil: FE-06 logo picked and built in the app on `fe/FE-06-logo`: mark R1 with LEVRA in Chivo Black Italic, in the header, the browser tab and the home screen icons. Wangsit and Dharu still to confirm.
 - Dharu: BE-56 done: CORS for the web app's origins (`CORS_ORIGINS`, with `*` for one dash-separated part so only this project's Vercel previews match) and sign-in from several hosts (`AUTH_DOMAIN` as a list). This removes Nabil's CORS blocker; the signed texts were approved in BE-52, which removes the other. Still needed for the web app: the staging address (BE-15).
 - Dharu: BE-52 written: `/v1/eligibility` from a CDN country header and a block list, `/v1/terms/accept` checking the signed 03 text and storing it with the version and country, and a gate on opening and deposit quotes only (closing and withdrawing are never gated). Waiting on X-10 and X-11 for the country list and the terms version. Next: CORS and sign-in domains for the web app.
 - Dharu: BE-50 written: the `monitor` keeper checks every row of the 08 monitoring table (oracle age with a per-session limit from data, session against the calendar, DEX deviation, heartbeats, risk value changes, keeper MON, unhealthy positions, bad debt, utilization, depth against the cap rule, indexer lag, API) and alerts a team Telegram group or webhook once per problem, with a RESOLVED message. Waiting on Dharu: the team channel. Next: BE-52.
