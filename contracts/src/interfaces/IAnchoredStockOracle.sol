@@ -29,4 +29,20 @@ interface IAnchoredStockOracle {
 
     /// priceId is keccak256 of the uppercase symbol, for example keccak256("QQQ").
     function latestPrice(bytes32 priceId) external view returns (PricePayload memory);
+
+    /// Reverts when the source quote is older than maxAge seconds.
+    function latestPriceNoOlderThan(bytes32 priceId, uint64 maxAge) external view returns (PricePayload memory);
+
+    function latestPrices(bytes32[] calldata priceIds) external view returns (PricePayload[] memory);
+
+    function latestPricesNoOlderThan(bytes32[] calldata priceIds, uint64 maxAge)
+        external
+        view
+        returns (PricePayload[] memory);
+
+    function isSupportedPriceId(bytes32 priceId) external view returns (bool);
+
+    function hasPrice(bytes32 priceId) external view returns (bool);
+
+    function description(bytes32 priceId) external view returns (string memory);
 }

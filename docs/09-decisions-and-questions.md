@@ -46,6 +46,7 @@ How to use it:
 | D-32 | The router gets `repayDebt(marketId, assets)`: the user pays down their own debt with the loan token. For a long this is how margin is added with USDC | Chosen by Wangsit on 13 October 2026. `addCollateral` takes the collateral token, which for a long is stock, so long users had no simple way to lower risk without selling | Leaving it to a direct Morpho call from the frontend |
 | D-33 | The backend database lives in its own package, `packages/db` (`@levra/db`): Drizzle schema, migrations and the client, used by api, indexer and keeper. Owner: Dharu. Local Postgres runs from `docker-compose.yml` on port 5442 by default (`LEVRA_PG_PORT` changes it) | Chosen by Dharu on 13 October 2026. One schema for three apps, and it is not a shared interface, so it stays out of `packages/shared` | Schema inside `apps/api`; one schema per app |
 | D-34 | The indexer is our own log follower in `apps/indexer`, reading from Envio HyperSync through its JSON API (RPC as fallback) into `packages/db`. Positions are read live from `Lens`; the database keeps the events that history, entry price and PnL need | Chosen by Dharu on 13 October 2026. The Envio CLI (HyperIndex) has no Windows build and needs extra containers, while HyperSync works from any platform and keeps Envio in the stack. Changes D-21 for the indexer. Whether the Envio bounty (D-26) accepts HyperSync without HyperIndex is not verified | Envio HyperIndex in WSL; RPC only |
+| D-35 | Hard oracle ages per market: source quote age while open is 1 hour for QQQ and HOOD and 3 hours for BIL; publish age while closed is 4 days for all. Ages to open a position start at 35, 36 and 51 minutes. Proposed from the BE-03 data and implemented in the deployment script. Wangsit confirms before the mainnet deployment, because the hard ages are fixed forever | BIL's source quote reached 81.5 minutes after hours, so 1 hour would block its liquidations at times. BIL barely moves, so a longer age costs little. 4 days covers a holiday weekend with a day to spare | One hard age for all markets; 2 hours for BIL, which leaves little room above the 81.5 minutes seen |
 
 ## Open questions
 
@@ -80,7 +81,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-25 | Which domain? `levra.com`, `.io`, `.xyz` and `.app` are in use | Nabil | M0 | X-02 | See "Decisions waiting for the team" |
 | Q-26 | Answered: see D-30 | - | - | - | - |
 | Q-27 | Answered: see D-31 | - | - | - | - |
-| Q-28 | Which hard ages should `SessionOracle` use, per market? BE-03 data: BIL's source quote reached 81.5 minutes after hours, above the 1 hour setting, so an aBIL `price()` would revert then; `publishedAt` stops while `CLOSED`, so the 4 day setting must cover the longest holiday close (about 72 hours, not yet observed); the session flips for about 15 minutes every Friday at 20:00 ET. Details in 04 | Wangsit | M1 | SC-10, BE-03 | Raise the open-market hard age for BIL (for example 2 hours), keep 4 days while `CLOSED`, and set `maxOracleAge` from the rule in 04 (QQQ 35, HOOD 36, BIL 51 minutes on this data) |
+| Q-28 | Proposed answer in D-35, implemented in the deployment script. Waiting for Wangsit to confirm the numbers before mainnet | Wangsit | Before SC-15 | SC-10 | See D-35 |
 
 ## Decisions waiting for the team
 

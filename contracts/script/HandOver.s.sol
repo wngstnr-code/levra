@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IMetaMorpho} from "../src/interfaces/IMetaMorpho.sol";
 import {RiskManager} from "../src/RiskManager.sol";
 import {GovernancePlan} from "./GovernancePlan.sol";
 
@@ -21,8 +22,12 @@ contract HandOver is Script {
         ownables[1] = vm.parseJsonAddress(json, ".router");
         ownables[2] = vm.parseJsonAddress(json, ".liquidator");
 
+        IMetaMorpho vault = vm.keyExistsJson(json, ".usdcVault")
+            ? IMetaMorpho(vm.parseJsonAddress(json, ".usdcVault"))
+            : IMetaMorpho(address(0));
+
         vm.startBroadcast();
-        TimelockController timelock = GovernancePlan.handOver(multisig, risk, ownables);
+        TimelockController timelock = GovernancePlan.handOver(multisig, risk, ownables, vault);
         vm.stopBroadcast();
 
         string memory entry = string.concat(',"timelock":"', vm.toString(address(timelock)), '","markets":');
@@ -30,5 +35,6 @@ contract HandOver is Script {
         console.log("Timelock:", address(timelock));
         console.log("Next: from the multisig, schedule acceptOwnership() on each contract through the timelock,");
         console.log("wait for the delay, then execute. Until then the deployer is still the owner.");
+        console.log("If there is a vault, the multisig also calls acceptOwnership() on it directly.");
     }
 }

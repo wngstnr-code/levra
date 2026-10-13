@@ -31,6 +31,10 @@ interface IMetaMorpho is IERC4626 {
     function submitTimelock(uint256 newTimelock) external;
 
     function transferOwnership(address newOwner) external;
+
+    function pendingOwner() external view returns (address);
+
+    function acceptOwnership() external;
 }
 
 interface IMetaMorphoFactory {

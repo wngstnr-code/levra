@@ -226,6 +226,47 @@ contract Handler is Test {
         } catch {}
     }
 
+    /// A user who asked for protection ends up above the stricter limit before the close, and the keeper acts.
+    function protectedReduce(uint256 actorSeed, uint256 fractionBps) external {
+        address target = _actor(actorSeed);
+        Position memory position = MORPHO.position(longId, target);
+        if (position.borrowShares == 0) return;
+        vm.prank(target);
+        router.setProtection(longId, true);
+        try risk.setNextCloseAt(uint64(vm.getBlockTimestamp() + 10 minutes)) {} catch {}
+
+        // Let the price fall just enough to put this position at about 72%, between the two soft limits.
+        uint256 ltvNow = risk.positionLtv(longId, target);
+        if (ltvNow < 0.705e18) {
+            int128 lower = int128(int256(uint256(uint128(price)) * ltvNow / 0.72e18));
+            if (lower < 1e8) return;
+            price = lower;
+            mocker.mockOracle(Session.Regular, 0, 0, lower);
+        }
+
+        // Selling a share f of the collateral repays f / LTV of the debt, less 1% for the keeper fee and rounding.
+        fractionBps = bound(fractionBps, 1_000, 3_000);
+        uint256 sell = uint256(position.collateral) * fractionBps / 10_000;
+        uint256 ltvThen = risk.positionLtv(longId, target);
+        IMarginRouter.CloseParams memory p = IMarginRouter.CloseParams({
+            marketId: longId,
+            repayShares: uint256(position.borrowShares) * fractionBps * 1e18 / (10_100 * ltvThen),
+            withdrawAssets: sell,
+            swapAmountIn: sell,
+            swap: _swap(STOCK, USDC, sell, _usdcFor(sell, 10_000)),
+            minReturn: 0,
+            deadline: vm.getBlockTimestamp() + 60
+        });
+        uint256 ltvBefore = risk.positionLtv(longId, target);
+        uint256 soft = risk.currentSoftLtv(longId);
+        vm.prank(keeper);
+        try router.deleverage(target, p) {
+            ++reductions;
+            assertGt(ltvBefore, soft, "reduced a position within the soft limit");
+            assertLt(risk.positionLtv(longId, target), ltvBefore, "reduction did not lower the LTV");
+        } catch {}
+    }
+
     function movePrice(uint256 seed) external {
         int128 next = int128(int256(bound(seed, 660e8, 820e8)));
         price = next;
@@ -285,6 +326,16 @@ contract InvariantsTest is BaseTest {
         AQQQ.approve(address(router), type(uint256).max);
         MORPHO.setAuthorization(address(router), true);
         vm.stopPrank();
+    }
+
+    /// The campaign is only meaningful if its actions can succeed. This walks the main ones once.
+    function test_handlerActionsCanSucceed() public {
+        handler.openLong(0, 100e6, 200, 10_000);
+        assertEq(handler.opens(), 1);
+        handler.protectedReduce(0, 2_000);
+        assertEq(handler.reductions(), 1);
+        handler.closeLong(0, 10_000, 10_000);
+        assertEq(handler.closes(), 1);
     }
 
     function invariant_routerHoldsNoTokens() public view {

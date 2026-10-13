@@ -71,6 +71,7 @@ Every row must have a test that shows its mitigation works.
 | T-16 | A fake site imitates the app | Users give authorization to a fake contract | Contract addresses are announced; one domain name; teach users to check the address |
 | T-17 | A token has a fee on transfer or unusual behavior | Wrong calculation | Checked in SC-05: no fee on transfer in the current stock token or USDC. An upgrade could add one, so the router still calculates from the balance difference, not from the requested amount |
 | T-18 | A stock split or dividend changes the price per token without changing balances | Positions are liquidated for no market reason | Not known how Anchored applies these (Q-23). Until answered, a stock with an announced split is not eligible |
+| T-20 | The last oracle write before a weekend leaves the session as an open one, not `CLOSED` | `price()` reverts after the hard source quote age and liquidations are blocked until the market reopens | Cannot be closed with code without accepting stale prices. Seen flipping for 15 minutes every Friday, always ending on `CLOSED` so far. The oracle monitor alerts on it (BE-50) |
 | T-19 | The stock tokens have no `permit` | A user approves an unlimited amount to save a step | The app asks for exact approvals. Applies to lending stock and to adding stock collateral |
 
 ## Backend and keeper security

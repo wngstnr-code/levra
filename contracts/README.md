@@ -36,14 +36,50 @@ make build
 | `make deploy-fork` | Deploy everything to the local fork and write `deployments/fork.json` |
 | `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route |
 | `./script/e2e-short.sh` | On the fork: lend stock, open a short and close it through the live route |
+| `./script/e2e-liquidation.sh` | On the fork: open a long, push the oracle price down as the Anchored operator, and liquidate through the live route |
 | `./script/e2e-protection.sh` | On the fork: open a long near the limit, enter the pre-close window, and let the keeper reduce it through the live route |
-| `HandOver.s.sol` | Moves ownership to a timelock controlled by the multisig. Needs `MULTISIG`. See `script/GovernancePlan.sol` |
+| `HandOver.s.sol` | Moves ownership of the contracts to a timelock controlled by the multisig, and the vault to the multisig. Needs `MULTISIG`. See `script/GovernancePlan.sol` |
 | `make deploy-vault-fork` | Create the USDC vault over the long markets of the fork deployment |
+| `make first-long-monad` | REAL transactions on mainnet: seed the QQQ long market, open a small long and close it. A dry run unless `CONFIRM=yes` |
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
 
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
 
 Run `make abis` after any change to an interface and commit the result in the same PR.
+
+## First run on mainnet with a small budget
+
+A fresh wallet with about 20 MON and 8 USDC is enough for a real long and its close. Rehearsed on a fork with exactly 8 USDC.
+
+1. Copy `.env.example` to `.env` and put the key of that wallet in `DEPLOYER_PRIVATE_KEY`. Never commit it.
+2. `make deploy-monad` deploys the contracts and five markets and writes `deployments/monad.json`. About 3.5 MON.
+3. `make first-long-monad` shows what it would do. `make first-long-monad CONFIRM=yes` sends it: 5 USDC lent to the QQQ long market, a long with 3 USDC of margin and 3 USDC borrowed, then a full close. Every transaction hash is printed.
+4. Commit `deployments/monad.json` and record the hashes in `docs/PROGRESS.md`.
+
+In the rehearsal the close returned 2.88 USDC of the 3 USDC margin. The cost is mostly the 0.90% pool fee, paid twice.
+
+## Deployment settings
+
+Environment variables read by `script/Deploy.s.sol`. All are optional on a fork.
+
+| Variable | What it sets |
+|---|---|
+| `DEPLOY_ENV` | Name of the deployment file, `fork` or `monad` |
+| `OWNER` | Owner of the contracts after deployment. Defaults to the deployer |
+| `FEE_RECIPIENT` | Receives fees and liquidation gains. Defaults to the deployer |
+| `KEEPER` | May run auto-deleverage and liquidations |
+| `CALENDAR_POSTER` | May post the next market close |
+| `ORACLE_AGE_POSTER` | May move `maxOracleAge` inside the bounds (D-31) |
+
+Oracle ages per market are fixed in the script and come from two weeks of oracle data (`docs/reports/oracle-2026-10-13.md`):
+
+| Market | Hard source quote age while open | Hard publish age while closed | Age to open a position |
+|---|---|---|---|
+| QQQ | 1 hour | 4 days | 35 minutes |
+| HOOD | 1 hour | 4 days | 36 minutes |
+| BIL | 3 hours | 4 days | 51 minutes |
+
+The two hard ages cannot be changed after deployment. The age to open a position can be moved by the oracle age poster between 1,500 seconds and the hard source quote age.
 
 ## Deployment files
 
