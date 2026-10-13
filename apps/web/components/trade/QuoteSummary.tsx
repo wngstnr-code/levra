@@ -4,6 +4,7 @@ import type { Market, QuoteOpenResponse } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
 import { formatUsdE8 } from "@/lib/format";
 import { apiConfigured } from "@/lib/api/hooks";
+import { gapSteps, mergeGapScenarios } from "@/lib/gapSteps";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio } from "@/lib/units";
 import { GapTry } from "../GapTry";
@@ -128,7 +129,9 @@ function Legend({ dot, text }: { dot: string; text: string }) {
 
 function GapCard({ quote, loading, side }: Props) {
   const m = useT();
-  const scenarios = quote?.preview.gapScenarios ?? [];
+  const noLoan = !!quote && BigInt(quote.preview.debtRaw) === 0n;
+  const worst = quote?.preview.gapScenarios ?? [];
+  const scenarios = quote && !noLoan ? mergeGapScenarios(worst, gapSteps(side, quote.preview.ltvAfterWad, quote.market.lltvWad, (b) => m.trade.gapStep(formatBps(b, { signed: true, fractionDigits: 0 })))) : [];
   const lltv = quote ? BigInt(quote.market.lltvWad) : 0n;
   const top = lltv + lltv / 10n;
   return (
@@ -140,7 +143,9 @@ function GapCard({ quote, loading, side }: Props) {
         </h2>
         <p className="mt-1 text-[13px] text-fg-2">{m.trade.gapSub}</p>
       </div>
-      {scenarios.length === 0 ? (
+      {noLoan ? (
+        <p className="text-[15px] text-fg-2">{m.trade.gapNoLoan}</p>
+      ) : scenarios.length === 0 ? (
         loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline}</p>
       ) : (
         <div className="flex min-h-48 flex-1 items-end gap-3">
@@ -155,8 +160,8 @@ function GapCard({ quote, loading, side }: Props) {
           ))}
         </div>
       )}
-      {scenarios[0] && <p className="text-xs text-fg-3">{scenarios[0].label}</p>}
-      {quote && <GapTry side={side} ltvWad={quote.preview.ltvAfterWad} softWad={quote.market.currentSoftLtvWad} lltvWad={quote.market.lltvWad} />}
+      {!noLoan && worst[0] && <p className="text-xs text-fg-3">{m.trade.gapWorst(worst[0].label, formatBps(worst[0].moveBps, { signed: true, fractionDigits: 1 }))}</p>}
+      {quote && !noLoan && <GapTry side={side} ltvWad={quote.preview.ltvAfterWad} softWad={quote.market.currentSoftLtvWad} lltvWad={quote.market.lltvWad} />}
     </Card>
   );
 }
