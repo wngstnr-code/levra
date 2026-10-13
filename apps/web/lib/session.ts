@@ -13,12 +13,3 @@ export const sessionLabel: Record<SessionName, string> = {
   OVERNIGHT: "Overnight",
   CLOSED: "Closed",
 };
-
-export const sessionTone: Record<SessionName, string> = {
-  UNKNOWN: "bg-neutral-800 text-neutral-300",
-  PRE_MARKET: "bg-sky-950 text-sky-300",
-  REGULAR: "bg-emerald-950 text-emerald-300",
-  POST_MARKET: "bg-sky-950 text-sky-300",
-  OVERNIGHT: "bg-indigo-950 text-indigo-300",
-  CLOSED: "bg-neutral-800 text-neutral-300",
-};

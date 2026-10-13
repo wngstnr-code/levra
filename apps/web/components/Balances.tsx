@@ -20,12 +20,12 @@ export function Balances({ address }: { address: Address }) {
   });
 
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-      <dt className="text-neutral-400">USDC</dt>
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+      <dt className="text-fg-2">USDC</dt>
       <dd className="text-right tabular-nums">
         <BalanceValue value={usdc.data} decimals={tokens.USDC.decimals} isError={usdc.isError} />
       </dd>
-      <dt className="text-neutral-400">MON</dt>
+      <dt className="text-fg-2">MON</dt>
       <dd className="text-right tabular-nums">
         <BalanceValue value={mon.data?.value} decimals={monad.nativeCurrency.decimals} isError={mon.isError} />
       </dd>
@@ -34,7 +34,7 @@ export function Balances({ address }: { address: Address }) {
 }
 
 function BalanceValue({ value, decimals, isError }: { value: bigint | undefined; decimals: number; isError: boolean }) {
-  if (isError) return <span className="text-red-400">Unavailable</span>;
-  if (value === undefined) return <span className="text-neutral-500">Loading</span>;
+  if (isError) return <span className="text-down">Unavailable</span>;
+  if (value === undefined) return <span className="text-fg-3">Loading</span>;
   return <>{formatUnitsFixed(value, decimals, 4)}</>;
 }
