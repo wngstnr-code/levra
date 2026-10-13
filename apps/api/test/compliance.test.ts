@@ -22,6 +22,27 @@ describe("terms text", () => {
   });
 });
 
+describe("region blocking inside a country (D-42)", () => {
+  const reader = { client: {}, deployment: { chainId: 143, markets: [] } } as unknown as ChainReader;
+  const app = createApp({
+    logger: pino({ level: "silent" }),
+    reader,
+    db: {} as never,
+    compliance: { termsVersion: VERSION, countryHeader: "cf-ipcountry", blockedCountries: new Set(["US"]), regionHeader: "cf-region-code", blockedRegions: new Set(["UA-43", "UA-14"]) },
+  });
+  const eligible = async (headers: Record<string, string>) => eligibilityResponse.parse(await (await app.request("/v1/eligibility", { headers })).json()).eligible;
+
+  it("refuses a sanctioned region, written with or without the country prefix, and allows the rest of the country", async () => {
+    expect(await eligible({ "cf-ipcountry": "UA", "cf-region-code": "43" })).toBe(false);
+    expect(await eligible({ "cf-ipcountry": "UA", "cf-region-code": "ua-14" })).toBe(false);
+    expect(await eligible({ "cf-ipcountry": "UA", "cf-region-code": "30" })).toBe(true);
+    // Without a region the country decides, so the rest of Ukraine is not refused when the region is unknown.
+    expect(await eligible({ "cf-ipcountry": "UA" })).toBe(true);
+    expect(await eligible({ "cf-ipcountry": "US", "cf-region-code": "TX" })).toBe(false);
+    expect(await eligible({ "cf-region-code": "43" })).toBe(false);
+  });
+});
+
 describe.skipIf(!url)("region and terms (needs TEST_DATABASE_URL)", () => {
   const { db, close } = createDb(url ?? "", { max: 2 });
   // Plain wallets are checked without the chain.
