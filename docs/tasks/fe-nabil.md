@@ -46,6 +46,12 @@ Four rules for the frontend:
   - Done when: the tokens and base components match the Figma design system, and no screen uses colours outside the tokens.
   - Note: built on 13 October 2026 on `fe/FE-05-design-system`. Checked by build and the generated CSS. Not verified: the wide display width (`font-stretch`) only works with Apple's system font, and continuous corners (`corner-shape`) only work in browsers that support it; other browsers show normal width and normal rounded corners. A visual check in the browser by Nabil is still open.
 
+- [~] **FE-06 · Logo and app icon**
+  - Needs: FE-04 (the visual style on the Figma page "Design").
+  - Do: a mark and a wordmark for Levra on the Figma page "Brand", checked on dark and light, as an app icon and at 32 px and 16 px. The wordmark uses a font whose license allows a logo (not SF Pro). Then the files in `apps/web`: favicon, app icons and the header lockup.
+  - Done when: the team picks one concept, and the app shows the logo in the header, the browser tab and the home screen icon.
+  - Note: four concepts (Lever, Rising L, Bento L, Pivot L) and three open-license wordmark fonts were drawn on 14 October 2026 on the page "Brand". Nothing is picked yet.
+
 ---
 
 ## M1. Core long
