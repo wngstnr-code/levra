@@ -17,9 +17,15 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.4
         version: 2.1.4(hono@4.13.13)
+      '@levra/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@levra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      drizzle-orm:
+        specifier: 0.45.4
+        version: 0.45.4(postgres@3.4.9)
       hono:
         specifier: ^4.13.13
         version: 4.13.13
