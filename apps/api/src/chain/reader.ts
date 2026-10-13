@@ -57,7 +57,8 @@ export type MarketState = {
 export type RouterEvent =
   | { kind: "opened"; marketId: Hex; block: bigint; logIndex: number; margin: bigint; collateralDelta: bigint; debtDelta: bigint; fee: bigint }
   | { kind: "reduced"; marketId: Hex; block: bigint; logIndex: number; collateralDelta: bigint; debtDelta: bigint; returned: bigint; fee: bigint; reason: number }
-  | { kind: "repaid"; marketId: Hex; block: bigint; logIndex: number; assets: bigint };
+  | { kind: "repaid"; marketId: Hex; block: bigint; logIndex: number; assets: bigint }
+  | { kind: "liquidated"; marketId: Hex; block: bigint; logIndex: number; seized: bigint };
 
 export type ChainSession = {
   session: SessionName;

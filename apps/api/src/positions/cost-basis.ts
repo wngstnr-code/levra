@@ -10,6 +10,7 @@ import type { RouterEvent } from "../chain/reader";
  * - `buyCost` and `shares`: what the stock cost including the fee, for the average entry price.
  * - `realized`: USDC returned by reductions minus the margin they took out.
  * - Repaying debt with USDC (D-32) is margin added: it raises `invested` and leaves the stock alone.
+ * - A liquidation takes the seized stock and returns nothing to the user: the margin behind that stock is lost.
  *
  * Positions changed outside the router (straight on Morpho) are not seen here.
  */
@@ -23,21 +24,28 @@ export function longCostBasis(events: RouterEvent[], marketId: Hex): CostBasis {
     if (e.marketId.toLowerCase() !== marketId.toLowerCase()) continue;
     if (e.kind === "repaid") {
       basis.invested += e.assets;
+    } else if (e.kind === "liquidated") {
+      reduce(basis, e.seized, 0n);
     } else if (e.kind === "opened") {
       basis.shares += e.collateralDelta;
       basis.buyCost += e.margin + e.debtDelta;
       basis.invested += e.margin;
     } else {
-      const sold = e.collateralDelta > basis.shares ? basis.shares : e.collateralDelta;
-      const removedInvested = basis.shares === 0n ? 0n : mulDiv(basis.invested, sold, basis.shares);
-      const removedCost = basis.shares === 0n ? 0n : mulDiv(basis.buyCost, sold, basis.shares);
-      basis.realized += e.returned - removedInvested;
-      basis.invested -= removedInvested;
-      basis.buyCost -= removedCost;
-      basis.shares -= sold;
+      reduce(basis, e.collateralDelta, e.returned);
     }
   }
   return basis;
+}
+
+/** Takes `soldRaw` stock out of the basis for `returned` USDC to the user, booking the realized PnL. */
+function reduce(basis: CostBasis, soldRaw: bigint, returned: bigint) {
+  const sold = soldRaw > basis.shares ? basis.shares : soldRaw;
+  const removedInvested = basis.shares === 0n ? 0n : mulDiv(basis.invested, sold, basis.shares);
+  const removedCost = basis.shares === 0n ? 0n : mulDiv(basis.buyCost, sold, basis.shares);
+  basis.realized += returned - removedInvested;
+  basis.invested -= removedInvested;
+  basis.buyCost -= removedCost;
+  basis.shares -= sold;
 }
 
 /** Realized PnL of selling `sold` stock for a net `returned` to the user, against the current basis. */

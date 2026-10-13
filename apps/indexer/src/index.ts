@@ -7,7 +7,7 @@ import { loadEnv } from "./env";
 import { createLogger } from "./logger";
 import { hyperSyncSource } from "./sources/hypersync";
 import { rpcSource } from "./sources/rpc";
-import { syncRouter } from "./sync";
+import { morphoStream, routerStream, syncStream } from "./sync";
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");
@@ -17,6 +17,7 @@ const source = env.ENVIO_API_TOKEN
   ? hyperSyncSource({ url: env.HYPERSYNC_URL, token: env.ENVIO_API_TOKEN })
   : rpcSource(createPublicClient({ chain: monad, transport: http(env.MONAD_RPC_URL, { retryCount: 3, timeout: 20_000 }) }));
 
+const streams = [routerStream(deployment), morphoStream(deployment)];
 let stopping = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
@@ -27,13 +28,15 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
 logger.info({ source: source.name, router: deployment.router, fromBlock: deployment.block }, "indexer starting");
 while (!stopping) {
-  try {
-    const result = await syncRouter(db, source, deployment);
-    if (result.inserted > 0 || result.head - result.lastBlock > 10_000n) {
-      logger.info({ inserted: result.inserted, lastBlock: Number(result.lastBlock), head: Number(result.head) }, "router events synced");
+  for (const stream of streams) {
+    try {
+      const result = await syncStream(db, source, deployment, stream);
+      if (result.inserted > 0 || result.head - result.lastBlock > 10_000n) {
+        logger.info({ stream: stream.cursor, inserted: result.inserted, lastBlock: Number(result.lastBlock), head: Number(result.head) }, "events synced");
+      }
+    } catch (err) {
+      logger.error({ err, stream: stream.cursor }, "sync failed");
     }
-  } catch (err) {
-    logger.error({ err }, "sync failed");
   }
   await sleep(env.POLL_MS);
 }
