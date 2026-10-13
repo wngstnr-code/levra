@@ -135,7 +135,7 @@ function Legend({ dot, text }: { dot: string; text: string }) {
   );
 }
 
-function GapCard({ quote, loading, side, signedIn }: Props) {
+function GapCard({ quote, loading, error, side, signedIn }: Props) {
   const emptyText = useEmptyText(signedIn);
   const m = useT();
   const noLoan = !!quote && BigInt(quote.preview.debtRaw) === 0n;
@@ -155,7 +155,7 @@ function GapCard({ quote, loading, side, signedIn }: Props) {
       {noLoan ? (
         <p className="text-[15px] text-fg-2">{m.trade.gapNoLoan}</p>
       ) : scenarios.length === 0 ? (
-        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{emptyText}</p>
+        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className={cn("text-[15px]", error ? "text-down" : "text-fg-3")}>{error ?? emptyText}</p>
       ) : (
         <div className="flex min-h-48 flex-1 items-end gap-3">
           {scenarios.map((s) => (
