@@ -39,6 +39,11 @@ const envSchema = z.object({
   GEO_COUNTRY_HEADER: optional(),
   /** Comma-separated ISO 3166-1 alpha-2 codes to refuse, decided with counsel (X-10). Needs GEO_COUNTRY_HEADER. */
   BLOCKED_COUNTRIES: optional(),
+  /**
+   * Header with the client address written by our own proxy, for example x-forwarded-for or cf-connecting-ip (BE-51).
+   * Only set it when a proxy we control always writes it; otherwise clients could choose their own address.
+   */
+  TRUST_PROXY_HEADER: optional(),
   /** Shown in /v1/status, for example the git commit of the deployed build. */
   APP_VERSION: z.string().min(1).default("dev"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
