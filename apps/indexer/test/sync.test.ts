@@ -1,5 +1,6 @@
 import { createDb, routerEvents, runMigrations, syncCursors } from "@levra/db";
 import type { Deployment } from "@levra/shared/deployments";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import type { LogQuery, LogSource } from "../src/sources/types";
 import { ROUTER_CURSOR, syncRouter } from "../src/sync";
@@ -30,7 +31,7 @@ describe.skipIf(!url)("router sync (needs TEST_DATABASE_URL)", () => {
   beforeEach(async () => {
     await runMigrations(url ?? "");
     await db.delete(routerEvents);
-    await db.delete(syncCursors);
+    await db.delete(syncCursors).where(eq(syncCursors.name, ROUTER_CURSOR));
   });
   afterAll(() => close());
 
@@ -39,7 +40,7 @@ describe.skipIf(!url)("router sync (needs TEST_DATABASE_URL)", () => {
     const result = await syncRouter(db, source, deployment);
     expect(queries[0]?.fromBlock).toBe(1_000n);
     expect(result).toMatchObject({ lastBlock: 2_000n, inserted: 3 });
-    const [cursor] = await db.select().from(syncCursors);
+    const [cursor] = await db.select().from(syncCursors).where(eq(syncCursors.name, ROUTER_CURSOR));
     expect(cursor).toMatchObject({ name: ROUTER_CURSOR, lastBlock: 2_000n });
   });
 
@@ -47,7 +48,7 @@ describe.skipIf(!url)("router sync (needs TEST_DATABASE_URL)", () => {
     const { source } = fakeSource(2_000n, [1_000n, 1_500n, 2_000n]);
     await syncRouter(db, source, deployment);
     const first = await db.select().from(routerEvents);
-    await db.delete(syncCursors);
+    await db.delete(syncCursors).where(eq(syncCursors.name, ROUTER_CURSOR));
     const again = await syncRouter(db, source, deployment);
     expect(again.inserted).toBe(0);
     expect(await db.select().from(routerEvents)).toEqual(first);
