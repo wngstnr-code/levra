@@ -83,10 +83,11 @@ Three rules for the backend:
   - Do: deploy the API, indexer and database on the service of your choice; choose a paid RPC endpoint provider; `GET /v1/status`.
   - Done when: Nabil uses the staging address from the deployed web app.
 
-- [ ] **BE-16 · Shared formulas**
+- [~] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
   - Do: `packages/shared/math.ts` with all the formulas in 04 using integers; `gaps.ts` with the price gap table. Include the "price used" rule from 04 (long: lower of price and best bid, short: higher of price and best ask) with the fallback to the price alone, checked on every read so the code does not depend on the answer to Q-19. The fallback condition must match `SessionOracle` exactly, as written in 04.
   - Done when: tests compare the results with `Lens` on the local fork for long and short, including a zero and a non-sensible bid and ask; Wangsit has reviewed it.
+  - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). Still to do: the comparison test against `Lens` on the fork (with BE-10) and Wangsit's review.
 
 - [ ] **BE-17 · Oracle age poster (keeper)**
   - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (Q-27, requested from Wangsit).
