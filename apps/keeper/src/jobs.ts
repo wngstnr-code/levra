@@ -3,6 +3,7 @@ import { readDeployment } from "@levra/shared/deployments/node";
 import { createWalletClient, http, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { monad } from "viem/chains";
+import { createCalendarPoster } from "./calendar/poster";
 import { createMarketDepth } from "./dex/depth";
 import type { Env } from "./env";
 import { createLiquidatorBot } from "./liquidator/bot";
@@ -27,6 +28,12 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     jobs.push(createOracleAgePoster({ client, wallet: walletFor(env.ORACLE_AGE_POSTER_KEY), deployment }));
   } else {
     logger.info("oracle age poster off: ORACLE_AGE_POSTER_KEY or DEPLOYMENT_FILE is not set");
+  }
+
+  if (deployment && env.CALENDAR_POSTER_KEY) {
+    jobs.push(createCalendarPoster({ client, wallet: walletFor(env.CALENDAR_POSTER_KEY), deployment }));
+  } else {
+    logger.info("calendar poster off: CALENDAR_POSTER_KEY or DEPLOYMENT_FILE is not set");
   }
 
   if (deployment && env.LIQUIDATOR_KEY) {
