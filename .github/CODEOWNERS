@@ -1,0 +1,18 @@
+/contracts/                          @wngstnr-code
+/apps/api/                           @dharumahendra
+/apps/indexer/                       @dharumahendra
+/apps/keeper/                        @dharumahendra
+/apps/web/                           @Nabil-Aufa
+
+/packages/shared/                    @wngstnr-code @dharumahendra
+/packages/shared/abis/               @wngstnr-code
+/packages/shared/addresses.ts        @wngstnr-code
+/packages/shared/markets.ts          @wngstnr-code
+/packages/shared/api/                @dharumahendra
+/packages/shared/math.ts             @dharumahendra
+/packages/shared/gaps.ts             @dharumahendra
+
+/docs/                               @wngstnr-code @dharumahendra @Nabil-Aufa
+/docs/tasks/sc-wangsit.md            @wngstnr-code
+/docs/tasks/be-dharu.md              @dharumahendra
+/docs/tasks/fe-nabil.md              @Nabil-Aufa
