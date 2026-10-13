@@ -4,10 +4,14 @@ import type { SignatureInput } from "@levra/shared/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { Address } from "viem";
-import { api, type ApiBody, type ApiResponse } from "./api/client";
+import { api, ApiRequestError, type ApiBody, type ApiResponse } from "./api/client";
 import { apiConfigured, shouldRetry } from "./api/hooks";
 
 type QuoteName = "quoteOpen" | "quoteClose" | "quoteCollateral";
+
+const REFRESH_MS = 15_000;
+// Swap quotes share a rate limit; after a 429, wait as long as the service asks (30 s when it does not say).
+const nextRefresh = (error: unknown) => (error instanceof ApiRequestError && error.code === "RATE_LIMITED" ? (error.retryAfterSeconds ?? 30) * 1000 : REFRESH_MS);
 type Params<N extends QuoteName> = Omit<ApiBody<N>, "user" | "signatures">;
 
 /**
@@ -26,7 +30,7 @@ export function useQuote<N extends QuoteName>(name: N, user: Address | undefined
     queryKey: keyFor(signatures),
     queryFn: ({ signal }) => api(name, { body: bodyFor(signatures), signal }),
     enabled: apiConfigured && !!user && !!params,
-    refetchInterval: 15_000,
+    refetchInterval: (q) => nextRefresh(q.state.error),
     placeholderData: (prev) => prev,
     retry: shouldRetry,
   });
