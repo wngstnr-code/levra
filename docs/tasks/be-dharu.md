@@ -49,6 +49,7 @@ Three rules for the backend:
   - Do: read one type of Morpho event on chain 143 with the indexer tool of your choice.
   - Done when: that event is in the database; if the default tool does not fit, the replacement is recorded as a decision in 09.
   - Note: Envio's documentation lists Monad mainnet (chain 143) with a HyperSync endpoint. Not run yet, and whether an API token is needed is unknown.
+  - Note (13 October 2026): the Envio CLI (HyperIndex) has no Windows build, so the indexer is our own (`apps/indexer`, D-32) and reads logs from Envio HyperSync through its JSON API, with the RPC endpoint as fallback. `monad.hypersync.xyz/height` answers without a token and matches the chain head; `/query` needs an API token (401 without one). Router events reach the database through the RPC source on the fork. Still to do: a HyperSync token (Dharu creates it at app.envio.dev), and a Morpho event, which needs Morpho's events in the shared ABI export (Wangsit).
 
 ---
 
@@ -72,15 +73,17 @@ Three rules for the backend:
   - Done when: the transaction data from a quote runs successfully on the local fork for open, reduce and full close; the displayed summary matches the real result within the requested slippage tolerance.
   - Note: done on 13 October 2026 on the local fork with the live KyberSwap route (`apps/api/test/quote-long.fork.test.ts`): first use with a USDC permit and a Morpho authorization signed by a real key, sent as one `multicall`; then reduce by half, remove collateral, and full close, each from its quote. Collateral and returned USDC landed within 2% of the preview at 1% slippage, and the router held no USDC afterwards. `/v1/quote/collateral` also works for short markets; open and close for short come in BE-20. Realized PnL uses router events until the indexer (BE-13) exists. The DEX mid price comes from a 10 USDC KyberSwap probe.
 
-- [ ] **BE-13 · Indexer**
+- [~] **BE-13 · Indexer**
   - Needs: BE-06, SC-03. Addresses from SC-14.
   - Do: read router events and Morpho events for our markets; build tables for positions, history, average entry price, and profit and loss. Handle users who use Morpho directly.
   - Done when: positions in the database match `Lens` for all test addresses; replaying the reads from the start gives the same result.
+  - Note: per D-32, positions are read live from `Lens` and not copied; the database keeps the events that history, entry price and PnL need. `apps/indexer` follows the router's five events from the deployment block into `router_events` with a cursor, from HyperSync or RPC. Tests: decoding, the HyperSync page format, paging to the head, a replay from the start that gives the same rows, and a source that makes no progress. On the fork, a long opened from a quote is indexed and served. Still to do: Morpho events (users who use Morpho directly, liquidations), which need Morpho's events in the shared ABI export (Wangsit).
 
-- [ ] **BE-14 · Account and history**
+- [x] **BE-14 · Account and history**
   - Needs: BE-10, BE-13.
   - Do: `GET /v1/accounts/:address` and `/history`.
   - Done when: a newly opened position shows up within a few seconds; profit and loss match hand calculations on three examples.
+  - Note: done on 13 October 2026. Positions come from `Lens` on every request, so a new position shows at once; entry price, unrealized and realized PnL come from the indexed router events. Fork test: a long opened and then halved from quotes shows the same collateral and debt as `Lens`, an entry price within the 0.10% fee of the swap price, and a reduction whose realized PnL is the USDC returned minus half the margin. Unit tests check three hand calculations (+$30, +$10, -$20). Short positions show value and equity; their entry price and PnL come with BE-20. A position built straight on Morpho shows entry price and PnL as 0 until BE-13 reads Morpho events.
 
 - [ ] **BE-15 · Backend staging**
   - Needs: BE-11, BE-14.
