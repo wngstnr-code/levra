@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 4 | 19 |
+| Smart contracts | Wangsit | 30 | 8 | 15 |
 | Backend | Dharu | 34 | 11 | 4 |
 | Frontend | Nabil | 25 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -62,7 +62,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Wangsit, Dharu | Wangsit | USDC in the deployer wallet (it holds MON only), and the team multisig. Needed for the first real long and short and for the handover | X-03, SC-04, BE-05, SC-15 |
+| 13 October 2026 | Wangsit | Wangsit | The team multisig. Needed for the handover of ownership | X-03, SC-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
@@ -103,7 +103,28 @@ Every important real transaction goes here. This is also the evidence for the ha
 | 13 October 2026 | Create the QQQ short market on Morpho | `0x6d4273e54978bdbec0e03c6d55f518f1270c19f41a64af0bfabbec32034b5a07` | Wangsit | SC-15, SC-22 |
 | 13 October 2026 | Create the HOOD short market on Morpho | `0x54e3851ebcb8b1fe9f0d5d4057f04ce13e07018096e3495f685cfbc3addb1a3e` | Wangsit | SC-15, SC-22 |
 
-The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings. No position has been opened on mainnet yet.
+| 13 October 2026 | Supply 2 USDC to the QQQ long market | `0x59f17d8679752d57b57d3011313f8d9c51171407bd8c94069a3c543341b250d2` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Authorize the router on Morpho | `0xc4ebec6ff8509e4235edc4b0c23eb9711cca8e73a3e4f54cdc8db0501df9cf47` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Open a QQQ long through the router | `0x12ae7b1179c7f16b89164d2a84bc34d18156278b3117528add662f2d21fff469` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Close the QQQ long in full through the router | `0xff7649bdd4624b6729738e6fa6ae2a7b1a6b46d6e85fe5a2bd21b3d59eaf8025` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Supply 2 USDC to the HOOD long market | `0xfdfc6cbe08618d62e70d42005e42195be5befbb0f2737765c6e7e25a9e596810` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Open a HOOD long through the router | `0x85c02221e5650892386c0b7a4a0aba5c5ef22b591baab7f56f40d327219b5928` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Close the HOOD long in full through the router | `0x7cfd878ba71cd343c93f4c3fdc761b0bf3dc773357fc595708310b09ebfc64e4` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Supply 2 USDC to the BIL long market | `0x4ae62682055d409587da5348831395ca9a7eeba6fe91e06a69bae92a412bb927` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Open a BIL long through the router | `0xce7ce3b06044cc9bc9d0b0572c4b72acb36557bfd8f582e0305fe872fb8e9f83` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Close the BIL long in full through the router | `0x8a1b837d221fb47215ed22d97716eb5b1ef8c36bcaf7fe74bb53bb541252e71a` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Buy QQQ stock with 2 USDC on the exchange | `0x1762a8795b3272ab761007bb6367970c289a77d2106fc457b33b26ee2d15f9f5` | Wangsit | SC-24 |
+| 13 October 2026 | Lend the QQQ stock to the QQQ short market | `0x3287cd4b0787b8c6852806d59b66bcc54586d678feeb010cd2d618d0395089fa` | Wangsit | SC-24 |
+| 13 October 2026 | Open a QQQ short through the router | `0x9e45649e144c5087f49e500bc5c5aab0e6da4bb51d2dce6ab661fe6b27a38a06` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Close the QQQ short in full through the router | `0x1b5c95c28d3b96a82e66b473e65c508c80f8ddab432f9f8495797e2ea41782ee` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Buy HOOD stock with 2 USDC on the exchange | `0x098d533739a0f527a4869ea0c530d65778d8441d1c047418528a01ddb2fd934d` | Wangsit | SC-24 |
+| 13 October 2026 | Lend the HOOD stock to the HOOD short market | `0x5c3c20f1f83754e4444be577ea042beaeda2f50050364a9c6752ca01389e742d` | Wangsit | SC-24 |
+| 13 October 2026 | Open a HOOD short through the router | `0x44e4302b500827dba704324168ef3eab7c59f5aa0b9e5ee6a7f0b9f4d882946d` | Wangsit | SC-15, SC-22 |
+| 13 October 2026 | Close the HOOD short in full through the router | `0x79983f5421c5728e862745aff2265439db2f5484e3c219b02d785a578c84d8d2` | Wangsit | SC-15, SC-22 |
+
+The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings.
+
+The first run was 30 transactions in blocks 113050112 to 113050539, all successful, sent by `make first-run-monad` from the deployer wallet `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`. The 12 not listed are token approvals. Every position was closed in full and the router held no tokens after each close.
 
 ## Deployed addresses
 
@@ -155,7 +176,7 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 13 October 2026
 
 - Dharu: staging run against the mainnet deployment on Dharu's machine: the indexer saw Wangsit's first-run transactions, markets, status, account and history answered correctly, KyberSwap accepts the mainnet router, and the price stream delivered live oracle writes 1 to 2 seconds after publication (BE-11 done). Fixed: a full close of a short showed as a reduction. Waiting: hosting and a paid RPC provider for BE-15.
-
+- Wangsit: first real run on mainnet (SC-15, SC-22, SC-24, SC-04): a long on QQQ, HOOD and BIL and a short on QQQ and HOOD, each opened and closed in full through the live KyberSwap route, 30 transactions, all successful. Cost: about 0.29 USDC and 2.20 MON. The wallet started with 15.98 USDC and ends with 5.72 free, 6 supplied to the three long markets and about 3.9 of stock lent to the two short markets. Hashes are in the table above, measurements in 05.
 - Wangsit: the contracts are deployed on Monad mainnet (SC-15, staging): router, risk manager, lens, liquidator and five markets, in 25 transactions for 1.87 MON. Read back from the chain: owners, fees, limits, oracle ages and prices match the plan. Addresses are in `contracts/deployments/monad.json` and in `@levra/shared/deployments/monad`. Keeper, calendar poster and oracle age poster are not set yet. The source of all nine contracts is verified on Sourcify. Next: the first real long and short once the wallet holds USDC.
 - Dharu: BE-32 done: the liquidator bot watches every borrower in our markets from the indexed Morpho events and liquidates through `Liquidator` with a KyberSwap route, never using the contract's float. Long and short liquidations ran on the fork. For Wangsit: `Deploy.s.sol` gives one `KEEPER` address both the router and the Liquidator keeper role, while BE-55 asks for one key per role.
 - Dharu: BE-04 done: the keeper measures the DEX mid price every 10 minutes and the depth table daily (`dex_quotes`), `/v1/markets` and the stream now carry the DEX price, and 05 has a new depth table from one run. The mid price is now two-sided (D-36), which removed a 2% bias against sales. No 429 at 33 requests in 18 seconds; KyberSwap's real limit is not published.

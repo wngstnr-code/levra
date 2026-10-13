@@ -28,10 +28,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: Dharu and Nabil have read and approved it; the ABIs are in `packages/shared/abis/`; the status in 03 is changed to "frozen".
   - Note: merged as PR 1 on 13 October 2026. The contract side of the interface agreement is frozen.
 
-- [~] **SC-04 · A real swap from a contract (spike)**
+- [x] **SC-04 · A real swap from a contract (spike)**
   - Do: a small test contract that swaps $5 of USDC for aQQQ and back, using calldata from the KyberSwap API, on mainnet. Read from the chain: the quote token of each pool, and the hook address of the Uniswap v4 pools for aQQQ and aHOOD.
   - Done when: the transaction hash is recorded in PROGRESS.md; 05 is updated with the quote tokens and whether a hook exists; Q-16 is answered.
-  - Note: proven on a local fork: KyberSwap calldata built for the router executes from the router through the Uniswap v4 aQQQ pool, both ways. All three pools pair with USDC. The aQQQ and aHOOD pools have no hook, verified by recomputing their pool IDs, and charge a 0.90% fee. Still to do: the same swap on mainnet with real funds (comes with SC-15).
+  - Note: proven on a local fork: KyberSwap calldata built for the router executes from the router through the Uniswap v4 aQQQ pool, both ways. All three pools pair with USDC. The aQQQ and aHOOD pools have no hook, verified by recomputing their pool IDs, and charge a 0.90% fee. The same swaps then ran on mainnet from the router in the first run of SC-15: stock bought and sold for all three stocks, hashes in PROGRESS.md.
 
 - [x] **SC-05 · Token behavior (spike)**
   - Do: read the aQQQ, aHOOD, aBIL and USDC contracts. Find out: whether they are upgradeable, whether they can be paused, how the denylist works, whether there is a fee on transfer, whether a contract may hold them, and whether USDC supports `permit`.
@@ -77,11 +77,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: Dharu and Nabil can run `make fork` and get the same addresses; `packages/shared/addresses.ts` and `markets.ts` read that file.
   - Note: the script deploys everything and writes the deployment file. `packages/shared` validates that file (`deployments.ts`), reads it from disk for Node (`deployments.node.ts`) and joins it with the stock list (`markets.ts`). A test parses the real file written on a local fork. `monad.json` is committed and `deployments.monad.ts` bundles it for the browser. Still to do: Dharu and Nabil running `make fork` and `make deploy-fork`. Fork addresses match between machines only with the same `FORK_BLOCK`.
 
-- [~] **SC-15 · Staging on mainnet**
+- [x] **SC-15 · Staging on mainnet**
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
-  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The source of all nine contracts is verified on Sourcify and on MonadVision's Sourcify instance (exact match). The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set. Still to do: `make first-run-monad CONFIRM=yes` once the wallet holds USDC (rehearsed on a fork with 15 USDC, 30 transactions).
+  - Note: deployed on 13 October 2026 with `make deploy-monad`: 25 transactions, all successful, 1.87 MON. The addresses are in `deployments/monad.json` and the hashes are in PROGRESS.md. Read back from the chain: owner, fees, the five market configs, oracle age bounds and oracle prices match the plan. The source of all nine contracts is verified on Sourcify and on MonadVision's Sourcify instance (exact match). The owner is the deployer wallet until the handover (SC-55). Keeper, calendar poster and oracle age poster are not set. The first run followed the same day with `make first-run-monad CONFIRM=yes` at the 15 USDC sizes: 30 transactions, all successful, every position closed, hashes in PROGRESS.md.
 
 ---
 
@@ -99,11 +99,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: fork tests run open, reduce and full close; a full close leaves no debt; the leftover stock reaches the user.
   - Note: written and tested on a fork with the test swapper. Also run through the live KyberSwap route with `script/e2e-short.sh`: stock bought on the exchange and lent, a short of $30 opened with $50 of margin, then closed in full with leftover stock returned and the router empty. Waiting for review.
 
-- [~] **SC-22 · Markets for all stocks in scope**
+- [x] **SC-22 · Markets for all stocks in scope**
   - Needs: SC-20, SC-21.
   - Do: aQQQ short, aHOOD long and short, aBIL long markets, with the limits in 04. Review the short soft limit (Q-15).
   - Done when: all five markets are in the staging address file; each market has one real open and close transaction recorded.
-  - Note: all five markets are deployed on mainnet and listed in `deployments/monad.json`. No open and close transaction yet. Q-15 is still open.
+  - Note: all five markets are deployed on mainnet and listed in `deployments/monad.json`. Each has one real open and one real full close, recorded in PROGRESS.md. Q-15 (the short soft limit) is still open.
 
 - [~] **SC-23 · USDC vault**
   - Needs: SC-06, SC-22.
@@ -111,11 +111,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: lending and withdrawing USDC through the vault works on staging; the vault funds really flow into our markets; the address is in the address file.
   - Note: `script/DeployVault.s.sol` creates a MetaMorpho v1.1 vault (D-24) from Morpho's factory over the long markets, with the caps from 04, a 10% fee (D-28) and a one day timelock, and records it in the deployment file. Six fork tests cover deposits reaching the market, withdrawal, the cap, the timelock and borrowers using vault liquidity. Run on a local fork. Still to do: mainnet, and moving ownership to the multisig (SC-55).
 
-- [~] **SC-24 · Seed inventory for short markets**
+- [x] **SC-24 · Seed inventory for short markets**
   - Needs: SC-22, X-14.
   - Do: buy a little aQQQ and aHOOD, then supply them to the matching short market so there is something to borrow.
   - Done when: each short market has stock that can be borrowed; the transaction hashes are recorded.
-  - Note: Prepared, not run: `make first-short-monad SYMBOL=QQQ` and `SYMBOL=HOOD` (`script/mainnet-first-short.sh`) buy the stock on the exchange and lend it to its short market, then open and close a small short. Both rehearsed on a fork. Waiting for a funded deployer wallet.
+  - Note: done on mainnet in the first run of SC-15. About 2 USDC of stock was bought on the exchange for each short market and lent to it: 0.00273 aQQQ and 0.01705 aHOOD. Hashes are in PROGRESS.md. These are test amounts. Real seed sizes wait for X-14.
 
 ---
 
