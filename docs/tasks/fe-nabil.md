@@ -75,20 +75,23 @@ Four rules for the frontend:
 
 ## M2. Short and Earn
 
-- [ ] **FE-20 · Short form**
+- [~] **FE-20 · Short form**
   - Needs: FE-11, BE-20.
   - Do: inputs for collateral and the value of the borrowed stock; a summary as in Flow 3; a short explanation of how short works and that the sale proceeds are held as collateral; closing a short shows the leftover stock that comes back.
   - Done when: open, reduce and close of a short work on staging.
+  - Note: built on 13 October 2026 (`fe/FE-20-22-m2-short-earn`): the Short tab of `/trade` (collateral, short size up to the market maximum, the Flow 3 summary, a plain explanation that the sale proceeds stay as collateral) and, on close, the stock that comes back. aBIL has no short tab (D-11). The API still answers short quotes with BAD_REQUEST (BE-20), which the form shows as is.
 
-- [ ] **FE-21 · Earn page**
+- [~] **FE-21 · Earn page**
   - Needs: BE-21, SC-23.
   - Do: the choice to lend USDC (to the vault) and stocks (to a market); interest, the share that is borrowed, the amount that can be withdrawn now; the lender risk disclosure before confirmation; lending and withdrawing call the vault and Morpho directly (D-07).
   - Done when: lending and withdrawing work for USDC and for one stock on staging.
+  - Note: built on 13 October 2026: `/earn` lends USDC to the vault (ERC-4626 `deposit`, `withdraw`, `redeem`) and stock to its short market on Morpho (`supply`, `withdraw`), both direct calls (D-07), with an approval transaction first when needed. The user's deposits, wallet balances, allowances, totals and borrowed share are read straight from the vault and Morpho, so lending and withdrawing work without the service. APY, fee and earned interest come from `/v1/earn` and `/v1/earn/:address` (BE-21), and show a dash until then. The lender risk statement must be ticked before the first supply; the choice is kept per address in the browser.
 
-- [ ] **FE-22 · Market detail page**
+- [~] **FE-22 · Market detail page**
   - Needs: BE-23.
   - Do: market depth (price impact per size), DEX-to-oracle deviation and its history, hard and soft limits with an explanation, interest history, the age of the oracle price.
   - Done when: all five markets show with numbers from the backend.
+  - Note: built on 13 October 2026: `/markets/QQQ`, `/HOOD`, `/BIL` with the long and short market, limits with a plain explanation and the worst gap from `gaps.ts`, exchange vs oracle with its history, the lending market with a utilization ring, market depth by size and the borrow rate history. Data from `/v1/markets/:symbol` (BE-23); the price and session come from the oracle meanwhile.
 
 ---
 
