@@ -81,7 +81,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-14, X-03.
   - Do: deploy on mainnet with a very small position cap; fund the market with a little USDC; verify the code in the block explorer; run one real long from the script.
   - Done when: the addresses are in `deployments/monad.json`; the hashes of the open and close long transactions are recorded in PROGRESS.md.
-  - Note: Prepared, not run: `make deploy-monad` then `make first-long-monad CONFIRM=yes` (`script/mainnet-first-long.sh`), which prints every transaction hash. Rehearsed on a fork with only 8 USDC. Waiting for a funded deployer wallet: about 20 MON and 8 to 15 USDC. The short is scripted too (`make first-short-monad`). Long then short were rehearsed in sequence with a 16 USDC wallet. About 15 USDC and 20 MON cover both.
+  - Note: Prepared, not run: `make deploy-monad`, then `make first-run-monad CONFIRM=yes`, which opens and closes a long on QQQ, HOOD and BIL and a short on QQQ and HOOD and prints every transaction hash. Rehearsed on a fork with a 20 USDC wallet: 30 transactions, nothing left open. Waiting for a funded deployer wallet: about 20 MON and 20 USDC for all five markets, or 5 USDC for one long.
 
 ---
 
@@ -115,7 +115,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-22, X-14.
   - Do: buy a little aQQQ and aHOOD, then supply them to the matching short market so there is something to borrow.
   - Done when: each short market has stock that can be borrowed; the transaction hashes are recorded.
-  - Note: Prepared, not run: `make first-short-monad CONFIRM=yes` (`script/mainnet-first-short.sh`) buys aQQQ on the exchange and lends it to the QQQ short market, then opens and closes a small short. Rehearsed on a fork. aHOOD is not scripted yet. Waiting for a funded deployer wallet.
+  - Note: Prepared, not run: `make first-short-monad SYMBOL=QQQ` and `SYMBOL=HOOD` (`script/mainnet-first-short.sh`) buy the stock on the exchange and lend it to its short market, then open and close a small short. Both rehearsed on a fork. Waiting for a funded deployer wallet.
 
 ---
 
