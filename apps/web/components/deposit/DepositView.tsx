@@ -149,7 +149,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
   const [amountText, setAmountText] = useState("");
   const [refund, setRefund] = useState("");
   const [includeGas, setIncludeGas] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"main" | "gas" | null>(null);
   const amount = picked ? parseAmount(amountText, picked.decimals) : null;
   const belowMin = !!picked?.minAmountRaw && amount !== null && amount < BigInt(picked.minAmountRaw);
   const gated = useGatedAction();
@@ -179,14 +179,38 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
               </p>
             )}
             <button
-              onClick={() => navigator.clipboard.writeText(q.depositAddress).then(() => setCopied(true))}
+              onClick={() => navigator.clipboard.writeText(q.depositAddress).then(() => setCopied("main"))}
               className="squircle rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lilac transition-transform active:scale-[0.97]"
             >
-              {copied ? m.deposit.copied : m.deposit.copy}
+              {copied === "main" ? m.deposit.copied : m.deposit.copy}
             </button>
             <p className={cn("text-[13px]", expired ? "font-semibold text-ink" : "text-ink/60")}>{expired ? m.deposit.expired : `${m.deposit.expiresIn(formatDuration(q.expiresAt - now))} · ${m.deposit.anyWallet}`}</p>
           </div>
         </div>
+        {q.gasDeposit && (
+          <div className="squircle space-y-3 rounded-panel bg-ink/8 p-4">
+            <p className="text-xs font-semibold tracking-wide text-ink/60 uppercase">{m.deposit.gasTitle}</p>
+            <p className="text-sm text-ink/80">{m.deposit.gasSend(`${formatToken(q.gasDeposit.amountInRaw, picked.decimals, Math.min(6, picked.decimals))} ${picked.symbol}`)}</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <QrCode value={q.gasDeposit.depositAddress} size={110} label={q.gasDeposit.depositAddress} />
+              <div className="min-w-0 flex-1 space-y-2">
+                <p className="text-sm font-semibold break-all">{q.gasDeposit.depositAddress}</p>
+                {q.gasDeposit.depositMemo && (
+                  <p className="text-sm">
+                    {m.deposit.memo}: <span className="font-semibold break-all">{q.gasDeposit.depositMemo}</span>
+                  </p>
+                )}
+                <button
+                  onClick={() => navigator.clipboard.writeText(q.gasDeposit!.depositAddress).then(() => setCopied("gas"))}
+                  className="squircle rounded-full bg-ink px-4 py-2 text-sm font-semibold text-lilac transition-transform active:scale-[0.97]"
+                >
+                  {copied === "gas" ? m.deposit.copied : m.deposit.copy}
+                </button>
+              </div>
+            </div>
+            <p className="text-[13px] text-ink/60">{m.deposit.gasWhy}</p>
+          </div>
+        )}
         <div className="squircle rounded-panel bg-ink/8 px-4 py-2 text-sm">
           <p className="flex py-1">
             <span className="text-ink/70">{m.deposit.youReceive}</span>
@@ -206,6 +230,12 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
         <div className="squircle rounded-panel bg-surface-1 p-5 text-fg">
           <p className="mb-3 text-[15px] font-semibold">{m.deposit.status}</p>
           <TransferStatus id={q.id} kind="deposit" chainName={picked.chainName} />
+          {q.gasDeposit && (
+            <>
+              <p className="mt-6 mb-3 text-[15px] font-semibold">{m.deposit.gasStatus}</p>
+              <TransferStatus id={q.gasDeposit.id} kind="deposit" chainName={picked.chainName} arrives="MON" />
+            </>
+          )}
         </div>
         <button onClick={() => quote.reset()} className="text-sm font-semibold underline-offset-2 hover:underline">
           {m.deposit.newDeposit}
@@ -221,7 +251,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
         <input inputMode="decimal" autoComplete="off" placeholder="0.00" value={amountText} onChange={(e) => setAmountText(e.target.value)} className={cn(inputCls, "text-display text-[28px]")} />
       </Field>
       <Field label={m.deposit.refund(picked?.chainName ?? "")} hint={m.deposit.refundHint}>
-        <input autoComplete="off" spellCheck={false} placeholder="0x…" value={refund} onChange={(e) => setRefund(e.target.value)} className={inputCls} />
+        <input autoComplete="off" spellCheck={false} placeholder={m.deposit.addressPlaceholder} value={refund} onChange={(e) => setRefund(e.target.value)} className={inputCls} />
       </Field>
       <div className="squircle flex items-center gap-3 rounded-panel bg-ink/8 px-[18px] py-3">
         <span className="flex-1 text-sm font-medium">{m.deposit.includeGas}</span>
@@ -289,7 +319,7 @@ function WithdrawForm({ user, tokens, onSent }: { user: Address; tokens: Deposit
       </Field>
       <TokenPickers tokens={tokens} chain={chain} onChain={(c) => { onChain(c); quote.reset(); }} token={tokenId} onToken={(t) => { setTokenId(t); quote.reset(); }} chainLabel={m.deposit.to} />
       <Field label={m.deposit.recipient(picked?.chainName ?? "")}>
-        <input autoComplete="off" spellCheck={false} placeholder="0x…" value={recipient} onChange={(e) => { setRecipient(e.target.value); quote.reset(); }} className={inputCls} />
+        <input autoComplete="off" spellCheck={false} placeholder={m.deposit.addressPlaceholder} value={recipient} onChange={(e) => { setRecipient(e.target.value); quote.reset(); }} className={inputCls} />
       </Field>
       {q && (
         <div className="squircle rounded-panel bg-ink/8 px-4 py-2 text-sm">

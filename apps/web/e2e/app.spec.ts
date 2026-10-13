@@ -41,6 +41,13 @@ test("a blocked region cannot reach the trade form", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Go to Positions" })).toBeVisible();
 });
 
+test("the trade form opens when the service has the region and terms gate off", async ({ page }) => {
+  await mockService(page, { gateOff: true });
+  await page.goto("/trade?symbol=QQQ");
+  await expect(page.getByRole("heading", { name: "Trade", exact: true })).toBeVisible();
+  await expect(page.getByText("could not check your region")).toHaveCount(0);
+});
+
 test("help lists the deployed contracts and explains each word", async ({ page }) => {
   await mockService(page);
   await page.goto("/help#ltv");

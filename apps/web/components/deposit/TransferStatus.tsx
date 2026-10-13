@@ -12,8 +12,11 @@ import { ButtonLink } from "../ui/Button";
 type State = DepositStatus["status"];
 const rank: Record<State, number> = { WAITING: 0, PROCESSING: 1, SUCCESS: 2, REFUNDED: 2, FAILED: 2, EXPIRED: 2 };
 
+// What arrives on Monad: USDC for a deposit, MON (wei) for the network fee transfer of D-40.
+const ARRIVES = { USDC: { decimals: 6, digits: 2 }, MON: { decimals: 18, digits: 4 } } as const;
+
 /** Follows one transfer: seen, processing, arrived, or how it ended. */
-export function TransferStatus({ id, kind, chainName }: { id: string; kind: "deposit" | "withdraw"; chainName: string }) {
+export function TransferStatus({ id, kind, chainName, arrives = "USDC" }: { id: string; kind: "deposit" | "withdraw"; chainName: string; arrives?: keyof typeof ARRIVES }) {
   const m = useT();
   const status = useDepositStatus(id);
   const s = status.data;
@@ -46,10 +49,11 @@ export function TransferStatus({ id, kind, chainName }: { id: string; kind: "dep
                 {i === 1 && now && <p className="text-[13px] text-fg-2">{m.deposit.usually}</p>}
                 {i === 2 && s?.destinationTxHash && kind === "deposit" && (
                   <a href={`${monad.blockExplorers.default.url}/tx/${s.destinationTxHash}`} target="_blank" rel="noreferrer" className="text-[13px] text-lilac">
-                    {s.amountOutRaw ? `${formatToken(s.amountOutRaw, 6, 2)} USDC · ` : ""}
+                    {s.amountOutRaw ? `${formatToken(s.amountOutRaw, ARRIVES[arrives].decimals, ARRIVES[arrives].digits)} ${arrives} · ` : ""}
                     {m.common.viewTx} ↗
                   </a>
                 )}
+                {i === 2 && s?.destinationTxHash && kind === "withdraw" && <p className="text-[13px] break-all text-fg-2">{s.destinationTxHash}</p>}
               </div>
             </li>
           );
