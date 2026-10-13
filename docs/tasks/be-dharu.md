@@ -125,10 +125,11 @@ Three rules for the backend:
   - Done when: the Earn history and the interest received show correctly for the test addresses.
   - Note: done on 13 October 2026. The indexer follows the vault's ERC-4626 `Deposit` and `Withdraw` into `vault_events`, with the share owner as user, when the deployment has `usdcVault`. Morpho `Supply` and `Withdraw` in our markets were already indexed (BE-13). History shows both as `lend` and `withdrawLend`, and `/v1/earn/:address` uses them for `earnedRaw`. viem's `erc4626Abi` names the `Deposit` owner topic `receiver`, so the indexer uses the EIP-4626 names.
 
-- [ ] **BE-23 · All stocks and market detail**
+- [x] **BE-23 · All stocks and market detail**
   - Needs: SC-22, BE-04.
   - Do: support aHOOD and aBIL in all endpoints; `GET /v1/markets/:symbol` with the latest market depth, interest history, and DEX-to-oracle deviation history.
   - Done when: all five markets show with the correct numbers.
+  - Note: done on 13 October 2026. The `marketDepth` keeper job now also stores a rate snapshot of every market from `Lens` on each run (`market_rates`, every 10 minutes) when `DEPLOYMENT_FILE` is set. `/v1/markets/:symbol` gives both sides of the stock, the latest depth run, and 30 days of rate and deviation history at one point per hour (initial proposal). Every endpoint reads markets and tokens from the deployment, so HOOD and BIL need no special code. Fork test: the detail of every stock equals its rows in `/v1/markets`, which match the contracts for all five markets, and the keeper's snapshot equals the API's rates. DB test for the history and the depth run.
 
 ---
 
