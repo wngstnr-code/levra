@@ -85,10 +85,11 @@ Three rules for the backend:
   - Done when: a newly opened position shows up within a few seconds; profit and loss match hand calculations on three examples.
   - Note: done on 13 October 2026. Positions come from `Lens` on every request, so a new position shows at once; entry price, unrealized and realized PnL come from the indexed router events. Fork test: a long opened and then halved from quotes shows the same collateral and debt as `Lens`, an entry price within the 0.10% fee of the swap price, and a reduction whose realized PnL is the USDC returned minus half the margin. Unit tests check three hand calculations (+$30, +$10, -$20). Short positions show value and equity; their entry price and PnL come with BE-20. A position built straight on Morpho shows entry price and PnL as 0 until BE-13 reads Morpho events.
 
-- [ ] **BE-15 · Backend staging**
+- [~] **BE-15 · Backend staging**
   - Needs: BE-11, BE-14.
   - Do: deploy the API, indexer and database on the service of your choice; choose a paid RPC endpoint provider; `GET /v1/status`.
   - Done when: Nabil uses the staging address from the deployed web app.
+  - Note: `GET /v1/status` is written and tested: source quote age and stale flag per stock, health of every keeper from its heartbeat, indexer cursor against the chain head, and `APP_VERSION`. Still to do: the hosting and the paid RPC provider (Dharu and Nabil), and the mainnet deployment (Wangsit) that staging points at.
 
 - [~] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
@@ -96,10 +97,11 @@ Three rules for the backend:
   - Done when: tests compare the results with `Lens` on the local fork for long and short, including a zero and a non-sensible bid and ask; Wangsit has reviewed it.
   - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). The fork test in `apps/api/test/fork.test.ts` opens a real long and short on Morpho and gets exactly the same LTV and liquidation price as `Lens`, and the same Morpho price as `SessionOracle.price()`. A zero or non-sensible bid and ask cannot be produced on a fork of the live oracle, so those cases are covered by unit tests only. Still to do: Wangsit's review.
 
-- [ ] **BE-17 · Oracle age poster (keeper)**
+- [~] **BE-17 · Oracle age poster (keeper)**
   - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (done by Wangsit: D-31, `setOracleAgeBounds` and `setMaxOracleAge`).
   - Do: a keeper in `apps/keeper` that computes `maxOracleAge` per market from the BE-03 tables with the formula in 04, and posts it on chain. It does nothing until the data meets the minimum in 04; until then the value set at deployment stays. It posts only when the new value differs from the chain value by more than a small step, and never outside the bounds the multisig set. Every post is logged with the input numbers. Its key is used for this role only (BE-55).
   - Done when: on the local fork, the poster sets the value from recorded data; does nothing with too little data; is rejected outside the bounds; the team gets an alert for every change (BE-50). After launch no person has to touch code, the repo or the multisig for this value to follow the data.
+  - Note: written on 13 October 2026. The keeper job `oracleAgePoster` (on only when `ORACLE_AGE_POSTER_KEY` and `DEPLOYMENT_FILE` are set) checks its key is the registered poster, takes the proposal per stock from the BE-03 tables, keeps it inside the owner's bounds, skips changes under 10% and posts `setMaxOracleAge` for every market of the stock, logging the inputs. Fork tests: five markets moved on chain, a value above the cap kept at the cap, small changes and too little data left alone, a wrong key refused. Run on the real two weeks of data: QQQ 2,100 s, HOOD 2,160 s, BIL 3,060 s, which equal the values the deployment script already sets, so nothing was posted. Still to do: the team alert on every change, which comes with BE-50; until then each change is a warning in the keeper log and in its heartbeat.
 
 ---
 

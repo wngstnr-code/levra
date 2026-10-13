@@ -751,11 +751,13 @@ type HealthResponse = { ok: true };
 type StatusResponse = {
   oracle: { symbol: string; publishedAt: number; ageSeconds: number; stale: boolean }[];
   keepers: {
-    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor";
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster";
     lastHeartbeatAt: number | null;
     healthy: boolean;
   }[];
   indexer: { lastBlock: number; chainHead: number; lagBlocks: number };
+  // ageSeconds is the source quote age at the latest block (D-23 clock). A keeper is healthy when its last heartbeat
+  // carries no error and is at most 5 minutes old (2 hours for the hourly oracle age poster). Initial proposal.
   api: { version: string };
 };
 ```

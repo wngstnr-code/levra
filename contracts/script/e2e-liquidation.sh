@@ -12,10 +12,10 @@ DROP_BPS=${DROP_BPS:-1200}
 SEIZE_BPS=${SEIZE_BPS:-3000}
 MARKET=$(market long marketId)
 ORACLE=$(market long oracle)
-PARAMS="($USDC,$STOCK,$ORACLE,$IRM,770000000000000000)"
+PARAMS=$(market_params long)
 LIQUIDATOR=$(field "d['liquidator']")
 STOCK_ORACLE=0x037848af338C38e1e0AB722bE80BF4C2E612a1F7
-PRICE_ID=$(cast keccak "QQQ")
+PRICE_ID=$(cast keccak "$SYMBOL")
 
 echo "Funding the test account, seeding the long market and opening a long"
 fund_usdc 2000000000
@@ -28,8 +28,8 @@ GROSS=$((MARGIN + BORROW))
 SWAP_IN=$((GROSS - GROSS * FEE_BPS / 10000))
 quote "$USDC" "$STOCK" "$SWAP_IN" "$ROUTER"
 send "$ROUTER" "openLong((bytes32,uint256,uint256,(address,bytes,uint256),uint256,uint256))" \
-  "($MARKET,$MARGIN,$BORROW,$(swap_tuple "$(min_of "$(built "d['amountOut']")")"),730000000000000000,$(( $(now) + 600 )))"
-echo "Opened. LTV $(ltv "$MARKET"), hard limit 770000000000000000"
+  "($MARKET,$MARGIN,$BORROW,$(swap_tuple "$(min_of "$(built "d['amountOut']")")"),$(call "$RISK" "currentSoftLtv(bytes32)(uint256)" "$MARKET" | first),$(( $(now) + 600 )))"
+echo "Opened. LTV $(ltv "$MARKET"), hard limit $(market long lltv)"
 
 # Only a fork lets us act as the oracle operator. On mainnet the price comes from Anchored.
 OPERATOR=$(call "$STOCK_ORACLE" "getRoleMember(bytes32,uint256)(address)" "$(call "$STOCK_ORACLE" "OPERATOR_ROLE()(bytes32)")" 0)

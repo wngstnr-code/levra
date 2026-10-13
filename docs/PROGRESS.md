@@ -42,8 +42,8 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 4 | 17 |
-| Backend | Dharu | 34 | 6 | 6 |
+| Smart contracts | Wangsit | 30 | 4 | 18 |
+| Backend | Dharu | 34 | 6 | 8 |
 | Frontend | Nabil | 25 | 2 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -116,6 +116,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
 | 13 October 2026 | Added the oracle age poster to `IRiskManager`: `oracleAgePoster()`, `oracleAgeBounds()`, `setOracleAgeBounds()`, `setMaxOracleAge()`, two events and the error `OracleAgeOutOfBounds` (D-31). `ISessionOracle` now exposes `MAX_FEED_AGE()` and `MAX_PUBLISH_AGE()` | Dharu | sc/SC-11-oracle-age-and-repay |
 | 13 October 2026 | Added `repayDebt()` and the event `DebtRepaid` to `IMarginRouter` (D-32). The API has no quote or history type for it yet | Dharu, Nabil | sc/SC-11-oracle-age-and-repay |
+| 13 October 2026 | Added `oracleAgePoster` to the keeper names in `/v1/status` | Dharu, Nabil | be/BE-17-oracle-age-poster |
 | 13 October 2026 | Added `repayDebt` to the history types and `repay` to the collateral quote actions, so the app can add margin with USDC (D-32) | Dharu, Nabil | be/BE-13-indexer |
 | 13 October 2026 | Account and history notes in 03: positions live from `Lens`, when entry price and PnL are `"0"`, the history query parameters. No shape change | Dharu, Nabil | be/BE-13-indexer |
 | 13 October 2026 | `IAnchoredStockOracle` gained the other read functions of the live oracle (`latestPriceNoOlderThan`, `latestPrices`, `latestPricesNoOlderThan`, `isSupportedPriceId`, `hasPrice`, `description`). The ABI is regenerated | Dharu | sc/Q-28-oracle-ages |
@@ -131,6 +132,8 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Dharu: `/v1/status` written (BE-15): oracle age per stock, keeper health, indexer lag. Backend CI now runs package tests one at a time, since they share one test database.
+- Dharu: BE-17 written: the oracle age poster keeper posts `maxOracleAge` from the BE-03 data inside the owner's bounds (D-31). On a fork it moved all five markets; on the real data it proposes QQQ 2,100 s, HOOD 2,160 s and BIL 3,060 s, the same as the deployment values, so it posts nothing today. Team alerts wait for BE-50. Also fixed: keeper and indexer tests no longer clear each other's cursor (PR 18).
 - Nabil: repo access works. FE-03 done: `/markets` shows live prices and sessions from the Anchored oracle. FE-01 and FE-02 built on `fe/FE-01-03-m0-foundation`: Next.js app, CI, Privy sign-in, switch to Monad, balances. FE-02 done: sign-in by email, passkey and external wallet works on localhost, with an embedded wallet, real balances and key export. Fixed on the way: export used the active wallet address instead of the embedded one. Next: hosting (blocker), then FE-10 and FE-11. Later: the Vercel import from Nabil's account failed on the private repo, so Wangsit set it up. The app is live at `https://levra-mon.vercel.app` and sign-in works there.
 - Dharu: BE-14 done and BE-13 started: `apps/indexer` follows router events into Postgres (Envio HyperSync, RPC as fallback, D-34), and `/v1/accounts` and `/history` serve positions from `Lens` with entry price and PnL from the indexed events. Checked end to end on the fork. Waiting: a HyperSync token (Dharu) and Morpho's events in the ABI export (Wangsit). After Wangsit's PR 13 and 14: `DebtRepaid` is indexed, `repay` is a collateral quote action and `repayDebt` a history type; our decisions are renumbered to D-33 (db package) and D-34 (indexer) because D-31 and D-32 were taken.
 
@@ -178,3 +181,5 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: Q-28 proposed and implemented as D-35 (per-market hard oracle ages), waiting for confirmation. Liquidation ran through the live route on a fork. Oracle fuzz tests, Slither in CI, the vault in the ownership handover. 91 contract tests pass.
 - Wangsit: the first mainnet run is scripted and rehearsed on a fork with 8 USDC (`make deploy-monad`, `make first-long-monad CONFIRM=yes`). The invariant campaign now includes keeper reductions that succeed.
 - Wangsit: `morphoAbi` in `packages/shared/abis/` now includes Morpho's events, which unblocks the indexer and the liquidator bot for users who use Morpho directly. A test decodes a real `Repay` log from Monad with it.
+- Wangsit: the first short on mainnet and the seed inventory of SC-24 are scripted (`make first-short-monad CONFIRM=yes`). Long then short were rehearsed on a fork with a 16 USDC wallet: both opened and closed, and the router ended empty.
+- Wangsit: the first mainnet run now covers every market in scope (`make first-run-monad CONFIRM=yes`): long on QQQ, HOOD and BIL, short on QQQ and HOOD. Rehearsed on a fork with a 20 USDC wallet. Two findings for Dharu: a close ran out of gas when sent with the bare gas estimate, so a 15% margin on `gasLimit` may be too small for the router's nested calls (the scripts use 50%); and the buy-back of a HOOD short must be sized from the exchange quote, because aHOOD trades above its oracle price.
