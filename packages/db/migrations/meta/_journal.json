@@ -50,6 +50,13 @@
       "when": 1791910788872,
       "tag": "0006_telegram_links",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791915400995,
+      "tag": "0007_monitor_state",
+      "breakpoints": true
     }
   ]
 }
