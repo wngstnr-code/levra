@@ -75,6 +75,7 @@ Every question has an owner and a milestone to answer it by.
 | Q-24 | Answered: see D-25 | - | - | - | - |
 | Q-25 | Which domain? `levra.com`, `.io`, `.xyz` and `.app` are in use | Nabil | M0 | X-02 | See "Decisions waiting for the team" |
 | Q-26 | Answered: see D-30 | - | - | - | - |
+| Q-27 | Can a keeper role set `maxOracleAge` within bounds set by the multisig? This keeps the value in line with oracle data with nobody touching it, but it lets one key loosen a limit inside the bounds, which SC-55 currently forbids | Wangsit, Dharu | M1 | SC-11, SC-55, BE-17 | Yes. Dharu proposes a new role in `RiskManager` with `setMaxOracleAge(Id, uint32)`, rejected outside `[minOracleAge, capOracleAge]` per market, where the bounds are set by the owner only. SC-55 gets an exception for this one value inside the bounds |
 
 ## Decisions waiting for the team
 
