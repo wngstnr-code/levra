@@ -14,3 +14,5 @@ broadcast/
 
 .DS_Store
 *.log
+
+contracts/deployments/fork.json
