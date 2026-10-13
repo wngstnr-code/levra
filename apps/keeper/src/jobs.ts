@@ -13,12 +13,18 @@ import type { Logger } from "./logger";
 import { createOracleAgePoster } from "./oracle/age-poster";
 import { createOracleRecorder } from "./oracle/recorder";
 import { createProtector } from "./protector/protector";
+import { createTransferWatcher } from "./transfers/watcher";
+import { createIntents } from "@levra/intents";
 import type { Job } from "./runner";
 
 export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[] {
   const swap = createKyber({ baseUrl: env.KYBER_BASE_URL ?? KYBER_MONAD_URL, clientId: env.KYBER_CLIENT_ID });
   const deployment = env.DEPLOYMENT_FILE ? readDeployment(env.DEPLOYMENT_FILE) : null;
-  const jobs: Job[] = [createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS }), createMarketDepth({ client, swap, deployment })];
+  const jobs: Job[] = [
+    createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS }),
+    createMarketDepth({ client, swap, deployment }),
+    createTransferWatcher({ intents: createIntents({ jwt: env.INTENTS_JWT }) }),
+  ];
   /** One wallet per role key (BE-55). */
   const walletFor = (key: string) =>
     createWalletClient({
