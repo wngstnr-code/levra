@@ -19,4 +19,8 @@ describe("serviceHealth", () => {
     expect(serviceHealth({ ...healthy, indexer: { lastBlock: 1, chainHead: 500, lagBlocks: 499 } }).degraded).toBe(true);
     expect(serviceHealth({ ...healthy, keepers: [{ name: "liquidator", lastHeartbeatAt: null, healthy: false }] }).degraded).toBe(true);
   });
+
+  it("does not warn users when only the team monitor is down", () => {
+    expect(serviceHealth({ ...healthy, keepers: [{ name: "monitor", lastHeartbeatAt: null, healthy: false }] }).degraded).toBe(false);
+  });
 });
