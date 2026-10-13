@@ -132,6 +132,28 @@ export const toAssetsDown = (shares: bigint, totalAssets: bigint, totalShares: b
   mulDiv(shares, totalAssets + VIRTUAL_ASSETS, totalShares + VIRTUAL_SHARES);
 export const toSharesUp = (assets: bigint, totalAssets: bigint, totalShares: bigint) =>
   mulDiv(assets, totalShares + VIRTUAL_SHARES, totalAssets + VIRTUAL_ASSETS, "ceil");
+export const toSharesDown = (assets: bigint, totalAssets: bigint, totalShares: bigint) =>
+  mulDiv(assets, totalShares + VIRTUAL_SHARES, totalAssets + VIRTUAL_ASSETS);
+
+/**
+ * Morpho _accrueInterest: total supply shares once the interest since the last update is booked. The market fee on that
+ * interest is minted as new supply shares. `expectedSupplyAssets` already holds the interest (Lens reads it that way).
+ */
+export function expectedSupplyShares(supplyAssets: bigint, supplyShares: bigint, expectedSupplyAssets: bigint, feeWad: bigint): bigint {
+  if (feeWad === 0n || expectedSupplyAssets <= supplyAssets) return supplyShares;
+  const feeAmount = mulDiv(expectedSupplyAssets - supplyAssets, feeWad, WAD);
+  return supplyShares + toSharesDown(feeAmount, expectedSupplyAssets - feeAmount, supplyShares);
+}
+
+/**
+ * Supply APY of a MetaMorpho vault: each market's supply APY weighted by the vault's assets in it, over all the vault's
+ * assets (idle assets earn nothing), less the vault fee.
+ */
+export function vaultSupplyApyWad(allocations: { assets: bigint; supplyApyWad: bigint }[], totalAssets: bigint, vaultFeeWad: bigint): bigint {
+  if (totalAssets === 0n) return 0n;
+  const weighted = allocations.reduce((sum, a) => sum + a.assets * a.supplyApyWad, 0n);
+  return mulDiv(weighted / totalAssets, WAD - vaultFeeWad, WAD);
+}
 
 export type MorphoPosition = { collateral: bigint; borrowShares: bigint };
 export type MorphoTotals = { totalBorrowAssets: bigint; totalBorrowShares: bigint };

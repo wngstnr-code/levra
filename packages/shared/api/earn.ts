@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { address, bytes32, rawAmount, wad } from "./primitives";
+import { address, bytes32, rawAmount, signedRawAmount, wad } from "./primitives";
 
 export const earnOption = z.object({
   id: z.string(),
@@ -24,7 +24,8 @@ export type EarnResponse = z.infer<typeof earnResponse>;
 export const earnPosition = z.object({
   optionId: z.string(),
   suppliedRaw: rawAmount,
-  earnedRaw: rawAmount,
+  /** Supplied now minus net deposits. Negative when bad debt cost the lender more than the interest. */
+  earnedRaw: signedRawAmount,
   withdrawableRaw: rawAmount,
 });
 export type EarnPosition = z.infer<typeof earnPosition>;
