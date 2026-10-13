@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 18 | 16 |
+| Backend | Dharu | 35 | 19 | 15 |
 | Frontend | Nabil | 27 | 5 | 19 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -201,6 +201,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-34 done: `report:gaps` rebuilds the gap table from five years of daily prices (same worst gaps as the table on 14 October), and the team monitor checks it daily. Staging: `/status` is live; the four keeper role jobs report "not the role holder" until Wangsit grants the roles.
 - Dharu: mainnet keeper keys made with the BE-55 script and stored on Railway's keeper service only; the addresses went to Wangsit for `make set-roles-monad` (blocker row). The keeper is not redeployed yet, so the role jobs stay off until the grant and the MON top-up.
 - Dharu: BE-61 written: the API serves a public status page at `/status` (oracle age per stock, keepers, indexer lag, one overall line), plain HTML that refreshes itself. Next: check it live on staging after merge.
 - Dharu: BE-55 written: `docs/keys.md`, a `keys` script that makes one key per role and stores it on Railway without printing it, a capped `topup` script, and log redaction. The leak drill passed on a fork. Next: make the mainnet keys and send the addresses to Wangsit for `make set-roles-monad` (needs Dharu's go-ahead).

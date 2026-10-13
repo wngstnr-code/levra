@@ -40,6 +40,7 @@ function healthy(): Snapshot {
     indexer: [{ cursor: "morpho_events", lastBlock: 1_000n }],
     head: 1_010n,
     api: { ok: true, ms: 200, detail: "status 200" },
+    gaps: [{ symbol: "QQQ", table: { over2PctShareBps: 310, worstDropBps: -540, worstRiseBps: 390 }, fresh: { over2PctShareBps: 290, worstDropBps: -540, worstRiseBps: 390 } }],
   };
 }
 
@@ -63,6 +64,7 @@ describe("team monitor checks (08, one per row)", () => {
       [`depth:${MARKET}`, (s) => (s.markets[0]!.depth[1]!.deviationBps = -800)],
       ["indexer:morpho_events", (s) => (s.head = 1_400n)],
       ["api", (s) => (s.api = { ok: false, ms: 10_000, detail: "timeout" })],
+      ["gap-table:QQQ", (s) => (s.gaps[0]!.fresh = { over2PctShareBps: 320, worstDropBps: -610, worstRiseBps: 390 })],
     ];
     for (const [key, change] of cases) {
       const s = healthy();
@@ -100,6 +102,14 @@ describe("team monitor checks (08, one per row)", () => {
     expect(evaluate(s).find((f) => f.key === "session:QQQ")).toMatchObject({ active: true, forSeconds: 1_800 });
     s.scheduleObserved = false;
     expect(evaluate(s).find((f) => f.key === "session:QQQ")).toMatchObject({ active: false });
+  });
+
+  it("waits when the daily prices could not be read, and does not alert a milder gap", () => {
+    const s = healthy();
+    s.gaps[0]!.fresh = null;
+    expect(evaluate(s).some((f) => f.key === "gap-table:QQQ")).toBe(false);
+    s.gaps[0]!.fresh = { over2PctShareBps: 100, worstDropBps: -300, worstRiseBps: 200 };
+    expect(active(evaluate(s))).toEqual([]);
   });
 
   it("does not judge a depth run that is too old or has no size as large as the cap", () => {
