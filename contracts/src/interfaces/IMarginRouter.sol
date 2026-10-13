@@ -60,6 +60,7 @@ interface IMarginRouter {
     event CollateralAdded(address indexed user, Id indexed marketId, uint256 assets);
     event CollateralRemoved(address indexed user, Id indexed marketId, uint256 assets);
     event ProtectionSet(address indexed user, Id indexed marketId, bool enabled);
+    event DebtRepaid(address indexed user, Id indexed marketId, uint256 assets);
 
     error DeadlineExpired();
     error SwapTargetNotAllowed(address target);
@@ -82,6 +83,10 @@ interface IMarginRouter {
     function addCollateral(Id marketId, uint256 assets) external;
 
     function removeCollateral(Id marketId, uint256 assets) external;
+
+    /// Pays down the caller's debt with the market's loan token: USDC for a long, stock for a short.
+    /// Never pulls more than the debt. Returns what was repaid.
+    function repayDebt(Id marketId, uint256 assets) external returns (uint256 repaid);
 
     function setProtection(Id marketId, bool enabled) external;
 
