@@ -38,7 +38,7 @@ Market session uses the same order as the Anchored oracle: `UNKNOWN`, `PRE_MARKE
 
 ## 2. Contract interfaces
 
-Owner: Wangsit. The original files are in `contracts/src/interfaces/`. The ABIs are copied to `packages/shared/abis/` by a script.
+Owner: Wangsit. The binding source is `contracts/src/interfaces/`. This section mirrors it. The ABIs are copied to `packages/shared/abis/` by a script.
 
 ### Shared types
 
@@ -46,7 +46,7 @@ Owner: Wangsit. The original files are in `contracts/src/interfaces/`. The ABIs 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-type Id is bytes32; // same as Morpho
+import {Id} from "morpho-blue/src/interfaces/IMorpho.sol"; // Morpho's own type, a bytes32
 
 enum Side { Long, Short }
 
@@ -65,10 +65,11 @@ struct Swap {
 Satisfies Morpho's `IOracle`, plus read functions for us.
 
 ```solidity
-interface ISessionOracle {
-    /// Price of 1 base unit of collateral in base units of the loan token, times 1e36.
-    /// Called by Morpho. See 04-risk-rules.md for the scale formula.
-    function price() external view returns (uint256);
+interface ISessionOracle is IOracle {
+    /// Inherited from Morpho's IOracle:
+    /// price of 1 base unit of collateral in base units of the loan token, times 1e36.
+    /// See 04-risk-rules.md for the scale formula.
+    /// function price() external view returns (uint256);
 
     function snapshot()
         external
@@ -253,23 +254,35 @@ The backend also reads Morpho events for our markets, because people can use Mor
 
 ### Errors
 
+Errors are declared inside the interface of the contract that raises them, so each exported ABI can decode its own errors.
+
 ```solidity
+// IMarginRouter
 error DeadlineExpired();
-error MarketNotEnabled(Id marketId);
-error OpeningIsPaused();
 error SwapTargetNotAllowed(address target);
 error InsufficientSwapOutput(uint256 out, uint256 minOut);
-error PriceDeviationTooHigh(uint256 deviationBps, uint256 maxBps);
-error OracleStale(uint64 publishedAt);
-error SoftLimitExceeded(uint256 ltv, uint256 softLtv);
 error UserLimitExceeded(uint256 ltv, uint256 maxLtv);
-error PositionCapExceeded(uint256 valueUsd, uint256 capUsd);
 error ProtectionNotEnabled(address user, Id marketId);
 error PositionHealthy(uint256 ltv, uint256 softLtv);
 error InsufficientReturn(uint256 returned, uint256 minReturn);
 error NotMorpho();
 error Unauthorized();
+
+// IRiskManager
+error MarketNotEnabled(Id marketId);
+error OpeningIsPaused();
+error PriceDeviationTooHigh(uint256 deviationBps, uint256 maxBps);
+error OracleStale(uint64 publishedAt);
+error SoftLimitExceeded(uint256 ltv, uint256 softLtv);
+error PositionCapExceeded(uint256 valueUsd, uint256 capUsd);
+error Unauthorized();
+
+// ISessionOracle
+error OracleStale(uint64 publishedAt);
+error InvalidOraclePrice();
 ```
+
+A router call can revert with a `RiskManager` error, so the frontend decodes with both ABIs.
 
 The frontend turns each error into a sentence the user can understand. The list of translations is in `apps/web`, keyed by the error names above.
 
