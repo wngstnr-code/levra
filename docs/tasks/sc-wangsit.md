@@ -131,10 +131,11 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: the order in the "Pre-close timeline" table in 04 is proven in tests.
   - Note: `test/MarketHours.t.sol` walks one weekend in a single test: the soft limit drops four hours before the close, a new position above it is refused, the keeper reduces the protected position thirty minutes before the close, closing still works while the market is closed, and after a 5.4% gap on Monday the protected position is healthy while the unprotected one at the open limit is liquidated. Waiting for review.
 
-- [ ] **SC-32 · `Liquidator`**
+- [~] **SC-32 · `Liquidator`**
   - Needs: SC-22.
   - Do: a contract that liquidates positions in our markets using the Morpho callback and a swap through KyberSwap, with no capital of its own; only the guardian address can call it; the profit goes to the team treasury.
   - Done when: fork tests make a position unhealthy (by changing the oracle price on the fork) and then liquidate it, for long and short; the ABI and address are available to Dharu.
+  - Note: `Liquidator` is written and tested on a fork: a long after a 10% fall, a short after a 20% rise, refusing a loss unless told to cover it from its own float, healthy positions, keepers only, the swap target lock and the callback guard. The deployment script deploys it and records it, and `liquidatorAbi` is in `packages/shared/abis/`. Still to do: a run through the live KyberSwap route, and Dharu's bot (BE-32).
 
 ---
 
