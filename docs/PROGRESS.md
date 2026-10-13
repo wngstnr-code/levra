@@ -113,6 +113,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added the source quote time: `feedUpdatedAt` in `ISessionOracle.snapshot()` and `ILens.MarketView`, `oracleFeedUpdatedAt` in `Market`, `feedUpdatedAt` in the `price` stream event (D-23) | All three | sprint/long-flow |
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
+| 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 
 ## Daily log
 
