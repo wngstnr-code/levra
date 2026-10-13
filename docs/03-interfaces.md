@@ -728,8 +728,12 @@ Server-Sent Events. Three event types:
 ### Quote rules
 
 - A quote is valid for a short time (initial proposal: 20 seconds). The frontend asks again when it is stale.
-- `tx.gasLimit` comes from simulation plus a small reserve. The frontend uses it as is.
+- `tx.gasLimit` comes from simulation plus a small reserve (15%). The frontend uses it as is.
+- `tx.gasLimit` is `"0"` when the transaction was not simulated: a requirement is not met and no signature covers it, the user holds less than the amount the action pulls, or a warning blocks it. The frontend never sends a transaction with a gas limit of `"0"`; it asks for signatures or shows the warning, then asks again.
 - If there is a warning with `severity: "block"`, `tx` is still sent but the frontend does not show the confirm button.
+- In `typedData`, every `uint256` value is a decimal string so the payload survives JSON. The frontend turns them into `bigint` before signing.
+- `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
+- Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.
 - The backend builds every router transaction (D-19). The frontend does not encode router calls. It decodes `tx.data` with the shared ABI and checks that the target is the router and that the arguments match what is on screen.
 - The backend never holds user keys and never sends transactions on behalf of a user.
 
