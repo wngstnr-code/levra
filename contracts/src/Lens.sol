@@ -109,7 +109,7 @@ contract Lens is ILens {
         if (side == Side.Long) {
             uint256 stockUnit = 10 ** IERC20Metadata(mp.collateralToken).decimals();
             uint256 quoteUnit = 10 ** IERC20Metadata(mp.loanToken).decimals();
-            return Math.mulDiv(Math.mulDiv(debt, 1e8 * stockUnit, quoteUnit), WAD, collateral * mp.lltv / WAD * WAD);
+            return Math.mulDiv(Math.mulDiv(debt, 1e8 * stockUnit, quoteUnit), WAD, collateral * mp.lltv);
         }
         uint256 stockUnitShort = 10 ** IERC20Metadata(mp.loanToken).decimals();
         uint256 quoteUnitShort = 10 ** IERC20Metadata(mp.collateralToken).decimals();

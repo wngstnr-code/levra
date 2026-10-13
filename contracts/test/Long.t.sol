@@ -30,8 +30,10 @@ contract LongTest is BaseTest {
         ILens.PositionView[] memory views = lens.getPositions(user);
         assertEq(views.length, 1);
         assertApproxEqAbs(views[0].debt, 100e6, 1);
-        assertGt(views[0].liqPriceE8, 0);
-        assertLt(views[0].liqPriceE8, _priceE8());
+        // Liquidation price = debt / (collateral * hard limit), about 35% below the entry price.
+        uint256 expected = uint256(100e6) * 1e20 * 1e18 / (collateral * LLTV);
+        assertApproxEqAbs(views[0].liqPriceE8, expected, 2);
+        assertApproxEqRel(views[0].liqPriceE8, _priceE8() * 65 / 100, 0.01e18);
     }
 
     function test_closeLongInFull() public {

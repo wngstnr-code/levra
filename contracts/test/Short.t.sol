@@ -50,7 +50,10 @@ contract ShortTest is BaseTest {
         ILens.PositionView[] memory views = lens.getPositions(user);
         assertEq(views.length, 1);
         assertEq(uint8(views[0].side), uint8(Side.Short));
-        assertGt(views[0].liqPriceE8, _priceE8() * 2);
+        // Liquidation price = collateral * hard limit / debt, about 131% above the entry price.
+        uint256 expected = uint256(position.collateral) * 1e20 * LLTV / (uint256(p.borrowAssets) * 1e18);
+        assertApproxEqAbs(views[0].liqPriceE8, expected, 2);
+        assertApproxEqRel(views[0].liqPriceE8, _priceE8() * 231 / 100, 0.01e18);
     }
 
     function test_openShortBeyondWhatMarginAloneCouldBorrow() public {
