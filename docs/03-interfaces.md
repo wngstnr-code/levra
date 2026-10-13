@@ -815,9 +815,11 @@ Server-Sent Events. Three event types:
 
 ### Signed messages
 
-Added by Nabil on 13 October 2026 with FE-50 and FE-31. Proposed, needs Dharu's approval, because the API must check the same text.
+Added by Nabil on 13 October 2026 with FE-50 and FE-31. Approved by Dharu on 14 October 2026 and implemented in BE-52 and BE-33.
 
-Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and recovers the signer. The source is `apps/web/lib/terms.ts`.
+Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and checks the signature (smart wallets through ERC-1271 and ERC-6492). The shared source is `termsMessage` in `packages/shared/api/compliance.ts`; `apps/web/lib/terms.ts` builds the same text.
+
+Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. The routes are off when no terms version is configured.
 
 ```
 Levra terms of use

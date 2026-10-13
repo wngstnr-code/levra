@@ -201,10 +201,11 @@ Three rules for the backend:
 - [ ] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
 
-- [ ] **BE-52 · Region and terms acceptance**
+- [~] **BE-52 · Region and terms acceptance**
   - Needs: X-10, X-11.
   - Do: `GET /v1/eligibility` based on region; `POST /v1/terms/accept` with a wallet signature; the quote endpoints reject anyone who has not met the requirements.
   - Done when: requests from a restricted region are rejected with `REGION_BLOCKED`; the acceptance is stored together with the version of the terms.
+  - Note: written on 14 October 2026. The country comes from a header set by the CDN in front of the API (`GEO_COUNTRY_HEADER`, for example `cf-ipcountry`); with a block list (`BLOCKED_COUNTRIES`), a request without a country is refused, since it did not come through the CDN. `POST /v1/terms/accept` rebuilds the 03 text (`termsMessage` in `packages/shared/api/compliance.ts`) and checks the signature, smart wallets included, then stores the address, version, signature and country. Only opening a position (`/v1/quote/open`) and a deposit quote are gated; closing, reducing, collateral and withdrawals never are (product rule 8). Without `TERMS_VERSION` the routes are off and the web app cannot pass its gate, so a deployment without terms takes no new positions. Tests: blocked and missing country, gate on open and deposit, no gate on close and withdraw, a wrong signer or old version refused, acceptance stored. Still to do: the country list and the terms version from X-10 and X-11, and the CDN header once hosted (BE-15).
 
 - [ ] **BE-53 · Backups and incident runbook**
   - Do: regular database backups and a restore test; a runbook for the six situations in 07, stored in `docs/`.
