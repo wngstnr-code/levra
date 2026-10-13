@@ -180,9 +180,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: no owner role is held by a single key, proven by reads from the chain.
   - Note: `script/GovernancePlan.sol` and `script/HandOver.s.sol` move ownership of the risk manager, the router and the liquidator to a timelock (2 days) that only the multisig can use, and make the multisig the guardian. Five fork tests show the deployer loses every right after the multisig accepts, loosening needs the multisig and the wait, and tightening and pausing are immediate. Still to do: a real multisig (X-03), the vault's owner, the keeper roles, and running it on mainnet. Q-27 may add one exception. D-31 adds the one exception, covered by a test: after the handover the poster can still move `maxOracleAge` inside the bounds, and widening the bounds takes the multisig and the wait. The handover now also gives the vault to the multisig, and the deployment script takes the calendar poster, the oracle age poster and the keeper from the environment.
 
-- [ ] **SC-56 · Bug bounty program**
+- [~] **SC-56 · Bug bounty program**
   - Do: scope, reward levels, how to report.
   - Done when: the page is published and linked from the app.
+  - Note: drafted in `docs/drafts/bug-bounty.md`: scope, severity levels with examples, report contents, rules and response times. Not published. Still to do: reward amounts and the private reporting channel (Q-29), review of the legal sentence by counsel (X-10), and the link from the app.
 
 ---
 
@@ -193,6 +194,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Do: deploy the audited code with the final numbers; verify in the block explorer; fill the markets with seed funds.
   - Done when: `deployments/monad.json` holds the production addresses; all contracts are verified; one full round (open, close, long, short, Earn) is run in production and recorded.
 
-- [ ] **SC-61 · Public contract documentation**
+- [~] **SC-61 · Public contract documentation**
   - Do: the list of addresses, an explanation of the roles and of what the team can and cannot do, how to revoke the Morpho authorization without our app, a link to the audit report.
   - Done when: published on the Help page and in the README.
+  - Note: written in `docs/public/contracts.md` from the deployed code: addresses, market IDs, what nobody can change, the five roles and who holds them today, what the owner can and cannot do, the protection rules, how to revoke the Morpho authorization and close directly on Morpho, and the risks outside our contracts. The root README lists the addresses and links to it. Still to do: the Help page (Nabil, FE), and the audit link when there is a report.

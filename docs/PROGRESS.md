@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 8 | 15 |
+| Smart contracts | Wangsit | 30 | 8 | 17 |
 | Backend | Dharu | 34 | 10 | 5 |
 | Frontend | Nabil | 25 | 3 | 1 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -175,6 +175,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 13 October 2026
 
+- Wangsit: public contract documentation written in `docs/public/contracts.md` (SC-61) and linked from the root README, which now shows the mainnet addresses. Bug bounty drafted in `docs/drafts/bug-bounty.md` (SC-56). New question Q-29: bounty rewards and the private reporting channel. For Nabil: the Help page can take its contract text from `docs/public/contracts.md`.
 - Wangsit: first real run on mainnet (SC-15, SC-22, SC-24, SC-04): a long on QQQ, HOOD and BIL and a short on QQQ and HOOD, each opened and closed in full through the live KyberSwap route, 30 transactions, all successful. Cost: about 0.29 USDC and 2.20 MON. The wallet started with 15.98 USDC and ends with 5.72 free, 6 supplied to the three long markets and about 3.9 of stock lent to the two short markets. Hashes are in the table above, measurements in 05.
 - Wangsit: the contracts are deployed on Monad mainnet (SC-15, staging): router, risk manager, lens, liquidator and five markets, in 25 transactions for 1.87 MON. Read back from the chain: owners, fees, limits, oracle ages and prices match the plan. Addresses are in `contracts/deployments/monad.json` and in `@levra/shared/deployments/monad`. Keeper, calendar poster and oracle age poster are not set yet. The source of all nine contracts is verified on Sourcify. Next: the first real long and short once the wallet holds USDC.
 - Dharu: BE-32 done: the liquidator bot watches every borrower in our markets from the indexed Morpho events and liquidates through `Liquidator` with a KyberSwap route, never using the contract's float. Long and short liquidations ran on the fork. For Wangsit: `Deploy.s.sol` gives one `KEEPER` address both the router and the Liquidator keeper role, while BE-55 asks for one key per role.

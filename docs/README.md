@@ -32,8 +32,10 @@ After that, read your own task list, then other docs when needed:
 | [08-startup-readiness.md](08-startup-readiness.md) | Launch requirements, operations, legal, business, competition submission | Everyone |
 | [09-decisions-and-questions.md](09-decisions-and-questions.md) | Decisions already made and questions still open | Everyone |
 | [10-screens.md](10-screens.md) | Draft of every screen: data, actions, states, and data still missing from the API | FE, BE |
+| [public/contracts.md](public/contracts.md) | Public contract documentation: addresses, roles, what the team can and cannot do, how to leave without the app | Everyone |
 | [outreach/anchored-questions.md](outreach/anchored-questions.md) | Draft message to the token issuer | SC |
 | [drafts/risk-disclosure.md](drafts/risk-disclosure.md) | Draft risk disclosure, not reviewed by counsel | Everyone |
+| [drafts/bug-bounty.md](drafts/bug-bounty.md) | Draft bug bounty program. Rewards and channel not decided (Q-29) | SC |
 | [PROGRESS.md](PROGRESS.md) | Progress board: milestones, blockers, daily log | Everyone |
 
 Claude sessions in this repo follow [`../CLAUDE.md`](../CLAUDE.md). It tells every new session to read these docs first.
