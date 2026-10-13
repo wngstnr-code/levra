@@ -3,6 +3,7 @@ export { runMigrations } from "./migrate";
 export {
   deviationHistory,
   latestDepthRun,
+  protectedPositions,
   latestDexMids,
   morphoPositions,
   observedClosedStretches,

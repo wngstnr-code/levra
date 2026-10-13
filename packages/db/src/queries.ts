@@ -30,6 +30,19 @@ export async function morphoPositions(db: Db, filter: { user?: string; marketId?
     .filter((p) => p.collateral !== 0n || p.borrowShares !== 0n);
 }
 
+/** Users and markets whose latest `ProtectionSet` switched protection on (BE-31). The chain has the final word. */
+export async function protectedPositions(db: Db): Promise<{ user: string; marketId: string }[]> {
+  const rows = (await db.execute(sql`
+    select "user", market_id from (
+      select distinct on ("user", market_id) "user", market_id, (args->>'enabled')::boolean as enabled
+      from router_events
+      where name = 'ProtectionSet'
+      order by "user", market_id, block_number desc, log_index desc
+    ) latest where enabled
+  `)) as unknown as { user: string; market_id: string }[];
+  return rows.map((r) => ({ user: r.user, marketId: r.market_id }));
+}
+
 /**
  * When the oracle goes `CLOSED` and comes back, learned from `oracle_updates` (BE-30). Only fully observed stretches of
  * at least `minHours` count (weekends and holidays). The close is the first `CLOSED` write that starts the stretch,
