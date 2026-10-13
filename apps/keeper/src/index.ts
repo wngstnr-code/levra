@@ -8,7 +8,7 @@ import { runJob } from "./runner";
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");
 const { db, close } = createDb(env.DATABASE_URL);
-const jobs = createJobs(env, createChainClient(env.MONAD_RPC_URL));
+const jobs = createJobs(env, createChainClient(env.MONAD_RPC_URL), logger);
 const controller = new AbortController();
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

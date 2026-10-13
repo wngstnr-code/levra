@@ -6,7 +6,7 @@ export const healthResponse = z.object({
 });
 export type HealthResponse = z.infer<typeof healthResponse>;
 
-export const keeperName = z.enum(["calendar", "protector", "liquidator", "alerts", "oracleMonitor"]);
+export const keeperName = z.enum(["calendar", "protector", "liquidator", "alerts", "oracleMonitor", "oracleAgePoster"]);
 export type KeeperName = z.infer<typeof keeperName>;
 
 export const statusResponse = z.object({
