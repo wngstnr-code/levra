@@ -62,11 +62,11 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
+| 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
 | 14 October 2026 | Dharu | Wangsit | Grant the four keeper roles on mainnet: `ORACLE_AGE_POSTER=0x33B03c6e569e06938D59F1232ef5070646F0146d CALENDAR_POSTER=0x745356C469FcE1372B4C2259332f5251130d4a5b KEEPER=0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e LIQUIDATOR_KEEPER=0x22ea6605a7D5246b1F05831632DC8172125A5C18 make set-roles-monad CONFIRM=yes`. The keys are on Railway's keeper service; the keeper is redeployed after the grant and the MON top-up | BE-17, BE-30, BE-31, BE-32, BE-55 |
 | 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`) | BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
-| 14 October 2026 | Wangsit, Nabil | Dharu | The restricted country list from counsel (X-10) and a published terms version (X-11), set as `BLOCKED_COUNTRIES` and `TERMS_VERSION` | BE-52 |
+| 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
 | 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
 | 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
 | 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
@@ -203,6 +203,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: proposed the region block list from Anchored's own prohibited jurisdictions (D-42, initial proposal pending counsel) and raised Q-31 on investor checks. Sent Dharu's multisig address to the blocker row for X-03. Alerts will start with Telegram only (Q-30).
 - Nabil: the web app runs against the Railway staging API on localhost: markets, positions, earn, deposit tokens, settings and sign-in answer with real data and CORS passes. Fixed on the way: the trade form was blocked because staging has no terms version, so `/v1/eligibility` answers 404; the app now treats that as the gate being off, like the API. Deposit now lists common chains and USDC first and uses a neutral address placeholder. Open: quotes hit the KyberSwap limit, and five keepers are not healthy yet (waiting for the role grants), so the service banner shows.
 - Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).
 - Dharu: BE-34 done: `report:gaps` rebuilds the gap table from five years of daily prices (same worst gaps as the table on 14 October), and the team monitor checks it daily. Staging: `/status` is live; the four keeper role jobs report "not the role holder" until Wangsit grants the roles.
