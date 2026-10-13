@@ -31,10 +31,13 @@ function market(overrides: Partial<MarketState> = {}): MarketState {
     borrowRatePerSecondWad: 3_000_000_000n,
     morphoFeeWad: 0n,
     oraclePriceE8: 74_562_000_000n,
+    bidE8: 74_500_000_000n,
+    askE8: 74_600_000_000n,
     session: "REGULAR",
     feedUpdatedAt: 1_791_876_162,
     publishedAt: 1_791_876_168,
     oracleStale: false,
+    oracleHardStale: false,
     ...overrides,
   };
 }

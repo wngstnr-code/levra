@@ -4,15 +4,18 @@ import type { ChainReader } from "./chain/reader";
 import { ApiHttpError } from "./errors";
 import type { Logger } from "./logger";
 import { marketRoutes } from "./routes/markets";
+import { quoteRoutes } from "./routes/quotes";
 import { streamRoutes, type StreamOptions } from "./routes/stream";
+import type { SwapSource } from "./swap/kyber";
 
 export type AppDeps = {
   logger: Logger;
   reader?: ChainReader;
+  swap?: SwapSource;
   stream?: StreamOptions;
 };
 
-export function createApp({ logger, reader, stream }: AppDeps) {
+export function createApp({ logger, reader, swap, stream }: AppDeps) {
   const app = new Hono();
 
   app.use(async (c, next) => {
@@ -29,6 +32,7 @@ export function createApp({ logger, reader, stream }: AppDeps) {
   if (reader) {
     app.route("/", marketRoutes(reader));
     app.route("/", streamRoutes(reader, logger, stream));
+    if (swap) app.route("/", quoteRoutes(reader, swap));
   }
 
   app.notFound(() => {

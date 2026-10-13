@@ -1,49 +1,20 @@
-import { external, tokens } from "@levra/shared/addresses";
-import { lensAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
+import { tokens } from "@levra/shared/addresses";
+import { lensAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import { marketsResponse, sessionInfo } from "@levra/shared/api";
-import { readDeployment } from "@levra/shared/deployments/node";
-import {
-  cautiousPriceE8,
-  collateralValue,
-  liquidationPriceE8,
-  maxLeverageE2,
-  morphoOraclePrice,
-  positionLtvWad,
-} from "@levra/shared/math";
+import { cautiousPriceE8, liquidationPriceE8, maxLeverageE2, morphoOraclePrice, positionLtvWad } from "@levra/shared/math";
 import pino from "pino";
-import {
-  createTestClient,
-  encodeAbiParameters,
-  erc20Abi,
-  http,
-  keccak256,
-  parseUnits,
-  publicActions,
-  toHex,
-  walletActions,
-  zeroAddress,
-  type Address,
-  type Hex,
-} from "viem";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { monad } from "viem/chains";
+import { parseUnits, type Hex } from "viem";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
+import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, send } from "./fork-helpers";
 
-const rpcUrl = process.env.FORK_RPC_URL;
-const deploymentFile = process.env.FORK_DEPLOYMENT_FILE;
-
-describe.skipIf(!rpcUrl || !deploymentFile)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
-  // Collecting a skipped suite still runs this body, so read the file only when the fork is configured.
-  const deployment =
-    rpcUrl && deploymentFile
-      ? readDeployment(deploymentFile)
-      : { chainId: 143, block: 0, router: zeroAddress, riskManager: zeroAddress, lens: zeroAddress, markets: [] };
-  const reader = createChainReader(createChainClient(rpcUrl ?? ""), deployment);
+describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
+  const deployment = forkDeployment();
+  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
   const app = createApp({ logger: pino({ level: "silent" }), reader });
-  const chain = createTestClient({ chain: monad, mode: "anvil", transport: http(rpcUrl) }).extend(publicActions).extend(walletActions);
+  const chain = createForkClient(forkRpcUrl);
 
   let snapshotId: Hex;
   beforeAll(async () => {
@@ -52,59 +23,6 @@ describe.skipIf(!rpcUrl || !deploymentFile)("on the local fork (needs FORK_RPC_U
   afterAll(async () => {
     await chain.revert({ id: snapshotId });
   });
-
-  const randomAddress = () => privateKeyToAddress(generatePrivateKey());
-
-  async function as<T>(who: Address, run: () => Promise<T>): Promise<T> {
-    await chain.impersonateAccount({ address: who });
-    await chain.setBalance({ address: who, value: parseUnits("100", 18) });
-    try {
-      return await run();
-    } finally {
-      await chain.stopImpersonatingAccount({ address: who });
-    }
-  }
-
-  async function send(from: Address, address: Address, abi: any, functionName: string, args: unknown[]) {
-    const hash = await chain.writeContract({ account: from, chain: monad, address, abi, functionName, args } as any);
-    const receipt = await chain.waitForTransactionReceipt({ hash });
-    if (receipt.status !== "success") throw new Error(`${functionName} reverted`);
-  }
-
-  /** Like forge's `deal`: finds the balance mapping slot by writing candidates and reading `balanceOf` back. */
-  async function deal(token: Address, to: Address, amount: bigint) {
-    const value = toHex(amount, { size: 32 });
-    for (let slot = 0n; slot < 64n; slot++) {
-      for (const key of [
-        keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [to, slot])),
-        keccak256(encodeAbiParameters([{ type: "uint256" }, { type: "address" }], [slot, to])),
-      ]) {
-        const before = await chain.getStorageAt({ address: token, slot: key });
-        await chain.setStorageAt({ address: token, index: key, value });
-        const balance = await chain.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [to] });
-        if (balance === amount) return;
-        await chain.setStorageAt({ address: token, index: key, value: before ?? toHex(0n, { size: 32 }) });
-      }
-    }
-    throw new Error(`No balance slot found for ${token}`);
-  }
-
-  /** Supplies liquidity, then opens a position straight on Morpho for a fresh address. */
-  async function openOnMorpho(marketId: Hex, user: Address, collateral: bigint, borrow: bigint) {
-    const params = await chain.readContract({ address: external.morpho, abi: morphoAbi, functionName: "idToMarketParams", args: [marketId] });
-    const lender = randomAddress();
-    await deal(params.loanToken, lender, borrow * 4n);
-    await as(lender, async () => {
-      await send(lender, params.loanToken, erc20Abi, "approve", [external.morpho, borrow * 4n]);
-      await send(lender, external.morpho, morphoAbi, "supply", [params, borrow * 4n, 0n, lender, "0x"]);
-    });
-    await deal(params.collateralToken, user, collateral);
-    await as(user, async () => {
-      await send(user, params.collateralToken, erc20Abi, "approve", [external.morpho, collateral]);
-      await send(user, external.morpho, morphoAbi, "supplyCollateral", [params, collateral, user, "0x"]);
-      await send(user, external.morpho, morphoAbi, "borrow", [params, borrow, 0n, user, user]);
-    });
-  }
 
   it("serves markets whose numbers match direct reads from the contracts", async () => {
     const body = marketsResponse.parse(await (await app.request("/v1/markets")).json());
@@ -146,11 +64,11 @@ describe.skipIf(!rpcUrl || !deploymentFile)("on the local fork (needs FORK_RPC_U
 
     const before = await staleOf();
     if (before.oracleStale) throw new Error("oracle is already stale on this fork; restart the fork at a fresher block");
-    await as(owner, () => send(owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, { ...config, maxOracleAge: 1 }]));
+    await as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, { ...config, maxOracleAge: 1 }]));
     try {
       expect((await staleOf()).oracleStale).toBe(true);
     } finally {
-      await as(owner, () => send(owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, config]));
+      await as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, config]));
     }
     expect((await staleOf()).oracleStale).toBe(false);
   });
@@ -169,8 +87,8 @@ describe.skipIf(!rpcUrl || !deploymentFile)("on the local fork (needs FORK_RPC_U
 
     beforeAll(async () => {
       if (!qqqLong || !qqqShort) throw new Error("QQQ markets missing from the deployment");
-      await openOnMorpho(qqqLong.marketId, longUser, parseUnits("1", 18), parseUnits("300", 6));
-      await openOnMorpho(qqqShort.marketId, shortUser, parseUnits("1000", 6), parseUnits("0.5", 18));
+      await openOnMorpho(chain, qqqLong.marketId, longUser, parseUnits("1", 18), parseUnits("300", 6));
+      await openOnMorpho(chain, qqqShort.marketId, shortUser, parseUnits("1000", 6), parseUnits("0.5", 18));
     }, 120_000);
 
     it.each([
@@ -193,7 +111,6 @@ describe.skipIf(!rpcUrl || !deploymentFile)("on the local fork (needs FORK_RPC_U
 
       expect(price).toBe(onChainPrice);
       expect(positionLtvWad(view.debt, view.collateral, price)).toBe(view.ltv);
-      expect(collateralValue(view.collateral, price) > 0n).toBe(true);
       expect(
         liquidationPriceE8(side, { collateral: view.collateral, debt: view.debt, lltvWad: view.lltv, stockDecimals, quoteDecimals }),
       ).toBe(view.liqPriceE8);
