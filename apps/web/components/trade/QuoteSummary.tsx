@@ -3,6 +3,7 @@
 import type { Market, QuoteOpenResponse } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
 import { formatUsdE8 } from "@/lib/format";
+import { apiConfigured } from "@/lib/api/hooks";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio } from "@/lib/units";
 import { GapTry } from "../GapTry";
@@ -59,7 +60,7 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
             <Skeleton className="h-5 w-2/3" />
           </div>
         ) : (
-          <p className={cn("text-[15px]", error ? "text-down" : "text-fg-2")}>{error ?? m.trade.emptySummary}</p>
+          <p className={cn("text-[15px]", error ? "text-down" : "text-fg-2")}>{error ?? (apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline)}</p>
         )
       ) : (
         <>
@@ -140,7 +141,7 @@ function GapCard({ quote, loading, side }: Props) {
         <p className="mt-1 text-[13px] text-fg-2">{m.trade.gapSub}</p>
       </div>
       {scenarios.length === 0 ? (
-        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{m.trade.emptySummary}</p>
+        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline}</p>
       ) : (
         <div className="flex min-h-48 flex-1 items-end gap-3">
           {scenarios.map((s) => (

@@ -13,7 +13,7 @@ import { StatBox } from "../ui/StatBox";
 const DASH = "—";
 
 /** The oracle price of the chosen stock, and the market facts that limit a trade. */
-export function PriceCard({ market, priceE8, feedUpdatedAt, children }: { market: Market | null; priceE8: bigint | null; feedUpdatedAt: number | null; children?: React.ReactNode }) {
+export function PriceCard({ market, priceE8, feedUpdatedAt, capRaw, children }: { market: Market | null; priceE8: bigint | null; feedUpdatedAt: number | null; capRaw: bigint | null; children?: React.ReactNode }) {
   const m = useT();
   const now = useNowSeconds();
   return (
@@ -31,7 +31,7 @@ export function PriceCard({ market, priceE8, feedUpdatedAt, children }: { market
           sub={market?.dexDeviationBps != null ? m.trade.vsOracle(formatBps(market.dexDeviationBps, { signed: true, fractionDigits: 1 })) : undefined}
         />
         <StatBox label={m.trade.canBorrow} value={market ? formatUsd(market.availableLiquidityRaw, 0) : DASH} sub="USDC" />
-        <StatBox label={m.trade.capLabel} value={market ? formatUsd(market.maxPositionUsdRaw, 0) : DASH} sub={m.trade.perPosition} />
+        <StatBox label={m.trade.capLabel} value={capRaw !== null ? formatUsd(capRaw, 0) : DASH} sub={m.trade.perPosition} />
         <StatBox label={m.trade.borrowRate} value={market ? formatWadPercent(market.borrowApyWad) : DASH} sub={m.trade.variable} />
       </div>
     </Card>

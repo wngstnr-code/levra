@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 import { apiConfigured, queryKeys, useEarnAccount, useEarnOptions } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
-import { formatToken, formatWadPercent, parseAmount } from "@/lib/units";
+import { formatToken, formatTokenSigned, formatWadPercent, parseAmount } from "@/lib/units";
 import { useEarnChain, type EarnChainOption } from "@/lib/useEarnChain";
 import { useStoredFlag } from "@/lib/useStoredFlag";
 import { trackStep } from "@/lib/metrics";
@@ -91,7 +91,9 @@ export function EarnView() {
                     </div>
                     {earned && (
                       <p className="text-right">
-                        <span className="block text-[15px] font-semibold text-up">+{formatToken(earned, o.decimals, o.decimals === 6 ? 2 : 4)}</span>
+                        <span className={cn("block text-[15px] font-semibold", BigInt(earned) > 0n ? "text-up" : BigInt(earned) < 0n ? "text-down" : "text-fg-2")}>
+                          {formatTokenSigned(earned, o.decimals, o.decimals === 6 ? 2 : 4)}
+                        </span>
                         <span className="text-xs text-fg-2">{m.earn.earned}</span>
                       </p>
                     )}

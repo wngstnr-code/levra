@@ -196,10 +196,13 @@ Newest first. One to three lines per person per working day: what got done, what
 ### 14 October 2026
 
 - Dharu: BE-33 written: wallet sign-in (D-38), alert settings, Telegram linking, and the alerts keeper (before-close at 24, 4 and 1 hours, LTV threshold, auto-deleverage, liquidation, deposits). Fork test passes with a stand-in email channel. Waiting on Dharu: the delivery services (Q-30) and their keys. Next: BE-50 team monitor.
+- Nabil: merged M1 to M5 into main (PRs #44 to #51). Earn now shows a loss in red, since `earnedRaw` can be negative. The English only decision is D-39, because D-38 went to wallet sign-in.
 - Nabil: FE-04 done: Wangsit and Dharu approved the wireframes and the visual design.
 
 ### 13 October 2026
 
+- Nabil: fixed the leverage slider stuck at 1× while the service is offline: limits now come from RiskManager on chain. A sweep of 20 controls on every page in Chromium passes. The analytics script now loads only on Vercel.
+- Nabil: decided D-38, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
 - Nabil: decided D-39, the app is English only. The Indonesian file and the language switch are removed; all text stays in one message file. 50 unit tests and 23 end-to-end tests pass.
 - Nabil: M5 frontend built on `fe/FE-50-55-m5-hardening`: region and terms gates (closing and withdrawing never gated), Help with words, risks and every address, error screens and cookieless metrics, a phone tab bar and better contrast, Playwright in CI (33 tests on desktop and phone, two languages). Waiting for BE-52, X-11 and an error service.
 - Nabil: M4 frontend built on `fe/FE-40-41-m4-deposits`: cross-chain deposit with a QR code, expiry and a status tracker, and withdraw with a checked USDC transfer. Waiting for BE-40 and BE-41.

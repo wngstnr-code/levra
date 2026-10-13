@@ -94,7 +94,7 @@ export function PositionsView() {
         <Card className="flex flex-col gap-5 p-8">
           <p className="label-caps">{m.positions.totalEquity}</p>
           <div className="flex flex-wrap items-center gap-4">
-            {totals ? <Money value={formatUsd(totals.equityUsdRaw)} className="text-display text-[56px] leading-none font-bold sm:text-[64px]" /> : <Skeleton className="h-16 w-64" />}
+            {totals ? <Money value={formatUsd(totals.equityUsdRaw)} className="text-display text-[56px] leading-none font-bold sm:text-[64px]" /> : apiConfigured && !account.isError ? <Skeleton className="h-16 w-64" /> : <span className="text-display text-[56px] leading-none font-bold text-fg-3">{"\u2014"}</span>}
             {totals && pnl !== 0n && <ChangePill direction={pnl > 0n ? "up" : "down"}>{formatUsdSigned(pnl)}</ChangePill>}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
