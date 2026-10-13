@@ -57,13 +57,13 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-03.
   - Do: per-market settings; `currentSoftLtv` with the market-hours rules in 04; `checkOpen`; three roles (owner, guardian, calendar poster); a stop switch for opening positions.
   - Done when: tests cover each role and its rejections; the guardian is proven to be able to only tighten; `setNextCloseAt` rejects a time in the past and a time too far ahead; the limit changes correctly in all four states (open, pre-close window, closed, unknown).
-  - Note: written and tested: soft limit in all four states, the pre-close window, position cap, deviation check, the three roles, pause. Waiting for review.
+  - Note: written and tested: soft limit in all four states, the pre-close window, position cap, deviation check, the three roles, pause. Waiting for review. Added after D-31: the oracle age poster role with owner-set bounds, tested.
 
 - [~] **SC-12 · `MarginRouter` for long**
   - Needs: SC-10, SC-11, SC-04.
   - Do: `openLong`, `closeLong` (partial and full), `addCollateral`, `removeCollateral`; Morpho flash loan; allowlist of swap targets; fees with a hard-coded maximum; `multicall`, `permitToken`, `authorizeWithSig`; reentrancy guard; events.
   - Done when: fork tests run open, add collateral, reduce and full close against the real Morpho and KyberSwap; threats T-01, T-02, T-03, T-10, T-12 and T-17 in 07 each have a test; the router holds no tokens after each test.
-  - Note: written and tested on a fork: open, add and remove collateral, partial and full close, one confirmation with two signatures, the swap target lock, the flash callback guard. Threats T-01, T-02, T-03, T-10 and T-12 have tests (`test/Security.t.sol` covers reentrancy and signature replay). T-17 is covered by measuring swap output from balances. Waiting for review.
+  - Note: written and tested on a fork: open, add and remove collateral, partial and full close, one confirmation with two signatures, the swap target lock, the flash callback guard. Threats T-01, T-02, T-03, T-10 and T-12 have tests (`test/Security.t.sol` covers reentrancy and signature replay). T-17 is covered by measuring swap output from balances. Waiting for review. Added after D-32: `repayDebt`, tested for a partial repayment, a repayment larger than the debt, and while opening is paused.
 
 - [~] **SC-13 · `Lens`**
   - Needs: SC-11.
@@ -176,7 +176,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Needs: SC-06, X-03.
   - Do: the owner of `RiskManager` and of the vault is a multisig behind a timelock; the guardian and calendar poster roles go to the right addresses; test that a single key cannot loosen anything.
   - Done when: no owner role is held by a single key, proven by reads from the chain.
-  - Note: `script/GovernancePlan.sol` and `script/HandOver.s.sol` move ownership of the risk manager, the router and the liquidator to a timelock (2 days) that only the multisig can use, and make the multisig the guardian. Five fork tests show the deployer loses every right after the multisig accepts, loosening needs the multisig and the wait, and tightening and pausing are immediate. Still to do: a real multisig (X-03), the vault's owner, the keeper roles, and running it on mainnet. Q-27 may add one exception.
+  - Note: `script/GovernancePlan.sol` and `script/HandOver.s.sol` move ownership of the risk manager, the router and the liquidator to a timelock (2 days) that only the multisig can use, and make the multisig the guardian. Five fork tests show the deployer loses every right after the multisig accepts, loosening needs the multisig and the wait, and tightening and pausing are immediate. Still to do: a real multisig (X-03), the vault's owner, the keeper roles, and running it on mainnet. Q-27 may add one exception. D-31 adds the one exception, covered by a test: after the handover the poster can still move `maxOracleAge` inside the bounds, and widening the bounds takes the multisig and the wait.
 
 - [ ] **SC-56 · Bug bounty program**
   - Do: scope, reward levels, how to report.

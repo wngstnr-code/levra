@@ -65,7 +65,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Nabil | Nabil | Accept the repo invitation on GitHub | X-01 |
 | 13 October 2026 | Wangsit, Dharu | Wangsit | Development wallets with USDC and MON on Monad mainnet, and the team multisig. Needed for the first real transactions | X-03, SC-04, BE-05, SC-15 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
-| 13 October 2026 | Dharu | Wangsit | Answer Q-27 and, if yes, a `setMaxOracleAge` role with owner-set bounds in `RiskManager` (SC-11), plus the matching change in 03 | BE-17 |
 | 13 October 2026 | Dharu | Wangsit | Review PR 8 (oracle event ABI, needed by BE-03) and the formulas in PR 10 (BE-16) | BE-03, BE-16 |
 | 13 October 2026 | Dharu | Wangsit | The mainnet deployment (`contracts/deployments/monad.json`). The stream timing check of BE-11 needs live oracle writes, which a fork does not get | BE-11, BE-15 |
 | 13 October 2026 | Dharu, Nabil | Dharu, Nabil | Paid Monad RPC provider and hosting for the backend, database and web app. Needed at staging, not before | BE-15, FE-01 |
@@ -116,6 +115,8 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
 | 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
+| 13 October 2026 | Added the oracle age poster to `IRiskManager`: `oracleAgePoster()`, `oracleAgeBounds()`, `setOracleAgeBounds()`, `setMaxOracleAge()`, two events and the error `OracleAgeOutOfBounds` (D-31). `ISessionOracle` now exposes `MAX_FEED_AGE()` and `MAX_PUBLISH_AGE()` | Dharu | sc/SC-11-oracle-age-and-repay |
+| 13 October 2026 | Added `repayDebt()` and the event `DebtRepaid` to `IMarginRouter` (D-32). The API has no quote or history type for it yet | Dharu, Nabil | sc/SC-11-oracle-age-and-repay |
 | 13 October 2026 | Quote rules in 03: `gasLimit` `"0"` when not simulated, uint256 in `typedData` as decimal strings, where realized PnL comes from, warning thresholds. No shape change | Dharu, Nabil | be/BE-12-quote-long |
 | 13 October 2026 | Wrote down what `Market.oracleStale` means (hard check, or older than `maxOracleAge` outside `CLOSED`) and when the DEX price fields are null. No shape change | Dharu, Nabil | be/BE-10-chain-reader |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
@@ -165,3 +166,4 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: SC-23 written. The USDC vault is created from Morpho's MetaMorpho v1.1 factory by `script/DeployVault.s.sol` and tested on a fork. 63 contract tests pass.
 - Wangsit: SC-32 written. `Liquidator` liquidates long and short positions with no capital of its own and is deployed by the deployment script. 70 contract tests pass and CI is green.
 - Wangsit: SC-50, SC-51 and SC-55 written. Invariant campaign on a fork, Slither clean after review, gas numbers recorded, and a handover of ownership to a timelock behind the multisig. Tests now fork a pinned block, which made them repeatable and fast. 75 tests plus the invariant campaign pass.
+- Wangsit: Q-27 answered yes (D-31) and implemented: the oracle age poster moves `maxOracleAge` inside owner-set bounds, which unblocks BE-17. `repayDebt` added to the router (D-32). 84 contract tests pass. Dharu: the API needs a way to quote and record `repayDebt`. Nabil: this is the "add margin" action for a long.
