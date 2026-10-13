@@ -4,12 +4,17 @@ import { privateKeyToAccount } from "viem/accounts";
 import { monad } from "viem/chains";
 import type { Env } from "./env";
 import type { Logger } from "./logger";
+import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createMarketDepth } from "./dex/depth";
 import { createOracleAgePoster } from "./oracle/age-poster";
 import { createOracleRecorder } from "./oracle/recorder";
 import type { Job } from "./runner";
 
 export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[] {
-  const jobs: Job[] = [createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS })];
+  const jobs: Job[] = [
+    createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS }),
+    createMarketDepth({ client, swap: createKyber({ baseUrl: env.KYBER_BASE_URL ?? KYBER_MONAD_URL, clientId: env.KYBER_CLIENT_ID }) }),
+  ];
 
   if (env.ORACLE_AGE_POSTER_KEY && env.DEPLOYMENT_FILE) {
     const wallet = createWalletClient({

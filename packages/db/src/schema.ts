@@ -59,6 +59,31 @@ export const morphoEvents = pgTable(
   ],
 );
 
+/**
+ * DEX quotes from the aggregator (BE-04). `kind` is `mid` (10 USDC probe), `buy` (USDC in) or `sell` (stock in).
+ * Prices have 8 decimals; `priceImpactBps` is against the mid price, worse for the trader when positive;
+ * `deviationBps` is the execution price against the oracle price, signed. `error` is set when there was no route.
+ */
+export const dexQuotes = pgTable(
+  "dex_quotes",
+  {
+    runId: text("run_id").notNull(),
+    kind: text("kind").notNull(),
+    symbol: text("symbol").notNull(),
+    sizeUsdRaw: numeric("size_usd_raw", { precision: 78, scale: 0 }).notNull(),
+    amountIn: numeric("amount_in", { precision: 78, scale: 0 }).notNull(),
+    amountOut: numeric("amount_out", { precision: 78, scale: 0 }),
+    execPriceE8: numeric("exec_price_e8", { precision: 78, scale: 0 }),
+    midPriceE8: numeric("mid_price_e8", { precision: 78, scale: 0 }),
+    oraclePriceE8: numeric("oracle_price_e8", { precision: 78, scale: 0 }).notNull(),
+    priceImpactBps: integer("price_impact_bps"),
+    deviationBps: integer("deviation_bps"),
+    error: text("error"),
+    measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("dex_quotes_latest").on(t.symbol, t.kind, t.measuredAt)],
+);
+
 /** One row per `PriceUpdated` log of the Anchored oracle for our stocks. Prices have 8 decimals. */
 export const oracleUpdates = pgTable(
   "oracle_updates",

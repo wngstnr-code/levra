@@ -751,7 +751,7 @@ type HealthResponse = { ok: true };
 type StatusResponse = {
   oracle: { symbol: string; publishedAt: number; ageSeconds: number; stale: boolean }[];
   keepers: {
-    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster";
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth";
     lastHeartbeatAt: number | null;
     healthy: boolean;
   }[];
