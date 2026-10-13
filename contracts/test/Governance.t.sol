@@ -5,8 +5,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
+import {Id} from "morpho-blue/src/interfaces/IMorpho.sol";
+import {IMetaMorpho} from "../src/interfaces/IMetaMorpho.sol";
 import {Liquidator} from "../src/Liquidator.sol";
 import {GovernancePlan} from "../script/GovernancePlan.sol";
+import {VaultPlan} from "../script/VaultPlan.sol";
 import {BaseTest} from "./Base.t.sol";
 
 /// After the handover no single key can loosen anything, and the multisig must wait.
@@ -14,13 +17,27 @@ contract GovernanceTest is BaseTest {
     address internal multisig = makeAddr("multisig");
     TimelockController internal timelock;
     Liquidator internal liquidator;
+    IMetaMorpho internal vault;
     address[] internal ownables;
 
     function setUp() public override {
         super.setUp();
         liquidator = new Liquidator(MORPHO, address(swapper), address(this), feeRecipient);
         ownables = [address(risk), address(router), address(liquidator)];
-        timelock = GovernancePlan.handOver(multisig, risk, ownables);
+        Id[] memory ids = new Id[](1);
+        ids[0] = longId;
+        uint256[] memory caps = new uint256[](1);
+        caps[0] = VaultPlan.capFor(QQQ);
+        vault = this.createVault(ids, caps);
+        timelock = this.handOver();
+    }
+
+    function createVault(Id[] memory ids, uint256[] memory caps) external returns (IMetaMorpho) {
+        return VaultPlan.create(MORPHO, ids, caps, feeRecipient, bytes32(uint256(2)));
+    }
+
+    function handOver() external returns (TimelockController) {
+        return GovernancePlan.handOver(multisig, risk, ownables, vault);
     }
 
     function _throughTimelock(address target, bytes memory data) internal {
@@ -82,6 +99,23 @@ contract GovernanceTest is BaseTest {
         vm.prank(multisig);
         timelock.execute(address(risk), 0, data, bytes32(0), bytes32(0));
         assertEq(risk.config(longId).maxPositionUsd, c.maxPositionUsd);
+    }
+
+    function test_vaultGoesToTheMultisigDirectly() public {
+        assertEq(vault.owner(), address(this));
+        assertEq(vault.pendingOwner(), multisig);
+        vm.prank(multisig);
+        vault.acceptOwnership();
+        assertEq(vault.owner(), multisig);
+
+        // The deployer can no longer raise a cap, and the multisig still waits for the vault's own timelock.
+        vm.expectRevert();
+        vault.submitCap(longMarket, 50_000e6);
+        vm.startPrank(multisig);
+        vault.submitCap(longMarket, 50_000e6);
+        vm.expectRevert();
+        vault.acceptCap(longMarket);
+        vm.stopPrank();
     }
 
     function test_onlyTheMultisigCanUseTheTimelock() public {
