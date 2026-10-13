@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+/** An empty value counts as not set, so `.env.example` lines can stay in place. */
+const optional = () =>
+  z
+    .string()
+    .optional()
+    .transform((v) => v || undefined);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(8787),
@@ -10,6 +17,12 @@ const envSchema = z.object({
   KYBER_BASE_URL: z.url().default("https://aggregator-api.kyberswap.com/monad/api/v1"),
   /** Sent as x-client-id. Routes work with any value (05); a registered id raises the rate limit. */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
+  /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
+  AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
+  /** Host of the web app, which the sign-in message must name, for example app.levra.xyz. */
+  AUTH_DOMAIN: optional(),
+  /** Username of the alert bot, without @. The Telegram link route is off without it. */
+  TELEGRAM_BOT_USERNAME: optional(),
   /** Shown in /v1/status, for example the git commit of the deployed build. */
   APP_VERSION: z.string().min(1).default("dev"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),

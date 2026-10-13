@@ -202,6 +202,6 @@ describe("endpoints", () => {
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
-    expect(seen.size).toBe(24);
+    expect(seen.size).toBe(26);
   });
 });
