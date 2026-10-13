@@ -30,6 +30,80 @@ export async function morphoPositions(db: Db, filter: { user?: string; marketId?
     .filter((p) => p.collateral !== 0n || p.borrowShares !== 0n);
 }
 
+/**
+ * When the oracle goes `CLOSED` and comes back, learned from `oracle_updates` (BE-30). Only fully observed stretches of
+ * at least `minHours` count (weekends and holidays). The close is the first `CLOSED` write that starts the stretch,
+ * including the Friday flips back to `POST_MARKET` (04), and the open is the first write after it.
+ * Times are returned as unix seconds; the calendar turns them into offsets. Empty until a weekend is in the data.
+ */
+export async function observedClosedStretches(db: Db, minHours = 40): Promise<{ symbol: string; firstClosedAt: number; reopenedAt: number }[]> {
+  const rows = (await db.execute(sql`
+    with t as (
+      select symbol, session, block_time,
+        lag(session) over (partition by symbol order by block_number, log_index) as prev
+      from oracle_updates
+    ),
+    changes as (select symbol, session, prev, block_time from t where prev is not null and prev <> session),
+    stretches as (
+      select c.symbol, c.block_time as closed_at,
+        (select min(o.block_time) from changes o where o.symbol = c.symbol and o.prev = 'CLOSED' and o.block_time > c.block_time) as reopened_at
+      from changes c where c.session = 'CLOSED'
+    ),
+    long_ones as (
+      select symbol, closed_at, reopened_at from stretches
+      where reopened_at is not null and reopened_at - closed_at >= make_interval(hours => ${minHours})
+    )
+    select l.symbol,
+      extract(epoch from (
+        select min(u.block_time) from oracle_updates u
+        where u.symbol = l.symbol and u.session = 'CLOSED' and u.block_time <= l.closed_at and u.block_time >= l.closed_at - interval '2 hours'
+      ))::bigint as first_closed,
+      extract(epoch from l.reopened_at)::bigint as reopened
+    from long_ones l order by l.closed_at
+  `)) as unknown as { symbol: string; first_closed: string; reopened: string }[];
+  return rows.map((r) => ({ symbol: r.symbol, firstClosedAt: Number(r.first_closed), reopenedAt: Number(r.reopened) }));
+}
+
+/** The latest full depth run (buy and sell rows) for one stock (BE-23). */
+export async function latestDepthRun(db: Db, symbol: string) {
+  const rows = (await db.execute(sql`
+    select kind, size_usd_raw::text as size, price_impact_bps as impact, deviation_bps as deviation, extract(epoch from measured_at)::bigint as at
+    from dex_quotes
+    where symbol = ${symbol} and kind in ('buy', 'sell') and error is null
+      and run_id = (select run_id from dex_quotes where symbol = ${symbol} and kind = 'buy' order by measured_at desc limit 1)
+    order by kind, size_usd_raw
+  `)) as unknown as { kind: "buy" | "sell"; size: string; impact: number | null; deviation: number | null; at: string }[];
+  return rows
+    .filter((r) => r.impact !== null && r.deviation !== null)
+    .map((r) => ({ direction: r.kind, sizeUsdRaw: r.size, priceImpactBps: r.impact!, deviationBps: r.deviation!, measuredAt: Number(r.at) }));
+}
+
+/** DEX mid against the oracle per mid measurement, oldest first, since `sinceSeconds` ago (BE-23). */
+export async function deviationHistory(db: Db, symbol: string, sinceSeconds: number) {
+  const rows = (await db.execute(sql`
+    select extract(epoch from measured_at)::bigint as at, oracle_price_e8::text as oracle, mid_price_e8::text as mid, deviation_bps as deviation
+    from dex_quotes
+    where symbol = ${symbol} and kind = 'mid' and error is null and mid_price_e8 is not null and deviation_bps is not null
+      and measured_at >= now() - make_interval(secs => ${sinceSeconds})
+    order by measured_at
+  `)) as unknown as { at: string; oracle: string; mid: string; deviation: number }[];
+  return rows.map((r) => ({ timestamp: Number(r.at), oraclePriceE8: r.oracle, dexMidPriceE8: r.mid, deviationBps: r.deviation }));
+}
+
+/** Rate snapshots of some markets, oldest first, since `sinceSeconds` ago (BE-23). */
+export async function rateHistory(db: Db, marketIds: string[], sinceSeconds: number) {
+  if (marketIds.length === 0) return [];
+  const ids = marketIds.map((m) => m.toLowerCase());
+  const rows = (await db.execute(sql`
+    select market_id, extract(epoch from measured_at)::bigint as at, borrow_apy_wad::text as borrow, supply_apy_wad::text as supply, utilization_wad::text as util
+    from market_rates
+    where market_id in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})
+      and measured_at >= now() - make_interval(secs => ${sinceSeconds})
+    order by measured_at, market_id
+  `)) as unknown as { market_id: string; at: string; borrow: string; supply: string; util: string }[];
+  return rows.map((r) => ({ marketId: r.market_id, timestamp: Number(r.at), borrowApyWad: r.borrow, supplyApyWad: r.supply, utilizationWad: r.util }));
+}
+
 /** Latest DEX mid price (8 decimals) per stock symbol from the depth keeper, when not older than `maxAgeSeconds`. */
 export async function latestDexMids(db: Db, maxAgeSeconds: number): Promise<Map<string, bigint>> {
   const rows = (await db.execute(sql`

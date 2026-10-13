@@ -1,4 +1,12 @@
 export { createDb, type Db } from "./client";
 export { runMigrations } from "./migrate";
-export { latestDexMids, morphoPositions, type EventPosition } from "./queries";
+export {
+  deviationHistory,
+  latestDepthRun,
+  latestDexMids,
+  morphoPositions,
+  observedClosedStretches,
+  rateHistory,
+  type EventPosition,
+} from "./queries";
 export * from "./schema";

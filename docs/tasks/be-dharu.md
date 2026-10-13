@@ -107,10 +107,11 @@ Three rules for the backend:
 
 ## M2. Short and Earn
 
-- [ ] **BE-20 · Quote engine for short**
+- [x] **BE-20 · Quote engine for short**
   - Needs: BE-12, SC-21.
   - Do: open and close short. On close, buy slightly more stock than the debt so it is sure to be enough, and show the remainder in the summary.
   - Done when: open, reduce and full close of a short succeed on the local fork from the quote data.
+  - Note: done on 13 October 2026. `/v1/quote/open` with `side: short` borrows stock worth margin times leverage at the oracle price and sells it; `/v1/quote/close` on a short market buys back the debt plus accrual, a 0.2% buffer and the slippage room, sized from the oracle price and corrected from the real route; the leftover stock goes to the wallet and shows as `stockAmountRaw` minus `debtRepaidRaw`. Accounts and history now give shorts an entry price (average sale price) and PnL. Fork test with the live KyberSwap route: first use with signatures, a 50% reduction and a full close; the debt was repaid in full and the router kept no tokens.
 
 - [ ] **BE-21 · Earn**
   - Needs: SC-23.
@@ -131,11 +132,12 @@ Three rules for the backend:
 
 ## M3. Market-hours protection
 
-- [ ] **BE-30 · Exchange calendar and calendar poster**
+- [~] **BE-30 · Exchange calendar and calendar poster**
   - Needs: BE-03, SC-11.
   - Do: a close and open calendar (US exchange holidays, daylight saving changes, the Anchored session schedule); a program that writes `nextCloseAt` to `RiskManager`. The Anchored schedule is read from the session changes recorded by BE-03, never typed into the code. Until a weekend close has been observed, post the earliest possible close (the regular close on the last trading day), because an early close is safe and a late one is not. The program switches to the observed schedule by itself once the data has it.
   - Done when: `nextCloseAt` on chain is correct for the next four weeks, including one holiday; on the local fork it posts the early close with no weekend data and the observed close after a weekend is recorded, with no code change in between; if this program stops, the team gets an alert.
   - Note: BE-03 data shows the weekly close at Friday 20:00 ET, with the session flipping between `POST_MARKET` and `CLOSED` until about 20:15. The close time is the first `CLOSED` write, not the last flip.
+  - Note: `packages/shared/calendar.ts` (NYSE holidays and early closes from their rules, daylight saving from the time zone, the Anchored schedule as an observed offset with the regular close as fallback) and `observedClosedStretches` in `packages/db` are written with tests. Still to do: the poster job, its fork test, and posting on mainnet, which needs the calendar poster role set and hosting.
 
 - [ ] **BE-31 · Protector keeper**
   - Needs: SC-30, BE-20.
@@ -152,10 +154,11 @@ Three rules for the backend:
   - Do: sign in with a wallet signature (`/v1/auth/siwe`); `GET` and `PUT /v1/alerts`; delivery channels (proposal: email and Telegram); a schedule of 24 hours, 4 hours and 1 hour before close, with the close time taken from the calendar (BE-30); alerts when the LTV passes a threshold, when auto-deleverage happens, and when liquidation happens.
   - Done when: a test address receives all three before-close alerts at the right times.
 
-- [ ] **BE-34 · Gap scenarios**
+- [~] **BE-34 · Gap scenarios**
   - Needs: BE-16.
   - Do: fill `gapScenarios` in quotes and in accounts; a periodic job that updates the gap table from the market data source and tells the team when the worst number changes.
   - Done when: the scenarios in the summary match the formula in 04; the gap table can be regenerated from a script.
+  - Note: one `gapScenarios` helper in `packages/shared/gaps.ts` fills quotes and accounts for long and short, with tests against the formula in 04; `gapStatsFromBars` rebuilds a table row from daily bars. Still to do: the regeneration script with a data source, and the daily check that alerts the team (needs BE-50).
 
 ---
 
