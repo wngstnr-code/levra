@@ -42,7 +42,7 @@ Refresh with the command above.
 
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
-| Smart contracts | Wangsit | 30 | 2 | 14 |
+| Smart contracts | Wangsit | 30 | 4 | 14 |
 | Backend | Dharu | 34 | 3 | 3 |
 | Frontend | Nabil | 25 | 0 | 2 |
 | Shared tasks | All three | 15 | 1 | 4 |
@@ -113,6 +113,7 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | Added the source quote time: `feedUpdatedAt` in `ISessionOracle.snapshot()` and `ILens.MarketView`, `oracleFeedUpdatedAt` in `Market`, `feedUpdatedAt` in the `price` stream event (D-23) | All three | sprint/long-flow |
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
 | 13 October 2026 | Added `GET /v1/config` and the deployment file schema in `packages/shared/deployments.ts` | Dharu, Nabil | sprint/long-flow |
+| 13 October 2026 | Added `ILiquidator` and `liquidatorAbi` for the liquidator bot. The deployment file now carries `liquidator` and, after the vault script runs, `usdcVault` | Dharu | sprint/long-flow |
 | 13 October 2026 | Added the `PriceUpdated` event to `IAnchoredStockOracle` and its ABI, for the oracle logger. Written by Dharu, needs Wangsit's review | Wangsit, Dharu | sc/BE-03-oracle-price-event |
 
 ## Daily log
@@ -152,3 +153,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: `script/Deploy.s.sol` deploys everything and creates five markets. On a local fork, `script/e2e-long.sh` opened and closed a long on aQQQ through the live KyberSwap route and the router ended with no tokens. Nothing is deployed on mainnet yet. That needs a funded deployer wallet (X-03).
 - Backend and frontend for the sprint are not started. They belong to Dharu and Nabil.
 - Wangsit: PR 4 opened for the contracts. SC-06 done: the missing addresses are in `packages/shared/addresses.ts`. SC-14: `packages/shared` now validates and reads the deployment file and exposes the stock list in `markets.ts`.
+- Wangsit: PR 5 opened with the CI workflow, 8 security tests (reentrancy and signature replay) and one test that walks a full weekend. 57 tests pass. SC-05 done. The aQQQ and aHOOD pools have no hook and charge a 0.90% fee per swap.
+- Wangsit: CI is green on PR 5 (SC-01 done). On a local fork, short and auto-deleverage both ran through the live KyberSwap route (`e2e-short.sh`, `e2e-protection.sh`). Two things the backend must know: KyberSwap's calldata enforces its own minimum return from the `slippageTolerance` sent when building it, and KyberSwap refuses some sender addresses.
+- Wangsit: SC-23 written. The USDC vault is created from Morpho's MetaMorpho v1.1 factory by `script/DeployVault.s.sol` and tested on a fork. 63 contract tests pass.
+- Wangsit: SC-32 written. `Liquidator` liquidates long and short positions with no capital of its own and is deployed by the deployment script. 70 contract tests pass and CI is green.

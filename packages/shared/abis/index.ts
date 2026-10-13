@@ -3,5 +3,6 @@ export { marginRouterAbi } from "./marginRouter";
 export { riskManagerAbi } from "./riskManager";
 export { sessionOracleAbi } from "./sessionOracle";
 export { lensAbi } from "./lens";
+export { liquidatorAbi } from "./liquidator";
 export { anchoredStockOracleAbi } from "./anchoredStockOracle";
 export { morphoAbi } from "./morpho";
