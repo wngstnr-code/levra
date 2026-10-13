@@ -9,7 +9,7 @@ MARGIN=${MARGIN:-50000000}
 SHORT_USD=${SHORT_USD:-30000000}
 MARKET=$(market short marketId)
 ORACLE=$(market short oracle)
-PARAMS="($STOCK,$USDC,$ORACLE,$IRM,770000000000000000)"
+PARAMS=$(market_params short)
 KYBER_ROUTER=0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
 
 echo "Funding the test account, buying stock on the exchange and lending it to the short market"
@@ -39,11 +39,8 @@ send "$ROUTER" "openShort((bytes32,uint256,uint256,(address,bytes,uint256),uint2
   "($MARKET,$MARGIN,$BORROW,$(swap_tuple "$MIN_OUT"),$SOFT,$DEADLINE)"
 positions
 
-# Buying back uses an exact input, so spend a little more than the debt is worth.
-SPEND=$(python3 -c "print($BORROW * $PRICE // 10**20 * 108 // 100)")
-quote "$USDC" "$STOCK" "$SPEND" "$ROUTER"
-BOUGHT=$(built "d['amountOut']")
-python3 -c "import sys; sys.exit(0 if $BOUGHT > $BORROW else 'The quote buys less stock than the debt. Raise the spend.')"
+# The buy-back is a little larger than the debt. The extra stock comes back to the account.
+quote_buyback "$BORROW" "$PRICE" "$ROUTER"
 BEFORE=$(call "$USDC" "balanceOf(address)(uint256)" "$ACCOUNT" | first)
 STOCK_BEFORE=$(call "$STOCK" "balanceOf(address)(uint256)" "$ACCOUNT" | first)
 echo "Closing short: spending $SPEND USDC to buy back about $BOUGHT stock for a debt of $BORROW"
