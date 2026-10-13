@@ -1,0 +1,157 @@
+# Frontend tasks (Nabil)
+
+Folder: `apps/web/`.
+
+Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
+
+Required reading before you start: 01-product.md (especially the seven flows and "What must always be shown to the user"), 02-architecture.md, 03-interfaces.md.
+
+Four rules for the frontend:
+
+1. No fake numbers on screen. Before the backend is ready, read directly from the chain. If data is not there yet, show an empty or loading state, not sample numbers.
+2. All money math uses integers (`bigint`). Fractions only appear when displaying.
+3. Do not rewrite the formulas. Use `packages/shared/math.ts`.
+4. Before the wallet opens, the user has already read, in plain sentences, what they are about to sign.
+
+---
+
+## M0. Foundation and spikes
+
+- [ ] **FE-01 · Set up `apps/web`**
+  - Do: Next.js project; Tailwind; style and type checks; CI on GitHub Actions; a preview deployment for every PR.
+  - Done when: an empty page is deployed and every PR gets a preview address.
+
+- [ ] **FE-02 · Wallet and network**
+  - Do: connect a plain wallet on Monad (chain 143); sign in by email or passkey without an existing wallet (D-16); switch network automatically; show the MON and USDC balances. Choose the provider with Wangsit and answer Q-02, because the wallet type decides whether the signature path in 03 section 3 works.
+  - Done when: both sign-in paths work, real balances show, a user can export or recover the created wallet, and the choice for Q-02 is recorded in 09.
+
+- [ ] **FE-03 · Markets page with data straight from the chain**
+  - Do: read the price and market session of QQQ, HOOD and BIL directly from the Anchored oracle (address and data layout in 05). Show them in a simple list.
+  - Done when: real prices and market sessions show and change with the chain, without a backend.
+  - Note: this task does not wait for anyone. Do it while waiting for SC-03 and BE-02.
+
+- [ ] **FE-04 · Screen design**
+  - Do: wireframes for all pages in 02 and the seven flows in 01; a component list; all states of each screen (loading, empty, error, stale price, market closed, pre-close window, restricted region); colors, fonts and spacing as one system.
+  - Done when: Wangsit and Dharu have seen it and there is no data that a screen needs but is missing from 03. If there is, propose an addition to 03 now.
+
+---
+
+## M1. Core long
+
+- [ ] **FE-10 · Markets page**
+  - Needs: BE-02. Data from BE-11; before that, straight from the chain.
+  - Do: a list of stocks with price, market session, current limit, maximum leverage, borrow rate, available funds, and DEX-to-oracle deviation.
+  - Done when: all numbers match `GET /v1/markets`; prices change through the stream without a reload.
+
+- [ ] **FE-11 · Long form**
+  - Needs: SC-03, BE-02. Quotes from BE-12; for tests on the local fork it needs SC-14.
+  - Do: inputs for amount and leverage with their limits; a pre-confirmation summary with all items in Flow 2 in 01; the approval steps (USDC approval and Morpho authorization) combined into one confirmation when possible; a transaction tracker; a result screen; translation of every contract error into a plain sentence; the quote is requested again when it goes stale; the confirm button disappears when there is a `block` warning.
+  - Done when: opening a long works on the local fork and on mainnet staging; the transaction data from the backend is checked first (the target must be the router address from `packages/shared`).
+
+- [ ] **FE-12 · Positions page**
+  - Needs: BE-14.
+  - Do: a list of positions with value, debt, profit and loss, an LTV bar (with marks for the soft limit and the hard limit), and the distance to the liquidation price; actions to add collateral, remove collateral, reduce and close; history.
+  - Done when: all four actions work on staging; the position changes on screen within a few seconds after the transaction.
+
+- [ ] **FE-13 · Always-visible states**
+  - Do: a market session badge on all pages; a banner when the oracle price is stale; a banner when the backend or the keepers have a problem (from `/v1/status`); one consistent error message style.
+  - Done when: each state can be triggered and shows correctly.
+
+---
+
+## M2. Short and Earn
+
+- [ ] **FE-20 · Short form**
+  - Needs: FE-11, BE-20.
+  - Do: inputs for collateral and the value of the borrowed stock; a summary as in Flow 3; a short explanation of how short works and that the sale proceeds are held as collateral; closing a short shows the leftover stock that comes back.
+  - Done when: open, reduce and close of a short work on staging.
+
+- [ ] **FE-21 · Earn page**
+  - Needs: BE-21, SC-23.
+  - Do: the choice to lend USDC (to the vault) and stocks (to a market); interest, the share that is borrowed, the amount that can be withdrawn now; the lender risk disclosure before confirmation; lending and withdrawing call the vault and Morpho directly (D-07).
+  - Done when: lending and withdrawing work for USDC and for one stock on staging.
+
+- [ ] **FE-22 · Market detail page**
+  - Needs: BE-23.
+  - Do: market depth (price impact per size), DEX-to-oracle deviation and its history, hard and soft limits with an explanation, interest history, the age of the oracle price.
+  - Done when: all five markets show with numbers from the backend.
+
+---
+
+## M3. Market-hours protection
+
+- [ ] **FE-30 · Protection and before close**
+  - Needs: SC-30, BE-30.
+  - Do: a protection toggle per market with an honest explanation (what it does, when, what it costs, what is not guaranteed); a countdown to the market close; the soft limit on the position bar moves when the pre-close window starts; a banner for positions above the limit with two buttons: add collateral and reduce the position.
+  - Done when: switching protection on and off is recorded on chain; the display changes correctly in all four market-hours states.
+
+- [ ] **FE-31 · Alert settings**
+  - Needs: BE-33.
+  - Do: sign in with a wallet signature; choose the channel and the types of alerts.
+  - Done when: the choices are saved and a test alert arrives.
+
+- [ ] **FE-32 · Gap scenarios panel**
+  - Needs: BE-34.
+  - Do: in the pre-confirmation summary and on each position: what happens if the market opens with the worst five-year gap, and a slider to try other numbers.
+  - Done when: the numbers match `packages/shared/math.ts`.
+
+- [ ] **FE-33 · Explanation of auto-deleverage and liquidation**
+  - Needs: BE-14.
+  - Do: in the history, auto-deleverage and liquidation events are explained in plain sentences: what happened, at what price, what it cost, what is left.
+  - Done when: both test events show with the correct explanation.
+
+---
+
+## M4. Cross-chain deposits
+
+- [ ] **FE-40 · Deposit flow**
+  - Needs: BE-40.
+  - Do: choose the source chain and token; show the deposit address, QR code, the amount that will arrive, the estimated time and the expiry time; a status tracker; when funds arrive, guide the user straight to the transaction form; handle expiry and refunds.
+  - Done when: a real deposit from another chain is completed from start to finish through the app.
+
+- [ ] **FE-41 · Withdraw flow**
+  - Needs: BE-41.
+  - Done when: a real withdrawal to another chain is completed through the app.
+
+---
+
+## M5. Hardening
+
+- [ ] **FE-50 · Compliance gates**
+  - Needs: BE-52, X-11.
+  - Do: a screen for restricted regions; acceptance of the terms and the risk disclosure on the first visit, with a wallet signature.
+  - Done when: a user from a restricted region cannot reach the transaction forms; a new user cannot transact before accepting.
+
+- [ ] **FE-51 · Mobile, accessibility and speed**
+  - Done when: all flows are comfortable on a phone screen; the app can be used with a keyboard; colors have enough contrast; the main page opens quickly on a slow connection.
+
+- [ ] **FE-52 · End-to-end UI tests**
+  - Needs: SC-14.
+  - Do: Playwright tests against the local fork for all seven flows.
+  - Done when: the tests run on GitHub Actions on every PR to `apps/web`.
+
+- [ ] **FE-53 · Help page**
+  - Needs: X-11, SC-61.
+  - Do: how the product works, an explanation of the risks, FAQ, how to revoke the Morpho authorization, the list of contract addresses, terms of use, privacy policy.
+  - Done when: every term in the app has an explanation that can be opened from the place where the term appears.
+
+- [ ] **FE-54 · Error reporting and usage metrics**
+  - Do: reporting of app errors to the team; usage metrics that respect privacy (store no more than needed).
+  - Done when: a test error reaches the team; the funnel from visit to first position can be seen.
+
+- [ ] **FE-55 · Two languages**
+  - Do: all text goes through translation files; languages as decided in Q-14.
+  - Done when: no text is embedded in components; switching language does not break the layout.
+
+---
+
+## M6. Launch
+
+- [ ] **FE-60 · Home page and domain name**
+  - Needs: X-02.
+  - Do: a home page that explains the product in a few sentences; a preview image for links; the production domain name.
+  - Done when: the production app runs on its domain name against the production contracts and backend.
+
+- [ ] **FE-61 · Final check**
+  - Do: go through every screen and every state one by one in production.
+  - Done when: there is no dead button, unfinished page, placeholder text or sample number.
