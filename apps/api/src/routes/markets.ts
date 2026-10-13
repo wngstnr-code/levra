@@ -1,11 +1,12 @@
 import { external, tokens } from "@levra/shared/addresses";
 import type { ConfigResponse, Market, MarketsResponse, SessionInfo } from "@levra/shared/api";
-import { borrowApyWad, maxLeverageE2, supplyApyWad, utilizationWad } from "@levra/shared/math";
+import { borrowApyWad, maxLeverageE2, signedDeviationBps, supplyApyWad, utilizationWad } from "@levra/shared/math";
 import { Hono } from "hono";
 import type { ChainReader, ChainSession, MarketState } from "../chain/reader";
 import { upstream } from "../errors";
 
-export function toApiMarket(m: MarketState): Market {
+/** `dexMidE8` comes from the depth keeper (BE-04); without a recent measurement the DEX fields stay null. */
+export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
   const utilization = utilizationWad(m.totalBorrowRaw, m.totalSupplyRaw);
   const borrowApy = borrowApyWad(m.borrowRatePerSecondWad);
   const available = m.totalSupplyRaw > m.totalBorrowRaw ? m.totalSupplyRaw - m.totalBorrowRaw : 0n;
@@ -22,9 +23,8 @@ export function toApiMarket(m: MarketState): Market {
     oracleFeedUpdatedAt: m.feedUpdatedAt,
     oraclePublishedAt: m.publishedAt,
     oracleStale: m.oracleStale,
-    // Filled from the DEX depth measurements of BE-04. Null until they exist, never estimated.
-    dexMidPriceE8: null,
-    dexDeviationBps: null,
+    dexMidPriceE8: dexMidE8 === undefined ? null : dexMidE8.toString(),
+    dexDeviationBps: dexMidE8 === undefined ? null : signedDeviationBps(dexMidE8, m.oraclePriceE8),
     lltvWad: m.lltvWad.toString(),
     softLtvOpenWad: m.softLtvOpenWad.toString(),
     softLtvClosedWad: m.softLtvClosedWad.toString(),
@@ -51,7 +51,11 @@ export function toSessionInfo(s: ChainSession): SessionInfo {
   };
 }
 
-export function marketRoutes(reader: ChainReader) {
+/** DEX mid prices per stock symbol. Empty when there is no recent measurement. */
+export type DexMids = () => Promise<Map<string, bigint>>;
+export const noDexMids: DexMids = async () => new Map();
+
+export function marketRoutes(reader: ChainReader, dexMids: DexMids = noDexMids) {
   const app = new Hono();
   const { deployment } = reader;
 
@@ -70,8 +74,8 @@ export function marketRoutes(reader: ChainReader) {
   app.get("/v1/session", async (c) => c.json(toSessionInfo(await upstream(reader.session))));
 
   app.get("/v1/markets", async (c) => {
-    const [session, markets] = await Promise.all([upstream(reader.session), upstream(reader.markets)]);
-    return c.json({ session: toSessionInfo(session), markets: markets.map(toApiMarket) } satisfies MarketsResponse);
+    const [session, markets, mids] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids()]);
+    return c.json({ session: toSessionInfo(session), markets: markets.map((m) => toApiMarket(m, mids.get(m.info.symbol))) } satisfies MarketsResponse);
   });
 
   return app;

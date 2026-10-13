@@ -19,6 +19,7 @@ const HEARTBEAT_LIMIT_S: Record<KeeperName, number> = {
   alerts: 300,
   oracleMonitor: 300,
   oracleAgePoster: 7_200,
+  marketDepth: 1_800,
 };
 
 export async function buildStatus(reader: ChainReader, db: Db, version: string): Promise<StatusResponse> {

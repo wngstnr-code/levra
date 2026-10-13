@@ -7,7 +7,7 @@ import { createChainReader } from "./chain/reader";
 import { loadEnv } from "./env";
 import { createLogger } from "./logger";
 import { dbEventStore } from "./positions/events";
-import { createKyber } from "./swap/kyber";
+import { createKyber } from "@levra/kyber";
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");

@@ -13,7 +13,7 @@ import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { dbEventStore } from "../src/positions/events";
-import { createKyber } from "../src/swap/kyber";
+import { createKyber } from "@levra/kyber";
 import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, openOnMorpho, randomAddress, seedMarket } from "./fork-helpers";
 
 const dbUrl = process.env.TEST_DATABASE_URL;

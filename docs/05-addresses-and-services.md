@@ -185,7 +185,9 @@ Also verified on a local fork on 13 October 2026:
 - The calldata carries its own minimum return, derived from the `slippageTolerance` sent when building. If the pool moved more than that, the swap reverts with "Return amount is not enough" before our own check. So the user's slippage setting must be passed to the build request.
 - The build request is refused with "wallets invalid" for some addresses. The well-known first account of a local node is one of them.
 
-Still not verified (BE-04): request limits, and whether a registered client ID is needed for production use.
+Observed on 13 October 2026 (BE-04): a full depth run sends 33 route requests in 18 seconds, with a 300 ms pause between requests, and got no 429. KyberSwap does not publish the limit for an unregistered client ID, so the real limit is not verified. The client in `packages/kyber` reports a 429 as `RATE_LIMITED`, and the depth keeper counts them in its heartbeat. Still not verified: whether a registered client ID is needed for production use.
+
+How the backend uses it (`packages/kyber`): `price()` asks for a route only; `quote()` also builds the calldata with our router as sender and recipient and the user's slippage; a route whose `routerAddress` is not the allowed swap target is refused. The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price (D-36).
 
 ### Morpho, data API
 
@@ -220,24 +222,27 @@ A starting point only. The backend measures again on a regular basis.
 
 ### Market depth (aggregator quotes)
 
-| Stock | Exchange | Buy $100 | Buy $300 | Buy $1,000 | Buy $10,000 | Sell $300 | Sell $1,000 |
-|---|---|---|---|---|---|---|---|
-| aBIL | Monday Trade | +0.0% | +0.3% | +0.1% | +251% | -0.3% | -0.7% |
-| aQQQ | Uniswap v4 | +0.3% | +2.0% | +3.4% | +35% | -1.9% | -5.1% |
-| aHOOD | Uniswap v4 | +0.3% | +2.0% | +3.6% | +37% | -2.0% | -5.3% |
-| aNVDA | Uniswap | +88% | - | +992% | very large | - | -92% |
+Measured by the depth keeper (BE-04) on 13 October 2026 at 12:29 UTC, all sizes in one run. Method: every size is one KyberSwap route quote; a sale of $X sells the stock worth $X at the oracle price; the price impact is the execution price against the DEX mid price (D-36), positive when worse for the trader. The keeper repeats the full table once a day and the mid price every 10 minutes; `pnpm --filter @levra/keeper report:depth` prints the latest run.
 
-The $300 column was measured at a different time from the other columns, so the numbers do not always line up (see aBIL). All of them are measured again in BE-04.
+| Stock | Exchange | Buy $100 | Sell $100 | Buy $300 | Sell $300 | Buy $1,000 | Sell $1,000 | Buy $3,000 | Sell $3,000 | Buy $10,000 | Sell $10,000 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| aQQQ | Uniswap v4 | +1.3% | +1.2% | +1.9% | +1.9% | +4.4% | +4.2% | +11.4% | +10.1% | +36.0% | +26.1% |
+| aHOOD | Uniswap v4 | +1.3% | +1.3% | +2.0% | +2.0% | +4.6% | +4.6% | +12.0% | +11.3% | +38.0% | +28.8% |
+| aBIL | Monday Trade | +0.3% | +0.3% | +0.3% | +0.3% | +0.4% | +0.4% | +5.4% | +99.9% | +251.6% | +100.0% |
 
-Of the 28 Anchored stocks checked, 24 have no route at all.
+About 1% of every small trade on aQQQ and aHOOD is the 0.90% pool fee. The aBIL pool cannot absorb a sale of $3,000 or more: the route returns almost nothing.
+
+The earlier one-time check of 28 Anchored stocks found 24 with no route at all. That was not measured again.
 
 ### DEX price compared to oracle price
 
+Same run. DEX mid as in D-36.
+
 | Stock | Oracle | DEX mid | Deviation |
 |---|---|---|---|
-| aBIL | $91.50 | $91.62 | +0.1% |
-| aQQQ | $745.62 | $726.28 | -2.6% |
-| aHOOD | $108.52 | $116.26 | +7.1% |
+| aBIL | $91.52 | $91.62 | +0.1% |
+| aQQQ | $740.64 | $726.08 | -2.0% |
+| aHOOD | $108.83 | $116.26 | +6.8% |
 
 ### Usage
 

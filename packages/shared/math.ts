@@ -111,6 +111,17 @@ export function liquidationIncentiveFactorWad(lltvWad: bigint): bigint {
   return lif < MAX_LIQUIDATION_INCENTIVE_FACTOR ? lif : MAX_LIQUIDATION_INCENTIVE_FACTOR;
 }
 
+/** MarginRouter._priceE8: dollars per stock token with 8 decimals, from a swap's quote and stock amounts. Zero without stock. */
+export function swapPriceE8(quoteAmount: bigint, stockAmount: bigint, quoteDecimals: number, stockDecimals: number): bigint {
+  if (stockAmount === 0n) return 0n;
+  return mulDiv(quoteAmount * 100_000_000n, 10n ** BigInt(stockDecimals), stockAmount * 10n ** BigInt(quoteDecimals));
+}
+
+/** Stock amount worth `usdRaw` (6 decimals) at `priceE8`, rounded down. */
+export function stockForUsd(usdRaw: bigint, priceE8: bigint, quoteDecimals: number, stockDecimals: number): bigint {
+  return mulDiv(usdRaw * 100_000_000n, 10n ** BigInt(stockDecimals), priceE8 * 10n ** BigInt(quoteDecimals));
+}
+
 /** RiskManager.checkOpen: |exec - oracle| × 10,000 / oracle, rounded down. */
 export function deviationBps(execPriceE8: bigint, oraclePriceE8: bigint): bigint {
   return mulDiv(abs(execPriceE8 - oraclePriceE8), BPS, oraclePriceE8);

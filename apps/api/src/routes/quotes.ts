@@ -7,7 +7,7 @@ import { quoteCloseLong } from "../quotes/close-long";
 import { quoteCollateral } from "../quotes/collateral";
 import { quoteOpenLong } from "../quotes/open-long";
 import type { EventStore } from "../positions/events";
-import type { SwapSource } from "../swap/kyber";
+import type { SwapSource } from "@levra/kyber";
 
 async function body<T extends z.ZodType>(schema: T, raw: Promise<unknown>): Promise<z.infer<T>> {
   const parsed = schema.safeParse(await raw.catch(() => undefined));

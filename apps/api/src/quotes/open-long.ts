@@ -65,7 +65,7 @@ export async function quoteOpenLong({ reader, swap }: QuoteDeps, req: QuoteOpenR
 
   const [route, midE8] = await Promise.all([
     swap.quote({ tokenIn: quote, tokenOut: stock, amountIn: swapIn, sender: reader.deployment.router, slippageBps: req.slippageBps }),
-    midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals),
+    midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, m.oraclePriceE8),
   ]);
   const expectedOut = route.amountOut;
   const minOut = (expectedOut * (BPS - BigInt(req.slippageBps))) / BPS;

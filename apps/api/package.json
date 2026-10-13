@@ -12,6 +12,7 @@
   "dependencies": {
     "@hono/node-server": "^2.1.4",
     "@levra/db": "workspace:*",
+    "@levra/kyber": "workspace:*",
     "@levra/shared": "workspace:*",
     "drizzle-orm": "0.45.4",
     "hono": "^4.13.13",

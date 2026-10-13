@@ -7,11 +7,13 @@
     "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "start": "tsx --env-file-if-exists=.env src/index.ts",
     "report:oracle": "tsx --env-file-if-exists=.env src/oracle/report-cli.ts",
+    "report:depth": "tsx --env-file-if-exists=.env src/dex/report-cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@levra/db": "workspace:*",
+    "@levra/kyber": "workspace:*",
     "@levra/shared": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "pino": "^10.4.0",

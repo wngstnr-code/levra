@@ -183,6 +183,7 @@ One repo for everything (monorepo), managed with pnpm and Turborepo.
 │   └── web/              Nabil. Web app
 ├── packages/
 │   ├── db/               Dharu. Postgres schema and migrations (Drizzle), used by api, indexer and keeper
+│   ├── kyber/            Dharu. KyberSwap client and the DEX mid price (D-36), used by api and keeper
 │   └── shared/           Shared, each file has an owner
 │       ├── abis/         generated from contracts/, do not edit by hand
 │       ├── addresses.ts  addresses of external services and our contracts

@@ -29,3 +29,15 @@ export async function morphoPositions(db: Db, filter: { user?: string; marketId?
     .map((r) => ({ user: r.user, marketId: r.market_id, collateral: BigInt(r.collateral), borrowShares: BigInt(r.borrow_shares) }))
     .filter((p) => p.collateral !== 0n || p.borrowShares !== 0n);
 }
+
+/** Latest DEX mid price (8 decimals) per stock symbol from the depth keeper, when not older than `maxAgeSeconds`. */
+export async function latestDexMids(db: Db, maxAgeSeconds: number): Promise<Map<string, bigint>> {
+  const rows = (await db.execute(sql`
+    select distinct on (symbol) symbol, mid_price_e8::text as mid
+    from dex_quotes
+    where kind = 'mid' and error is null and mid_price_e8 is not null
+      and measured_at >= now() - make_interval(secs => ${maxAgeSeconds})
+    order by symbol, measured_at desc
+  `)) as unknown as { symbol: string; mid: string }[];
+  return new Map(rows.map((r) => [r.symbol, BigInt(r.mid)]));
+}

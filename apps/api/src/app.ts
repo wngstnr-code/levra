@@ -2,15 +2,17 @@ import type { Db } from "@levra/db";
 import type { HealthResponse } from "@levra/shared/api";
 import { Hono } from "hono";
 import type { ChainReader } from "./chain/reader";
-import { ApiHttpError } from "./errors";
+import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
 import { chainEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
-import { marketRoutes } from "./routes/markets";
+import { marketRoutes, type DexMids } from "./routes/markets";
+import { latestDexMids } from "@levra/db";
+import { createCache } from "./chain/cache";
 import { quoteRoutes } from "./routes/quotes";
 import { statusRoutes } from "./routes/status";
 import { streamRoutes, type StreamOptions } from "./routes/stream";
-import type { SwapSource } from "./swap/kyber";
+import { SwapError, type SwapSource } from "@levra/kyber";
 
 export type AppDeps = {
   logger: Logger;
@@ -23,6 +25,12 @@ export type AppDeps = {
   db?: Db;
   version?: string;
 };
+
+/** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
+function dexMidsFromDb(db: Db): DexMids {
+  const cached = createCache();
+  return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
+}
 
 export function createApp({ logger, reader, swap, events, stream, db, version = "dev" }: AppDeps) {
   const app = new Hono();
@@ -40,8 +48,9 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
 
   if (reader) {
     const store = events ?? chainEventStore(reader);
-    app.route("/", marketRoutes(reader));
-    app.route("/", streamRoutes(reader, logger, stream));
+    const mids = db ? dexMidsFromDb(db) : undefined;
+    app.route("/", marketRoutes(reader, mids));
+    app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
     if (swap) app.route("/", quoteRoutes(reader, swap, store));
     if (db) app.route("/", statusRoutes(reader, db, version));
@@ -52,6 +61,7 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
   });
 
   app.onError((err, c) => {
+    if (err instanceof SwapError) err = fromSwapError(err);
     if (err instanceof ApiHttpError) {
       if (err.status >= 500) logger.warn({ err, cause: err.cause }, err.message);
       return c.json(err.toBody(), err.status);
