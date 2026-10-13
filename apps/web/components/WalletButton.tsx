@@ -1,7 +1,7 @@
 "use client";
 
 import { useExportWallet, usePrivy } from "@privy-io/react-auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 import { monad } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
@@ -60,7 +60,9 @@ function PrivyWalletButton() {
     );
   }
 
-  const hasEmbeddedWallet = user?.wallet?.walletClientType === "privy";
+  const embeddedWallet = user?.linkedAccounts.find(
+    (account) => account.type === "wallet" && account.walletClientType === "privy" && account.chainType === "ethereum",
+  );
 
   return (
     <details className="relative">
@@ -71,10 +73,8 @@ function PrivyWalletButton() {
         <p className="break-all text-xs text-neutral-400">{address}</p>
         <Balances address={address} />
         <div className="flex flex-col gap-2 border-t border-neutral-800 pt-3 text-sm">
-          {hasEmbeddedWallet && (
-            <button onClick={() => exportWallet({ address })} className="text-left text-neutral-300 hover:text-white">
-              Export wallet key
-            </button>
+          {embeddedWallet?.type === "wallet" && (
+            <ExportWalletButton onExport={() => exportWallet({ address: embeddedWallet.address })} />
           )}
           <button onClick={logout} className="text-left text-neutral-300 hover:text-white">
             Sign out
@@ -82,5 +82,27 @@ function PrivyWalletButton() {
         </div>
       </div>
     </details>
+  );
+}
+
+function ExportWalletButton({ onExport }: { onExport: () => Promise<void> }) {
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleClick() {
+    setError(null);
+    try {
+      await onExport();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The wallet key could not be exported.");
+    }
+  }
+
+  return (
+    <div>
+      <button onClick={handleClick} className="text-left text-neutral-300 hover:text-white">
+        Export wallet key
+      </button>
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+    </div>
   );
 }
