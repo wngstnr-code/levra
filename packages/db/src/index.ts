@@ -5,6 +5,8 @@ export {
   latestDepthRun,
   protectedPositions,
   latestDexMids,
+  latestOraclePrice,
+  oraclePriceSeries,
   morphoPositions,
   observedClosedStretches,
   rateHistory,

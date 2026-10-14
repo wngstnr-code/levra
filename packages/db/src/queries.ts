@@ -110,6 +110,39 @@ export async function deviationHistory(db: Db, symbol: string, sinceSeconds: num
   return rows.map((r) => ({ timestamp: Number(r.at), oraclePriceE8: r.oracle, dexMidPriceE8: r.mid, deviationBps: r.deviation }));
 }
 
+/**
+ * Oracle price of a stock at every multiple of `bucketSeconds` from `fromSeconds` to `toSeconds` (unix, both aligned),
+ * oldest first: the last `PriceUpdated` write at or before each time, so the price is carried forward while the
+ * oracle does not write, as the oracle itself does (BE-24). Times before the first recorded write are left out.
+ */
+export async function oraclePriceSeries(db: Db, symbol: string, fromSeconds: number, toSeconds: number, bucketSeconds: number) {
+  if (toSeconds < fromSeconds) return [];
+  const rows = (await db.execute(sql`
+    select extract(epoch from t)::bigint as at, p.price
+    from generate_series(to_timestamp(${fromSeconds}::bigint), to_timestamp(${toSeconds}::bigint), make_interval(secs => ${bucketSeconds})) as t
+    cross join lateral (
+      select price_e8::text as price from oracle_updates
+      where symbol = ${symbol} and block_time <= t
+      order by block_time desc, block_number desc, log_index desc
+      limit 1
+    ) p
+    order by t
+  `)) as unknown as { at: string; price: string }[];
+  return rows.map((r) => ({ timestamp: Number(r.at), oraclePriceE8: r.price }));
+}
+
+/** The most recent recorded oracle price of a stock and the block time of its write, or null when none is recorded. */
+export async function latestOraclePrice(db: Db, symbol: string) {
+  const rows = (await db.execute(sql`
+    select extract(epoch from block_time)::bigint as at, price_e8::text as price from oracle_updates
+    where symbol = ${symbol}
+    order by block_time desc, block_number desc, log_index desc
+    limit 1
+  `)) as unknown as { at: string; price: string }[];
+  const row = rows[0];
+  return row ? { timestamp: Number(row.at), oraclePriceE8: row.price } : null;
+}
+
 /** Rate snapshots of some markets, oldest first, since `sinceSeconds` ago, the last one per market in each `bucketSeconds` window (BE-23). */
 export async function rateHistory(db: Db, marketIds: string[], sinceSeconds: number, bucketSeconds = 1) {
   if (marketIds.length === 0) return [];

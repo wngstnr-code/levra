@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 20 | 14 |
+| Backend | Dharu | 36 | 20 | 15 |
 | Frontend | Nabil | 28 | 5 | 20 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -193,6 +193,7 @@ One line for every change to 03 after the freeze.
 | 14 October 2026 | `DepositQuoteResponse.gasDeposit` for the MON top-up (D-40); `DepositStatus.destinationTxHash` is any string, since a withdrawal can land on a chain that is not EVM; `transfers` added to the keeper names in `/v1/status` | Dharu, Nabil | be/BE-40-deposits |
 | 14 October 2026 | Section 4 "Signed messages": the web app now imports `termsMessage` from `packages/shared` instead of keeping its own copy. No shape change | Dharu, Nabil | fe/FE-40-31-50-backend-sync |
 | 14 October 2026 | Added `POST` and `DELETE /v1/alerts/telegram` and `TelegramLinkResponse`; wrote down the sign-in rules (D-38) and when alerts go out | Dharu, Nabil | be/BE-33-alerts |
+| 14 October 2026 | Added `GET /v1/markets/:symbol/prices?range=1D\|1W\|1M` with `PriceHistoryResponse`, `PricePoint` and `PriceRange` (D-43), asked for by Nabil for FE-14. Nothing else changed | Dharu, Nabil | be/BE-24-price-history |
 | 13 October 2026 | Wrote down `MarketDetail` history rules in 03: 30 days, one point per hour, empty without a database, 404 for an unknown stock | Dharu, Nabil | be/BE-23-market-detail |
 | 13 October 2026 | `EarnPosition.earnedRaw` is now signed, since bad debt can make it negative. Earn option ids are `vault:<address>` and `market:<marketId>` | Dharu, Nabil | be/BE-22-earn |
 | 13 October 2026 | Added `@levra/shared/deployments/monad`, which exports `monadDeployment`: the mainnet deployment file, validated and bundled. Nothing was removed | Dharu, Nabil | sc/SC-15-mainnet-deployment |
@@ -203,6 +204,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: BE-24 written for Nabil's charts (FE-14): `GET /v1/markets/:symbol/prices?range=1D|1W|1M` serves the oracle price from the oracle logger's table on a fixed grid (5 minutes, 1 hour, 4 hours), carried forward while the market is closed and ending with the latest price (D-43). The 1M query takes about 7 ms on the two weeks recorded locally. The data starts on 29 September 2026, so 1M shows about two weeks until a full month is recorded. Next: merge and check it on staging.
 - Dharu: BE-52 can now refuse regions inside a country (ISO 3166-2 from Cloudflare's `cf-region-code`), which covers the sanctioned Ukrainian regions in D-42 once the API sits behind Cloudflare.
 - Dharu: proposed the region block list from Anchored's own prohibited jurisdictions (D-42, initial proposal pending counsel) and raised Q-31 on investor checks. Sent Dharu's multisig address to the blocker row for X-03. Alerts will start with Telegram only (Q-30).
 - Nabil: trade fixes on `fe/FE-32-gap-card`: the gap card was empty at 1x (no loan, which is right) but asked for an amount, and showed one bar where the design has four; it now adds round gaps with the shared formula. Quotes back off after a 429. The 429s themselves come from KyberSwap limiting the staging server (blocker for Dharu). Also fixed: `formatBps` dropped the zeros of whole numbers (100% showed as 1%, also in the Positions liquidation distance), and a 1x quote showed a $0 liquidation price; it now says there is none.

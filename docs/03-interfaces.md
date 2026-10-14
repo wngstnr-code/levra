@@ -382,6 +382,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | GET | `/v1/session` | Market session, next close and open time | M1 |
 | GET | `/v1/markets` | All markets, with the current session | M1 |
 | GET | `/v1/markets/:symbol` | One stock: details, depth, history of rates and price deviation | M2 |
+| GET | `/v1/markets/:symbol/prices?range=1D\|1W\|1M` | Oracle price history of one stock, for charts | M2 |
 | GET | `/v1/stream` | Stream of prices and market session (SSE) | M1 |
 | POST | `/v1/quote/open` | Quote to open long or short | M1 long, M2 short |
 | POST | `/v1/quote/close` | Quote to reduce or close | M1 long, M2 short |
@@ -657,6 +658,24 @@ type MarketDetail = {
 };
 // `:symbol` is the stock symbol without the `a` prefix, any case. 404 for a stock not in the deployment.
 // The three history arrays are empty when the API runs without a database. Window and bucket are initial proposals.
+
+type PriceRange = "1D" | "1W" | "1M";
+type PricePoint = { timestamp: number; oraclePriceE8: string };
+type PriceHistoryResponse = {
+  symbol: string;
+  range: PriceRange;
+  points: PricePoint[];       // oldest first
+};
+// GET /v1/markets/:symbol/prices?range=1D|1W|1M (BE-24, D-43). `:symbol` as above, any case.
+// Source: every `PriceUpdated` write of the Anchored oracle recorded by the oracle logger (BE-03). The price is the
+// oracle's own price (`price`), not the bid or ask: the same value as `Market.oraclePriceE8` and the `price` stream event.
+// Points sit at multiples of the spacing in UTC: 1D every 5 minutes (288), 1W every hour (168), 1M every 4 hours (180).
+// Each point is the last write at or before its time, so the price is carried forward while the oracle does not
+// write (market closed), as the oracle itself does. The last point is the latest recorded price at the request time.
+// Times before the first recorded write are left out, so a range can have fewer points than listed.
+// Empty `points` when the API runs without a database. 400 BAD_REQUEST for a missing or unknown range,
+// 404 for a stock not in the deployment. Answers are cached for 10 seconds; use the `price` stream event for live
+// updates in between. Spacing, cache and ranges are initial proposals.
 
 type QuoteCollateralRequest = {
   user: Address;
