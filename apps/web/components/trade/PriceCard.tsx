@@ -68,7 +68,7 @@ export function PriceCard({
         )}
       </div>
       {points.length > 1 ? (
-        <AreaChart values={chartValues(points)} tone="peri" label={m.trade.chartLabel(range)} className="h-44" />
+        <AreaChart values={chartValues(points)} tone="peri" minSpan={0.01} label={m.trade.chartLabel(range)} className="h-44" />
       ) : (
         apiConfigured && history.isPending && <Skeleton className="h-44 w-full rounded-panel" />
       )}
