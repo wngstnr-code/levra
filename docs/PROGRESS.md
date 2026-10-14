@@ -63,7 +63,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
-| 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`). The roles are granted, so this is the last step before the keeper jobs can send transactions | BE-17, BE-30, BE-31, BE-32, BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap API key (client IDs are no longer whitelisted; ask business@kyber.network, then set `KYBER_API_KEY` on api and keeper) and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
 | 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
@@ -71,7 +70,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
 | 14 October 2026 | Nabil | Wangsit | Set `NEXT_PUBLIC_API_URL=https://api-production-c154.up.railway.app` on the Vercel project (Production and Preview) and redeploy. The Vercel project is on Wangsit's account. This is the last step of BE-15 | FE-10, FE-11, FE-12, FE-13, BE-15 |
-| 14 October 2026 | Nabil | Dharu | Trade quotes on staging fail often with 429 `RATE_LIMITED`. Three limits can answer it: KyberSwap's own public limit of 3 requests per second ("The swap aggregator is rate limiting us"), our KyberSwap budget, and our per-wallet quote limit. PR 72 shares the DEX mid price between quotes (2 KyberSwap calls per quote instead of 4) and raised the quote limits; `be/BE-04-kyber-limits` spaces and retries KyberSwap requests. A KyberSwap API key (row above) is the lasting fix | FE-11, BE-04, BE-12, BE-51 |
 
 ## Open questions that block work soon
 
@@ -201,6 +199,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: the four keeper wallets are funded by Wangsit (10 MON each, about 20 for the calendar poster) and every keeper on `/v1/status` is healthy. First keeper transaction on mainnet: the calendar poster set `nextCloseAt` to 17 October 2026 00:00 UTC (Friday 20:00 ET), `0xc2047d91042f4a88ed234c923810897fff91241af3a86c452ad2cd048c241199` (block 113209393). Quotes on staging after PR 72 and PR 74: 12 of 12 open quotes answered 200 in 1.2 to 2.9 s, one every 1.5 s across QQQ, HOOD and BIL; the 429 blocker row is closed, the KyberSwap API key stays open for launch traffic.
 - Nabil: FE-14 done: price charts from BE-24 on Markets (one-day sparklines) and Trade (1D, 1W, 1M with the change over the range), checked against staging. Quotes on staging worked 5 of 5 times in one check; whether the KyberSwap client ID is set on Railway is not confirmed.
 - Dharu: checked Wangsit's grant of the four keeper roles on chain: all four transactions succeeded (blocks 113204418 to 113204447) and the router, the `Liquidator` and `RiskManager` now name the keeper addresses. The keeper picked the roles up without a redeploy; its jobs now stop at "insufficient balance", so the MON top-up is the last step. Blocker row for Wangsit closed.
 - Wangsit: the four operational roles are granted on mainnet with `make set-roles-monad` (blocks 113204418 to 113204447), read back from the chain. Router keeper `0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e`: `0x174648387a0c4a6240f3584c5fa1b5092448b8cabb67417010aed83e673549aa`. `Liquidator` keeper `0x22ea6605a7D5246b1F05831632DC8172125A5C18`: `0xa5280a81dcd372d86fe3a66d64ac620bff0bcce453ffab6c34d3e041ec9f4a66`. Calendar poster `0x745356C469FcE1372B4C2259332f5251130d4a5b`: `0xcf066a3dbad446f277a7e5b11a39e336cb8c06c1add83b25e241bd7cd375a5a9`. Oracle age poster `0x33B03c6e569e06938D59F1232ef5070646F0146d`: `0x3c2a4f37da6d52f5b4c30cf1b5039d21a2c232b01c73c5f88176427a96fc50b2`.
