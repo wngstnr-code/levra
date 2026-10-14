@@ -1,5 +1,6 @@
 "use client";
 
+import type { PriceRange } from "@levra/shared/api";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { orderDepositTokens } from "../depositTokens";
@@ -8,6 +9,7 @@ import { api, apiBaseUrl, ApiRequestError } from "./client";
 export const queryKeys = {
   markets: ["markets"] as const,
   marketDetail: (symbol: string) => ["marketDetail", symbol] as const,
+  prices: (symbol: string, range: PriceRange) => ["prices", symbol, range] as const,
   account: (address: string) => ["account", address.toLowerCase()] as const,
   history: (address: string) => ["history", address.toLowerCase()] as const,
   status: ["status"] as const,
@@ -33,6 +35,18 @@ export function useMarkets() {
     queryFn: ({ signal }) => api("markets", { signal }),
     enabled: apiConfigured,
     refetchInterval: 60_000,
+    retry: shouldRetry,
+  });
+}
+
+/** Oracle price history for charts (BE-24). The service caches it for 10 s; a minute is enough for a chart. */
+export function usePriceHistory(symbol: string, range: PriceRange) {
+  return useQuery({
+    queryKey: queryKeys.prices(symbol, range),
+    queryFn: ({ signal }) => api("marketPrices", { params: { symbol }, query: { range }, signal }),
+    enabled: apiConfigured,
+    refetchInterval: 60_000,
+    placeholderData: (prev) => prev,
     retry: shouldRetry,
   });
 }

@@ -81,6 +81,7 @@ export const en = {
     insufficientGas: "Not enough MON for the network fee.",
   },
   markets: {
+    sparkline: "Oracle price over the last day",
     title: "Markets",
     subtitle: "Tokenized US stocks on Monad. Prices from the Anchored oracle, about 15 minutes behind the exchange.",
     quoteAge: (t: string) => `Quote ${t} old`,
@@ -150,6 +151,8 @@ export const en = {
     gapSub: "LTV right after the price jumps when the market opens.",
     noLiq: "None",
     noLiqBody: "No loan, so this position cannot be liquidated.",
+    chartRange: "Chart range",
+    chartLabel: (range: string) => `Oracle price over ${range}`,
     gapNoLoan: "No loan at 1×, so a price gap at the open cannot liquidate this position.",
     gapStep: (move: string) => `Price ${move} at the open`,
     gapWorst: (label: string, move: string) => `${label}: ${move}. The other bars are round gaps for comparison.`,

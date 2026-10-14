@@ -3,10 +3,10 @@ import { createBucketStore, type BucketRule } from "./bucket";
 
 /**
  * One budget for all KyberSwap calls from this API, so no amount of client traffic can use up our
- * quota with KyberSwap. KyberSwap does not publish its limit; 33 requests in 18 seconds raised no 429
- * (05). Initial proposal.
+ * quota with KyberSwap. The public limit is 3 requests per second (05) and the client spaces calls
+ * 350 ms apart, so a full bucket waits about 4 s at most instead of failing upstream. Initial proposal.
  */
-export const defaultSwapBudget: BucketRule = { capacity: 30, perMinute: 60 };
+export const defaultSwapBudget: BucketRule = { capacity: 12, perMinute: 60 };
 
 /** HTTP calls to KyberSwap behind each method: a route, plus a build for a quote. */
 const COST = { price: 1, quote: 2 } as const;

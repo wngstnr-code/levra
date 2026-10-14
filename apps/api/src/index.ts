@@ -18,7 +18,7 @@ const deployment = readDeployment(env.DEPLOYMENT_FILE);
 const { db, close } = createDb(env.DATABASE_URL);
 const reader = createChainReader(createChainClient(env.MONAD_RPC_URL), deployment);
 // One budget for all KyberSwap calls, so client traffic cannot use up our quota (BE-51).
-const swap = budgetedSwap(createKyber({ baseUrl: env.KYBER_BASE_URL, clientId: env.KYBER_CLIENT_ID }));
+const swap = budgetedSwap(createKyber({ baseUrl: env.KYBER_BASE_URL, clientId: env.KYBER_CLIENT_ID, apiKey: env.KYBER_API_KEY }));
 const auth = env.AUTH_SECRET && env.AUTH_DOMAIN ? { secret: env.AUTH_SECRET, domains: parsePatterns(env.AUTH_DOMAIN), telegramBot: env.TELEGRAM_BOT_USERNAME } : undefined;
 const corsOrigins = parsePatterns(env.CORS_ORIGINS);
 if (corsOrigins.length === 0) logger.warn("CORS_ORIGINS is not set: browsers on other origins cannot call the API");
