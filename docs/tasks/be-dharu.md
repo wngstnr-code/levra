@@ -99,11 +99,12 @@ Three rules for the backend:
   - Note: `math.ts` and `gaps.ts` are written with unit tests on the examples in 04 (price scale, LTV, liquidation price, distance, gap, leverage table, bonus, APY, deleverage size). Each formula follows the contract code, including rounding (`RiskManager.positionLtv`, `Lens._liqPriceE8`, `SessionOracle`). The fork test in `apps/api/test/fork.test.ts` opens a real long and short on Morpho and gets exactly the same LTV and liquidation price as `Lens`, and the same Morpho price as `SessionOracle.price()`. A zero or non-sensible bid and ask cannot be produced on a fork of the live oracle, so those cases are covered by unit tests only.
   - Note: reviewed by Wangsit on 13 October 2026: the formulas match the contracts. His two notes are fixed (14 October): the long liquidation price now divides by `collateral × lltv` in one step as `Lens` does since PR 13, with a unit test where the old rounding would differ; and the open quotes send `maxLtv` with 1 bps of the LTV as room for interest that accrues on existing debt before the block, so a fill exactly at the worst case no longer trips `UserLimitExceeded`.
 
-- [~] **BE-17 · Oracle age poster (keeper)**
+- [x] **BE-17 · Oracle age poster (keeper)**
   - Needs: BE-03, and a bounded `maxOracleAge` setter with its own role in `RiskManager` (done by Wangsit: D-31, `setOracleAgeBounds` and `setMaxOracleAge`).
   - Do: a keeper in `apps/keeper` that computes `maxOracleAge` per market from the BE-03 tables with the formula in 04, and posts it on chain. It does nothing until the data meets the minimum in 04; until then the value set at deployment stays. It posts only when the new value differs from the chain value by more than a small step, and never outside the bounds the multisig set. Every post is logged with the input numbers. Its key is used for this role only (BE-55).
   - Done when: on the local fork, the poster sets the value from recorded data; does nothing with too little data; is rejected outside the bounds; the team gets an alert for every change (BE-50). After launch no person has to touch code, the repo or the multisig for this value to follow the data.
   - Note: written on 13 October 2026. The keeper job `oracleAgePoster` (on only when `ORACLE_AGE_POSTER_KEY` and `DEPLOYMENT_FILE` are set) checks its key is the registered poster, takes the proposal per stock from the BE-03 tables, keeps it inside the owner's bounds, skips changes under 10% and posts `setMaxOracleAge` for every market of the stock, logging the inputs. Fork tests: five markets moved on chain, a value above the cap kept at the cap, small changes and too little data left alone, a wrong key refused. Run on the real two weeks of data: QQQ 2,100 s, HOOD 2,160 s, BIL 3,060 s, which equal the values the deployment script already sets, so nothing was posted. Still to do: the team alert on every change, which comes with BE-50; until then each change is a warning in the keeper log and in its heartbeat.
+  - Note: done on 14 October 2026. The team monitor (BE-50) posts "maxOracleAge of <market> changed from A to B seconds" for every change it reads on chain, to the team Telegram group, which is live on staging (a test message arrived). On mainnet the poster holds its role (granted by Wangsit) and 10 MON, and reports healthy; it has posted nothing yet because the data still matches the deployed values. Not verified yet: a real change arriving in the group, which happens the first time the data moves a value by more than 10%.
 
 ---
 
@@ -133,11 +134,12 @@ Three rules for the backend:
   - Done when: all five markets show with the correct numbers.
   - Note: done on 13 October 2026. The `marketDepth` keeper job now also stores a rate snapshot of every market from `Lens` on each run (`market_rates`, every 10 minutes) when `DEPLOYMENT_FILE` is set. `/v1/markets/:symbol` gives both sides of the stock, the latest depth run, and 30 days of rate and deviation history at one point per hour (initial proposal). Every endpoint reads markets and tokens from the deployment, so HOOD and BIL need no special code. Fork test: the detail of every stock equals its rows in `/v1/markets`, which match the contracts for all five markets, and the keeper's snapshot equals the API's rates. DB test for the history and the depth run.
 
-- [~] **BE-24 · Price history for charts**
+- [x] **BE-24 · Price history for charts**
   - Needs: BE-03 (the `oracle_updates` table), BE-23.
   - Do: `GET /v1/markets/:symbol/prices?range=1D|1W|1M` for the Markets sparklines and the Trade chart (FE-14, asked for by Nabil on 14 October 2026). Oracle price on a fixed grid, carried forward while the oracle does not write, ending with the latest price (D-43). An interface addition in 03 and `packages/shared/api`.
   - Done when: the endpoint answers on staging with the recorded oracle data for all three stocks; Nabil has approved the shape.
   - Note: written on 14 October 2026. `oraclePriceSeries` and `latestOraclePrice` in `packages/db` read `oracle_updates` by its `(symbol, block_time)` index; the API spaces points every 5 minutes (1D, 288), 1 hour (1W, 168) or 4 hours (1M, 180) and caches each chart for 10 seconds. Tests: grid and last point without a database, 400 and 404, and a DB test that checks the carry forward, times before the first write left out, and all three ranges ending with the latest price. Not verified yet: staging. The logger backfills `ORACLE_BACKFILL_BLOCKS` on its first start (4,000,000 blocks in `.env.example`, about two weeks), so 1M stays short until a full month is recorded.
+  - Note: done on 14 October 2026. Checked on staging: QQQ, HOOD and BIL each answer 289 points for 1D, 169 for 1W and 86 for 1M (data since 29 September 2026). Nabil built FE-14 on this shape and checked it against staging.
 
 ---
 
@@ -253,6 +255,7 @@ Three rules for the backend:
   - Do: a production environment separate from staging; production addresses; keepers with production keys.
   - Done when: all endpoints answer correctly against the production contracts; all keepers send a heartbeat.
 
-- [~] **BE-61 · Status page**
+- [x] **BE-61 · Status page**
   - Done when: the public can see the state of the oracle, keepers, API and indexer.
   - Note: written on 14 October 2026. The API serves `/status`: one plain HTML page with no script or outside files, built from `/v1/status`: each stock's oracle price age and limit, the keepers that run in this deployment, and the indexer lag, with one line saying whether all is normal. It refreshes every 30 seconds and answers 503 with a short notice when the chain cannot be read. Still to do: check it live on the staging API after merge, and give it the public status address once the domain is chosen (Q-25).
+  - Note: done on 14 October 2026. Live at `https://api-production-c154.up.railway.app/status`: "All systems normal" with 13 green rows (three stocks, nine keepers, the indexer) and none red, after the keeper roles were granted and funded. Left for later: a status address on our own domain once Q-25 is decided.
