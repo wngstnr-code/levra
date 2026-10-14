@@ -8,11 +8,22 @@ const colors: Record<Tone, string> = { peri: "var(--color-peri)", lime: "var(--c
 const W = 600;
 const H = 200;
 
-/** A Stocks-style line with a soft fade below. It stretches to its box, so give it a height. */
-export function AreaChart({ values, tone = "peri", baseline, label, className }: { values: number[]; tone?: Tone; baseline?: number; label: string; className?: string }) {
+/**
+ * A Stocks-style line with a soft fade below. It stretches to its box, so give it a height. `minSpan` is the smallest
+ * vertical range as a share of the middle value, so a price that barely moves is drawn nearly flat instead of jagged.
+ */
+export function AreaChart({ values, tone = "peri", baseline, minSpan = 0, label, className }: { values: number[]; tone?: Tone; baseline?: number; minSpan?: number; label: string; className?: string }) {
   const id = useId();
   const all = baseline !== undefined ? [...values, baseline] : values;
-  const { line, area, y } = smoothPath(values, W, H, 6, [Math.min(...all), Math.max(...all)]);
+  let lo = Math.min(...all);
+  let hi = Math.max(...all);
+  const floor = Math.abs((lo + hi) / 2) * minSpan;
+  if (hi - lo < floor) {
+    const mid = (lo + hi) / 2;
+    lo = mid - floor / 2;
+    hi = mid + floor / 2;
+  }
+  const { line, area, y } = smoothPath(values, W, H, 6, [lo, hi]);
   return (
     <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={cn("block w-full", className)}>
       <defs>
