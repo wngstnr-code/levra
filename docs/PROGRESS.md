@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 36 | 20 | 15 |
-| Frontend | Nabil | 28 | 5 | 20 |
+| Frontend | Nabil | 29 | 6 | 20 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -201,6 +201,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Nabil: FE-14 done: price charts from BE-24 on Markets (one-day sparklines) and Trade (1D, 1W, 1M with the change over the range), checked against staging. Quotes on staging worked 5 of 5 times in one check; whether the KyberSwap client ID is set on Railway is not confirmed.
 - Dharu: checked Wangsit's grant of the four keeper roles on chain: all four transactions succeeded (blocks 113204418 to 113204447) and the router, the `Liquidator` and `RiskManager` now name the keeper addresses. The keeper picked the roles up without a redeploy; its jobs now stop at "insufficient balance", so the MON top-up is the last step. Blocker row for Wangsit closed.
 - Dharu: looked into Nabil's quote 429s on staging. A burst of quotes from one wallet hit our own per-wallet limit (10 a minute) before KyberSwap; each quote also made 4 KyberSwap calls, so our budget allowed only about 15 quotes a minute for everyone. The DEX mid price is now shared per stock for 60 seconds (2 calls per quote) and the quote limits are 30 a minute per wallet and 40 per IP address (initial proposals). Still needed: a registered KyberSwap client ID, since the API and the keeper both send `levra`.
 - Dharu: confirmed the FE-06 logo (mark R1 with LEVRA, PR 64).
@@ -209,6 +210,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - Dharu: BE-52 can now refuse regions inside a country (ISO 3166-2 from Cloudflare's `cf-region-code`), which covers the sanctioned Ukrainian regions in D-42 once the API sits behind Cloudflare.
 - Dharu: proposed the region block list from Anchored's own prohibited jurisdictions (D-42, initial proposal pending counsel) and raised Q-31 on investor checks. Sent Dharu's multisig address to the blocker row for X-03. Alerts will start with Telegram only (Q-30).
 - Nabil: trade fixes on `fe/FE-32-gap-card`: the gap card was empty at 1x (no loan, which is right) but asked for an amount, and showed one bar where the design has four; it now adds round gaps with the shared formula. Quotes back off after a 429. The 429s themselves come from KyberSwap limiting the staging server (blocker for Dharu). Also fixed: `formatBps` dropped the zeros of whole numbers (100% showed as 1%, also in the Positions liquidation distance), and a 1x quote showed a $0 liquidation price; it now says there is none.
+- Nabil: new task FE-14, price charts (Markets sparklines, Trade chart with 1D, 1W and 1M), which the Figma design has but the tasks missed. Request for Dharu, sent on WhatsApp: a price history endpoint from the oracle logger data.
 - Nabil: the web app runs against the Railway staging API on localhost: markets, positions, earn, deposit tokens, settings and sign-in answer with real data and CORS passes. Fixed on the way: the trade form was blocked because staging has no terms version, so `/v1/eligibility` answers 404; the app now treats that as the gate being off, like the API. Deposit now lists common chains and USDC first and uses a neutral address placeholder. Open: quotes hit the KyberSwap limit, and five keepers are not healthy yet (waiting for the role grants), so the service banner shows.
 - Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).
 - Dharu: BE-34 done: `report:gaps` rebuilds the gap table from five years of daily prices (same worst gaps as the table on 14 October), and the team monitor checks it daily. Staging: `/status` is live; the four keeper role jobs report "not the role holder" until Wangsit grants the roles.
