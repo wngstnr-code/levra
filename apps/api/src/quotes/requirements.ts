@@ -72,7 +72,7 @@ function vOf(signature: Hex) {
 /** Checks the token approval and the Morpho authorization the router needs for one action. */
 export async function checkRequirements(reader: ChainReader, p: RequirementInput): Promise<RequirementCheck> {
   const { router, chainId } = reader.deployment;
-  const state = await reader.userState(p.user, p.pull?.token ?? reader.deployment.markets[0]!.loanToken);
+  const state = await reader.userState(p.user, p.pull?.token ?? reader.deployment.markets[0]!.loanToken, { permit: p.pull?.permit ?? false });
   const deadline = p.blockTime + SIGNATURE_VALIDITY;
   const signed = new Map((p.signatures ?? []).map((s) => [s.type, s]));
   const preCalls: Hex[] = [];
@@ -81,7 +81,8 @@ export async function checkRequirements(reader: ChainReader, p: RequirementInput
 
   if (p.pull) {
     const met = state.allowance >= p.pull.amount;
-    const sig = met || !p.pull.permit ? undefined : signed.get("approve");
+    const nonce = state.permitNonce;
+    const sig = met || nonce === null ? undefined : signed.get("approve");
     if (sig) {
       const { r, s, v } = vOf(sig.signature);
       preCalls.push(encodeFunctionData({ abi: marginRouterAbi, functionName: "permitToken", args: [p.pull.token, p.pull.amount, BigInt(sig.deadline), v, r, s] }));
@@ -93,7 +94,7 @@ export async function checkRequirements(reader: ChainReader, p: RequirementInput
       token: p.pull.token,
       spender: router,
       amountRaw: p.pull.amount.toString(),
-      ...(met || !p.pull.permit
+      ...(met || nonce === null
         ? {}
         : {
             typedData: permitTypedData({
@@ -103,7 +104,7 @@ export async function checkRequirements(reader: ChainReader, p: RequirementInput
               owner: p.user,
               spender: router,
               value: p.pull.amount,
-              nonce: state.permitNonce,
+              nonce,
               deadline,
             }),
           }),
