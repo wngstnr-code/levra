@@ -82,19 +82,63 @@ export async function dexMidPriceE8(
   return (buyPrice + sellPrice) / 2n;
 }
 
-export type KyberOptions = { baseUrl: string; clientId: string; timeoutMs?: number; fetchFn?: typeof fetch };
+export type KyberOptions = {
+  baseUrl: string;
+  clientId: string;
+  /** Sent as X-Api-Key; KyberSwap gives keys for higher limits on its gateway (05). */
+  apiKey?: string;
+  timeoutMs?: number;
+  /** Least time between two request starts. The public limit is 3 requests per second (05). */
+  minGapMs?: number;
+  /** Wait before the one retry after a 429. */
+  retryAfterMs?: number;
+  fetchFn?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+};
 
-export function createKyber({ baseUrl, clientId, timeoutMs = 8_000, fetchFn = fetch }: KyberOptions): SwapSource {
-  async function request(path: string, init?: RequestInit): Promise<unknown> {
-    let res: Response;
+const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+export function createKyber({
+  baseUrl,
+  clientId,
+  apiKey,
+  timeoutMs = 8_000,
+  minGapMs = 350,
+  retryAfterMs = 1_000,
+  fetchFn = fetch,
+  sleep = realSleep,
+  now = Date.now,
+}: KyberOptions): SwapSource {
+  let nextStartAt = 0;
+
+  /** Spaces request starts by `minGapMs`, in call order, so parallel calls do not burst past the limit. */
+  async function slot(): Promise<void> {
+    const t = now();
+    const startAt = Math.max(t, nextStartAt);
+    nextStartAt = startAt + minGapMs;
+    if (startAt > t) await sleep(startAt - t);
+  }
+
+  async function send(path: string, init?: RequestInit): Promise<Response> {
+    await slot();
     try {
-      res = await fetchFn(`${baseUrl}${path}`, {
+      return await fetchFn(`${baseUrl}${path}`, {
         ...init,
-        headers: { "x-client-id": clientId, "content-type": "application/json", ...init?.headers },
+        headers: { "x-client-id": clientId, ...(apiKey ? { "x-api-key": apiKey } : {}), "content-type": "application/json", ...init?.headers },
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (err) {
       throw new SwapError("UPSTREAM_ERROR", "The swap aggregator did not answer.", undefined, err);
+    }
+  }
+
+  async function request(path: string, init?: RequestInit): Promise<unknown> {
+    let res = await send(path, init);
+    if (res.status === 429) {
+      await res.body?.cancel();
+      await sleep(retryAfterMs);
+      res = await send(path, init);
     }
     const body: unknown = await res.json().catch(() => null);
     if (res.status === 429) throw new SwapError("RATE_LIMITED", "The swap aggregator is rate limiting us. Try again shortly.");
