@@ -5,6 +5,8 @@ import {
   depositStatus,
   endpoints,
   market,
+  priceHistoryQuery,
+  priceHistoryResponse,
   quoteCloseRequest,
   quoteOpenRequest,
   quoteOpenResponse,
@@ -95,6 +97,14 @@ describe("market", () => {
   it("rejects a bad address and a short market id", () => {
     expect(market.safeParse({ ...sampleMarket, stockToken: "0x1234" }).success).toBe(false);
     expect(market.safeParse({ ...sampleMarket, marketId: "0xabcd" }).success).toBe(false);
+  });
+
+  it("parses a price history and accepts only the three ranges", () => {
+    const history = { symbol: "QQQ", range: "1D", points: [{ timestamp: 1_791_878_400, oraclePriceE8: "74562000000" }] };
+    expect(priceHistoryResponse.parse(history)).toEqual(history);
+    expect(priceHistoryQuery.safeParse({ range: "1W" }).success).toBe(true);
+    expect(priceHistoryQuery.safeParse({ range: "1Y" }).success).toBe(false);
+    expect(priceHistoryResponse.safeParse({ ...history, points: [{ timestamp: 1, oraclePriceE8: 745.62 }] }).success).toBe(false);
   });
 });
 
@@ -202,6 +212,6 @@ describe("endpoints", () => {
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
-    expect(seen.size).toBe(26);
+    expect(seen.size).toBe(27);
   });
 });
