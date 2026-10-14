@@ -81,6 +81,7 @@ export const en = {
     insufficientGas: "Not enough MON for the network fee.",
   },
   markets: {
+    sparkline: "Oracle price over the last day",
     title: "Markets",
     subtitle: "Tokenized US stocks on Monad. Prices from the Anchored oracle, about 15 minutes behind the exchange.",
     quoteAge: (t: string) => `Quote ${t} old`,

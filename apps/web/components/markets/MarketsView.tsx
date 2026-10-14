@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useApiSession, useMarkets, apiConfigured } from "@/lib/api/hooks";
+import { useApiSession, useMarkets, apiConfigured, usePriceHistory } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { buildMarketRows, type MarketRow } from "@/lib/marketRows";
+import { chartValues } from "@/lib/priceSeries";
 import { formatEastern } from "@/lib/time";
 import { stockTone } from "@/lib/tones";
 import { formatBps, formatLeverage, formatUsd, formatWadPercent } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
 import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
+import { AreaChart } from "../ui/AreaChart";
 import { Button, ButtonLink } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { ChangePill } from "../ui/ChangePill";
@@ -100,6 +102,7 @@ function MarketCard({ row, now }: { row: MarketRow; now: number }) {
           </span>
         )}
       </div>
+      <Sparkline symbol={stock.symbol} />
       <div className="mt-auto">
         <Money value={formatUsdE8(row.priceE8!)} className="text-display block text-[40px] leading-none font-semibold" decimalsClassName="text-ink/40" />
         <p className="mt-2 text-[13px] text-ink/60">
@@ -114,9 +117,17 @@ function MarketCard({ row, now }: { row: MarketRow; now: number }) {
   );
 }
 
+/** The last day of the oracle price. Keeps its height while loading, so the cards stay even. */
+function Sparkline({ symbol }: { symbol: string }) {
+  const m = useT();
+  const history = usePriceHistory(symbol, "1D");
+  const points = history.data?.points ?? [];
+  return <div className="h-16">{points.length > 1 && <AreaChart values={chartValues(points)} tone="ink" minSpan={0.01} label={m.markets.sparkline} className="h-16" />}</div>;
+}
+
 function CardSkeleton() {
   return (
-    <Card className="flex h-[312px] flex-col gap-5">
+    <Card className="flex h-[396px] flex-col gap-5">
       <Skeleton className="h-10 w-40" />
       <Skeleton className="mt-auto h-10 w-48" />
       <Skeleton className="h-14 w-full rounded-panel" />
