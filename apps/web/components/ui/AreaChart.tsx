@@ -2,8 +2,8 @@ import { useId } from "react";
 import { smoothPath } from "@/lib/chartPath";
 import { cn } from "@/lib/cn";
 
-type Tone = "peri" | "lime" | "down" | "up";
-const colors: Record<Tone, string> = { peri: "var(--color-peri)", lime: "var(--color-lime)", down: "var(--color-down)", up: "var(--color-up)" };
+type Tone = "peri" | "lime" | "down" | "up" | "ink";
+const colors: Record<Tone, string> = { peri: "var(--color-peri)", lime: "var(--color-lime)", down: "var(--color-down)", up: "var(--color-up)", ink: "var(--color-ink)" };
 
 const W = 600;
 const H = 200;
