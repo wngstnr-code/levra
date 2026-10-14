@@ -133,6 +133,12 @@ Three rules for the backend:
   - Done when: all five markets show with the correct numbers.
   - Note: done on 13 October 2026. The `marketDepth` keeper job now also stores a rate snapshot of every market from `Lens` on each run (`market_rates`, every 10 minutes) when `DEPLOYMENT_FILE` is set. `/v1/markets/:symbol` gives both sides of the stock, the latest depth run, and 30 days of rate and deviation history at one point per hour (initial proposal). Every endpoint reads markets and tokens from the deployment, so HOOD and BIL need no special code. Fork test: the detail of every stock equals its rows in `/v1/markets`, which match the contracts for all five markets, and the keeper's snapshot equals the API's rates. DB test for the history and the depth run.
 
+- [~] **BE-24 · Price history for charts**
+  - Needs: BE-03 (the `oracle_updates` table), BE-23.
+  - Do: `GET /v1/markets/:symbol/prices?range=1D|1W|1M` for the Markets sparklines and the Trade chart (FE-14, asked for by Nabil on 14 October 2026). Oracle price on a fixed grid, carried forward while the oracle does not write, ending with the latest price (D-43). An interface addition in 03 and `packages/shared/api`.
+  - Done when: the endpoint answers on staging with the recorded oracle data for all three stocks; Nabil has approved the shape.
+  - Note: written on 14 October 2026. `oraclePriceSeries` and `latestOraclePrice` in `packages/db` read `oracle_updates` by its `(symbol, block_time)` index; the API spaces points every 5 minutes (1D, 288), 1 hour (1W, 168) or 4 hours (1M, 180) and caches each chart for 10 seconds. Tests: grid and last point without a database, 400 and 404, and a DB test that checks the carry forward, times before the first write left out, and all three ranges ending with the latest price. Not verified yet: staging. The logger backfills `ORACLE_BACKFILL_BLOCKS` on its first start (4,000,000 blocks in `.env.example`, about two weeks), so 1M stays short until a full month is recorded.
+
 ---
 
 ## M3. Market-hours protection
