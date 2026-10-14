@@ -172,7 +172,7 @@ export function TradeView() {
 
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_420px]">
         <div className="space-y-4">
-          <PriceCard market={market} priceE8={market ? BigInt(market.oraclePriceE8) : (snap?.priceE8 ?? null)} feedUpdatedAt={market?.oracleFeedUpdatedAt ?? snap?.feedUpdatedAt ?? null} capRaw={capRaw} />
+          <PriceCard symbol={symbol} market={market} priceE8={market ? BigInt(market.oraclePriceE8) : (snap?.priceE8 ?? null)} feedUpdatedAt={market?.oracleFeedUpdatedAt ?? snap?.feedUpdatedAt ?? null} capRaw={capRaw} />
           <QuoteSummary
             side={side}
             market={market}
