@@ -19,7 +19,8 @@ const permitAbi = parseAbi([
 export type UserState = {
   balance: bigint;
   allowance: bigint;
-  permitNonce: bigint;
+  /** Null for a token without permit, such as the stock tokens (05). */
+  permitNonce: bigint | null;
   authorized: boolean;
   morphoNonce: bigint;
 };
@@ -226,17 +227,18 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
     });
 
   /** What a user has in place for the router. Not cached: it changes with the user's own transactions. */
-  async function userState(user: Address, token: Address): Promise<UserState> {
-    const [balance, allowance, permitNonce, authorized, morphoNonce] = await client.multicall({
+  async function userState(user: Address, token: Address, { permit }: { permit: boolean }): Promise<UserState> {
+    const [balance, allowance, authorized, morphoNonce] = await client.multicall({
       allowFailure: false,
       contracts: [
         { address: token, abi: erc20Abi, functionName: "balanceOf", args: [user] },
         { address: token, abi: erc20Abi, functionName: "allowance", args: [user, deployment.router] },
-        { address: token, abi: permitAbi, functionName: "nonces", args: [user] },
         { address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router] },
         { address: external.morpho, abi: morphoAbi, functionName: "nonce", args: [user] },
       ],
     });
+    // Reading nonces on a token without permit reverts, so only permit tokens are asked.
+    const permitNonce = permit ? await client.readContract({ address: token, abi: permitAbi, functionName: "nonces", args: [user] }) : null;
     return { balance, allowance, permitNonce, authorized, morphoNonce };
   }
 
