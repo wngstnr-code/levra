@@ -4,6 +4,7 @@ import type { Market, QuoteOpenResponse } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
 import { formatUsdE8 } from "@/lib/format";
 import { apiConfigured } from "@/lib/api/hooks";
+import { gapSteps, mergeGapScenarios } from "@/lib/gapSteps";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio } from "@/lib/units";
 import { GapTry } from "../GapTry";
@@ -22,8 +23,15 @@ type Props = {
   tokenSymbol: string;
   stockDecimals: number;
   secondsLeft: number | null;
+  signedIn: boolean;
   onDetails: () => void;
 };
+
+/** Why there is no quote yet: no service, no wallet, or no amount. */
+function useEmptyText(signedIn: boolean) {
+  const m = useT();
+  return !apiConfigured ? m.trade.summaryOffline : signedIn ? m.trade.emptySummary : m.trade.summarySignIn;
+}
 
 export function QuoteSummary(p: Props) {
   return (
@@ -43,7 +51,8 @@ function Row({ k, v, tone }: { k: string; v: React.ReactNode; tone?: string }) {
   );
 }
 
-function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDecimals, secondsLeft, onDetails }: Props) {
+function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDecimals, secondsLeft, signedIn, onDetails }: Props) {
+  const emptyText = useEmptyText(signedIn);
   const m = useT();
   const pv = quote?.preview;
   return (
@@ -60,7 +69,7 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
             <Skeleton className="h-5 w-2/3" />
           </div>
         ) : (
-          <p className={cn("text-[15px]", error ? "text-down" : "text-fg-2")}>{error ?? (apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline)}</p>
+          <p className={cn("text-[15px]", error ? "text-down" : "text-fg-2")}>{error ?? emptyText}</p>
         )
       ) : (
         <>
@@ -79,8 +88,17 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
                 {m.trade.liqPrice}
                 <InfoLink term="liquidation-price" label={m.trade.liqPrice} />
               </p>
-              <Money value={formatUsdE8(BigInt(pv.liqPriceE8))} className="text-display mt-1 block text-[32px] font-semibold" />
-              <p className="mt-1 text-[13px] text-fg-2">{(side === "long" ? m.trade.liqBelow : m.trade.liqAbove)(formatBps(Math.abs(pv.liqDistanceBps), { fractionDigits: 0 }))}</p>
+              {BigInt(pv.debtRaw) === 0n ? (
+                <>
+                  <p className="text-display mt-1 text-[32px] font-semibold">{m.trade.noLiq}</p>
+                  <p className="mt-1 text-[13px] text-fg-2">{m.trade.noLiqBody}</p>
+                </>
+              ) : (
+                <>
+                  <Money value={formatUsdE8(BigInt(pv.liqPriceE8))} className="text-display mt-1 block text-[32px] font-semibold" />
+                  <p className="mt-1 text-[13px] text-fg-2">{(side === "long" ? m.trade.liqBelow : m.trade.liqAbove)(formatBps(Math.abs(pv.liqDistanceBps), { fractionDigits: 0 }))}</p>
+                </>
+              )}
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-2">
                 <Legend dot="bg-up" text={m.trade.now(formatWadPercent(pv.ltvAfterWad))} />
                 <Legend dot="bg-caution" text={m.trade.soft(formatWadPercent(quote.market.currentSoftLtvWad))} />
@@ -126,9 +144,12 @@ function Legend({ dot, text }: { dot: string; text: string }) {
   );
 }
 
-function GapCard({ quote, loading, side }: Props) {
+function GapCard({ quote, loading, error, side, signedIn }: Props) {
+  const emptyText = useEmptyText(signedIn);
   const m = useT();
-  const scenarios = quote?.preview.gapScenarios ?? [];
+  const noLoan = !!quote && BigInt(quote.preview.debtRaw) === 0n;
+  const worst = quote?.preview.gapScenarios ?? [];
+  const scenarios = quote && !noLoan ? mergeGapScenarios(worst, gapSteps(side, quote.preview.ltvAfterWad, quote.market.lltvWad, (b) => m.trade.gapStep(formatBps(b, { signed: true, fractionDigits: 0 })))) : [];
   const lltv = quote ? BigInt(quote.market.lltvWad) : 0n;
   const top = lltv + lltv / 10n;
   return (
@@ -140,8 +161,10 @@ function GapCard({ quote, loading, side }: Props) {
         </h2>
         <p className="mt-1 text-[13px] text-fg-2">{m.trade.gapSub}</p>
       </div>
-      {scenarios.length === 0 ? (
-        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className="text-[15px] text-fg-3">{apiConfigured ? m.trade.emptySummary : m.trade.summaryOffline}</p>
+      {noLoan ? (
+        <p className="text-[15px] text-fg-2">{m.trade.gapNoLoan}</p>
+      ) : scenarios.length === 0 ? (
+        loading ? <Skeleton className="h-48 w-full rounded-panel" /> : <p className={cn("text-[15px]", error ? "text-down" : "text-fg-3")}>{error ?? emptyText}</p>
       ) : (
         <div className="flex min-h-48 flex-1 items-end gap-3">
           {scenarios.map((s) => (
@@ -155,8 +178,8 @@ function GapCard({ quote, loading, side }: Props) {
           ))}
         </div>
       )}
-      {scenarios[0] && <p className="text-xs text-fg-3">{scenarios[0].label}</p>}
-      {quote && <GapTry side={side} ltvWad={quote.preview.ltvAfterWad} softWad={quote.market.currentSoftLtvWad} lltvWad={quote.market.lltvWad} />}
+      {!noLoan && worst[0] && <p className="text-xs text-fg-3">{m.trade.gapWorst(worst[0].label, formatBps(worst[0].moveBps, { signed: true, fractionDigits: 1 }))}</p>}
+      {quote && !noLoan && <GapTry side={side} ltvWad={quote.preview.ltvAfterWad} softWad={quote.market.currentSoftLtvWad} lltvWad={quote.market.lltvWad} />}
     </Card>
   );
 }
