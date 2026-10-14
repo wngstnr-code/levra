@@ -506,7 +506,7 @@ type QuoteOpenResponse = {
     execPriceE8: string;
     oraclePriceE8: string;
     deviationBps: number;     // swap price compared to oracle
-    priceImpactBps: number;   // swap price compared to the DEX mid price (D-36); positive is worse for the trader
+    priceImpactBps: number;   // swap price compared to the DEX mid price (D-36, measured at most 60 s before, shared by all quotes of the stock); positive is worse for the trader
     feeRaw: string;           // USDC
     ltvAfterWad: string;
     liqPriceE8: string;

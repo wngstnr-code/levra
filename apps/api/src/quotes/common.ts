@@ -1,6 +1,7 @@
 import type { Warning } from "@levra/shared/api";
 import { BPS, mulDiv, swapPriceE8 } from "@levra/shared/math";
 import { erc20Abi, type Address } from "viem";
+import { createCache, type Cached } from "../chain/cache";
 import type { ChainReader } from "../chain/reader";
 import type { EventStore } from "../positions/events";
 import { dexMidPriceE8, type SwapSource } from "@levra/kyber";
@@ -32,9 +33,21 @@ export async function tokenDecimals(reader: ChainReader, tokens: Address[]): Pro
   return Promise.all(tokens.map((address) => reader.client.readContract({ address, abi: erc20Abi, functionName: "decimals" })));
 }
 
+/**
+ * Each mid price costs two KyberSwap calls, as much as the route itself, so one measurement per stock is shared by
+ * every quote for a minute. It only feeds the price impact shown and its warning; the fill is bounded by the route
+ * and the contract. Initial proposal.
+ */
+export const MID_PRICE_CACHE_MS = 60_000;
+const midCaches = new WeakMap<SwapSource, Cached>();
+
 /** DEX mid price for the stock: the average of a 10 USDC buy and sell, the same definition the depth table uses. */
 export function midPriceE8(swap: SwapSource, quote: Address, stock: Address, quoteDecimals: number, stockDecimals: number, oraclePriceE8: bigint) {
-  return dexMidPriceE8(swap, { usdc: quote, stock, usdcDecimals: quoteDecimals, stockDecimals, refPriceE8: oraclePriceE8 });
+  let cached = midCaches.get(swap);
+  if (!cached) midCaches.set(swap, (cached = createCache()));
+  return cached(`mid:${stock.toLowerCase()}`, MID_PRICE_CACHE_MS, () =>
+    dexMidPriceE8(swap, { usdc: quote, stock, usdcDecimals: quoteDecimals, stockDecimals, refPriceE8: oraclePriceE8 }),
+  );
 }
 
 export function warningList() {
