@@ -113,3 +113,9 @@ Without these the product can be built but cannot be opened to the public.
   - Needs: X-10.
   - Do: decide the form and place of the entity that operates the web app and holds the fee recipient.
   - Done when: the decision is recorded in 09.
+
+- [~] **X-21 · Pitch video** (driver: Wangsit)
+  - Needs: X-16 for where it is uploaded.
+  - Do: a one minute pitch to camera, edited for the submission: cut dead air, 1920x1080, clean audio at -14 LUFS, burned-in captions, keyword callouts, an end card with the app and repo links. On-screen claims are checked against 05 and PROGRESS.md first.
+  - Done when: the video is uploaded with the submission.
+  - Note: edited on 14 October 2026. Chosen version: the launch style cut (the speaker in a card, motion graphics that follow the words, a quiet soundtrack), 67.2 s, 1920x1080, H.264 and AAC, -14.1 LUFS. Every claim shown as text was checked against 05 and the transaction table. The recording, the edit scripts and the rendered files are in `pitch-video/` on Wangsit's machine. That folder is git-ignored on purpose, so none of it is in the repo. Still to do: upload it with the submission.
