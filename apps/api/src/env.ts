@@ -39,6 +39,10 @@ const envSchema = z.object({
   GEO_COUNTRY_HEADER: optional(),
   /** Comma-separated ISO 3166-1 alpha-2 codes to refuse, decided with counsel (X-10). Needs GEO_COUNTRY_HEADER. */
   BLOCKED_COUNTRIES: optional(),
+  /** Request header with the visitor's region, for example cf-region-code (Cloudflare's visitor location headers). */
+  GEO_REGION_HEADER: optional(),
+  /** Comma-separated ISO 3166-2 codes to refuse, for example UA-43,UA-40 (D-42). Needs GEO_REGION_HEADER and GEO_COUNTRY_HEADER. */
+  BLOCKED_REGIONS: optional(),
   /**
    * Header with the client address written by our own proxy, for example x-forwarded-for or cf-connecting-ip (BE-51).
    * Only set it when a proxy we control always writes it; otherwise clients could choose their own address.

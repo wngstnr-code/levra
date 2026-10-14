@@ -12,6 +12,10 @@ export type ComplianceOptions = {
   countryHeader?: string;
   /** ISO 3166-1 alpha-2 codes, upper case. Decided with counsel (X-10). */
   blockedCountries: Set<string>;
+  /** Request header with the visitor's region inside the country, for example Cloudflare's `cf-region-code`. */
+  regionHeader?: string;
+  /** ISO 3166-2 codes, upper case, for example `UA-43` for Crimea (D-42). */
+  blockedRegions?: Set<string>;
 };
 
 export type Compliance = {
@@ -29,10 +33,26 @@ export function createCompliance(db: Db, opts: ComplianceOptions): Compliance {
     return v && /^[A-Z]{2}$/.test(v) ? v : null;
   };
   // With a block list and a header to read, a request without a country is refused: it did not come through the CDN.
-  const regionBlocked = (c: Context) => {
-    if (opts.blockedCountries.size === 0) return false;
+  /**
+   * The visitor's ISO 3166-2 region. Cloudflare documents the region code as the part after the country (`TX`); a value
+   * that already has the country prefix is taken as it is. The exact format is not verified on a live request yet.
+   */
+  const region = (c: Context) => {
+    if (!opts.regionHeader) return null;
+    const v = c.req.header(opts.regionHeader)?.trim().toUpperCase();
+    if (!v || !/^[A-Z0-9-]{1,10}$/.test(v)) return null;
+    if (/^[A-Z]{2}-/.test(v)) return v;
     const cc = country(c);
-    return cc === null || opts.blockedCountries.has(cc);
+    return cc ? `${cc}-${v}` : null;
+  };
+  const regionBlocked = (c: Context) => {
+    const blockedRegions = opts.blockedRegions ?? new Set<string>();
+    if (opts.blockedCountries.size === 0 && blockedRegions.size === 0) return false;
+    const cc = country(c);
+    if (opts.blockedCountries.size > 0 && (cc === null || opts.blockedCountries.has(cc))) return true;
+    const rc = region(c);
+    // Without a region the country decides: a region list narrows a country, it cannot refuse every visitor of it.
+    return rc !== null && blockedRegions.has(rc);
   };
   const accepted = async (address: Address) =>
     (
