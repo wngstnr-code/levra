@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 36 | 20 | 15 |
+| Backend | Dharu | 36 | 23 | 12 |
 | Frontend | Nabil | 29 | 6 | 20 |
 | Shared tasks | All three | 16 | 1 | 6 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -199,6 +199,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: three backend tasks done after checking staging. BE-24: all three stocks answer 1D, 1W and 1M, and FE-14 runs on it. BE-61: `/status` shows "All systems normal" with 13 green rows. BE-17: the poster holds its role and MON on mainnet, and every `maxOracleAge` change now reaches the team Telegram group through the monitor (not seen live yet, since no value has moved).
 - Dharu: the four keeper wallets are funded by Wangsit (10 MON each, about 20 for the calendar poster) and every keeper on `/v1/status` is healthy. First keeper transaction on mainnet: the calendar poster set `nextCloseAt` to 17 October 2026 00:00 UTC (Friday 20:00 ET), `0xc2047d91042f4a88ed234c923810897fff91241af3a86c452ad2cd048c241199` (block 113209393). Quotes on staging after PR 72 and PR 74: 12 of 12 open quotes answered 200 in 1.2 to 2.9 s, one every 1.5 s across QQQ, HOOD and BIL; the 429 blocker row is closed, the KyberSwap API key stays open for launch traffic.
 - Nabil: FE-14 done: price charts from BE-24 on Markets (one-day sparklines) and Trade (1D, 1W, 1M with the change over the range), checked against staging. Quotes on staging worked 5 of 5 times in one check; whether the KyberSwap client ID is set on Railway is not confirmed.
 - Dharu: checked Wangsit's grant of the four keeper roles on chain: all four transactions succeeded (blocks 113204418 to 113204447) and the router, the `Liquidator` and `RiskManager` now name the keeper addresses. The keeper picked the roles up without a redeploy; its jobs now stop at "insufficient balance", so the MON top-up is the last step. Blocker row for Wangsit closed.
