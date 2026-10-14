@@ -43,7 +43,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 35 | 20 | 14 |
+| Backend | Dharu | 36 | 20 | 15 |
 | Frontend | Nabil | 29 | 5 | 20 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -62,14 +62,12 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 13 October 2026 | Wangsit | Dharu, Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership | X-03, SC-55 |
+| 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
 | 14 October 2026 | Dharu | Wangsit | Grant the four keeper roles on mainnet: `ORACLE_AGE_POSTER=0x33B03c6e569e06938D59F1232ef5070646F0146d CALENDAR_POSTER=0x745356C469FcE1372B4C2259332f5251130d4a5b KEEPER=0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e LIQUIDATOR_KEEPER=0x22ea6605a7D5246b1F05831632DC8172125A5C18 make set-roles-monad CONFIRM=yes`. The keys are on Railway's keeper service; the keeper is redeployed after the grant and the MON top-up | BE-17, BE-30, BE-31, BE-32, BE-55 |
 | 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`) | BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
-| 14 October 2026 | Wangsit, Nabil | Dharu | The restricted country list from counsel (X-10) and a published terms version (X-11), set as `BLOCKED_COUNTRIES` and `TERMS_VERSION` | BE-52 |
-| 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
+| 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
 | 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
-| 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
@@ -193,6 +191,7 @@ One line for every change to 03 after the freeze.
 | 14 October 2026 | `DepositQuoteResponse.gasDeposit` for the MON top-up (D-40); `DepositStatus.destinationTxHash` is any string, since a withdrawal can land on a chain that is not EVM; `transfers` added to the keeper names in `/v1/status` | Dharu, Nabil | be/BE-40-deposits |
 | 14 October 2026 | Section 4 "Signed messages": the web app now imports `termsMessage` from `packages/shared` instead of keeping its own copy. No shape change | Dharu, Nabil | fe/FE-40-31-50-backend-sync |
 | 14 October 2026 | Added `POST` and `DELETE /v1/alerts/telegram` and `TelegramLinkResponse`; wrote down the sign-in rules (D-38) and when alerts go out | Dharu, Nabil | be/BE-33-alerts |
+| 14 October 2026 | Added `GET /v1/markets/:symbol/prices?range=1D\|1W\|1M` with `PriceHistoryResponse`, `PricePoint` and `PriceRange` (D-43), asked for by Nabil for FE-14. Nothing else changed | Dharu, Nabil | be/BE-24-price-history |
 | 13 October 2026 | Wrote down `MarketDetail` history rules in 03: 30 days, one point per hour, empty without a database, 404 for an unknown stock | Dharu, Nabil | be/BE-23-market-detail |
 | 13 October 2026 | `EarnPosition.earnedRaw` is now signed, since bad debt can make it negative. Earn option ids are `vault:<address>` and `market:<marketId>` | Dharu, Nabil | be/BE-22-earn |
 | 13 October 2026 | Added `@levra/shared/deployments/monad`, which exports `monadDeployment`: the mainnet deployment file, validated and bundled. Nothing was removed | Dharu, Nabil | sc/SC-15-mainnet-deployment |
@@ -203,6 +202,11 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: alerts are live on staging. The bot `@levra_alerts_bot` has its token on Railway's keeper service and its username on the api; the team monitor posts to the "Levra Team" Telegram group (`TEAM_TELEGRAM_CHAT_ID`). A test message reached the group and the redeployed keeper runs `alerts` and `monitor` as healthy. Problems already logged before the channel existed (keeper MON at 0, roles not granted) are not posted again; new ones and their RESOLVED messages are. Two blocker rows closed (team channel, alert services; `AUTH_SECRET` and `AUTH_DOMAIN` were set earlier, email is out per Q-30).
+- Dharu: BE-24 written for Nabil's charts (FE-14): `GET /v1/markets/:symbol/prices?range=1D|1W|1M` serves the oracle price from the oracle logger's table on a fixed grid (5 minutes, 1 hour, 4 hours), carried forward while the market is closed and ending with the latest price (D-43). The 1M query takes about 7 ms on the two weeks recorded locally. The data starts on 29 September 2026, so 1M shows about two weeks until a full month is recorded. Next: merge and check it on staging.
+- Dharu: BE-52 can now refuse regions inside a country (ISO 3166-2 from Cloudflare's `cf-region-code`), which covers the sanctioned Ukrainian regions in D-42 once the API sits behind Cloudflare.
+- Dharu: proposed the region block list from Anchored's own prohibited jurisdictions (D-42, initial proposal pending counsel) and raised Q-31 on investor checks. Sent Dharu's multisig address to the blocker row for X-03. Alerts will start with Telegram only (Q-30).
+- Nabil: trade fixes on `fe/FE-32-gap-card`: the gap card was empty at 1x (no loan, which is right) but asked for an amount, and showed one bar where the design has four; it now adds round gaps with the shared formula. Quotes back off after a 429. The 429s themselves come from KyberSwap limiting the staging server (blocker for Dharu). Also fixed: `formatBps` dropped the zeros of whole numbers (100% showed as 1%, also in the Positions liquidation distance), and a 1x quote showed a $0 liquidation price; it now says there is none.
 - Nabil: new task FE-14, price charts (Markets sparklines, Trade chart with 1D, 1W and 1M), which the Figma design has but the tasks missed. Request for Dharu, sent on WhatsApp: a price history endpoint from the oracle logger data.
 - Nabil: the web app runs against the Railway staging API on localhost: markets, positions, earn, deposit tokens, settings and sign-in answer with real data and CORS passes. Fixed on the way: the trade form was blocked because staging has no terms version, so `/v1/eligibility` answers 404; the app now treats that as the gate being off, like the API. Deposit now lists common chains and USDC first and uses a neutral address placeholder. Open: quotes hit the KyberSwap limit, and five keepers are not healthy yet (waiting for the role grants), so the service banner shows.
 - Dharu: BE-16 done: Wangsit's two review notes fixed (long liquidation price rounds like `Lens` since PR 13; open quotes give `maxLtv` 1 bps of room for accrued interest).

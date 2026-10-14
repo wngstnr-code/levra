@@ -41,6 +41,12 @@ describe("formatBps", () => {
     expect(formatBps(24, { signed: true })).toBe("+0.24%");
     expect(formatBps(50)).toBe("0.5%");
   });
+
+  it("keeps the zeros of whole numbers", () => {
+    expect(formatBps(10000, { fractionDigits: 0 })).toBe("100%");
+    expect(formatBps(-1000, { signed: true, fractionDigits: 0 })).toBe("−10%");
+    expect(formatBps(2000)).toBe("20%");
+  });
 });
 
 describe("formatLeverage", () => {

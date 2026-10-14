@@ -12,7 +12,7 @@ import {
   withdrawQuoteResponse,
 } from "./deposit";
 import { earnAccount, earnResponse } from "./earn";
-import { marketDetail, marketsResponse } from "./markets";
+import { marketDetail, marketsResponse, priceHistoryQuery, priceHistoryResponse } from "./markets";
 import {
   quoteCloseRequest,
   quoteCloseResponse,
@@ -33,6 +33,7 @@ export const endpoints = {
   session: { method: "GET", path: "/v1/session", response: sessionInfo },
   markets: { method: "GET", path: "/v1/markets", response: marketsResponse },
   marketDetail: { method: "GET", path: "/v1/markets/:symbol", response: marketDetail },
+  marketPrices: { method: "GET", path: "/v1/markets/:symbol/prices", query: priceHistoryQuery, response: priceHistoryResponse },
   stream: { method: "GET", path: "/v1/stream" },
 
   quoteOpen: { method: "POST", path: "/v1/quote/open", body: quoteOpenRequest, response: quoteOpenResponse },

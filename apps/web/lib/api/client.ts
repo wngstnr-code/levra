@@ -16,6 +16,8 @@ export class ApiRequestError extends Error {
     readonly code: ApiErrorCode | "NETWORK" | "BAD_RESPONSE",
     message: string,
     readonly status?: number,
+    /** From the `Retry-After` header of a 429. */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiRequestError";
@@ -67,7 +69,8 @@ export async function api<N extends EndpointName>(name: N, opts: Options<N> = {}
   const json: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const parsed = apiError.safeParse(json);
-    if (parsed.success) throw new ApiRequestError(parsed.data.error.code, parsed.data.error.message, res.status);
+    const retryAfter = Number(res.headers.get("retry-after")) || undefined;
+    if (parsed.success) throw new ApiRequestError(parsed.data.error.code, parsed.data.error.message, res.status, retryAfter);
     throw new ApiRequestError("BAD_RESPONSE", `The service answered with status ${res.status}.`, res.status);
   }
   if (!ep.response) return json as ApiResponse<N>;
