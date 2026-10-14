@@ -44,7 +44,7 @@ Refresh with the command above.
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 36 | 20 | 15 |
-| Frontend | Nabil | 29 | 5 | 20 |
+| Frontend | Nabil | 29 | 6 | 20 |
 | Shared tasks | All three | 15 | 1 | 5 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
@@ -202,6 +202,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Nabil: FE-14 done: price charts from BE-24 on Markets (one-day sparklines) and Trade (1D, 1W, 1M with the change over the range), checked against staging. Quotes on staging worked 5 of 5 times after Dharu's KyberSwap change, to be confirmed by Dharu.
 - Dharu: alerts are live on staging. The bot `@levra_alerts_bot` has its token on Railway's keeper service and its username on the api; the team monitor posts to the "Levra Team" Telegram group (`TEAM_TELEGRAM_CHAT_ID`). A test message reached the group and the redeployed keeper runs `alerts` and `monitor` as healthy. Problems already logged before the channel existed (keeper MON at 0, roles not granted) are not posted again; new ones and their RESOLVED messages are. Two blocker rows closed (team channel, alert services; `AUTH_SECRET` and `AUTH_DOMAIN` were set earlier, email is out per Q-30).
 - Dharu: BE-24 written for Nabil's charts (FE-14): `GET /v1/markets/:symbol/prices?range=1D|1W|1M` serves the oracle price from the oracle logger's table on a fixed grid (5 minutes, 1 hour, 4 hours), carried forward while the market is closed and ending with the latest price (D-43). The 1M query takes about 7 ms on the two weeks recorded locally. The data starts on 29 September 2026, so 1M shows about two weeks until a full month is recorded. Next: merge and check it on staging.
 - Dharu: BE-52 can now refuse regions inside a country (ISO 3166-2 from Cloudflare's `cf-region-code`), which covers the sanctioned Ukrainian regions in D-42 once the API sits behind Cloudflare.
