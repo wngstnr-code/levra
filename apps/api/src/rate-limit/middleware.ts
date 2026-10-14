@@ -20,8 +20,8 @@ export type RateLimitRules = {
 /** Initial proposal, not measured against real traffic yet (BE-54). */
 export const defaultRateLimitRules: RateLimitRules = {
   ip: { capacity: 120, perMinute: 120 },
-  quoteIp: { capacity: 20, perMinute: 20 },
-  quoteWallet: { capacity: 10, perMinute: 10 },
+  quoteIp: { capacity: 20, perMinute: 40 },
+  quoteWallet: { capacity: 10, perMinute: 30 },
   accountWallet: { capacity: 60, perMinute: 60 },
 };
 
