@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { decodeEventLog, isAddress, keccak256, toBytes } from "viem";
 import { describe, expect, it } from "vitest";
-import { morphoAbi } from "./abis";
+import { erc20PermitAbi, liquidatorAbi, marginRouterAbi, metaMorphoAbi, morphoAbi, riskManagerAbi } from "./abis";
 import { external, tokens } from "./addresses";
 import { parseDeployment, type Deployment } from "./deployments";
 import { monadDeployment } from "./deployments.monad";
@@ -29,6 +29,23 @@ const sample: Deployment = {
     },
   ],
 };
+
+describe("abis", () => {
+  const functions = (abi: readonly { type: string; name?: string }[]) => abi.filter((item) => item.type === "function").map((item) => item.name);
+
+  it("carry the role and ownership reads that the interfaces leave out", () => {
+    expect(functions(marginRouterAbi)).toEqual(expect.arrayContaining(["isKeeper", "feeRecipient", "owner", "pendingOwner"]));
+    expect(functions(riskManagerAbi)).toEqual(expect.arrayContaining(["calendarPoster", "oracleAgePoster", "guardian", "owner", "pendingOwner"]));
+    expect(functions(liquidatorAbi)).toEqual(expect.arrayContaining(["isKeeper", "owner", "pendingOwner"]));
+  });
+
+  it("carry the vault reads and the permit nonce", () => {
+    expect(functions(metaMorphoAbi)).toEqual(
+      expect.arrayContaining(["totalAssets", "fee", "withdrawQueue", "withdrawQueueLength", "convertToAssets", "maxWithdraw"]),
+    );
+    expect(functions(erc20PermitAbi)).toContain("nonces");
+  });
+});
 
 describe("addresses", () => {
   const all = [...Object.entries(external), ...Object.entries(tokens).map(([k, v]) => [k, v.address] as const)];
