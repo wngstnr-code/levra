@@ -211,6 +211,8 @@ Three rules for the backend:
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
   - Note: done on 14 October 2026. Token buckets per IP for every route but `/v1/health`; per IP and per wallet for trade quotes and the deposit and withdrawal quotes (the wallet is `user`, or `recipient` for a deposit); per wallet for `/v1/accounts/:address` and `/v1/earn/:address`. A refusal is 429 `RATE_LIMITED` with `Retry-After`, after CORS so the browser can read it. The proxy header is trusted only when `TRUST_PROXY_HEADER` is set, and only its last entry. One global budget on KyberSwap calls (a route costs 1, a quote 2) means no client traffic can use up our KyberSwap quota. In memory, so for one API instance. All limits are initial proposals for BE-54.
 
+  - Note (14 October 2026): after Nabil's report of quote 429s on staging, the per-wallet quote limit went from 10 to 30 a minute and the per-IP quote limit from 20 to 40, and quotes share one DEX mid price per stock for 60 seconds, so a quote makes 2 KyberSwap calls instead of 4. Still initial proposals.
+
 - [~] **BE-52 · Region and terms acceptance**
   - Needs: X-10, X-11.
   - Do: `GET /v1/eligibility` based on region; `POST /v1/terms/accept` with a wallet signature; the quote endpoints reject anyone who has not met the requirements.
