@@ -45,7 +45,7 @@ Refresh with the command above.
 | Smart contracts | Wangsit | 30 | 9 | 16 |
 | Backend | Dharu | 36 | 20 | 15 |
 | Frontend | Nabil | 28 | 5 | 20 |
-| Shared tasks | All three | 15 | 1 | 5 |
+| Shared tasks | All three | 16 | 1 | 6 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
 
 ## What each person can start today without waiting
@@ -63,7 +63,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
-| 14 October 2026 | Dharu | Wangsit | Grant the four keeper roles on mainnet: `ORACLE_AGE_POSTER=0x33B03c6e569e06938D59F1232ef5070646F0146d CALENDAR_POSTER=0x745356C469FcE1372B4C2259332f5251130d4a5b KEEPER=0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e LIQUIDATOR_KEEPER=0x22ea6605a7D5246b1F05831632DC8172125A5C18 make set-roles-monad CONFIRM=yes`. The keys are on Railway's keeper service; the keeper is redeployed after the grant and the MON top-up | BE-17, BE-30, BE-31, BE-32, BE-55 |
 | 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`) | BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
@@ -202,6 +201,9 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Wangsit: the four operational roles are granted on mainnet with `make set-roles-monad` (blocks 113204418 to 113204447), read back from the chain. Router keeper `0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e`: `0x174648387a0c4a6240f3584c5fa1b5092448b8cabb67417010aed83e673549aa`. `Liquidator` keeper `0x22ea6605a7D5246b1F05831632DC8172125A5C18`: `0xa5280a81dcd372d86fe3a66d64ac620bff0bcce453ffab6c34d3e041ec9f4a66`. Calendar poster `0x745356C469FcE1372B4C2259332f5251130d4a5b`: `0xcf066a3dbad446f277a7e5b11a39e336cb8c06c1add83b25e241bd7cd375a5a9`. Oracle age poster `0x33B03c6e569e06938D59F1232ef5070646F0146d`: `0x3c2a4f37da6d52f5b4c30cf1b5039d21a2c232b01c73c5f88176427a96fc50b2`. This removes Dharu's blocker. The four wallets hold no MON yet, so the jobs start after Dharu's top-up and keeper redeploy.
+- Wangsit: shared ABIs extended for the backend: `metaMorphoAbi` (vault reads, ERC-4626 functions and events), `erc20PermitAbi` (`nonces`), and the role and ownership reads on the router, risk manager and liquidator ABIs (`isKeeper`, `calendarPoster`, `guardian`, `feeRecipient`, `owner`, `pendingOwner`). No deployed contract changed: the reads come from the compiled contracts through the export script. Dharu can drop the temporary `parseAbi` pieces, except `version()` on USDC, which is not part of ERC-2612. Checked `morphoRepaidForSeize`, `maxSeizable` and the incentive factor in `math.ts` against `Morpho.liquidate` line by line: same formulas and rounding. The dry run of the role grant showed that roles typed in front of `make` were dropped when `.env` has the same names empty; the command in the blocker row and the README now pass them after `make`.
+- Wangsit: the pitch video is edited (X-21): 67 seconds, 1920x1080, the speaker in a card with motion graphics that follow the words, captions and an end card, audio at -14 LUFS. Every claim shown as text (five markets, verified contracts, real long and short trades) was checked against 05 and the transaction table first. The files are local only, since `pitch-video/` is git-ignored. Next: upload it with the submission.
 - Dharu: looked into Nabil's quote 429s on staging. A burst of quotes from one wallet hit our own per-wallet limit (10 a minute) before KyberSwap; each quote also made 4 KyberSwap calls, so our budget allowed only about 15 quotes a minute for everyone. The DEX mid price is now shared per stock for 60 seconds (2 calls per quote) and the quote limits are 30 a minute per wallet and 40 per IP address (initial proposals). Still needed: a registered KyberSwap client ID, since the API and the keeper both send `levra`.
 - Dharu: confirmed the FE-06 logo (mark R1 with LEVRA, PR 64).
 - Dharu: alerts are live on staging. The bot `@levra_alerts_bot` has its token on Railway's keeper service and its username on the api; the team monitor posts to the "Levra Team" Telegram group (`TEAM_TELEGRAM_CHAT_ID`). A test message reached the group and the redeployed keeper runs `alerts` and `monitor` as healthy. Problems already logged before the channel existed (keeper MON at 0, roles not granted) are not posted again; new ones and their RESOLVED messages are. Two blocker rows closed (team channel, alert services; `AUTH_SECRET` and `AUTH_DOMAIN` were set earlier, email is out per Q-30).
