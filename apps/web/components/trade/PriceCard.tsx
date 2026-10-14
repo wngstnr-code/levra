@@ -8,6 +8,7 @@ import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatUsd, formatWadPercent } from "@/lib/units";
 import { changeBps, chartValues } from "@/lib/priceSeries";
+import { formatLocal } from "@/lib/time";
 import { useNowSeconds } from "@/lib/useNow";
 import { AreaChart } from "../ui/AreaChart";
 import { Card } from "../ui/Card";
@@ -68,7 +69,7 @@ export function PriceCard({
         )}
       </div>
       {points.length > 1 ? (
-        <AreaChart values={chartValues(points)} tone="peri" minSpan={0.01} label={m.trade.chartLabel(range)} className="h-44" />
+        <AreaChart values={chartValues(points)} tone="peri" minSpan={0.01} label={m.trade.chartLabel(range)} tooltip={(i) => `${formatUsdE8(BigInt(points[i]!.oraclePriceE8))} · ${formatLocal(points[i]!.timestamp)}`} className="h-44" />
       ) : (
         apiConfigured && history.isPending && <Skeleton className="h-44 w-full rounded-panel" />
       )}

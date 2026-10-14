@@ -7,7 +7,7 @@ import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { buildMarketRows, type MarketRow } from "@/lib/marketRows";
 import { chartValues } from "@/lib/priceSeries";
-import { formatEastern } from "@/lib/time";
+import { formatEastern, formatLocal } from "@/lib/time";
 import { stockTone } from "@/lib/tones";
 import { formatBps, formatLeverage, formatUsd, formatWadPercent } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
@@ -122,7 +122,7 @@ function Sparkline({ symbol }: { symbol: string }) {
   const m = useT();
   const history = usePriceHistory(symbol, "1D");
   const points = history.data?.points ?? [];
-  return <div className="h-16">{points.length > 1 && <AreaChart values={chartValues(points)} tone="ink" minSpan={0.01} label={m.markets.sparkline} className="h-16" />}</div>;
+  return <div className="h-16">{points.length > 1 && <AreaChart values={chartValues(points)} tone="ink" minSpan={0.01} label={m.markets.sparkline} tooltip={(i) => `${formatUsdE8(BigInt(points[i]!.oraclePriceE8))} · ${formatLocal(points[i]!.timestamp)}`} className="h-16" />}</div>;
 }
 
 function CardSkeleton() {
