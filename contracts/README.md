@@ -105,7 +105,7 @@ Environment variables read by `script/Deploy.s.sol`. All are optional on a fork.
 | `CALENDAR_POSTER` | May post the next market close |
 | `ORACLE_AGE_POSTER` | May move `maxOracleAge` inside the bounds (D-31) |
 
-The four roles can also be set after deployment. `make set-roles-monad` reads the same variables, shows what it would change, and sends the transactions from the owner wallet only with `CONFIRM=yes`. It skips a role that is empty or already set. Use one key per role.
+The four roles can also be set after deployment. `make set-roles-monad` reads the same variables, shows what it would change, and sends the transactions from the owner wallet only with `CONFIRM=yes`. It skips a role that is empty or already set. Use one key per role. Pass the addresses after `make` (`make set-roles-monad KEEPER=0x... CONFIRM=yes`): a line in `.env`, even an empty one, wins over a variable typed in front of `make`.
 
 Oracle ages per market are fixed in the script and come from two weeks of oracle data (`docs/reports/oracle-2026-10-13.md`):
 

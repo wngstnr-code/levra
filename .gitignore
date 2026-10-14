@@ -21,3 +21,5 @@ next-env.d.ts
 .next-e2e/
 playwright-report/
 test-results/
+
+pitch-video/

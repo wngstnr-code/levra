@@ -16,7 +16,13 @@ interface IMetaMorpho is IERC4626 {
 
     function config(Id id) external view returns (uint184 cap, bool enabled, uint64 removableAt);
 
+    function supplyQueue(uint256 index) external view returns (Id);
+
     function supplyQueueLength() external view returns (uint256);
+
+    function withdrawQueue(uint256 index) external view returns (Id);
+
+    function withdrawQueueLength() external view returns (uint256);
 
     function submitCap(MarketParams memory marketParams, uint256 newSupplyCap) external;
 

@@ -59,9 +59,9 @@ To do this, the router needs your authorization on Morpho. That authorization le
 |---|---|---|
 | Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, one team key | Everything in the next table |
 | Guardian | Not set | Tighten soft limits and position caps, and pause new positions. Cannot loosen or resume |
-| Keeper | Not set | Reduce a protected position, and call the liquidator |
-| Calendar poster | Not set | Post the time of the next market close, at most 8 days ahead |
-| Oracle age poster | Not set | Move the price age allowed for new positions, inside bounds set by the owner |
+| Keeper | `0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e` on the router, `0x22ea6605a7D5246b1F05831632DC8172125A5C18` on the liquidator | Reduce a protected position, and call the liquidator |
+| Calendar poster | `0x745356C469FcE1372B4C2259332f5251130d4a5b` | Post the time of the next market close, at most 8 days ahead |
+| Oracle age poster | `0x33B03c6e569e06938D59F1232ef5070646F0146d` | Move the price age allowed for new positions, inside bounds set by the owner |
 
 The owner is a single key today. The plan is a 2-day timelock controlled by a team multisig, with the multisig as guardian. The script for this handover is written and tested, and waits for the multisig.
 

@@ -6,3 +6,5 @@ export { lensAbi } from "./lens";
 export { liquidatorAbi } from "./liquidator";
 export { anchoredStockOracleAbi } from "./anchoredStockOracle";
 export { morphoAbi } from "./morpho";
+export { metaMorphoAbi } from "./metaMorpho";
+export { erc20PermitAbi } from "./erc20Permit";
