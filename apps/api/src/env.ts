@@ -15,8 +15,10 @@ const envSchema = z.object({
   /** contracts/deployments/<environment>.json, written by the deployment script. */
   DEPLOYMENT_FILE: z.string().min(1),
   KYBER_BASE_URL: z.url().default("https://aggregator-api.kyberswap.com/monad/api/v1"),
-  /** Sent as x-client-id. Routes work with any value (05); a registered id raises the rate limit. */
+  /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
+  /** KyberSwap gateway key for a higher rate limit (05), sent as X-Api-Key. Never commit it. */
+  KYBER_API_KEY: optional(),
   /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**

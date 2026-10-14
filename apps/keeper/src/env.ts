@@ -37,6 +37,8 @@ const envSchema = z.object({
   KYBER_BASE_URL: optional().pipe(z.url().optional()),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
+  /** KyberSwap gateway key for a higher rate limit (05), sent as X-Api-Key. Never commit it. */
+  KYBER_API_KEY: optional(),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 

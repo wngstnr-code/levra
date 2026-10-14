@@ -19,7 +19,7 @@ import { createIntents } from "@levra/intents";
 import type { Job } from "./runner";
 
 export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[] {
-  const swap = createKyber({ baseUrl: env.KYBER_BASE_URL ?? KYBER_MONAD_URL, clientId: env.KYBER_CLIENT_ID });
+  const swap = createKyber({ baseUrl: env.KYBER_BASE_URL ?? KYBER_MONAD_URL, clientId: env.KYBER_CLIENT_ID, apiKey: env.KYBER_API_KEY });
   const deployment = env.DEPLOYMENT_FILE ? readDeployment(env.DEPLOYMENT_FILE) : null;
   const jobs: Job[] = [
     createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS }),
