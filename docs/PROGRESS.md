@@ -67,9 +67,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 14 October 2026 | Dharu | Dharu | MON for the four keeper addresses (about 10 MON each, `pnpm --filter @levra/keeper topup`) | BE-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap client ID and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
-| 14 October 2026 | Dharu | Dharu | A team alert channel: a Telegram group with the alert bot (`TEAM_TELEGRAM_CHAT_ID`) or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), and the public API address for `MONITOR_API_URL` once hosted | BE-50 |
 | 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
-| 14 October 2026 | Dharu | Dharu | Alert delivery services (Q-30): a Resend account with a sending address and a Telegram bot token, plus `AUTH_SECRET` and `AUTH_DOMAIN` for the API | BE-33 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
@@ -204,6 +202,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 14 October 2026
 
+- Dharu: alerts are live on staging. The bot `@levra_alerts_bot` has its token on Railway's keeper service and its username on the api; the team monitor posts to the "Levra Team" Telegram group (`TEAM_TELEGRAM_CHAT_ID`). A test message reached the group and the redeployed keeper runs `alerts` and `monitor` as healthy. Problems already logged before the channel existed (keeper MON at 0, roles not granted) are not posted again; new ones and their RESOLVED messages are. Two blocker rows closed (team channel, alert services; `AUTH_SECRET` and `AUTH_DOMAIN` were set earlier, email is out per Q-30).
 - Dharu: BE-24 written for Nabil's charts (FE-14): `GET /v1/markets/:symbol/prices?range=1D|1W|1M` serves the oracle price from the oracle logger's table on a fixed grid (5 minutes, 1 hour, 4 hours), carried forward while the market is closed and ending with the latest price (D-43). The 1M query takes about 7 ms on the two weeks recorded locally. The data starts on 29 September 2026, so 1M shows about two weeks until a full month is recorded. Next: merge and check it on staging.
 - Dharu: BE-52 can now refuse regions inside a country (ISO 3166-2 from Cloudflare's `cf-region-code`), which covers the sanctioned Ukrainian regions in D-42 once the API sits behind Cloudflare.
 - Dharu: proposed the region block list from Anchored's own prohibited jurisdictions (D-42, initial proposal pending counsel) and raised Q-31 on investor checks. Sent Dharu's multisig address to the blocker row for X-03. Alerts will start with Telegram only (Q-30).
