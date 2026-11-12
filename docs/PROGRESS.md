@@ -133,6 +133,14 @@ Every important real transaction goes here. This is also the evidence for the ha
 | 16 October 2026 | Close the demo QQQ long in full through the router. 3.37 USDC came back | `0x3f7dfaee62592df80200b6a351b2ddb67c924342faf53edaf77d15719c01643d` | Wangsit | X-16 |
 | 16 October 2026 | Redeem all vault shares. 1.0002 USDC came back | `0xfc6f006c124d61d62660181344d361178726b0625d2228979bcd0295ee520b77` | Wangsit | X-16 |
 | 16 October 2026 | Withdraw 1 USDC of seed lending from the QQQ long market, leaving 2 USDC | `0xde38c0825fa259d3b39a8c75259da0021471046d3315e7f969ced138e5be57b9` | Wangsit | X-16 |
+| 12 November 2026 | Withdraw the seed lending from the QQQ long market (2.000608 USDC) | `0x59e8186c7901f2d6cb2c5748aa9659892d9996c34d637f8a75af47ddc4a85c29` | Wangsit | X-16 |
+| 12 November 2026 | Withdraw the seed lending from the HOOD long market (2 USDC) | `0xfc8377aca17036bf2488ddc19da6f63c4e10a94c358a3018d76a571b045a3b71` | Wangsit | X-16 |
+| 12 November 2026 | Withdraw the seed lending from the BIL long market (2 USDC) | `0x68e8b612af650487c4af3c0ea2ee1ef86a30ca4173ae2e9ab563eb734e3db15e` | Wangsit | X-16 |
+| 12 November 2026 | Withdraw the seed lending from the QQQ short market (0.00273 aQQQ) | `0x94f2aaaac1c22c75525b6b2f2e5192f1306876f3b2cb0e43b01fab7f0a0aa903` | Wangsit | X-16 |
+| 12 November 2026 | Withdraw the seed lending from the HOOD short market (0.01705 aHOOD) | `0xc75747263788eedf72d5dcac91a8599b4428b4a8118525a36f9b7fe7c779ab69` | Wangsit | X-16 |
+| 12 November 2026 | Sell 0.0028 aQQQ for 2.01 USDC on KyberSwap | `0xae945ae7d5b19147175fdbe4899d66c52ae5467e8a3a24b995ad1c2c726b6d98` | Wangsit | X-16 |
+| 12 November 2026 | Sell 0.0175 aHOOD for 2.01 USDC on KyberSwap | `0x664803c24e54574b78e8cf1e68dc672a61bb1c5e789fc76e013701d6734a7b79` | Wangsit | X-16 |
+| 12 November 2026 | Send all 10.026590 USDC out of the deployer wallet | `0x16452e302c92d6aa96f42680a87910925570bee697a2733b9dcfb503a5c04834` | Wangsit | X-16 |
 
 The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings.
 
@@ -141,6 +149,8 @@ The first run was 30 transactions in blocks 113050112 to 113050539, all successf
 The vault was 11 transactions in blocks 113058663 to 113058727 (create, three supply caps submitted and accepted, supply queue, fee recipient, fee, timelock), 0.73 MON. A first deposit and withdrawal of 1 USDC followed in blocks 113060117 and 113060133. A second deposit of 1 USDC in block 113063214 stays in the vault, so the Earn screen has real data: the deployer wallet holds 1 `lvUSDC`, lent to the QQQ long market.
 
 On 16 October 2026 the demo QQQ long and the vault deposit were closed with `make close-all-monad` (blocks 113816855 and 113816893). The deployer wallet has no open position and no vault deposit left, apart from fee shares worth about 20 USDC base units. 1 USDC of the QQQ long seed was withdrawn in block 113818574. The seed lending stays in all five markets so anyone can still open a long or a short: 2 USDC (QQQ), 2 USDC (HOOD) and 2 USDC (BIL) in the long markets, 0.00273 aQQQ and 0.01705 aHOOD in the short markets. The Earn vault is empty until someone deposits.
+
+On 12 November 2026, after the hackathon, the seed lending was withdrawn from all five markets. The stock was sold for USDC and all USDC left the deployer wallet. The five markets now hold no team liquidity, so a long or a short cannot be opened until someone lends. The deployer wallet still owns the contracts and the vault and keeps about 6.58 MON for owner transactions.
 
 ## Deployed addresses
 
@@ -199,6 +209,10 @@ One line for every change to 03 after the freeze.
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+
+### 12 November 2026
+
+- Wangsit: the hackathon is over, so the deployer wallet was emptied of everything except MON. Withdrew the seed lending from all five markets, sold the leftover aQQQ and aHOOD for USDC on KyberSwap, and sent all 10.026590 USDC out (`0x16452e30…4834`). The markets no longer have liquidity for new positions. About 6.58 MON stays for owner transactions. Fee shares in the vault worth 19 USDC base units were left in place.
 
 ### 16 October 2026
 
