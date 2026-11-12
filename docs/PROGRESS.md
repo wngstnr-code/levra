@@ -130,6 +130,9 @@ Every important real transaction goes here. This is also the evidence for the ha
 | 13 October 2026 | Redeem all vault shares. 1 USDC came back in full | `0xa52645ee0a4d62838641791419e89b7bc8d5fb740a2207c88762de86b8eda689` | Wangsit | SC-23 |
 | 13 October 2026 | Deposit 1 USDC into the USDC vault and leave it there for the demo | `0xeb609d4b4cf13a08b5c6b6990c52aae302761d3117f19f3f2c006fcaa38294f0` | Wangsit | X-16 |
 | 13 October 2026 | Open a QQQ long that stays open for the demo (margin 1.5 USDC, borrow 1.5 USDC) | `0x291fae73e1e2c98970d57d916a288c23c56fee3f9d4dd58700f10fa225e80ad5` | Wangsit | X-16 |
+| 16 October 2026 | Close the demo QQQ long in full through the router. 3.37 USDC came back | `0x3f7dfaee62592df80200b6a351b2ddb67c924342faf53edaf77d15719c01643d` | Wangsit | X-16 |
+| 16 October 2026 | Redeem all vault shares. 1.0002 USDC came back | `0xfc6f006c124d61d62660181344d361178726b0625d2228979bcd0295ee520b77` | Wangsit | X-16 |
+| 16 October 2026 | Withdraw 1 USDC of seed lending from the QQQ long market, leaving 2 USDC | `0xde38c0825fa259d3b39a8c75259da0021471046d3315e7f969ced138e5be57b9` | Wangsit | X-16 |
 
 The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings.
 
@@ -137,7 +140,7 @@ The first run was 30 transactions in blocks 113050112 to 113050539, all successf
 
 The vault was 11 transactions in blocks 113058663 to 113058727 (create, three supply caps submitted and accepted, supply queue, fee recipient, fee, timelock), 0.73 MON. A first deposit and withdrawal of 1 USDC followed in blocks 113060117 and 113060133. A second deposit of 1 USDC in block 113063214 stays in the vault, so the Earn screen has real data: the deployer wallet holds 1 `lvUSDC`, lent to the QQQ long market.
 
-One position is open on purpose: the deployer wallet holds a QQQ long of 0.00409 aQQQ against 1.5 USDC of debt, at 49.4% loan-to-value, with protection off. It gives the Positions screen real data.
+On 16 October 2026 the demo QQQ long and the vault deposit were closed with `make close-all-monad` (blocks 113816855 and 113816893). The deployer wallet has no open position and no vault deposit left, apart from fee shares worth about 20 USDC base units. 1 USDC of the QQQ long seed was withdrawn in block 113818574. The seed lending stays in all five markets so anyone can still open a long or a short: 2 USDC (QQQ), 2 USDC (HOOD) and 2 USDC (BIL) in the long markets, 0.00273 aQQQ and 0.01705 aHOOD in the short markets. The Earn vault is empty until someone deposits.
 
 ## Deployed addresses
 
@@ -196,6 +199,10 @@ One line for every change to 03 after the freeze.
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+
+### 16 October 2026
+
+- Wangsit: closed the demo state in the deployer wallet with `make close-all-monad`: the QQQ long (3.37 USDC back, `0x3f7dfaee…643d`) and the vault deposit (1.0002 USDC back, `0xfc6f006c…0b77`). The router held no tokens after the close. Withdrew 1 USDC of the QQQ long seed (`0xde38c082…57b9`), leaving 2 USDC there. The seed lending in all five markets is left in place on purpose, so judges can still open a long or a short (on QQQ, up to about $1 at 3x, since the borrow must fit in 2 USDC). All free USDC (5.60) then left the deployer wallet (`0xfacb4525…9932`); it keeps about 14 MON for owner transactions. The Positions and Earn screens show no team data until someone trades or deposits.
 
 ### 14 October 2026
 
