@@ -1,5 +1,9 @@
 # Levra
 
+![award](https://img.shields.io/badge/%F0%9F%8F%86_Privy_Bounty_Winner-Monad_Metropolis_2026-FFD700)
+
+> 🏆 **Privy Bounty Winner** at **[Monad Metropolis 2026](https://monad.xyz/metropolis)**, Monad's global online hackathon.
+
 A margin account for tokenized stocks on Monad. One account to buy tokenized stocks with leverage (long), profit when prices fall (short), or lend assets for interest, with funds that can arrive from any chain.
 
 Levra does not run its own exchange or lending pool. Trades go to Uniswap v4 and Monday Trade through the KyberSwap aggregator. Lending and borrowing happen on Morpho. Cross-chain deposits use Aurora Intents. Stock prices come from the Anchored oracle. User funds stay in the user's own Morpho position.
