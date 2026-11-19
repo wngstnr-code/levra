@@ -39,7 +39,7 @@ More Morpho contracts on Monad, taken from the address list in Morpho's own SDK 
 | Morpho vault factory (MetaMorpho v1.1) | `0x33f20973275B2F574488b18929cd7DCBf1AbF275` |
 | Morpho Vault V2 factory | `0x8B2F922162FBb60A6a072cC784A2E4168fB0bb0c` |
 | Morpho market adapter factory for Vault V2 | `0xa00666E86C7e2FA8d2c78d9481E687e098340180` |
-| Morpho public allocator | `0x0A503aB026EFACBC0F7feE7795F34B80b5B9a662` |
+| Morpho public allocator (BluePublicAllocator, for Vault V2 vaults: `vaultV2Factory()` returns the Vault V2 factory, checked on 19 November 2026. It does not serve our MetaMorpho vault) | `0x0A503aB026EFACBC0F7feE7795F34B80b5B9a662` |
 | Wrapped MON | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
 
 Common infrastructure, confirmed to have code at the usual addresses:
