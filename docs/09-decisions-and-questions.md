@@ -63,6 +63,12 @@ How to use it:
 | D-49 | The hard limit uses the issuer's official oracle only: Anchored on Monad, Chainlink's Coinbase feed on Base, behind one `ISessionOracle` interface. DEX prices only in the soft layer. Replaces the Anchored only rule in CLAUDE.md section 8 (updated on 19 November 2026) | Agreed on 19 November 2026. Chainlink is the official oracle of the Coinbase stocks | DEX prices in the hard limit; Anchored on Base |
 | D-50 | Aurora Intents / 1Click is replaced by Circle CCTP and Across for deposits and withdrawals on both chains. A 0x or 1inch aggregator becomes the primary swap route (choice in BE-71); KyberSwap stays as a Monad backup | Agreed on 19 November 2026. Both are mature, run on Base and Monad, and remove the 0.2% 1Click fee and the KyberSwap rate limit problem | Keeping 1Click; KyberSwap only |
 | D-51 | Monad stays live during the Base work. Monad remains the default chain in `packages/shared` until the web chain picker ships | Agreed on 19 November 2026 | Freezing Monad until after the competition |
+| D-52 | X Layer becomes Levra's third chain, from the same codebase, and Levra is submitted to OKX's X Layer TapeOut Accelerate. Stocks on X Layer are the wrapped xStocks that already have Morpho markets | Agreed by Wangsit, Dharu and Nabil on 19 November 2026. Morpho went live on X Layer on 18 November with xStocks long markets and no short side | Skipping X Layer; a separate X Layer app |
+| D-53 | One aggregator interface in the code, provider chosen per chain: 0x or 1inch on Monad and Base (BE-71), OKX DEX API on X Layer. Refines D-50 | Agreed on 19 November 2026. 0x does not list X Layer; OKX DEX API does | One provider for all chains |
+| D-54 | Cross-chain deposits into X Layer use CCTP V2 with native USDC only | Agreed on 19 November 2026. Across does not list X Layer | Waiting for Across; bridged USDC.e |
+| D-55 | TapeOut is used only where a wrong or missing answer cannot move money: a risk circuit that mirrors `math.ts`, PnL proofs through TapeSend, and an optional DeWEB mirror. User funds never pass through TapeOut and no hard limit depends on it | Agreed on 19 November 2026. TapeOut is not audited and its Hub and Factory are not sealed | Routing trades or limits through TapeOut |
+| D-56 | The hard limit on X Layer uses the oracle the Morpho xStocks markets use, once SC-81 confirms the vendor (extends D-49) | Agreed on 19 November 2026 | DEX prices; our own feed |
+| D-57 | CLAUDE.md names Monad, Base and X Layer as Levra's chains | Agreed on 19 November 2026 | |
 
 ## Open questions
 
@@ -106,6 +112,8 @@ Every question has an owner and a milestone to answer it by.
 | Q-34 | Budget for sponsored gas on Base, and does it replace the gas top-up on deposits? | Nabil | Before FE-74 | FE-74, BE-76 | Small budget for first actions only |
 | Q-35 | Should the agent get delegated trading permission (for example Privy session signers) later? | Dharu | After the competition | BE-77 | No. Users sign every action |
 | Q-36 | Do the Coinbase B20 policies authorize Morpho, our router and our liquidator for every stock? | Wangsit | Before SC-76 | SC-71 | Assume yes, since Morpho markets already exist; prove it per token |
+| Q-37 | Who runs the xStocks feeds used by Morpho on X Layer (`wNVDAx-USD (Calculated)` and others), and how do they behave at weekends? | Wangsit | Before SC-82 | SC-81, X-36 | Chainlink, updates 24/7 from the wrapped price. Not verified |
+| Q-38 | Do the wrapped xStocks have a denylist or pause that could block Morpho, our router or our liquidator? | Wangsit | Before SC-83 | SC-81 | Assume transferable, as Morpho markets exist |
 
 ## Decisions waiting for the team
 
