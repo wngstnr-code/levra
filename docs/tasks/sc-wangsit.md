@@ -165,6 +165,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 - [ ] **SC-52 · Internal review**
   - Do: read all contracts line by line, using the threat list in 07 as a checklist. Ask Dharu to read as well, as a second pair of eyes.
   - Done when: each threat from T-01 to T-17 is marked "closed, see test X" or "cannot be closed by code, see Y".
+  - Note: on 20 November 2026 an automated high effort review of all of `contracts/src` found 8 issues, all fixed with tests (D-89, D-90; PROGRESS review notes). The threat list gained T-24. Still needed: a human second reader and the line by line pass over T-01 to T-24.
 
 - [ ] **SC-53 · Audit preparation**
   - Needs: SC-50, SC-52, X-13.

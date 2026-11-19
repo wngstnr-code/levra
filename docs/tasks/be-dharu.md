@@ -249,6 +249,16 @@ Three rules for the backend:
 
 ---
 
+- [ ] **BE-88 · Keeper sizes reductions to the router floor**
+  - Needs: the router with `DELEVERAGE_FLOOR` (D-91).
+  - Do: in `apps/keeper/src/protector/protector.ts` (`planLong`, `planShort`), size each reduction to end between the soft limit and `currentSoftLtv - DELEVERAGE_FLOOR` (read the constant from the ABI), keep the collateral taken out within the D-92 size bound (`DELEVERAGE_SLACK_BPS`), drop the `type(uint256).max` full close branch, and simulate the call before sending so a `DeleverageTooDeep` or `DeleverageTooLarge` plan is resized instead of retried.
+  - Done when: the protector never sends a plan the router refuses with `DeleverageTooDeep` or `DeleverageTooLarge`, with a test for a large reduction and a fill better than the oracle.
+
+- [ ] **BE-89 · Liquidation bot leaves a margin for accrual**
+  - Needs: the liquidator with `lossBudgetOf` (D-91).
+  - Do: size the swap `minOut` from accrued Morpho totals (`expectedMarketBalances`) plus a small margin, so a liquidation does not end a few wei short and revert `LossTooLarge` while the loss budget is zero. Alert on `LossBudgetSet` and `LossBudgetSpent`. The keeper must not plan reductions while the session is `Closed` (`MarketClosed`).
+  - Done when: a test shows a liquidation after interest accrual passes with a zero loss budget.
+
 ## M6. Launch
 
 - [ ] **BE-60 · Production backend**
