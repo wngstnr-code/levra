@@ -205,9 +205,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 
 Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
 
-- [ ] **SC-70 · Base addresses and facts**
+- [x] **SC-70 · Base addresses and facts**
   - Do: read and write into 05 a new "Base" section: Morpho core, IRM, vault factories and the existing stock markets (IDs, LLTV), USDC, every Coinbase B20 stock token, Chainlink feed per stock, Coinbase oracle registry, Permit2, Multicall3, Safe. Mark each verified or not.
   - Done when: every address has code on Base mainnet, read on a stated date, and is in 05.
+  - Note: done on 19 November 2026 from the chain, the Morpho API, Sourcify and the docs (05, Base): Morpho core, IRM, both MetaMorpho factories, Vault V2 factory, both public allocators, USDC, Permit2, Multicall3, Safe 1.4.1, the Coinbase oracle registry, and 8 stock tokens with listed Morpho long markets and their Chainlink feeds. The B20 policy registry, token factory and supply manager came from `api.coinbase.com` (blocked on our network, read over another connection). Left out: the token addresses for MSTR and SNDK, which have feeds but no Morpho market; finding them needs the factory's `SecurityTokenDeployed` logs from an archive RPC.
 
 - [ ] **SC-71 · B20 policy check**
   - Do: for each stock, read `policyExists` and `isAuthorized` for Morpho, the router, the liquidator, the 1inch router, the Aerodrome router and a plain wallet, in every scope including the transfer executor (D-72). Check pause state. Write a fork test that moves each token through Morpho and the router.
