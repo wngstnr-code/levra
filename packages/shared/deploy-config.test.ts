@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { BASE_CHAIN_ID, externalByChain, MONAD_CHAIN_ID, tokensByChain } from "./addresses";
+import { BASE_CHAIN_ID, externalByChain, MONAD_CHAIN_ID, tokensByChain, XLAYER_CHAIN_ID } from "./addresses";
 import { findStock, type ChainlinkStock } from "./markets";
 
 // The deployment configs in contracts/config must use the same addresses as this package, so there is
@@ -10,6 +10,7 @@ import { findStock, type ChainlinkStock } from "./markets";
 type Market = { symbol: string; stock: string; stockDecimals: number; side: string; feed?: string };
 type Config = {
   chainId: number;
+  swapSpenders?: string[];
   morpho: string;
   irm: string;
   usdc: string;
@@ -78,5 +79,32 @@ describe("contracts/config/base.json", () => {
       same(m.feed!, stock!.priceFeed);
     }
     expect(c.vaultCaps.map((v) => v.symbol).sort()).toEqual(["AAPL", "AMZN", "GOOGL", "META", "MSFT", "NVDA", "SPCX", "TSLA"]);
+  });
+});
+
+describe("contracts/config/xlayer.json", () => {
+  const c = read("xlayer");
+  const ext = externalByChain[XLAYER_CHAIN_ID];
+
+  it("uses the shared X Layer addresses and the swap targets of D-85 with their spenders", () => {
+    expect(c.chainId).toBe(XLAYER_CHAIN_ID);
+    same(c.morpho, ext.morpho);
+    same(c.irm, ext.morphoAdaptiveCurveIrm);
+    same(c.usdc, tokensByChain[XLAYER_CHAIN_ID].USDC.address);
+    expect(c.swapTargets.map(getAddress)).toEqual([ext.okxDexRouter, ext.uniswapSwapRouter02].map(getAddress));
+    expect(c.swapSpenders!.map(getAddress)).toEqual([getAddress(ext.okxDexApprove), getAddress("0x0000000000000000000000000000000000000000")]);
+  });
+
+  it("has a long and a short market for every shared X Layer stock, with its token, decimals and feed", () => {
+    for (const side of ["long", "short"]) {
+      expect(c.markets.filter((m) => m.side === side).map((m) => m.symbol).sort(), side).toEqual(["GOOGL", "NVDA", "QQQ", "SPY"]);
+    }
+    for (const m of c.markets) {
+      const stock = findStock(XLAYER_CHAIN_ID, m.symbol) as ChainlinkStock | undefined;
+      expect(stock, m.symbol).toBeDefined();
+      same(m.stock, stock!.token);
+      expect(m.stockDecimals).toBe(stock!.decimals);
+      same(m.feed!, stock!.priceFeed);
+    }
   });
 });

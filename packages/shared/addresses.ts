@@ -101,6 +101,10 @@ export const xlayerExternal = {
   morphoPublicAllocator: "0x1b7C60330E3aFe5bA876F518Ff14316EA497f683",
   morphoChainlinkOracleV2Factory: "0x625Eb26d759ef8077202d4a5A63098B4B28616Db",
   xStocksSanctionsList: "0x615Dd3B9445A94334C1579F68115042D77CC7c44",
+  /** Swap targets on X Layer (D-85). OKX pulls through its approve contract (D-88). */
+  okxDexRouter: "0x7c5bEE2a8091C3ef39072f64F18Fac913060AEaF",
+  okxDexApprove: "0x8b773D83bc66Be128c60e07E17C8901f7a64F000",
+  uniswapSwapRouter02: "0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA",
   permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   multicall3: "0xcA11bde05977b3631167028862bE2a173976CA11",
   safeSingleton: "0x41675C099F32341bf84BFc5382aF534df5C7461a",
