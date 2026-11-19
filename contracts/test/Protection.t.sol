@@ -116,13 +116,99 @@ contract ProtectionTest is BaseTest {
         router.deleverage(user, p);
     }
 
+    /// Review of 20 November: a keeper may not sell the whole position or far below the soft limit.
+    function test_keeperCannotCloseThePositionInFull() public {
+        vm.prank(user);
+        router.setProtection(longId, true);
+        _enterPreClose();
+        Position memory position = _position(longId);
+        IMarginRouter.CloseParams memory p = IMarginRouter.CloseParams({
+            marketId: longId,
+            repayShares: type(uint256).max,
+            withdrawAssets: type(uint256).max,
+            swapAmountIn: type(uint256).max,
+            swap: _swapData(AQQQ, USDC, position.collateral, _usdcFor(position.collateral, 0)),
+            minReturn: 0,
+            deadline: vm.getBlockTimestamp() + 60
+        });
+        vm.prank(keeper);
+        vm.expectPartialRevert(IMarginRouter.DeleverageTooDeep.selector);
+        router.deleverage(user, p);
+    }
+
+    /// An issuer pause marks the snapshot stale but must not stop a protective reduction.
+    function test_keeperStillReducesWhileTheSnapshotIsMarkedStale() public {
+        vm.prank(user);
+        router.setProtection(longId, true);
+        _enterPreClose();
+        IMarginRouter.CloseParams memory p = _reduce(41e6, 40e6, 0);
+        (uint256 priceE8, uint256 bid, uint256 ask, Session session, uint64 feedAt, uint64 publishedAt,) =
+            longOracle.snapshot();
+        vm.mockCall(
+            address(longOracle),
+            abi.encodeWithSelector(ISessionOracle.snapshot.selector),
+            abi.encode(priceE8, bid, ask, Session.Unknown, feedAt, publishedAt, true)
+        );
+        uint256 ltvBefore = risk.positionLtv(longId, user);
+        vm.prank(keeper);
+        router.deleverage(user, p);
+        assertLt(risk.positionLtv(longId, user), ltvBefore);
+    }
+
+    /// Review 3 of 20 November: withdrawing far more collateral than the debt repaid is refused, even when
+    /// the LTV ends inside the window.
+    function test_keeperCannotTakeOutMoreCollateralThanItRepays() public {
+        vm.prank(user);
+        router.setProtection(longId, true);
+        _enterPreClose();
+        IMarginRouter.CloseParams memory p = _reduce(41e6, 40e6, 0);
+        p.withdrawAssets += _stockFor(5e6, 0);
+        vm.prank(keeper);
+        vm.expectPartialRevert(IMarginRouter.DeleverageTooLarge.selector);
+        router.deleverage(user, p);
+    }
+
+    /// With a soft limit at or under the floor, a keeper still may not repay all debt.
+    function test_keeperCannotRepayAllDebtUnderATinySoftLimit() public {
+        vm.prank(user);
+        router.setProtection(longId, true);
+        IRiskManager.MarketConfig memory c = risk.config(longId);
+        c.softLtvOpen = 0.04e18;
+        c.softLtvClosed = 0.04e18;
+        risk.setMarketConfig(longId, c);
+        Position memory position = _position(longId);
+        IMarginRouter.CloseParams memory p = IMarginRouter.CloseParams({
+            marketId: longId,
+            repayShares: type(uint256).max,
+            withdrawAssets: position.collateral,
+            swapAmountIn: position.collateral,
+            swap: _swapData(AQQQ, USDC, position.collateral, _usdcFor(position.collateral, 0)),
+            minReturn: 0,
+            deadline: vm.getBlockTimestamp() + 60
+        });
+        vm.prank(keeper);
+        vm.expectPartialRevert(IMarginRouter.DeleverageTooDeep.selector);
+        router.deleverage(user, p);
+    }
+
+    /// 04: no auto-deleverage after the close (review 4).
+    function test_keeperCannotReduceWhileTheMarketIsClosed() public {
+        vm.prank(user);
+        router.setProtection(longId, true);
+        IMarginRouter.CloseParams memory p = _reduce(41e6, 40e6, 0);
+        _mockOracle(Session.Closed, 0, 0, int128(int256(_priceE8())));
+        vm.prank(keeper);
+        vm.expectRevert(IMarginRouter.MarketClosed.selector);
+        router.deleverage(user, p);
+    }
+
     function test_keeperCannotMakeThePositionWorse() public {
         vm.prank(user);
         router.setProtection(longId, true);
         _enterPreClose();
         IMarginRouter.CloseParams memory p = _reduce(20e6, 0, 0);
         vm.prank(keeper);
-        vm.expectPartialRevert(IMarginRouter.PositionHealthy.selector);
+        vm.expectPartialRevert(IMarginRouter.LtvNotReduced.selector);
         router.deleverage(user, p);
     }
 

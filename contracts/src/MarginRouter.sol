@@ -19,6 +19,7 @@ import {
     Signature
 } from "morpho-blue/src/interfaces/IMorpho.sol";
 import {IMorphoFlashLoanCallback} from "morpho-blue/src/interfaces/IMorphoCallbacks.sol";
+import {IOracle} from "morpho-blue/src/interfaces/IOracle.sol";
 import {SharesMathLib} from "morpho-blue/src/libraries/SharesMathLib.sol";
 import {IMarginRouter} from "./interfaces/IMarginRouter.sol";
 import {IRiskManager} from "./interfaces/IRiskManager.sol";
@@ -66,6 +67,13 @@ contract MarginRouter is
     uint256 public constant MAX_KEEPER_FEE_BPS = 30;
     uint8 private constant REASON_USER = 0;
     uint8 private constant REASON_PROTECTION = 1;
+    /// WAD. A keeper reduction may end at most this far below the current soft limit (04: the target is one
+    /// point below it, the rest absorbs a fill better than the oracle). It never closes a position in full.
+    uint256 public constant DELEVERAGE_FLOOR = 0.05e18;
+    /// A keeper may take out collateral worth at most the debt it repays, grossed up by the deviation bound,
+    /// the keeper fee and this slack. So it cannot turn a reduction into a near full close (D-92).
+    uint256 public constant DELEVERAGE_SLACK_BPS = 100;
+    uint256 private constant ORACLE_PRICE_SCALE = 1e36;
 
     IMorpho public immutable MORPHO;
     IRiskManager public immutable RISK;
@@ -222,6 +230,9 @@ contract MarginRouter is
     function deleverage(address user, CloseParams calldata p) external nonReentrant {
         if (!isKeeper[msg.sender]) revert Unauthorized();
         if (!protectionEnabled[user][p.marketId]) revert ProtectionNotEnabled(user, p.marketId);
+        // 04: no auto-deleverage after the close, when the DEX may be too quiet. An issuer pause (Unknown) is allowed.
+        (,,, Session session,,,) = ISessionOracle(RISK.config(p.marketId).oracle).snapshot();
+        if (session == Session.Closed) revert MarketClosed();
         uint256 ltv = RISK.positionLtv(p.marketId, user);
         uint256 soft = RISK.currentSoftLtv(p.marketId);
         if (ltv <= soft) revert PositionHealthy(ltv, soft);
@@ -463,7 +474,8 @@ contract MarginRouter is
     }
 
     /// A reduction may never leave the position worse off than before and above the soft limit.
-    /// A keeper reduction must also trade near the oracle price and must lower the LTV.
+    /// A keeper reduction must also lower the LTV, end no deeper than DELEVERAGE_FLOOR below the soft limit
+    /// (so it always leaves debt) and trade near the oracle price.
     function _checkReduced(Close memory c, uint256 ltvBefore, uint256 execPriceE8)
         private
         view
@@ -477,12 +489,27 @@ contract MarginRouter is
             }
             return ltvAfter;
         }
-        if (ltvAfter >= ltvBefore) revert PositionHealthy(ltvAfter, ltvBefore);
+        if (ltvAfter >= ltvBefore) revert LtvNotReduced(ltvAfter, ltvBefore);
+        uint256 softLtv = RISK.currentSoftLtv(c.marketId);
+        uint256 floor = softLtv > DELEVERAGE_FLOOR ? softLtv - DELEVERAGE_FLOOR : 0;
+        if (ltvAfter == 0 || ltvAfter < floor) revert DeleverageTooDeep(ltvAfter, floor);
+        // A hard stale price already reverted in positionLtv. An issuer pause must not stop a reduction.
         uint256 oraclePriceE8 = _oraclePriceE8(c.mp.oracle);
         uint256 diff = execPriceE8 > oraclePriceE8 ? execPriceE8 - oraclePriceE8 : oraclePriceE8 - execPriceE8;
         uint256 deviationBps = Math.mulDiv(diff, BPS, oraclePriceE8);
         uint256 maxBps = RISK.config(c.marketId).maxDeviationBps;
         if (execPriceE8 == 0 || deviationBps > maxBps) revert IRiskManager.PriceDeviationTooHigh(deviationBps, maxBps);
+        _checkKeeperSize(c, maxBps);
+    }
+
+    /// Collateral value taken out, in loan token units at the Morpho price (the cautious side on Monad),
+    /// against the debt repaid.
+    function _checkKeeperSize(Close memory c, uint256 maxDeviationBps) private view {
+        uint256 removedValue = Math.mulDiv(c.withdrawAssets, IOracle(c.mp.oracle).price(), ORACLE_PRICE_SCALE);
+        uint256 costBps = maxDeviationBps + keeperFeeBps + DELEVERAGE_SLACK_BPS;
+        if (costBps >= BPS) revert DeleverageTooLarge(removedValue, 0);
+        uint256 allowed = Math.mulDiv(c.repayAssets, BPS, BPS - costBps);
+        if (removedValue > allowed) revert DeleverageTooLarge(removedValue, allowed);
     }
 
     function _swap(address tokenIn, address tokenOut, uint256 amountIn, Swap memory swap)

@@ -68,6 +68,10 @@ interface IMarginRouter {
     error UserLimitExceeded(uint256 ltv, uint256 maxLtv);
     error ProtectionNotEnabled(address user, Id marketId);
     error PositionHealthy(uint256 ltv, uint256 softLtv);
+    error LtvNotReduced(uint256 ltvAfter, uint256 ltvBefore);
+    error DeleverageTooDeep(uint256 ltvAfter, uint256 floor);
+    error DeleverageTooLarge(uint256 removedValue, uint256 allowed);
+    error MarketClosed();
     error InsufficientReturn(uint256 returned, uint256 minReturn);
     error NotMorpho();
     error Unauthorized();
@@ -92,7 +96,10 @@ interface IMarginRouter {
 
     function protectionEnabled(address user, Id marketId) external view returns (bool);
 
-    /// Keeper only. Requires protection on, LTV above the soft limit, and a swap price within the deviation bound.
+    /// Keeper only. Requires protection on, LTV above the soft limit, a lower LTV afterwards that is no more
+    /// than DELEVERAGE_FLOOR below the soft limit with debt left, collateral taken out worth at most the debt repaid
+    /// grossed up by the deviation bound, the keeper fee and DELEVERAGE_SLACK_BPS, and a swap price within the
+    /// deviation bound.
     function deleverage(address user, CloseParams calldata p) external;
 
     function multicall(bytes[] calldata data) external returns (bytes[] memory);
@@ -112,6 +119,12 @@ interface IMarginRouter {
     function feeBps() external view returns (uint256);
 
     function keeperFeeBps() external view returns (uint256);
+
+    /// WAD. A keeper reduction ends at most this far below the current soft limit.
+    function DELEVERAGE_FLOOR() external view returns (uint256);
+
+    /// Bps of slack on top of the deviation bound and the keeper fee when sizing a keeper reduction.
+    function DELEVERAGE_SLACK_BPS() external view returns (uint256);
 
     function isSwapTarget(address target) external view returns (bool);
 }

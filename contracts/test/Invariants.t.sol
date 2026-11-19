@@ -245,7 +245,9 @@ contract Handler is Test {
         }
 
         // Selling a share f of the collateral repays f / LTV of the debt, less 1% for the keeper fee and rounding.
-        fractionBps = bound(fractionBps, 1_000, 3_000);
+        // From about 72%, 3% to 10% ends between the soft limit and 2 points below it, which a keeper may
+        // not go under (DELEVERAGE_FLOOR, D-90).
+        fractionBps = bound(fractionBps, 300, 1_000);
         uint256 sell = uint256(position.collateral) * fractionBps / 10_000;
         uint256 ltvThen = risk.positionLtv(longId, target);
         IMarginRouter.CloseParams memory p = IMarginRouter.CloseParams({
@@ -332,7 +334,7 @@ contract InvariantsTest is BaseTest {
     function test_handlerActionsCanSucceed() public {
         handler.openLong(0, 100e6, 200, 10_000);
         assertEq(handler.opens(), 1);
-        handler.protectedReduce(0, 2_000);
+        handler.protectedReduce(0, 800);
         assertEq(handler.reductions(), 1);
         handler.closeLong(0, 10_000, 10_000);
         assertEq(handler.closes(), 1);

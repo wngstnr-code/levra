@@ -72,6 +72,49 @@ contract ShortTest is BaseTest {
         router.openShort(p);
     }
 
+    /// Opens a short at about 71% and enters the pre-close window (soft 70%, floor 65%), then builds a keeper
+    /// reduction that buys back a tenth of the debt and withdraws `extraUsdc` on top of what it needs.
+    function _protectedShortReduce(uint256 extraUsdc) internal returns (IMarginRouter.CloseParams memory) {
+        (IMarginRouter.OpenParams memory open,) = _openShortParams(100e6, 245e6);
+        vm.prank(user);
+        router.openShort(open);
+        vm.prank(user);
+        router.setProtection(shortId, true);
+        risk.setNextCloseAt(uint64(vm.getBlockTimestamp() + 1 hours));
+
+        Position memory position = _position(shortId);
+        uint256 buyBack = open.borrowAssets / 10 + 1e12;
+        uint256 spend = _usdcFor(buyBack, 0) + 1;
+        return IMarginRouter.CloseParams({
+            marketId: shortId,
+            repayShares: uint256(position.borrowShares) / 10,
+            withdrawAssets: spend * 10_050 / 10_000 + extraUsdc,
+            swapAmountIn: spend,
+            swap: _swapData(USDC, AQQQ, spend, buyBack),
+            minReturn: 0,
+            deadline: vm.getBlockTimestamp() + 60
+        });
+    }
+
+    function test_keeperReducesAProtectedShortInsideTheBounds() public {
+        IMarginRouter.CloseParams memory p = _protectedShortReduce(0);
+        uint256 before = risk.positionLtv(shortId, user);
+        assertGt(before, risk.currentSoftLtv(shortId));
+        vm.prank(keeper);
+        router.deleverage(user, p);
+        uint256 afterLtv = risk.positionLtv(shortId, user);
+        assertLt(afterLtv, before);
+        assertGe(afterLtv, risk.currentSoftLtv(shortId) - router.DELEVERAGE_FLOOR());
+        _assertRouterEmpty();
+    }
+
+    function test_keeperCannotTakeOutMoreUsdcThanTheShortRepays() public {
+        IMarginRouter.CloseParams memory p = _protectedShortReduce(3e6);
+        vm.prank(keeper);
+        vm.expectPartialRevert(IMarginRouter.DeleverageTooLarge.selector);
+        router.deleverage(user, p);
+    }
+
     function test_closeShortInFull() public {
         (IMarginRouter.OpenParams memory open,) = _openShortParams(100e6, 50e6);
         vm.prank(user);
