@@ -310,3 +310,38 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Needs: BE-73.
   - Do: `GET /v1/stats` per chain: wallets, open interest long and short, volume, Earn supplied. Only indexed data.
   - Done when: FE-75 reads it.
+
+
+---
+
+## X. X Layer (TapeOut Accelerate)
+
+Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
+
+- [ ] **BE-80 · X Layer in the API, indexer and keeper**
+  - Needs: BE-70, SC-80, SC-83.
+  - Do: serve chain 196 under the chain routes; run the indexer and keeper for X Layer; liquidator bot and auto-deleverage there.
+  - Done when: a test position on X Layer shows in the API and the keeper runs on Railway.
+
+- [ ] **BE-81 · OKX DEX API spike and swap provider**
+  - Do: quote and build swaps for each wrapped xStock with a contract sender and recipient; measure price, depth and rate limits; check 1inch on X Layer too. Put the provider behind the shared aggregator interface (D-53).
+  - Done when: results in 05, router address sent to Wangsit (SC-83), long and short quotes work on X Layer.
+
+- [ ] **BE-82 · TapeOut spike**
+  - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits.
+  - Done when: findings in 05 and the circuit and message are readable onchain.
+
+- [ ] **BE-83 · Risk circuit**
+  - Needs: BE-82.
+  - Do: health factor, liquidation price and session limit from `math.ts` as a TapeOut circuit. A test compares its output with `math.ts` on many inputs. The API and the agent show the circuit result next to ours and flag any difference.
+  - Done when: the test passes and the agent answers "my health" with the circuit result.
+
+- [ ] **BE-84 · PnL proofs through TapeSend**
+  - Needs: BE-82, BE-80.
+  - Do: on every closed position on X Layer, post a commitment (market, side, entry, exit, PnL percent, close transaction hash) through TapeSend from a keeper key. Expose `GET /v1/:chainId/proofs/:positionId`. Shape written in 03.
+  - Done when: a real close produces a proof that FE-81 can verify.
+
+- [ ] **BE-85 · CCTP deposits into X Layer**
+  - Needs: BE-76.
+  - Do: deposits and withdrawals for X Layer through CCTP V2 with native USDC.
+  - Done when: a real deposit from another chain into X Layer, hash in PROGRESS.

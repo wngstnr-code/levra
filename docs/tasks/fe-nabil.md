@@ -247,3 +247,30 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Needs: BE-77.
   - Do: link and short guide to the Bankr and Telegram agent; show prepared transactions from the agent for signing.
   - Done when: a close prepared in chat is signed in the app.
+
+
+---
+
+## X. X Layer (TapeOut Accelerate)
+
+Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
+
+- [ ] **FE-80 · X Layer in the app**
+  - Needs: FE-70, SC-80.
+  - Do: X Layer in the chain picker and routes (`/xlayer/...`); markets, trade, positions and Earn for xStocks; OKX Wallet works as an external wallet through Privy.
+  - Done when: a real long and short on X Layer are opened and closed from the app (checkpoint I-X1).
+
+- [ ] **FE-81 · Verified PnL on the share card and leaderboard**
+  - Needs: BE-84, FE-76.
+  - Do: the share card and leaderboard show "verified onchain" with a link to the TapeSend proof, checked in the browser against the chain.
+  - Done when: a real proof is shown and checked.
+
+- [ ] **FE-82 · DeWEB mirror (optional)**
+  - Needs: BE-82.
+  - Do: publish the stats page or a light landing page on X Layer DeWEB if the tools support a static export.
+  - Done when: the page loads from DeWEB, or the reason it cannot is written in 05.
+
+- [ ] **FE-83 · Show the risk circuit**
+  - Needs: BE-83.
+  - Do: on the position page, show health and liquidation price with a "checked by TapeOut circuit" mark and a link to the circuit.
+  - Done when: it shows for a real X Layer position.

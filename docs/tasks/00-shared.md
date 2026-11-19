@@ -146,3 +146,23 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Needs: I-B1.
   - Do: demo video with real Base transactions, the X post tagging @buildonbase, the form for both tracks, the list of what was built in the quest period, root README updated (Base addresses, hashes; the AI tool disclosure stays team written).
   - Done when: the submission is confirmed received before 5 December 2026.
+
+
+---
+
+## X. X Layer (TapeOut Accelerate)
+
+Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
+
+- [ ] **X-35 · Seed funds for X Layer** (driver: Wangsit)
+  - Do: agree the amount of USDC and each wrapped xStock for the short markets and the vault (initial proposal), and buy them.
+  - Done when: funds in the team wallet and the amount in 09.
+
+- [ ] **X-36 · TapeOut and X Layer contacts** (driver: Dharu)
+  - Do: join TapeOut and X Layer builder channels, ask about the feed vendor (Q-37), Demo Day and how ecosystem use is judged.
+  - Done when: answers recorded in 09.
+
+- [ ] **X-37 · TapeOut Accelerate submission** (driver: Nabil)
+  - Needs: I-X1.
+  - Do: video of at most 3 minutes (problem, features, users and business model, TapeOut use), the description the page asks for, X Layer and TapeOut addresses, access link, list of work done during the event, Google Form.
+  - Done when: submitted before 7 December 2026, 23:59 UTC.
