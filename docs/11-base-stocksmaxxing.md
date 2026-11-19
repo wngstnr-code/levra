@@ -32,7 +32,7 @@ All three products, same flows as 01 (D-45):
 
 | Product | On Base | Lending side |
 |---|---|---|
-| Long | Borrow USDC against a Coinbase stock in one confirmation | Existing Morpho markets (verified onchain on 19 November 2026: 8 stocks with a listed market, LLTV 62.5%, Alphabet also 77%, see 05) |
+| Long | Borrow USDC against a Coinbase stock in one confirmation | **New Morpho markets created by Levra** with our `ChainlinkSessionOracle`, fed by the Levra USDC vault (D-77). The existing Coinbase stock markets (8 stocks, LLTV 62.5%, Alphabet also 77%, 05) cannot be configured in our `RiskManager` and stay a yield option for the vault |
 | Short | Borrow the stock against USDC, sell it, buy back to close | **New Morpho markets created by Levra**: collateral USDC, loan the stock |
 | Earn | Lend stocks (feeds the short markets) or USDC (feeds longs) | Levra vaults on Morpho, same model as SC-23 |
 
