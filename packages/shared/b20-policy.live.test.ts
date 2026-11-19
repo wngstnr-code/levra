@@ -28,7 +28,7 @@ const pausableFeatures = { transfer: 0, mint: 1, burn: 2, seize: 3 } as const;
 /** Stands for our router, liquidator and a user wallet, which do not exist on Base yet. */
 const freshAccount: Address = "0x00000000000000000000000000000000004c3e5a";
 
-const swapRouters = { oneInch: base.oneInchRouter, aerodrome: base.aerodromeRouter, aerodromeSlipstream: base.aerodromeSlipstreamRouter };
+const swapRouters = { oneInch: base.oneInchRouter, kyber: base.kyberRouter, aero: base.aeroSwapRouter };
 const accountsThatMustPass = { morpho: base.morpho, ...swapRouters, fresh: freshAccount };
 
 type Call = { from: Address; to: Address; data: Hex };
