@@ -2,7 +2,7 @@
 
 One place to see where the build stands. Task checkboxes live in the task files. This file holds the milestones, blockers, checkpoint results, real transactions and the daily log.
 
-Last updated: 13 October 2026
+Last updated: 19 November 2026
 
 ## How to update
 
@@ -208,6 +208,20 @@ One line for every change to 03 after the freeze.
 | 13 October 2026 | `EarnPosition.earnedRaw` is now signed, since bad debt can make it negative. Earn option ids are `vault:<address>` and `market:<marketId>` | Dharu, Nabil | be/BE-22-earn |
 | 13 October 2026 | Added `@levra/shared/deployments/monad`, which exports `monadDeployment`: the mainnet deployment file, validated and bundled. Nothing was removed | Dharu, Nabil | sc/SC-15-mainnet-deployment |
 
+## Review notes
+
+Findings from the self-review in CLAUDE.md section 10, newest first: date, who, what was found, how it was fixed.
+
+| Date | Who | Finding | Fix |
+|---|---|---|---|
+
+## Known issues
+
+Weaknesses found in review that are not fixed yet. Severity is high, medium or low. A threat to user funds also goes into the threat list in `07-testing-and-security.md`.
+
+| Date | Who | Issue | Severity | Task |
+|---|---|---|---|---|
+
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
@@ -220,6 +234,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - All: the BE and FE task files were updated with Dharu and Nabil present: BE-71 follows D-72, BE-82 answers Q-40 first, BE-83 is open to any xStocks borrower, new BE-86 (Wall Street Clock circuit) and BE-87 (agent checked by circuits, if time allows); FE-72 and FE-80 show short capacity, frozen price, pause, geo block and risk disclosure; FE-82 is required.
 - Dharu (research by Wangsit's session): Q-40 partly answered. A tape out burns one transistor per gate. FAB-Genesis transistors are sold out, OrderGuard has 9,215 left at 0.0001 OKB each, the factory lists 430 processors. The real risk is circuit size: plain gate math for the health factor may exceed the supply left, so the risk circuit starts as a comparison (05).
 - Wangsit: SC-81 started from the chain: the four xStocks feeds on X Layer are Chainlink style OCR2 aggregators owned by one 4 of 9 Safe, update every 1 to 3 minutes and stop from Friday 20:00 to Sunday 20:00 ET, with `minAnswer` 1; wNVDAx and its underlying are pausable upgradeable proxies and the underlying has a sanctions list (05, X Layer). Next: SC-73 with Dharu and Nabil, then SC-70 and SC-80.
+- Wangsit: CLAUDE.md gained a session workflow (section 9), a mandatory self-review (section 10) and stricter git rules (section 4); PROGRESS gained "Review notes" and "Known issues". Dharu and Nabil: please read sections 4, 9 and 10, they apply to every session.
 
 ### 12 November 2026
 
