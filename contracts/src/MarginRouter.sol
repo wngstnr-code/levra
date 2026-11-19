@@ -24,11 +24,19 @@ import {IMarginRouter} from "./interfaces/IMarginRouter.sol";
 import {IRiskManager} from "./interfaces/IRiskManager.sol";
 import {ISessionOracle} from "./interfaces/ISessionOracle.sol";
 import {Session, Side, Swap} from "./interfaces/Types.sol";
+import {SwapTargets} from "./SwapTargets.sol";
 
 /// Opens and closes leveraged stock positions in one transaction.
 /// Positions stay in the user's own Morpho account. This contract acts through the Morpho
 /// authorization the user grants, and holds no tokens between transactions.
-contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, ReentrancyGuardTransient, Multicall {
+contract MarginRouter is
+    IMarginRouter,
+    IMorphoFlashLoanCallback,
+    Ownable2Step,
+    ReentrancyGuardTransient,
+    Multicall,
+    SwapTargets
+{
     using SafeERC20 for IERC20;
     using SharesMathLib for uint256;
 
@@ -61,8 +69,6 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
 
     IMorpho public immutable MORPHO;
     IRiskManager public immutable RISK;
-    /// The only contract swap calldata may be sent to. Fixed so no one can point it at Morpho or a token.
-    address public immutable SWAP_TARGET;
 
     uint256 public feeBps;
     uint256 public keeperFeeBps;
@@ -82,18 +88,15 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
     constructor(
         IMorpho morpho,
         IRiskManager risk,
-        address swapTarget,
+        address[] memory swapTargets_,
         address owner_,
         address feeRecipient_,
         uint256 feeBps_
-    ) Ownable(owner_) {
-        if (swapTarget == address(morpho) || swapTarget == address(0) || feeRecipient_ == address(0)) {
-            revert InvalidParams();
-        }
+    ) Ownable(owner_) SwapTargets(swapTargets_, address(morpho)) {
+        if (feeRecipient_ == address(0)) revert InvalidParams();
         if (feeBps_ > MAX_FEE_BPS) revert InvalidParams();
         MORPHO = morpho;
         RISK = risk;
-        SWAP_TARGET = swapTarget;
         feeRecipient = feeRecipient_;
         feeBps = feeBps_;
     }
@@ -270,7 +273,7 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
     // ----- views -----
 
     function isSwapTarget(address target) public view returns (bool) {
-        return target == SWAP_TARGET;
+        return _isSwapTarget(target);
     }
 
     // ----- Morpho callback -----

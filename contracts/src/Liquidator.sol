@@ -9,15 +9,15 @@ import {Id, IMorpho, MarketParams} from "morpho-blue/src/interfaces/IMorpho.sol"
 import {IMorphoLiquidateCallback} from "morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 import {ILiquidator} from "./interfaces/ILiquidator.sol";
 import {Swap} from "./interfaces/Types.sol";
+import {SwapTargets} from "./SwapTargets.sol";
 
 /// Liquidates unhealthy positions in Morpho markets without capital of its own:
 /// Morpho hands over the seized collateral first, it is swapped, and the debt is repaid in the same call.
 /// Holds no user funds. Whatever it earns goes to the treasury.
-contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, ReentrancyGuardTransient {
+contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, ReentrancyGuardTransient, SwapTargets {
     using SafeERC20 for IERC20;
 
     IMorpho public immutable MORPHO;
-    address public immutable SWAP_TARGET;
 
     address public treasury;
     mapping(address => bool) public isKeeper;
@@ -29,13 +29,17 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
 
     error InvalidParams();
 
-    constructor(IMorpho morpho, address swapTarget, address owner_, address treasury_) Ownable(owner_) {
-        if (swapTarget == address(morpho) || swapTarget == address(0) || treasury_ == address(0)) {
-            revert InvalidParams();
-        }
+    constructor(IMorpho morpho, address[] memory swapTargets_, address owner_, address treasury_)
+        Ownable(owner_)
+        SwapTargets(swapTargets_, address(morpho))
+    {
+        if (treasury_ == address(0)) revert InvalidParams();
         MORPHO = morpho;
-        SWAP_TARGET = swapTarget;
         treasury = treasury_;
+    }
+
+    function isSwapTarget(address target) external view returns (bool) {
+        return _isSwapTarget(target);
     }
 
     function liquidate(
@@ -96,7 +100,7 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
     }
 
     function _swap(address tokenIn, address tokenOut, uint256 amountIn, Swap memory swap) private {
-        if (swap.target != SWAP_TARGET) revert SwapTargetNotAllowed(swap.target);
+        if (!_isSwapTarget(swap.target)) revert SwapTargetNotAllowed(swap.target);
         uint256 beforeOut = IERC20(tokenOut).balanceOf(address(this));
         IERC20(tokenIn).forceApprove(swap.target, amountIn);
         (bool ok, bytes memory result) = swap.target.call(swap.data);

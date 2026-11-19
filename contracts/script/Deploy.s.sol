@@ -65,9 +65,9 @@ contract Deploy is Script {
 
         vm.startBroadcast();
         risk = new RiskManager(MORPHO, deployer, PRE_CLOSE_WINDOW);
-        MarginRouter router = new MarginRouter(MORPHO, risk, KYBER_ROUTER, deployer, feeRecipient, FEE_BPS);
+        MarginRouter router = new MarginRouter(MORPHO, risk, _targets(KYBER_ROUTER), deployer, feeRecipient, FEE_BPS);
         Lens lens = new Lens(MORPHO, risk, router);
-        Liquidator liquidator = new Liquidator(MORPHO, KYBER_ROUTER, deployer, feeRecipient);
+        Liquidator liquidator = new Liquidator(MORPHO, _targets(KYBER_ROUTER), deployer, feeRecipient);
         router.setFees(FEE_BPS, KEEPER_FEE_BPS, feeRecipient);
         if (keeper != address(0)) router.setKeeper(keeper, true);
         if (liquidatorKeeper != address(0)) liquidator.setKeeper(liquidatorKeeper, true);
@@ -115,6 +115,11 @@ contract Deploy is Script {
             "]}"
         );
         vm.writeFile(string.concat("deployments/", environment, ".json"), json);
+    }
+
+    function _targets(address target) internal pure returns (address[] memory targets) {
+        targets = new address[](1);
+        targets[0] = target;
     }
 
     function _addMarket(Plan memory plan, bool last) internal {
