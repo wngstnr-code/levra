@@ -46,6 +46,25 @@ contract FakeRegistry {
     }
 }
 
+/// Answers getOracleParams with 32 bytes instead of 64, as an upgraded registry might.
+contract ShortRegistry {
+    fallback() external {
+        assembly {
+            mstore(0, 1)
+            return(0, 32)
+        }
+    }
+}
+
+/// Returns as much data as its gas allows, to make a caller that copies return data run out of gas.
+contract BombRegistry {
+    fallback() external {
+        assembly {
+            return(0, 100000)
+        }
+    }
+}
+
 contract ChainlinkOracleTest is Test {
     uint64 internal constant MAX_FEED_AGE = 26 hours;
     uint64 internal constant MAX_PUBLISH_AGE = 4 days;
@@ -162,13 +181,64 @@ contract ChainlinkOracleTest is Test {
         long.price();
     }
 
-    function test_unreadableRegistryCountsAsPausedAndNeverBlocksThePrice() public {
+    /// Review 4: an unreadable registry refuses opens but never loosens the hard price to the closed clock.
+    function test_unreadableRegistryRefusesOpensButKeepsTheOpenClock() public {
         registry.setBroken(true);
         (,,, Session session,,, bool stale) = long.snapshot();
         assertEq(uint8(session), uint8(Session.Unknown));
         assertTrue(stale);
-        feed.set(15_362_194_489, block.timestamp - 3 days);
         assertEq(long.price(), 15_362_194_489 * 1e26);
+        feed.set(15_362_194_489, block.timestamp - 3 days);
+        vm.expectPartialRevert(ISessionOracle.OracleStale.selector);
+        long.price();
+    }
+
+    function test_malformedOrMissingRegistryCountsAsPausedAndNeverBlocksThePrice() public {
+        address[3] memory registries = [address(new ShortRegistry()), address(0xDEAD), address(new BombRegistry())];
+        for (uint256 i; i < registries.length; ++i) {
+            ChainlinkSessionOracle o = new ChainlinkSessionOracle(
+                IChainlinkFeed(address(feed)),
+                ICoinbaseOracleRegistry(registries[i]),
+                TOKEN,
+                Side.Long,
+                8,
+                6,
+                MAX_FEED_AGE,
+                MAX_PUBLISH_AGE,
+                MIN_PRICE,
+                MAX_PRICE
+            );
+            if (i < 2) {
+                (,,, Session session,,, bool stale) = o.snapshot();
+                assertEq(uint8(session), uint8(Session.Unknown), "short or missing data counts as paused");
+                assertTrue(stale);
+            }
+            uint256 before = gasleft();
+            assertEq(o.price(), 15_362_194_489 * 1e26);
+            assertLt(before - gasleft(), 200_000, "a hostile registry must not spend the caller's gas");
+        }
+    }
+
+    /// D-92: a Monday holiday stops the price once the weekly close ends (fail closed), until the feed writes.
+    function test_mondayHolidayStopsThePriceUntilTheFeedWrites() public {
+        feed.set(15_362_194_489, _at(5, 21 * HOUR));
+        vm.warp(_at(8, 12 * HOUR));
+        (,,, Session session,,, bool stale) = long.snapshot();
+        assertEq(uint8(session), uint8(Session.Regular));
+        assertTrue(stale);
+        vm.expectPartialRevert(ISessionOracle.OracleStale.selector);
+        long.price();
+        feed.set(15_362_194_489, block.timestamp);
+        assertGt(long.price(), 0);
+    }
+
+    /// Summer: the Sunday 20:00 New York write lands at Monday 00:00 UTC, inside the weekly close.
+    function test_summerMondayWriteAtMidnightReopensAtOneUtc() public {
+        feed.set(15_362_194_489, _at(8, 5));
+        vm.warp(_at(8, 2 * HOUR));
+        (,,, Session session,,, bool stale) = long.snapshot();
+        assertEq(uint8(session), uint8(Session.Regular));
+        assertFalse(stale);
     }
 
     function test_noRegistryMeansNoPause() public {

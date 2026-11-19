@@ -9,7 +9,8 @@ import {Session, Side} from "./interfaces/Types.sol";
 /// Morpho oracle for one stock market, fed by a Chainlink style feed with 8 decimals, such as the
 /// Coinbase stock feeds on Base. The feed carries no session, so the weekly close is fixed in UTC:
 /// Saturday 00:00 to Monday 01:00 covers Friday 20:00 to Sunday 20:00 New York time in both summer
-/// and winter. Holidays are not known on chain and count as open.
+/// and winter. Holidays are not known on chain and count as open: a feed that has not written by then is
+/// stale and the price stops (fail closed, D-92), while a close that repays all debt still works.
 contract ChainlinkSessionOracle is ISessionOracle {
     error FeedDecimalsNot8(uint8 decimals);
     error InvalidPriceBounds();
@@ -76,10 +77,13 @@ contract ChainlinkSessionOracle is ISessionOracle {
     }
 
     /// An issuer pause keeps the price usable on the closed clock, so closing, reducing and
-    /// liquidating keep working while snapshot() refuses new positions.
+    /// liquidating keep working while snapshot() refuses new positions. A registry that cannot be read
+    /// never blocks the price and never loosens it: price() stays on the open clock, snapshot() refuses opens.
     function price() external view returns (uint256) {
         (uint256 p, uint64 updatedAt) = _read();
-        if (_age(updatedAt) > _maxAge(_closedOrPaused())) revert OracleStale(updatedAt);
+        (bool paused, bool readable) = _registry();
+        bool closedClock = _weeklyClose(block.timestamp) || (readable && paused);
+        if (_age(updatedAt) > _maxAge(closedClock)) revert OracleStale(updatedAt);
         return side == Side.Long ? p * SCALE : SCALE / p;
     }
 
@@ -98,7 +102,8 @@ contract ChainlinkSessionOracle is ISessionOracle {
     {
         uint64 updatedAt;
         (priceE8, updatedAt) = _read();
-        bool paused = _paused();
+        (bool issuerPaused, bool readable) = _registry();
+        bool paused = issuerPaused || !readable;
         bool closed = _weeklyClose(block.timestamp);
         session = paused ? Session.Unknown : closed ? Session.Closed : Session.Regular;
         feedUpdatedAt = updatedAt;
@@ -112,12 +117,13 @@ contract ChainlinkSessionOracle is ISessionOracle {
     }
 
     // slither-disable-start weak-prng
-    // The modulo finds the weekday and the time of day. Nothing here is random.
+    // The modulo below finds the weekday and the time of day. Nothing here is random.
     function _weeklyClose(uint256 timestamp) private pure returns (bool) {
         uint256 weekday = (timestamp / DAY + 4) % 7;
         if (weekday == 6 || weekday == 0) return true;
         return weekday == 1 && timestamp % DAY < MONDAY_OPEN;
     }
+
     // slither-disable-end weak-prng
 
     function _read() private view returns (uint256 p, uint64 updatedAt) {
@@ -128,18 +134,26 @@ contract ChainlinkSessionOracle is ISessionOracle {
         updatedAt = uint64(updated);
     }
 
-    /// A registry that cannot be read counts as paused, so it can never block the price.
-    function _paused() private view returns (bool) {
-        if (address(REGISTRY) == address(0)) return false;
-        try REGISTRY.getOracleParams{gas: REGISTRY_GAS}(TOKEN) returns (uint256, bool paused) {
-            return paused;
-        } catch {
-            return true;
+    /// Reads the issuer pause. Assembly, because try/catch does not catch return data that fails to decode,
+    /// and copying the whole return data would let a hostile registry spend the caller's gas: only the
+    /// second word (`paused`) is copied. No registry reads as readable and not paused.
+    function _registry() private view returns (bool paused, bool readable) {
+        address registry = address(REGISTRY);
+        if (registry == address(0)) return (false, true);
+        bytes memory data = abi.encodeCall(ICoinbaseOracleRegistry.getOracleParams, (TOKEN));
+        bool ok;
+        uint256 size;
+        uint256 word;
+        assembly ("memory-safe") {
+            ok := staticcall(REGISTRY_GAS, registry, add(data, 0x20), mload(data), 0, 0)
+            size := returndatasize()
+            if and(ok, gt(size, 0x3f)) {
+                returndatacopy(0, 0x20, 0x20)
+                word := mload(0)
+            }
         }
-    }
-
-    function _closedOrPaused() private view returns (bool) {
-        return _weeklyClose(block.timestamp) || _paused();
+        if (!ok || size < 0x40) return (false, false);
+        return (word != 0, true);
     }
 
     function _maxAge(bool closed) private view returns (uint64) {
