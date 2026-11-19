@@ -1,9 +1,9 @@
 import { isAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { BASE_CHAIN_ID, external, externalByChain, MONAD_CHAIN_ID, tokens, tokensByChain } from "./addresses";
+import { BASE_CHAIN_ID, external, externalByChain, MONAD_CHAIN_ID, tokens, tokensByChain, XLAYER_CHAIN_ID } from "./addresses";
 import { chainBySlug, chainIds, chains, DEFAULT_CHAIN_ID, isChainId } from "./chains";
 import { parseDeployment, type Deployment } from "./deployments";
-import { baseStocks, findMarket, findStock, listMarkets, stocks, stocksByChain } from "./markets";
+import { baseStocks, findMarket, findStock, listMarkets, stocks, stocksByChain, xlayerStocks } from "./markets";
 
 const baseSample: Deployment = {
   chainId: BASE_CHAIN_ID,
@@ -25,10 +25,12 @@ const baseSample: Deployment = {
 };
 
 describe("chains", () => {
-  it("list Monad and Base, with Monad as the default", () => {
-    expect(chainIds).toEqual([143, 8453]);
+  it("list Monad, X Layer and Base, with Monad as the default", () => {
+    expect([...chainIds].sort((a, b) => a - b)).toEqual([143, 196, 8453]);
     expect(DEFAULT_CHAIN_ID).toBe(MONAD_CHAIN_ID);
     expect(chains[BASE_CHAIN_ID].slug).toBe("base");
+    expect(chains[XLAYER_CHAIN_ID].slug).toBe("xlayer");
+    expect(chainBySlug("xlayer")?.nativeSymbol).toBe("OKB");
   });
 
   it("are found by ID and slug", () => {
@@ -81,6 +83,28 @@ describe("Base stocks", () => {
     expect(findStock(MONAD_CHAIN_ID, "NVDA")).toBeUndefined();
     expect(findStock(BASE_CHAIN_ID, "QQQ")).toBeUndefined();
     expect(findStock(BASE_CHAIN_ID, "toString")).toBeUndefined();
+  });
+});
+
+describe("X Layer stocks", () => {
+  it("point at the wrapped xStock with 18 decimals and a checksummed feed", () => {
+    for (const stock of Object.values(xlayerStocks)) {
+      const token = tokensByChain[XLAYER_CHAIN_ID][stock.tokenSymbol];
+      expect(stock.token).toBe(token.address);
+      expect(stock.decimals).toBe(18);
+      expect(isAddress(stock.priceFeed, { strict: true }), stock.symbol).toBe(true);
+    }
+  });
+
+  it("are found by chain, so the same symbol can live on two chains", () => {
+    expect(findStock(XLAYER_CHAIN_ID, "QQQ")?.tokenSymbol).toBe("wQQQx");
+    expect(findStock(MONAD_CHAIN_ID, "QQQ")?.tokenSymbol).toBe("aQQQ");
+    expect(findStock(XLAYER_CHAIN_ID, "HOOD")).toBeUndefined();
+  });
+
+  it("have no MetaMorpho factory, since X Layer only has Vault V2", () => {
+    expect(Object.hasOwn(externalByChain[XLAYER_CHAIN_ID], "morphoVaultFactory")).toBe(false);
+    expect(externalByChain[XLAYER_CHAIN_ID].morphoVaultV2Factory).toBeDefined();
   });
 });
 
