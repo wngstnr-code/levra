@@ -183,8 +183,8 @@ contract DeployBaseForkTest is DeployScriptTest {
         ChainlinkSessionOracle nvdaShort = ChainlinkSessionOracle(d.oracles[13]);
         assertEq(address(nvdaLong.FEED()), NVDA_FEED);
         assertEq(address(nvdaLong.REGISTRY()), REGISTRY);
-        assertEq(nvdaLong.MIN_PRICE_E8(), uint256(15_362_194_489) / 10);
-        assertEq(nvdaLong.MAX_PRICE_E8(), uint256(15_362_194_489) * 10);
+        assertEq(nvdaLong.MIN_PRICE_E8(), uint256(15_362_194_489) / 100);
+        assertEq(nvdaLong.MAX_PRICE_E8(), uint256(15_362_194_489) * 100);
         assertEq(nvdaLong.price(), uint256(15_362_194_489) * 1e26);
         assertEq(nvdaShort.price(), uint256(1e46) / 15_362_194_489);
         (,,,,,, bool stale) = nvdaLong.snapshot();

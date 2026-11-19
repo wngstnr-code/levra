@@ -15,7 +15,7 @@
   "oracleKind": "chainlink",
   "anchoredOracle": "0x0000000000000000000000000000000000000000",
   "coinbaseRegistry": "0x0000000000000000000000000000000000000000",
-  "priceBoundFactor": 10,
+  "priceBoundFactor": 100,
   "feeBps": 10,
   "keeperFeeBps": 30,
   "preCloseWindow": 14400,

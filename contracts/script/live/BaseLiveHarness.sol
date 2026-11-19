@@ -69,8 +69,8 @@ contract BaseLiveHarness {
             6,
             36 hours,
             4 days,
-            p / 10,
-            p * 10
+            p / 100,
+            p * 100
         );
     }
 
