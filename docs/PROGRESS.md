@@ -34,7 +34,7 @@ Status values: not started, in progress, done. A milestone is done only when its
 | M5. Hardening | Invariant tests, audit, monitoring, compliance gates | SC-50 to SC-56 | BE-50 to BE-55 | FE-50 to FE-55 | I-5 | not started |
 | M6. Launch | Production deployment owned by the multisig, open to the public | SC-60 to SC-61 | BE-60 to BE-61 | FE-60 to FE-61 | I-6 | not started |
 | B. Base (Stocks Maxxing) | Long, short and Earn on Base, agent, submission by 5 December 2026 (doc 11) | SC-70 to SC-78 | BE-70 to BE-79 | FE-70 to FE-77 | I-B1, I-B2 | not started |
-| X. X Layer (TapeOut Accelerate) | Long, short and Earn on X Layer, TapeOut risk circuit and PnL proofs, submission by 7 December 2026 (doc 12) | SC-80 to SC-85 | BE-80 to BE-85 | FE-80 to FE-83 | I-X1 | not started |
+| X. X Layer (TapeOut Accelerate) | Long, short and Earn on X Layer, TapeOut risk circuit and PnL proofs, submission by 7 December 2026 (doc 12) | SC-80 to SC-85 | BE-80 to BE-87 | FE-80 to FE-83 | I-X1 | not started |
 
 Milestones are ordered, but work inside a milestone runs in parallel. Work from a later milestone may start early when it does not depend on anything unfinished. For example BE-03 (one week of oracle logging), X-12 (talking to Anchored) and FE-04 (screen design) should start on day one.
 
@@ -216,6 +216,9 @@ Newest first. One to three lines per person per working day: what got done, what
 
 - All: agreed to bring Levra to Base and submit it to Stocks Maxxing (D-44 to D-51): long, short and Earn on Base with Morpho, Chainlink as the Base oracle, 0x or 1inch and CCTP plus Across on both chains, two tracks with an agent. Plan in doc 11, tasks SC-70 to SC-78, BE-70 to BE-79, FE-70 to FE-77, X-30 to X-34.
 - All: agreed to add X Layer as the third chain and to submit Levra to X Layer TapeOut Accelerate (D-52 to D-57). Plan in doc 12, tasks SC-80 to SC-85, BE-80 to BE-85, FE-80 to FE-83, X-35 to X-37.
+- All: decided the build plan for Base and X Layer (D-58 to D-74): internal dates, one Base release with long, short and Earn, chain keyed shared package and routes, Programmable Stock Markets only, build in public from today, public repo, D-28 fees on the new chains, two new videos, deeper TapeOut use (Wall Street Clock circuit, open risk circuit, required DeWEB), X Layer stocks, seed of about $700 on Base and $600 on X Layer, 1inch plus Aerodrome on Base with 0x dropped, the legal framing, no FabX. Traction strategy (Q-39) stays open for a brainstorm; wash trading is ruled out.
+- All: the BE and FE task files were updated with Dharu and Nabil present: BE-71 follows D-72, BE-82 answers Q-40 first, BE-83 is open to any xStocks borrower, new BE-86 (Wall Street Clock circuit) and BE-87 (agent checked by circuits, if time allows); FE-72 and FE-80 show short capacity, frozen price, pause, geo block and risk disclosure; FE-82 is required.
+- Wangsit: SC-81 started from the chain: the four xStocks feeds on X Layer are Chainlink style OCR2 aggregators owned by one 4 of 9 Safe, update every 1 to 3 minutes and stop from Friday 20:00 to Sunday 20:00 ET, with `minAnswer` 1; wNVDAx and its underlying are pausable upgradeable proxies and the underlying has a sanctions list (05, X Layer). Next: SC-73 with Dharu and Nabil, then SC-70 and SC-80.
 
 ### 12 November 2026
 
