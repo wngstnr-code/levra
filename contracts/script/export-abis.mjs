@@ -32,9 +32,9 @@ const extraEvents = { IMorpho: "EventsLib" };
 
 // Public reads that the contract has and its interface does not: roles and ownership.
 const extraViews = {
-  IMarginRouter: { from: "MarginRouter", names: ["isKeeper", "feeRecipient", "owner", "pendingOwner"] },
+  IMarginRouter: { from: "MarginRouter", names: ["isKeeper", "feeRecipient", "owner", "pendingOwner", "swapTargets"] },
   IRiskManager: { from: "RiskManager", names: ["calendarPoster", "guardian", "owner", "pendingOwner"] },
-  ILiquidator: { from: "Liquidator", names: ["owner", "pendingOwner"] },
+  ILiquidator: { from: "Liquidator", names: ["owner", "pendingOwner", "isSwapTarget", "swapTargets"] },
 };
 
 function viewsOf(contract) {

@@ -1020,5 +1020,18 @@ export const marginRouterAbi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "swapTargets",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "targets",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
   }
 ] as const;
