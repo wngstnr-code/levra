@@ -896,6 +896,7 @@ Written by the deployment script to `contracts/deployments/<environment>.json`.
   "lens": "0x...",
   "liquidator": "0x...",
   "usdcVault": "0x...",
+  "previousRouters": ["0x..."],
   "markets": [
     {
       "symbol": "QQQ",
@@ -909,6 +910,8 @@ Written by the deployment script to `contracts/deployments/<environment>.json`.
   ]
 }
 ```
+
+`previousRouters` is optional: the routers this deployment used before, oldest first, written when the router is replaced (SC-87). Their events are still part of each user's history, so the indexer reads every address in it as well as `router`. A new router does not inherit opt-in protection: users opt in again.
 
 ## 7. Environment variables
 
