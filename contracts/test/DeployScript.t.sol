@@ -191,3 +191,54 @@ contract DeployBaseForkTest is DeployScriptTest {
         assertFalse(stale);
     }
 }
+
+/// A rehearsal of the X Layer deployment on a fork (SC-82, SC-83). Unlike Base, the wrapped xStocks
+/// are plain contracts, so a fork runs everything.
+contract DeployXLayerForkTest is DeployScriptTest {
+    /// 20 November 2026.
+    uint256 internal constant FORK_BLOCK = 76_345_308;
+    address internal constant OKX_ROUTER = 0x7c5bEE2a8091C3ef39072f64F18Fac913060AEaF;
+    address internal constant OKX_APPROVE = 0x8b773D83bc66Be128c60e07E17C8901f7a64F000;
+    address internal constant UNISWAP_ROUTER = 0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA;
+    /// Morpho's own oracle for the listed wNVDAx market, priced by the same feed.
+    address internal constant MORPHO_WNVDAX_ORACLE = 0x787f5aCC336AFB68f72F125a5E20B0f0849E27dd;
+
+    function setUp() public {
+        vm.createSelectFork(vm.envOr("XLAYER_RPC_URL", string("https://rpc.xlayer.tech")), FORK_BLOCK);
+        _run("config/xlayer.json");
+    }
+
+    function test_createsALongAndAShortMarketForEveryStock() public view {
+        Expected[4] memory long = [
+            Expected("GOOGL", Side.Long, 0.77e18, 0.73e18, 0.7e18, 200, 5_000e6, 36 hours, 30 minutes),
+            Expected("NVDA", Side.Long, 0.625e18, 0.58e18, 0.5e18, 200, 2_500e6, 36 hours, 30 minutes),
+            Expected("QQQ", Side.Long, 0.77e18, 0.73e18, 0.7e18, 150, 5_000e6, 36 hours, 30 minutes),
+            Expected("SPY", Side.Long, 0.77e18, 0.73e18, 0.7e18, 150, 5_000e6, 36 hours, 30 minutes)
+        ];
+        assertEq(d.marketIds.length, 8);
+        for (uint256 i; i < 4; ++i) {
+            _check(i, long[i]);
+            Expected memory short = long[i];
+            short.side = Side.Short;
+            _check(i + 4, short);
+            (uint32 min,) = d.risk.oracleAgeBounds(d.marketIds[i]);
+            assertEq(min, 10 minutes);
+        }
+    }
+
+    function test_swapTargetsAndTheOkxApproveContract() public view {
+        address[] memory targets = d.router.swapTargets();
+        assertEq(targets.length, 2);
+        assertEq(d.router.swapSpender(OKX_ROUTER), OKX_APPROVE);
+        assertEq(d.router.swapSpender(UNISWAP_ROUTER), UNISWAP_ROUTER);
+        assertEq(d.liquidator.swapSpender(OKX_ROUTER), OKX_APPROVE);
+    }
+
+    function test_oracleMatchesMorphoOwnOracleAndHasNoRegistry() public view {
+        ChainlinkSessionOracle nvdaLong = ChainlinkSessionOracle(d.oracles[1]);
+        assertEq(address(nvdaLong.REGISTRY()), address(0));
+        assertEq(nvdaLong.price(), ISessionOracle(MORPHO_WNVDAX_ORACLE).price());
+        (,,,,,, bool stale) = nvdaLong.snapshot();
+        assertFalse(stale);
+    }
+}
