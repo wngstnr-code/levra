@@ -9,6 +9,7 @@ This product handles other people's money. The `MarginRouter` contract holds aut
 | Contract unit tests | Foundry | Every function and every failure path | Wangsit |
 | Fork tests | Foundry with a Monad fork | The full flow against the real Morpho, KyberSwap, and Anchored oracle | Wangsit |
 | Fork tests on Base and X Layer | Foundry under `--network optimism` (`*BaseForkTest`, `*XLayerForkTest`), apart from the Monad suite | Base: the oracle adapter against the real feeds and registry. X Layer: the wrapped xStocks through Morpho | Wangsit |
+| Live end-to-end on Base | `make base-live-e2e`: our contracts deployed and a long and a short opened and closed inside one `eth_simulateV1` run on the live node, through every swap target of D-80 | The only way to run the router against Coinbase stock tokens before deploying. Checks that every position ends at zero and the router holds nothing | Wangsit |
 | Live checks on Base | Vitest against a live Base node: reads and `eth_simulateV1` (`*.live.test.ts`, run with `BASE_RPC_URL`) | Coinbase stock tokens are precompiles that a local fork cannot run, so token moves through Morpho and the swap routers are simulated on the real node. Router code on Base still needs its own plan (SC-75, SC-76) | Wangsit |
 | Fuzz and invariant tests | Foundry | The invariants, with random inputs | Wangsit |
 | Static analysis | Slither | Common error patterns | Wangsit |

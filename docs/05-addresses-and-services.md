@@ -452,6 +452,19 @@ Reserve is the whole pool, not the depth near the price.
 - The API refuses requests whose User-Agent looks like a script library (Cloudflare error 1010). Send a plain client name.
 - Verified by quote and simulation on this date only. Prices and routes change by the minute.
 
+### Full long and short on Base, simulated (SC-75)
+
+`make base-live-e2e` on 19 November 2026 at block 59581480 (NVDA oracle $152.98): our router, risk manager and two `ChainlinkSessionOracle` were deployed inside an `eth_simulateV1` run on the live node, with an NVDAc long and short market and lent liquidity. A user with 1,000 USDC then:
+
+| Step | Route | Result | Gas |
+|---|---|---|---|
+| Open long, $100 margin and $100 borrowed | 1inch | 1.30121303 NVDAc collateral | 813,071 |
+| Open short, $50 of NVDAc | KyberSwap | 0.3268353 NVDAc debt | 894,490 |
+| Close long in full | Aero SwapRouter | Debt and collateral 0 | 619,089 |
+| Close short in full | 1inch | Debt and collateral 0 | 716,225 |
+
+The router ended with 0 USDC and 0 NVDAc. The user ended with 997.18 USDC and 0.00856 NVDAc (the buy back surplus), so both round trips cost about $1.50 in fees, spread and interest. Verified by simulation only; nothing was sent.
+
 On Monad (chain 143), 1inch quotes aQQQ and aHOOD through the same Uniswap v4 pools KyberSwap uses, and returns `INSUFFICIENT_LIQUIDITY` for aBIL. So Monad keeps KyberSwap (D-81).
 
 ### Transfer policy and pause (SC-71)
