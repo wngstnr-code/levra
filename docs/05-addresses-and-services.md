@@ -396,6 +396,20 @@ Each Morpho oracle uses only `BASE_FEED_1` (no second feed, no quote feed, no va
 | Sanctions | The underlying has `sanctionsList()` = `0x615Dd3B9445A94334C1579F68115042D77CC7c44`. No sanctions getter was found on the wrapper | Verified onchain. Whether it can block Morpho, our router or our liquidator is not tested (SC-81 fork test) |
 | Wrapper owner | `0x49754062E35f7591B93cc4F9915965be89643a65` for all four wrappers | Verified onchain |
 
+### TapeOut transistors (Q-40)
+
+Read from the X Layer RPC on 19 November 2026, plus community repos (tapeout-forge `docs/COSTS.md`, fabx-minter, fusebox, lingxi). There is no official TapeOut document on this.
+
+| Item | Finding | Status |
+|---|---|---|
+| Tape out needs transistors | A processor's `tapeout(bytes netlist, uint32 nIn, uint32 nOut)` is payable and reverts unless the caller holds at least as many transistors as the circuit has gates. They are burned. One gate is one transistor | Verified from the revert data reported in tapeout-forge, not run by us |
+| Tape out fee | `TAPEOUT_FEE()` = 0.0013 OKB on both processors below, plus gas | Verified onchain |
+| FAB-Genesis processor | `0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6`, transistors `0xBe6f94115D32f3AC3252bc4626573e739bEeb714`: 1,000,000 of 1,000,000 minted, sold out | Verified onchain |
+| OrderGuard processor (used by Fusebox) | `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`, transistors `0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e`: 785 of 10,000 minted, so 9,215 left and shared with every other builder. `mintPrice` 0.0001 OKB per transistor, `protocolFee` 0.00066 OKB per mint transaction | Verified onchain |
+| Factory | `0x1f09DAeFA827f02CBb40967cc91b259763760761` (from TapeKit) lists 430 processors (`cpuCount`). How a new processor is created, its fee, and whether it brings its own transistor supply are not documented | Count verified onchain. Creation not verified |
+| Reading a circuit | `eval`, `step` and the netlist reads are used by other apps without a wallet or transistors | From community repos. Not tested by us |
+| Size risk | Health factor math (multiply and divide on large numbers) as plain gates may need tens of thousands of gates, more than the OrderGuard supply left. A circuit that only compares values computed off-circuit, or a sequential circuit using `step()` and LATCH gates, needs far fewer | Our estimate, not measured (BE-82) |
+
 ## Name and domains
 
 Checked by DNS lookup on 13 October 2026. A domain with no name servers may be free, but only a registrar can confirm.
