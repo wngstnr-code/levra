@@ -70,7 +70,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
-| 19 November 2026 | Wangsit, Nabil | Nabil | `next build` in `apps/web` stops with `SecurityFatalError`: the installed Next.js 16.4.0 has a known vulnerability, so the build refuses to finish even though it compiles. Needs a Next.js upgrade in `apps/web` | FE-01, SC-73 |
+| 19 November 2026 | Wangsit, Nabil | Nabil | `next build` in `apps/web` stops with `SecurityFatalError` on Wangsit's machine: the installed Next.js 16.4.0 has a known vulnerability. The Vercel preview build of PR 84 passed, so it may only stop outside Vercel. Nabil: check it and upgrade Next.js in `apps/web` | FE-01 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
 | 14 October 2026 | Nabil | Wangsit | Set `NEXT_PUBLIC_API_URL=https://api-production-c154.up.railway.app` on the Vercel project (Production and Preview) and redeploy. The Vercel project is on Wangsit's account. This is the last step of BE-15 | FE-10, FE-11, FE-12, FE-13, BE-15 |
 
@@ -181,6 +181,7 @@ One line for every change to 03 after the freeze.
 
 | Date | What changed | Who is affected | PR |
 |---|---|---|---|
+| 19 November 2026 | `packages/shared` keyed by chain ID (D-60, SC-73): `chains.ts`, `externalByChain`, `tokensByChain`, `stocksByChain`, chain aware `listMarkets`. Added only; the Monad exports are unchanged. Merged as PR 84 without a recorded GitHub review from Dharu or Nabil, who agreed in person | Dharu, Nabil | sc/SC-73-chain-keyed-shared |
 | 13 October 2026 | Added section 4 "Signed messages": the terms acceptance text and the SIWE fields for alerts. Proposed, waiting for Dharu | Dharu, Nabil | fe/FE-50-55-m5-hardening |
 | 13 October 2026 | Added the source quote time: `feedUpdatedAt` in `ISessionOracle.snapshot()` and `ILens.MarketView`, `oracleFeedUpdatedAt` in `Market`, `feedUpdatedAt` in the `price` stream event (D-23) | All three | sprint/long-flow |
 | 13 October 2026 | Added `marketIds()` and `positionLtv()` to `IRiskManager` | Wangsit, Dharu | sprint/long-flow |
@@ -222,6 +223,7 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 | Date | Who | Issue | Severity | Task |
 |---|---|---|---|---|
+| 19 November 2026 | Wangsit | A close through the router reads `price()` first (`RISK.positionLtv`), so while the oracle is past its hard age a user cannot close through Levra, only straight on Morpho. Applies to Monad and Base; more likely on Base around holidays | High | SC-86 |
 
 ## Daily log
 
@@ -238,6 +240,10 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: CLAUDE.md gained a session workflow (section 9), a mandatory self-review (section 10) and stricter git rules (section 4); PROGRESS gained "Review notes" and "Known issues". Dharu and Nabil: please read sections 4, 9 and 10, they apply to every session.
 - Wangsit: SC-70 mostly done (05, Base). 8 Coinbase stocks have a listed Morpho long market lending USDC (LLTV 62.5%, Alphabet also 77%), each priced by one Coinbase Chainlink feed. The feeds share one 4 of 9 Safe owner, and the Coinbase oracle registry returns the multiplier and a pause flag per token. The ones with real supply are about 90% borrowed, so longs need USDC from our vault. The B20 policy registry is a precompile at `0x8453…0002` and the token factory sets transfer policy 5 by default. Left out: MSTR and SNDK tokens (no Morpho market). Note: `api.coinbase.com` is blocked on our network. Next: SC-73.
 - Wangsit: SC-73 written on `sc/SC-73-chain-keyed-shared`, waiting for review. `packages/shared` now has `chains.ts` and per chain addresses, tokens and stocks (Monad and Base); existing imports are unchanged and all 8 packages pass typecheck and tests. Found that the Monad `morphoPublicAllocator` is the Vault V2 allocator, not one for our MetaMorpho vault (05 corrected; nothing used it). Dharu and Nabil: please review the PR (03 section 5).
+- Wangsit: SC-71 done on `sc/SC-71-b20-policy`, Q-36 answered. All 8 Base stocks use one blocklist policy (5) that authorizes Morpho, 1inch, Aerodrome and any fresh contract, and nothing is paused. Two findings that change plans: a local fork cannot run Coinbase stock tokens (they are precompiles), so Base token tests run against the live node with `eth_simulateV1` (07); and policy 5 is run by one key with no delay (T-21). Dharu: BE fork tests on Base have the same limit.
+- Wangsit: SC-72 written: `ChainlinkSessionOracle` for Base, matching Morpho's own NVDAc oracle to the unit on a fork, on a weekday and over a weekend. Its rules (weekly close in UTC, pause, registry failure, price bounds) are D-76, waiting for the team. Found SC-86: a router close needs a fresh price, on Monad too. Open question Q-43: Base long markets cannot use the existing Morpho markets with our `RiskManager` as it is.
+- Wangsit: SC-81 finished, Q-42 answered. The xStocks feeds on X Layer and the Coinbase feeds on Base are owned by the same Safes as Chainlink's own ETH / USD feeds on those chains. The four wrapped xStocks share code, admins and pauser, Morpho is not sanctioned, and a fork test moves each through Morpho. The sanctions list does reach the wrapped token (T-23). Proposed (a) for Q-43: our own long markets on Base.
+- Wangsit: Q-43 decided as D-77: Base longs use our own Morpho markets. SC-73 merged as PR 84. Per the user, SC-71, SC-72 and the SC-81 tests go straight to `main` instead of separate PRs.
 
 ### 12 November 2026
 

@@ -210,20 +210,22 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: every address has code on Base mainnet, read on a stated date, and is in 05.
   - Note: done on 19 November 2026 from the chain, the Morpho API, Sourcify and the docs (05, Base): Morpho core, IRM, both MetaMorpho factories, Vault V2 factory, both public allocators, USDC, Permit2, Multicall3, Safe 1.4.1, the Coinbase oracle registry, and 8 stock tokens with listed Morpho long markets and their Chainlink feeds. The B20 policy registry, token factory and supply manager came from `api.coinbase.com` (blocked on our network, read over another connection). Left out: the token addresses for MSTR and SNDK, which have feeds but no Morpho market; finding them needs the factory's `SecurityTokenDeployed` logs from an archive RPC.
 
-- [ ] **SC-71 · B20 policy check**
+- [~] **SC-71 · B20 policy check**
   - Do: for each stock, read `policyExists` and `isAuthorized` for Morpho, the router, the liquidator, the 1inch router, the Aerodrome router and a plain wallet, in every scope including the transfer executor (D-72). Check pause state. Write a fork test that moves each token through Morpho and the router.
   - Done when: the result per token is in 05 and Q-36 is answered. Tokens that block our contracts are not listed.
+  - Note: done on 19 November 2026 on branch `sc/SC-71-b20-policy` (stacked on SC-73): all 8 stocks use policy 5, a blocklist, for all three transfer scopes, none is paused, and Morpho, the 1inch and Aerodrome routers and fresh addresses are authorized (05, Base). Q-36 answered, all 8 stay listed. The fork test is replaced by `packages/shared/b20-policy.live.test.ts`, because a local fork cannot run B20 precompiles: it reads the live node and moves each token through Morpho and every swap router with `eth_simulateV1` (32 checks pass). Policy 5 has a single key admin, recorded as T-21. Run the check again with our addresses after SC-76.
 
-- [ ] **SC-72 · `ChainlinkSessionOracle`**
+- [~] **SC-72 · `ChainlinkSessionOracle`**
   - Needs: SC-70.
   - Do: an adapter behind `ISessionOracle` that reads the Coinbase Chainlink feed (8 decimals) and the registry pause flag, scales to our price units (03 section 1), and reports a frozen or halted market. Fuzz and fork tests. Update 04 and the product rule in CLAUDE.md (D-49) in the same PR.
   - Done when: ABI exported to `packages/shared/abis/`, tests pass on a Base fork, docs updated.
+  - Note: written on 19 November 2026 on branch `sc/SC-71-b20-policy` (to be split into its own PR). `ChainlinkSessionOracle` reads the feed and the Coinbase registry, closes Saturday 00:00 to Monday 01:00 UTC, treats a pause or an unreadable registry (gas capped at 100,000) as "no new positions, price on the closed clock", and rejects answers outside its own bounds. 11 unit and fuzz tests, 3 Base fork tests: it matches Morpho's own NVDAc oracle on a weekday and over the weekend. ABIs exported (`chainlinkSessionOracleAbi`, `chainlinkFeedAbi`, `coinbaseOracleRegistryAbi`). Base forks run under `--network optimism`, apart from the Monad suite (Makefile and CI). Slither clean. 04 and 03 updated; the rules are D-76, waiting for the team. The CLAUDE.md rule was already updated with D-49. Found SC-86 on the way.
 
-- [~] **SC-73 · Chain keyed shared package**
+- [x] **SC-73 · Chain keyed shared package**
   - Contract: D-60.
   - Do: `packages/shared` gets `chains.ts`; `addresses.ts`, `markets.ts` and deployments become keyed by chain ID; Monad stays the default. Follow the interface change process in 06 with Dharu and Nabil.
   - Done when: API, keeper and web still build and pass tests on Monad with the new shape.
-  - Note: written on branch `sc/SC-73-chain-keyed-shared` on 19 November 2026, additive only: `chains.ts` (Monad and Base), `externalByChain`, `tokensByChain`, `stocksByChain` with the 8 Base stocks, and chain aware `listMarkets`. The Monad exports are unchanged. Typecheck and tests pass in all 8 packages (shared 88 tests). `next build` for web compiles and renders every page but then stops on Next.js's own security check for version 16.4.0, which is not caused by this change (blocker for Nabil). Waiting for the PR review by Dharu and Nabil (06).
+  - Note: written on branch `sc/SC-73-chain-keyed-shared` on 19 November 2026, additive only: `chains.ts` (Monad and Base), `externalByChain`, `tokensByChain`, `stocksByChain` with the 8 Base stocks, and chain aware `listMarkets`. The Monad exports are unchanged. Typecheck and tests pass in all 8 packages (shared 88 tests). `next build` for web compiles and renders every page locally and passes on Vercel. Merged as PR 84 on 19 November 2026.
 
 - [ ] **SC-74 · Base risk limits**
   - Needs: SC-70, BE-71.
@@ -237,7 +239,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 - [ ] **SC-76 · Deploy on Base**
   - Needs: SC-71, SC-72, SC-74, SC-75.
-  - Do: deploy the router, risk manager, oracle adapter, lens and liquidator; create the short markets (collateral USDC, loan stock) and the Earn vaults; write `deployments.base.ts`; hand ownership to the multisig on Base.
+  - Do: deploy the router, risk manager, oracle adapter, lens and liquidator; create the long markets (collateral stock, loan USDC, D-77) and the short markets (collateral USDC, loan stock) with `ChainlinkSessionOracle`, and the Earn vaults; write `deployments.base.ts`; hand ownership to the multisig on Base.
   - Done when: deployment file merged, contracts verified on Basescan, addresses in 05 and `docs/public/contracts.md`.
 
 - [ ] **SC-77 · Seed the short markets**
@@ -266,7 +268,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: SC-80.
   - Do: find who runs the `wNVDAx-USD (Calculated)` style feeds (aggregator owner, vendor docs), their heartbeat, deviation and weekend behaviour. Log a week of updates with BE-03's logger if needed. Check token transfer rules of the wrapped xStocks (denylist, pause) for Morpho, the router and the liquidator.
   - Done when: findings in 05 and Q-37 answered. If the feed is not an official one, raise it to the team before SC-82.
-  - Note: done on 19 November 2026 from the chain (05, X Layer): the four feeds are Chainlink style OCR2 aggregators owned by one 4 of 9 Safe, update every 1 to 3 minutes and stop from Friday 20:00 to Sunday 20:00 ET; `minAnswer` is 1. wNVDAx wrapper and underlying are pausable upgradeable proxies, the underlying has a sanctions list. Team decision in D-69. Still to do: confirm the Safe is Chainlink's (Q-42), check the other three tokens, and a fork test moving each token through Morpho, the router and the liquidator.
+  - Note: done on 19 November 2026 from the chain (05, X Layer): the four feeds are Chainlink style OCR2 aggregators owned by one 4 of 9 Safe, update every 1 to 3 minutes and stop from Friday 20:00 to Sunday 20:00 ET; `minAnswer` is 1. wNVDAx wrapper and underlying are pausable upgradeable proxies, the underlying has a sanctions list. Team decision in D-69. The rest done later on 19 November 2026 on the SC-71 branch: Q-42 answered (the same Safe owns Chainlink's own X Layer feeds), the other three tokens share the same code, admins, pauser and sanctions list, and `test/XStocks.t.sol` moves each through Morpho and stand-ins for the router and liquidator on a fork. The sanctions list also blocks the wrapped token (T-23).
 
 - [ ] **SC-82 · Oracle adapter and limits for X Layer**
   - Needs: SC-72, SC-81, BE-81.
@@ -287,3 +289,9 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-83.
   - Do: check that the risk circuit's math and the Wall Street Clock circuit's sessions match the contracts, `math.ts` and `calendar.ts`, and that nothing in the contracts reads them (D-66). Run an equivalence check with a TapeOut tool such as Forgeout if it fits.
   - Done when: review notes in the PR and the test of BE-83 passes.
+- [ ] **SC-86 · Router close that does not need a fresh price**
+  - Found in SC-72. Applies to Monad too.
+  - Problem: `closeLong` and `closeShort` call `RISK.positionLtv` before anything else, and that calls the oracle's `price()`, which reverts when the price is older than the hard age. Then a user cannot close through Levra while the oracle is stale (a holiday next to a weekend on Base, an Anchored outage on Monad), even a full close that Morpho itself would allow. Only a direct close on Morpho works (`docs/public/contracts.md`).
+  - Do: let a full close skip the LTV reads when the position ends with no debt, keep every check for a partial close, and add fork tests with a stale oracle for long and short. Check that invariants 2 and 7 in 07 still hold.
+  - Done when: a full close through the router succeeds with a stale oracle on both chains, a partial close still reverts, and the router audit scope (SC-53) includes the change.
+
