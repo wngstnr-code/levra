@@ -227,21 +227,23 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: API, keeper and web still build and pass tests on Monad with the new shape.
   - Note: written on branch `sc/SC-73-chain-keyed-shared` on 19 November 2026, additive only: `chains.ts` (Monad and Base), `externalByChain`, `tokensByChain`, `stocksByChain` with the 8 Base stocks, and chain aware `listMarkets`. The Monad exports are unchanged. Typecheck and tests pass in all 8 packages (shared 88 tests). `next build` for web compiles and renders every page locally and passes on Vercel. Merged as PR 84 on 19 November 2026.
 
-- [ ] **SC-74 · Base risk limits**
+- [~] **SC-74 · Base risk limits**
   - Needs: SC-70, BE-71.
   - Do: initial proposals in 04 for Base: LLTV of the new short markets, position caps from Aerodrome depth, max oracle age per session (24 hour heartbeat), weekend behaviour, issuer block or pause risk.
   - Done when: 04 has a Base table marked "initial proposal" and Dharu has checked it against `math.ts`.
+  - Note: proposed on 19 November 2026 in 04 "Base limits": hard limits 77% (MSFT, GOOGL, META, AMZN, AAPL) and 62.5% (TSLA, NVDA, SPCX), closed soft limits that pass the five-year weekend gap check for long and short, oracle ages (36 hours open, 4 days closed, 26 hours to open), price bounds, deviation limits, position caps ($1,000 to $5,000) and supply caps. Gap data from the BE-34 code for the eight Base stocks; sell costs up to $50,000 from 1inch. SPCX has too little history and borrows NVDA's worst drop. Waiting for Dharu to check it against `math.ts` (8 decimal stock tokens) and to add the Base stocks to `gapTable`.
 
-- [ ] **SC-75 · Swap allowlist for 1inch and Aerodrome**
+- [x] **SC-75 · Swap allowlist for 1inch and Aerodrome**
   - Needs: BE-71.
   - Do: add the 1inch router and the Aerodrome router to the router allowlist on Base (D-72); Monad keeps KyberSwap until BE-71 shows 1inch routes Anchored stocks. Fork test a long and a short through each Base route.
   - Done when: both tests pass.
-  - Note: D-79 changes the plan: there is no allowlist to add to after deployment. On 19 November 2026 the router and the liquidator gained `SwapTargets`, one to three targets set in the constructor, on branch `sc/D-79-swap-targets` (`test/SwapTargets.t.sol`: limits, refusals, a swap through the second target, the liquidator). SC-75 is now: pass the three Base targets of D-80 (1inch, KyberSwap, Aero SwapRouter) to the Base deployment (SC-76), and test a long and a short through each route once BE-71 gives calldata. B20 stocks cannot move on a fork, so that test runs as a live simulation.
+  - Note: D-79 changes the plan: there is no allowlist to add to after deployment. On 19 November 2026 the router and the liquidator gained `SwapTargets`, one to three targets set in the constructor, on branch `sc/D-79-swap-targets` (`test/SwapTargets.t.sol`: limits, refusals, a swap through the second target, the liquidator). SC-75 is now: pass the three Base targets of D-80 (1inch, KyberSwap, Aero SwapRouter) to the Base deployment (SC-76), and test a long and a short through each route once BE-71 gives calldata. B20 stocks cannot move on a fork, so that test runs as a live simulation. Done on 19 November 2026: `make base-live-e2e` deploys `script/live/BaseLiveHarness.sol` inside an `eth_simulateV1` run on the live Base node, then opens and closes an NVDAc long (1inch in, Aero out) and short (KyberSwap in, 1inch out). Every position ends at zero and the router holds nothing (05). The KyberSwap public API works on Base without a key.
 
-- [ ] **SC-76 · Deploy on Base**
+- [~] **SC-76 · Deploy on Base**
   - Needs: SC-71, SC-72, SC-74, SC-75.
   - Do: deploy the router, risk manager, oracle adapter, lens and liquidator; create the long markets (collateral stock, loan USDC, D-77) and the short markets (collateral USDC, loan stock) with `ChainlinkSessionOracle`, and the Earn vaults; write `deployments.base.ts`; hand ownership to the multisig on Base.
   - Done when: deployment file merged, contracts verified on Basescan, addresses in 05 and `docs/public/contracts.md`.
+  - Note: part 1 written on 19 November 2026. `Deploy.s.sol` and `DeployVault.s.sol` now read `contracts/config/<chain>.json`; `config/monad.json` reproduces the live Monad plan (test), `config/base.json` holds the 16 Base markets with the SC-74 limits and the D-80 swap targets. On a Base fork the script creates all 16 markets and the MetaMorpho vault over the 8 longs; `make deploy-base-dry` simulates the whole deployment on the live chain (about 32 million gas, under 0.001 ETH) without writing a file. `packages/shared/deploy-config.test.ts` ties every config address to the shared package. Part 2 (the real deployment, Basescan verification, `deployments.base.ts`, hand over to the multisig) waits for a funded deployer on Base, the multisig addresses, and Dharu's check of SC-74.
 
 - [ ] **SC-77 · Seed the short markets**
   - Needs: SC-76, X-31.
@@ -297,4 +299,12 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: let a full close skip the LTV reads when the position ends with no debt, keep every check for a partial close, and add fork tests with a stale oracle for long and short. Check that invariants 2 and 7 in 07 still hold.
   - Done when: a full close through the router succeeds with a stale oracle on both chains, a partial close still reverts, and the router audit scope (SC-53) includes the change.
   - Note: written on 19 November 2026 on branch `sc/SC-86-close-stale-oracle`. A user close reads `positionLtv` in a `try` and counts a failure as unknown; the close event reads the oracle price in a `try` and writes 0 on failure. Keeper reductions are unchanged. `test/StaleClose.t.sol`: full long and short closes pass with a stale oracle, partial ones revert with `OracleStale`, and a close passes with an oracle that reverts outright; `test/Protection.t.sol`: a keeper cannot reduce on a stale oracle. 108 Monad tests, the invariant campaign (all five properties) and Slither pass. Tested on Monad; on Base it follows once markets exist (SC-76). Waiting for review: `contracts/src/` needs a second reader (06).
+
+- [~] **SC-87 · Replace the Monad router**
+  - Needs: a second reader for SC-86 and D-79 (06), then the team's go.
+  - Why: the live Monad router predates SC-86 (a close needs a fresh price) and D-79 (fixed swap target set). Router code cannot be upgraded, so a new one is deployed next to it.
+  - What changes: a new `MarginRouter` and `Lens` over the live `RiskManager` and markets; the deployment file gets the new addresses and `previousRouters` (03 section 6). The old router keeps working, and positions stay in the users' own Morpho accounts, so either router can close them.
+  - Migration steps: (1) `make redeploy-router-monad KEEPER=<protector key>`; (2) BE: the indexer reads `router` and every `previousRouters` address, and the keeper protects only users who opted in on the new router (BE side); (3) FE: ask a user with an open position to authorize the new router on the next action (the one signature flow already does this), and ask users who had protection on to turn it on again, since opt-in never moves by itself; (4) verify the source on Sourcify and update 05 and `docs/public/contracts.md`.
+  - Done when: the new router is live and verified, the deployment file and the shared bundle are updated, and one real close goes through the new router.
+  - Note: script and fork test written on 20 November 2026 (`script/RedeployRouter.s.sol`, `test/RedeployRouter.t.sol`): the new router and lens sit on the live risk manager with KyberSwap as the only target and the same fees, and the file keeps the old router. Not run on mainnet.
 

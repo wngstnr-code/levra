@@ -217,6 +217,7 @@ Findings from the self-review in CLAUDE.md section 10, newest first: date, who, 
 
 | Date | Who | Finding | Fix |
 |---|---|---|---|
+| 19 November 2026 | Wangsit | SC-52 pass over the code of 19 November (`SwapTargets`, the SC-86 close, `ChainlinkSessionOracle`, the config driven deploy scripts) against T-01 to T-23. (1) A deploy resumed with `--resume` would not have written its deployment file. (2) The `try` around the Coinbase registry cannot catch malformed return data; the registry is not a proxy (no ERC-1967 slot, plain contract code), so it cannot start returning malformed data. (3) The SC-86 fallback skips the soft limit check only when the LTV before the close cannot be read; a close that leaves debt still reads the price afterwards and reverts there (tests in `StaleClose.t.sol`). (4) The keeper's oracle recorder and decoder know Anchored price IDs only; on Base, `priceId()` is the feed address and prices come from Chainlink `AnswerUpdated` events | (1) Fixed: the file is also written in the resume context. (2) and (3) No change needed. (4) Handed to Dharu for the Base keeper and indexer work |
 | 19 November 2026 | Wangsit | SC-72 review: the Coinbase registry reads the stock token, so a failing registry would revert `price()` and burn the caller's gas. SC-72 review: a router close needs a fresh price (SC-86). After push: the skipped live B20 test still built a viem client with no URL, which failed `main` CI | Registry read in a `try` with 100,000 gas; SC-86 written; client given a fallback URL in `9842c80` |
 
 ## Known issues
@@ -230,6 +231,11 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+
+### 20 November 2026
+
+- Wangsit: SC-87 prepared, not run: `make redeploy-router-monad` puts a new router and lens with the SC-86 and D-79 code over the live Monad risk manager and keeps the old router under `previousRouters` in the deployment file (03, additive). Dharu: the indexer must read every router in `previousRouters`. Nabil: users re-authorize the new router and opt in to protection again. Waiting for a second reader of SC-86 and D-79.
+- Wangsit: `docs/README.md` brought up to date: three chains with their status, ownership per file in `packages/shared` and for `packages/db`, `kyber` and `intents` (now also in `.github/CODEOWNERS`, 06 and CLAUDE.md), dated "Verified" facts, and pointers to 09 and PROGRESS instead of the M0 list.
 
 ### 19 November 2026
 
@@ -253,6 +259,10 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: D-79 written on `sc/D-79-swap-targets`: `SwapTargets` (1 to 3 fixed targets) in the router and the liquidator, 114 Monad tests and Slither pass. Constructors change for new deployments only; the live Monad contracts are not touched. Dharu: the router and liquidator ABIs gain `swapTargets()` (additive).
 - Wangsit: BE-71 taken over from Dharu (agreed). The deepest Base stock pools sit in Aero, the Aerodrome and Velodrome merger since 21 October 2026 (NVDAc $1.8M, AMZNc $1.4M, GOOGLc $1.36M), confirmed in Dromos Labs' deployment file; the pre-merger Aerodrome pools are empty or small. D-80: Base swap targets are 1inch, KyberSwap and the Aero SwapRouter, and the shared addresses were corrected. Next: price impact per size, and 1inch quotes once the API key is in `.env`.
 - Wangsit: BE-71 done. 1inch routes all 8 Base stocks; buying $10,000 costs about the same as $100 against the oracle (0.0% to 0.8%), and a 1inch swap built for a contract delivers the exact quote in a live simulation. On Monad 1inch cannot route aBIL, so KyberSwap stays (D-81). The 1inch API key lives only in the local `.env`. Dharu: results for BE-72 are in 05.
+- Wangsit: SC-74 proposed (04, Base limits): 77% hard limit for MSFT, GOOGL, META, AMZN and AAPL, 62.5% for TSLA, NVDA and SPCX, closed soft limits that survive the worst five-year weekend gap both ways, caps of $1,000 to $5,000 per position. Dharu: please check it against `math.ts`, add the eight Base stocks to `gapTable` in `packages/shared/gaps.ts`, and post the Base `nextCloseAt` at Friday 20:00 New York time (BE-30).
+- Wangsit: SC-76 part 1 written: one config driven deploy script for every chain (`contracts/config/monad.json`, `base.json`). The Monad config reproduces the live plan; the Base config deploys 16 markets and the vault on a fork, and a dry run on the live chain costs about 32 million gas. Next: part 2 needs ETH on Base for the deployer and the multisig signers for the hand over.
+- Wangsit: SC-75 done. A full NVDAc long and short ran against live Base state inside `eth_simulateV1`, with our contracts deployed in the same simulation: long in through 1inch and out through Aero, short in through KyberSwap and out through 1inch. Both closed to zero and the router ended empty (`make base-live-e2e`, 05). Found on the way: Foundry builds contracts under `test/` with cheatcode linking, so contracts meant for a real node belong under `script/`.
+- Wangsit: internal review (SC-52) of the code written today: one small fix in the deploy script (write the deployment file on `--resume` too), nothing else to change. Dharu: the keeper only knows Anchored price IDs; Base oracles report the feed address as `priceId()` and their prices arrive as Chainlink `AnswerUpdated` events.
 
 ### 12 November 2026
 
