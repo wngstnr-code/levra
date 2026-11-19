@@ -260,3 +260,53 @@ Three rules for the backend:
   - Done when: the public can see the state of the oracle, keepers, API and indexer.
   - Note: written on 14 October 2026. The API serves `/status`: one plain HTML page with no script or outside files, built from `/v1/status`: each stock's oracle price age and limit, the keepers that run in this deployment, and the indexer lag, with one line saying whether all is normal. It refreshes every 30 seconds and answers 503 with a short notice when the chain cannot be read. Still to do: check it live on the staging API after merge, and give it the public status address once the domain is chosen (Q-25).
   - Note: done on 14 October 2026. Live at `https://api-production-c154.up.railway.app/status`: "All systems normal" with 13 green rows (three stocks, nine keepers, the indexer) and none red, after the keeper roles were granted and funded. Left for later: a status address on our own domain once Q-25 is decided.
+
+---
+
+## B. Base (Stocks Maxxing)
+
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+
+- [ ] **BE-70 · Chain in every API route**
+  - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.
+  - Done when: 03 updated and agreed, routes serve Monad under the new shape.
+
+- [ ] **BE-71 · Aggregator spike: 0x and 1inch**
+  - Do: on Base and Monad, quote and build a swap for each stock, contract sender and recipient. Compare price, rate limits, and whether they route to Aerodrome (Base) and to Anchored tokens (Monad). Pick one primary, keep KyberSwap as Monad backup.
+  - Done when: results in 05, choice recorded in 09, router addresses sent to Wangsit (SC-75).
+
+- [ ] **BE-72 · Quotes on Base**
+  - Needs: BE-70, BE-71, SC-73.
+  - Do: long, short, close and Earn quotes on Base with the chosen aggregator. B20 amounts stay raw; UI share amounts use the multiplier.
+  - Done when: quotes match a fork execution within the stated tolerance.
+
+- [ ] **BE-73 · Indexer and keeper on Base**
+  - Needs: SC-72, SC-76.
+  - Do: run indexer and keeper per chain from config. Index `UIMultiplierUpdated`, `UIMultiplierUpdateCancelled`, `Announcement`, `EndAnnouncement` and the oracle adapter events. Liquidator bot and auto-deleverage on Base. Never act on a frozen feed.
+  - Done when: both run on Railway against Base mainnet and a test position shows in the API.
+
+- [ ] **BE-74 · Builder Codes**
+  - Do: attach Levra's Builder Code to every Base transaction the API builds.
+  - Done when: a real transaction shows the code in Base's attribution.
+
+- [ ] **BE-75 · Policy and pause monitor**
+  - Do: watch each listed token's policy and pause state; alert the team and the affected users (Telegram) when it changes; mark the market halted in the API.
+  - Done when: a fork test that flips a pause raises the alert.
+
+- [ ] **BE-76 · Cross-chain deposits through CCTP and Across**
+  - Do: replace Aurora Intents / 1Click (D-50) for deposits and withdrawals on both chains. Gas top-up on Base is not needed if the paymaster covers it (Q-34).
+  - Done when: a real deposit from another chain into Base and into Monad, hashes in PROGRESS.
+
+- [ ] **BE-77 · Agent API and MCP server**
+  - Do: read and prepare endpoints for the agent (positions, health, quotes, prepared transactions) and an MCP server that wraps them. No keys held. Shape written in 03.
+  - Done when: an agent session can read a real position and prepare a close that a wallet signs.
+
+- [ ] **BE-78 · Bankr and Telegram agent**
+  - Needs: BE-77.
+  - Do: ship the Levra agent in Bankr (skill or integration, check with Bankr's Telegram group) and in the BE-33 Telegram bot. Commands: position, quote, open, close, add collateral, alerts.
+  - Done when: a real user flow works end to end from chat, recorded for the demo.
+
+- [ ] **BE-79 · Public stats endpoint**
+  - Needs: BE-73.
+  - Do: `GET /v1/stats` per chain: wallets, open interest long and short, volume, Earn supplied. Only indexed data.
+  - Done when: FE-75 reads it.

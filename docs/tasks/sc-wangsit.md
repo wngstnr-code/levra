@@ -198,3 +198,51 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Do: the list of addresses, an explanation of the roles and of what the team can and cannot do, how to revoke the Morpho authorization without our app, a link to the audit report.
   - Done when: published on the Help page and in the README.
   - Note: written in `docs/public/contracts.md` from the deployed code: addresses, market IDs, what nobody can change, the five roles and who holds them today, what the owner can and cannot do, the protection rules, how to revoke the Morpho authorization and close directly on Morpho, and the risks outside our contracts. The root README lists the addresses and links to it. Still to do: the Help page (Nabil, FE), and the audit link when there is a report.
+
+---
+
+## B. Base (Stocks Maxxing)
+
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+
+- [ ] **SC-70 · Base addresses and facts**
+  - Do: read and write into 05 a new "Base" section: Morpho core, IRM, vault factories and the existing stock markets (IDs, LLTV), USDC, every Coinbase B20 stock token, Chainlink feed per stock, Coinbase oracle registry, Permit2, Multicall3, Safe. Mark each verified or not.
+  - Done when: every address has code on Base mainnet, read on a stated date, and is in 05.
+
+- [ ] **SC-71 · B20 policy check**
+  - Do: for each stock, read `policyExists` and `isAuthorized` for Morpho, the router, the liquidator and a plain wallet. Check pause state. Write a fork test that moves each token through Morpho and the router.
+  - Done when: the result per token is in 05 and Q-36 is answered. Tokens that block our contracts are not listed.
+
+- [ ] **SC-72 · `ChainlinkSessionOracle`**
+  - Needs: SC-70.
+  - Do: an adapter behind `ISessionOracle` that reads the Coinbase Chainlink feed (8 decimals) and the registry pause flag, scales to our price units (03 section 1), and reports a frozen or halted market. Fuzz and fork tests. Update 04 and the product rule in CLAUDE.md (D-49) in the same PR.
+  - Done when: ABI exported to `packages/shared/abis/`, tests pass on a Base fork, docs updated.
+
+- [ ] **SC-73 · Chain keyed shared package**
+  - Do: `packages/shared` gets `chains.ts`; `addresses.ts`, `markets.ts` and deployments become keyed by chain ID; Monad stays the default. Follow the interface change process in 06 with Dharu and Nabil.
+  - Done when: API, keeper and web still build and pass tests on Monad with the new shape.
+
+- [ ] **SC-74 · Base risk limits**
+  - Needs: SC-70, BE-71.
+  - Do: initial proposals in 04 for Base: LLTV of the new short markets, position caps from Aerodrome depth, max oracle age per session (24 hour heartbeat), weekend behaviour, issuer block or pause risk.
+  - Done when: 04 has a Base table marked "initial proposal" and Dharu has checked it against `math.ts`.
+
+- [ ] **SC-75 · Swap allowlist for 0x or 1inch**
+  - Needs: BE-71.
+  - Do: add the chosen aggregator router(s) to the router allowlist per chain. Fork test a long and a short through it on Base and on Monad.
+  - Done when: both tests pass.
+
+- [ ] **SC-76 · Deploy on Base**
+  - Needs: SC-71, SC-72, SC-74, SC-75.
+  - Do: deploy the router, risk manager, oracle adapter, lens and liquidator; create the short markets (collateral USDC, loan stock) and the Earn vaults; write `deployments.base.ts`; hand ownership to the multisig on Base.
+  - Done when: deployment file merged, contracts verified on Basescan, addresses in 05 and `docs/public/contracts.md`.
+
+- [ ] **SC-77 · Seed the short markets**
+  - Needs: SC-76, X-31.
+  - Do: supply the team's seed stocks to the short markets and seed USDC to the long side vault. Script it like `make first-run-monad`.
+  - Done when: real transaction hashes in PROGRESS.
+
+- [ ] **SC-78 · First real long and short on Base**
+  - Needs: SC-77.
+  - Do: one long and one short on each listed stock with small size, then close.
+  - Done when: hashes in PROGRESS. This is checkpoint I-B1 together with FE-72.

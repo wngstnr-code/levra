@@ -119,3 +119,30 @@ Without these the product can be built but cannot be opened to the public.
   - Do: a one minute pitch to camera, edited for the submission: cut dead air, 1920x1080, clean audio at -14 LUFS, burned-in captions, keyword callouts, an end card with the app and repo links. On-screen claims are checked against 05 and PROGRESS.md first.
   - Done when: the video is uploaded with the submission.
   - Note: edited on 14 October 2026. Chosen version: the launch style cut (the speaker in a card, motion graphics that follow the words, a quiet soundtrack), 67.2 s, 1920x1080, H.264 and AAC, -14.1 LUFS. Every claim shown as text was checked against 05 and the transaction table. The recording, the edit scripts and the rendered files are in `pitch-video/` on Wangsit's machine. That folder is git-ignored on purpose, so none of it is in the repo. Still to do: upload it with the submission.
+
+---
+
+## B. Base (Stocks Maxxing)
+
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+
+- [ ] **X-30 · Build in public** (driver: Nabil)
+  - Do: one X post a day from the team account, taken from the PROGRESS daily log, with screenshots and real hashes, tagging @buildonbase.
+  - Done when: a post for every working day until submission.
+
+- [ ] **X-31 · Seed funds for Base** (driver: Wangsit)
+  - Do: agree the amount of USDC and of each stock the team puts into the short markets and the vault (initial proposal), and buy the stocks.
+  - Done when: the funds are in the team wallet and the amount is in 09.
+
+- [ ] **X-32 · Partners** (driver: Dharu)
+  - Do: join the Telegram groups of Bankr and the other partners, show the idea, ask about the build in public award and traction rules (Q-33).
+  - Done when: answers recorded in 09.
+
+- [ ] **X-33 · Public repo** (driver: Wangsit)
+  - Do: secrets scan of the whole history, then make the repo public or publish a public mirror (Q-32). Tag `pre-base` on the last `main` commit before this work.
+  - Done when: the public link works and the tag exists.
+
+- [ ] **X-34 · Stocks Maxxing submission** (driver: Nabil)
+  - Needs: I-B1.
+  - Do: demo video with real Base transactions, the X post tagging @buildonbase, the form for both tracks, the list of what was built in the quest period, root README updated (Base addresses, hashes; the AI tool disclosure stays team written).
+  - Done when: the submission is confirmed received before 5 December 2026.
