@@ -16,7 +16,7 @@ contract LiquidatorTest is BaseTest {
 
     function setUp() public override {
         super.setUp();
-        liquidator = new Liquidator(MORPHO, address(swapper), address(this), treasury);
+        liquidator = new Liquidator(MORPHO, _targets(address(swapper)), address(this), treasury);
         liquidator.setKeeper(keeper, true);
         _mockOracle(Session.Regular, 0, 0, START);
     }
