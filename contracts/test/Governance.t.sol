@@ -22,7 +22,7 @@ contract GovernanceTest is BaseTest {
 
     function setUp() public override {
         super.setUp();
-        liquidator = new Liquidator(MORPHO, _targets(address(swapper)), address(this), feeRecipient);
+        liquidator = new Liquidator(MORPHO, _targets(address(swapper)), _spenders(1), address(this), feeRecipient);
         ownables = [address(risk), address(router), address(liquidator)];
         Id[] memory ids = new Id[](1);
         ids[0] = longId;

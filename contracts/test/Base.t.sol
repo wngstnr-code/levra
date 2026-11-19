@@ -78,7 +78,8 @@ abstract contract BaseTest is Test {
 
         swapper = new TestSwapper();
         risk = new RiskManager(MORPHO, address(this), 4 hours);
-        router = new MarginRouter(MORPHO, risk, _targets(address(swapper)), address(this), feeRecipient, 10);
+        router =
+            new MarginRouter(MORPHO, risk, _targets(address(swapper)), _spenders(1), address(this), feeRecipient, 10);
         lens = new Lens(MORPHO, risk, router);
 
         risk.setMarketConfig(longId, _config(Side.Long, address(longOracle)));
@@ -216,6 +217,11 @@ abstract contract BaseTest is Test {
     function _assertRouterEmpty() internal view {
         assertEq(USDC.balanceOf(address(router)), 0, "router holds USDC");
         assertEq(AQQQ.balanceOf(address(router)), 0, "router holds stock");
+    }
+
+    /// Spenders for `n` targets that approve the target itself.
+    function _spenders(uint256 n) internal pure returns (address[] memory) {
+        return new address[](n);
     }
 
     function _targets(address target) internal pure returns (address[] memory targets) {

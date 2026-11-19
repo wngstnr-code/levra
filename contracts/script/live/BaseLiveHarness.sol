@@ -37,7 +37,9 @@ contract BaseLiveHarness {
 
     constructor(address[] memory swapTargets) {
         risk = new RiskManager(MORPHO, address(this), 4 hours);
-        router = new MarginRouter(MORPHO, risk, swapTargets, address(this), address(this), 10);
+        router = new MarginRouter(
+            MORPHO, risk, swapTargets, new address[](swapTargets.length), address(this), address(this), 10
+        );
         (, int256 answer,,,) = IChainlinkFeed(NVDA_FEED).latestRoundData();
         uint256 p = uint256(answer);
         longOracle = _oracle(Side.Long, p);

@@ -29,6 +29,8 @@ contract Deploy is Script {
         address usdc;
         uint8 usdcDecimals;
         address[] swapTargets;
+        /// Zero means the target itself (D-88).
+        address[] swapSpenders;
         bool chainlink;
         IAnchoredStockOracle anchoredOracle;
         ICoinbaseOracleRegistry coinbaseRegistry;
@@ -88,9 +90,9 @@ contract Deploy is Script {
         require(vm.parseJsonUint(json, ".chainId") == block.chainid, "config is for another chain");
         ChainConfig memory c = _chain(json);
         d.risk = new RiskManager(c.morpho, owner, c.preCloseWindow);
-        d.router = new MarginRouter(c.morpho, d.risk, c.swapTargets, owner, feeRecipient, c.feeBps);
+        d.router = new MarginRouter(c.morpho, d.risk, c.swapTargets, c.swapSpenders, owner, feeRecipient, c.feeBps);
         d.lens = new Lens(c.morpho, d.risk, d.router);
-        d.liquidator = new Liquidator(c.morpho, c.swapTargets, owner, feeRecipient);
+        d.liquidator = new Liquidator(c.morpho, c.swapTargets, c.swapSpenders, owner, feeRecipient);
         d.router.setFees(c.feeBps, c.keeperFeeBps, feeRecipient);
 
         uint256 n = _count(json, ".markets");
@@ -180,12 +182,15 @@ contract Deploy is Script {
         );
     }
 
-    function _chain(string memory json) internal pure returns (ChainConfig memory c) {
+    function _chain(string memory json) internal view returns (ChainConfig memory c) {
         c.morpho = IMorpho(vm.parseJsonAddress(json, ".morpho"));
         c.irm = vm.parseJsonAddress(json, ".irm");
         c.usdc = vm.parseJsonAddress(json, ".usdc");
         c.usdcDecimals = uint8(vm.parseJsonUint(json, ".usdcDecimals"));
         c.swapTargets = vm.parseJsonAddressArray(json, ".swapTargets");
+        c.swapSpenders = vm.keyExistsJson(json, ".swapSpenders")
+            ? vm.parseJsonAddressArray(json, ".swapSpenders")
+            : new address[](c.swapTargets.length);
         bytes32 kind = keccak256(bytes(vm.parseJsonString(json, ".oracleKind")));
         require(kind == keccak256("anchored") || kind == keccak256("chainlink"), "unknown oracle kind");
         c.chainlink = kind == keccak256("chainlink");

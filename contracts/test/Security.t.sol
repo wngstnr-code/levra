@@ -52,7 +52,8 @@ contract SecurityTest is BaseTest {
 
     function _hostileRouter() internal returns (MarginRouter hostileRouter, ReentrantSwapper hostile) {
         hostile = new ReentrantSwapper();
-        hostileRouter = new MarginRouter(MORPHO, risk, _targets(address(hostile)), address(this), feeRecipient, 10);
+        hostileRouter =
+            new MarginRouter(MORPHO, risk, _targets(address(hostile)), _spenders(1), address(this), feeRecipient, 10);
         vm.startPrank(user);
         USDC.approve(address(hostileRouter), type(uint256).max);
         MORPHO.setAuthorization(address(hostileRouter), true);

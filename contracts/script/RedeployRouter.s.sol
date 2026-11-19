@@ -47,9 +47,11 @@ contract RedeployRouter is Script {
         IMorpho morpho = IMorpho(vm.parseJsonAddress(config, ".morpho"));
         IRiskManager risk = IRiskManager(vm.parseJsonAddress(deployment, ".riskManager"));
         uint256 feeBps = vm.parseJsonUint(config, ".feeBps");
-        r.router = new MarginRouter(
-            morpho, risk, vm.parseJsonAddressArray(config, ".swapTargets"), owner, feeRecipient, feeBps
-        );
+        address[] memory targets = vm.parseJsonAddressArray(config, ".swapTargets");
+        address[] memory spenders = vm.keyExistsJson(config, ".swapSpenders")
+            ? vm.parseJsonAddressArray(config, ".swapSpenders")
+            : new address[](targets.length);
+        r.router = new MarginRouter(morpho, risk, targets, spenders, owner, feeRecipient, feeBps);
         r.router.setFees(feeBps, vm.parseJsonUint(config, ".keeperFeeBps"), feeRecipient);
         r.lens = new Lens(morpho, risk, r.router);
     }
