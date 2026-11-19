@@ -8,6 +8,8 @@ This product handles other people's money. The `MarginRouter` contract holds aut
 |---|---|---|---|
 | Contract unit tests | Foundry | Every function and every failure path | Wangsit |
 | Fork tests | Foundry with a Monad fork | The full flow against the real Morpho, KyberSwap, and Anchored oracle | Wangsit |
+| Fork tests on Base and X Layer | Foundry under `--network optimism` (`*BaseForkTest`, `*XLayerForkTest`), apart from the Monad suite | Base: the oracle adapter against the real feeds and registry. X Layer: the wrapped xStocks through Morpho | Wangsit |
+| Live checks on Base | Vitest against a live Base node: reads and `eth_simulateV1` (`*.live.test.ts`, run with `BASE_RPC_URL`) | Coinbase stock tokens are precompiles that a local fork cannot run, so token moves through Morpho and the swap routers are simulated on the real node. Router code on Base still needs its own plan (SC-75, SC-76) | Wangsit |
 | Fuzz and invariant tests | Foundry | The invariants, with random inputs | Wangsit |
 | Static analysis | Slither | Common error patterns | Wangsit |
 | Formula tests | Vitest | `math.ts` gives the same result as `Lens` | Dharu |
@@ -73,6 +75,9 @@ Every row must have a test that shows its mitigation works.
 | T-18 | A stock split or dividend changes the price per token without changing balances | Positions are liquidated for no market reason | Not known how Anchored applies these (Q-23). Until answered, a stock with an announced split is not eligible |
 | T-20 | The last oracle write before a weekend leaves the session as an open one, not `CLOSED` | `price()` reverts after the hard source quote age and liquidations are blocked until the market reopens | Cannot be closed with code without accepting stale prices. Seen flipping for 15 minutes every Friday, always ending on `CLOSED` so far. The oracle monitor alerts on it (BE-50) |
 | T-19 | The stock tokens have no `permit` | A user approves an unlimited amount to save a step | The app asks for exact approvals. Applies to lending stock and to adding stock collateral |
+| T-21 | One key (`policyAdmin(5)`, an address with no code) adds Morpho, our router, our liquidator or a user to the blocklist of all 8 Coinbase stocks on Base, or the issuer pauses transfers | Closing, reducing and liquidating a Base position fail because the stock cannot move. Bad debt can build up while the price moves | Cannot be closed with code. Small position caps on Base (SC-74), the keeper alerts on any `PolicyUpdated`, blocklist change or pause (BE-75), the risk disclosure says it, and `b20-policy.live.test.ts` is run before listing and after SC-76 |
+| T-22 | The oracle passes its hard age (a holiday next to a weekend on Base, an Anchored outage on Monad) | `price()` reverts, and our router close reads it first, so users cannot close through Levra; only a direct close on Morpho works | SC-86: a full close that skips the LTV reads. Until then, `docs/public/contracts.md` explains the direct close on Morpho |
+| T-23 | On X Layer the issuer adds Morpho, our router, our liquidator or a user to the xStocks sanctions list, pauses the tokens, or upgrades them (owner and pauser are Safes with threshold 2) | Closing, reducing and liquidating an X Layer position fail because the stock cannot move. Shown on a fork: a listed contract cannot receive the wrapped token | Cannot be closed with code. Small position caps on X Layer (SC-82), the keeper alerts on sanctions list changes, pauses and upgrades (BE side), and the risk disclosure says it |
 
 ## Backend and keeper security
 
