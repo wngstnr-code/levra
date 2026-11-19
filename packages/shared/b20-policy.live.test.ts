@@ -35,7 +35,8 @@ type Call = { from: Address; to: Address; data: Hex };
 type SimulatedCall = { status: Hex; returnData: Hex; error?: { message: string } };
 
 describe.skipIf(!rpcUrl)("Coinbase stock tokens on Base, live", () => {
-  const client = createPublicClient({ transport: http(rpcUrl) });
+  // The describe body runs at collection even when its tests are skipped, so the client always needs a URL.
+  const client = createPublicClient({ transport: http(rpcUrl ?? "http://localhost:8545") });
 
   async function simulate(calls: Call[]): Promise<SimulatedCall[]> {
     const result = await client.request<{
