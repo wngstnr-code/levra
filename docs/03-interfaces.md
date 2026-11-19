@@ -98,7 +98,7 @@ Two implementations sit behind it:
 | Source | Anchored stock oracle | Chainlink style feed with 8 decimals; on Base also the Coinbase oracle registry for the pause flag |
 | `priceId()` | keccak256 of the uppercase symbol | The feed address as `bytes32` (left padded) |
 | `bidE8`, `askE8` | From Anchored | Always 0. The feed has no bid or ask, so the price used is the feed answer |
-| `session` | From Anchored | `Closed` from Saturday 00:00 to Monday 01:00 UTC, `Unknown` while the issuer pauses the token or the registry cannot be read, otherwise `Regular`. Only `Closed` and `Unknown` change any rule; `Regular` does not mean the regular US session. The app shows sessions from `calendar.ts` |
+| `session` | From Anchored | `Closed` from Saturday 00:00 to Monday 01:00 UTC, `Unknown` while the issuer pauses the token or the registry cannot be read, otherwise `Regular`. An issuer pause moves `price()` to the closed clock; a registry that cannot be read does not (D-93), it only refuses opens. Only `Closed` and `Unknown` change any rule; `Regular` does not mean the regular US session. The app shows sessions from `calendar.ts` |
 | `feedUpdatedAt`, `publishedAt` | Source quote time and publish time | Both the feed's `updatedAt` |
 | `stale` | Age over the clock of the session | Age over the clock of the session, or the issuer pause |
 
@@ -132,7 +132,7 @@ interface IRiskManager {
     function checkOpen(Id id, address user, uint256 execPriceE8) external view;
 
     // settings
-    function setMarketConfig(Id id, MarketConfig calldata c) external; // owner (multisig + timelock)
+    function setMarketConfig(Id id, MarketConfig calldata c) external; // owner (multisig + timelock); maxOracleAge <= oracle MAX_FEED_AGE and inside the bounds; maxDeviationBps <= MAX_DEVIATION_BPS (5000)
     function tightenMarket(Id id, uint64 softLtvOpen, uint64 softLtvClosed, uint128 maxPositionUsd) external; // guardian; may only tighten
     function setOpeningPaused(bool paused) external; // guardian
     function setNextCloseAt(uint64 ts) external; // calendar poster
@@ -140,7 +140,7 @@ interface IRiskManager {
     // oracle age poster (D-31)
     function oracleAgePoster() external view returns (address);
     function oracleAgeBounds(Id id) external view returns (uint32 minOracleAge, uint32 capOracleAge); // seconds
-    function setOracleAgeBounds(Id id, uint32 minOracleAge, uint32 capOracleAge) external; // owner; cap <= oracle MAX_FEED_AGE
+    function setOracleAgeBounds(Id id, uint32 minOracleAge, uint32 capOracleAge) external; // owner; cap <= oracle MAX_FEED_AGE; current maxOracleAge inside the new bounds; (0, 0) clears; batch after setMaxOracleAge through the timelock
     function setMaxOracleAge(Id id, uint32 maxOracleAge) external; // oracle age poster; inside the bounds only
 }
 ```
@@ -339,6 +339,19 @@ error SoftLimitExceeded(uint256 ltv, uint256 softLtv);
 error PositionCapExceeded(uint256 valueUsd, uint256 capUsd);
 error OracleAgeOutOfBounds(uint32 maxOracleAge, uint32 minOracleAge, uint32 capOracleAge);
 error Unauthorized();
+
+// MarginRouter, keeper reductions (D-90)
+error LtvNotReduced(uint256 ltvAfter, uint256 ltvBefore);
+error DeleverageTooDeep(uint256 ltvAfter, uint256 floor);   // floor = soft limit minus DELEVERAGE_FLOOR (0.05e18); a reduction to zero debt also reverts here
+error DeleverageTooLarge(uint256 removedValue, uint256 allowed); // collateral value out (at the Morpho price) vs repay / (1 - deviation - keeper fee - DELEVERAGE_SLACK_BPS), D-92
+error MarketClosed(); // deleverage while the oracle session is Closed (04: no auto-deleverage after the close), D-93
+
+// Liquidator (D-91 to D-93): lossBudgetOf(token) is what the float may still lose across all liquidations.
+// Each loss spends it (event LossBudgetSpent(token indexed, loss, remaining)). Only the owner changes it:
+// addLossBudget(token, amount) adds to the budget as it is when the call runs, clearLossBudget(token) sets 0
+// (event LossBudgetSet(token indexed, budget)). Zero by default. liquidate reverts InvalidParams on a market
+// whose loan and collateral token are the same.
+error LossTooLarge(int256 loanTokenDelta, uint256 budget);
 
 // ISessionOracle
 error OracleStale(uint64 publishedAt);

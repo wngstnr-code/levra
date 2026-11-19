@@ -114,6 +114,8 @@ With protection on, a keeper may sell part of your collateral to repay part of y
 - Your loan-to-value must be lower after the reduction.
 - The sale price must be within the market's allowed deviation from the oracle price.
 - The keeper fee is at most 0.30%.
+- The keeper must leave part of your debt in place: a reduction ends at most 5 percentage points below the soft limit, never closes the position in full, and may only take out collateral worth about the debt it repays.
+- The keeper cannot act while the market is closed for the weekend.
 
 With protection off, nobody but you can touch your position through Levra. Morpho's own liquidation still applies above the hard limit, as for every Morpho borrower.
 

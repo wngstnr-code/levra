@@ -120,7 +120,7 @@ For long, where V is collateral value, D is debt, t is the target LTV, and c is 
 value of stock to sell = (D - t × V) / ((1 - c) - t)
 ```
 
-Auto-deleverage target: the current soft limit minus 1 percentage point (initial proposal).
+Auto-deleverage target: the current soft limit minus 1 percentage point (initial proposal). The router enforces three bounds on a keeper reduction (D-91, D-92): it ends at most 5 points below the soft limit (`DELEVERAGE_FLOOR`) and always leaves debt; the collateral it takes out is worth at most the debt it repays divided by (1 minus the deviation bound, the keeper fee and 1% slack, `DELEVERAGE_SLACK_BPS`), so it cannot turn into a near full close; and the swap price is within the deviation bound. The collateral is valued at the Morpho price, the cautious side on Monad. `maxDeviationBps` is capped at 50% (`MAX_DEVIATION_BPS`) so this bound stays finite. A hard stale price stops a reduction (the LTV cannot be read); an issuer pause does not.
 
 ## Why only the Anchored oracle sets the hard limit
 
@@ -151,10 +151,10 @@ So the DEX price is only used in the soft layer:
 | Weekly close | Saturday 00:00 to Monday 01:00 UTC counts as closed | Covers Friday 20:00 to Sunday 20:00 New York time in summer and winter without daylight saving math on chain. The feeds stopped from Friday evening and wrote again at Sunday 20:00 ET sharp on 15 November 2026 (05, Base) |
 | Clock while open | Feed age at most `MAX_FEED_AGE` | Feeds write on a 0.5% move or a 24 hour heartbeat, so a quiet stock can go 17 hours without a write (AAPL, 05). An old answer is still within 0.5% of the market while the feed is alive. Starting point for SC-74: 26 hours |
 | Clock while closed | Feed age at most `MAX_PUBLISH_AGE` | The Friday price is carried over the weekend, as D-23 does on Monad, so closing, reducing and liquidating keep working. Starting point for SC-74: 4 days, as on Monad |
-| Holidays | Count as open | Not known on chain. A holiday next to a weekend can push the feed age past the open clock, and then `price()` reverts until the next write. A full close straight on Morpho still works, because Morpho does not read the oracle once the debt is zero. Since SC-86, a full close through our router works too: it reads the LTV in a `try`, and a close that ends with no debt needs no price. A partial close and a keeper reduction still need a fresh price |
+| Holidays | Count as open (D-92) | Not known on chain. A Monday holiday leaves the feed on Friday's price, so the price stops once the weekly close ends at Monday 01:00 UTC, until the feed writes again (fail closed: no borrowing or liquidating on a price three days old). A full close still works without a price (SC-86); a reduction that leaves debt and a liquidation wait. A holiday later in the week counts as open: the 36 hour open clock covers a one day freeze. A grace on the closed clock was tried and dropped (D-92), because it also served a stale price on a normal Monday when the feed failed. Known exception to product rule 8 (CLAUDE.md section 8): for that day a partial reduce and `removeCollateral` wait for the price; closing in full and adding collateral still work |
 | Issuer pause | `snapshot()` reports `Unknown` and `stale`, so no new positions and the closed soft limit applies. `price()` keeps the closed clock | A pause should stop new risk, not trap users or block liquidations. The keeper alerts on it (BE-75) |
-| Registry cannot be read | Treated as a pause. The call gets at most 100,000 gas | The registry reads the stock token. A failure must never block the price or use up the gas of a liquidation |
-| Price bounds | `MIN_PRICE_E8` and `MAX_PRICE_E8` per oracle, set at deployment. An answer outside them reverts | The feeds' own bounds are far too wide (X Layer has `minAnswer = 1`, D-69) |
+| Registry cannot be read | `snapshot()` reports `Unknown` and stale, so opens are refused. `price()` stays on the open clock (D-93). The call gets at most 100,000 gas and copies only the one word it needs | The registry reads the stock token. Bad return data must never block a fresh price, and must never loosen the hard limit to the 4 day clock either, since anyone can borrow on Morpho against `price()` |
+| Price bounds | `MIN_PRICE_E8` and `MAX_PRICE_E8` per oracle, set at deployment to one hundredth and a hundred times the feed price (D-89). An answer outside them reverts | Catches a broken answer (X Layer has `minAnswer = 1`, D-69). Wide, because the bounds can never change: a real move outside them would freeze the market for good |
 
 ## Oracle weaknesses
 
@@ -286,7 +286,7 @@ The contracts do not know the calendar. A keeper, the "calendar poster", writes 
 | 4 hours before close | Soft limit drops. Second alert. New positions above the "closed" limit are rejected | `RiskManager`, alert keeper |
 | 1 hour before close | Final alert | Alert keeper |
 | 30 minutes before close | Positions still above the limit with protection on are reduced | Protector keeper |
-| After close | No auto-deleverage, because the DEX market may be too quiet | - |
+| After close | No auto-deleverage, because the DEX market may be too quiet. Enforced on chain: `deleverage` reverts `MarketClosed` while the oracle session is `Closed` (D-93). An issuer pause (`Unknown`) does not stop it | - |
 
 The reduction is done before close, not after, because the DEX price is fairest while the real stock market is still open.
 
@@ -365,7 +365,7 @@ SPCX has only 23 weekend events since its listing in June 2026, too few to trust
 | `MAX_FEED_AGE` (hard, open clock) | 36 hours | The feeds write on a 0.5% move or a 24 hour heartbeat; the longest quiet gap seen on a weekday was 17.2 hours (05). A full-day US holiday can freeze the feed for about 24 hours on top of a quiet evening, and holidays count as open (D-76) |
 | `MAX_PUBLISH_AGE` (hard, closed clock) | 4 days | The weekly freeze is 48 hours; 4 days covers a holiday weekend with a day to spare, as on Monad (D-35) |
 | `maxOracleAge` (soft, to open a position) | 26 hours, bounds 2 to 36 hours | A heartbeat with 2 hours of margin. The oracle age poster may move it inside the bounds (D-31) |
-| `MIN_PRICE_E8`, `MAX_PRICE_E8` | One tenth and ten times the feed price at deployment | Catches a broken answer; wide enough for any market move. A split does not move the feed price, because the B20 multiplier absorbs it (05) |
+| `MIN_PRICE_E8`, `MAX_PRICE_E8` | One hundredth and a hundred times the feed price at deployment (D-89) | Catches a broken answer; wide enough for any market move. A split does not move the feed price, because the B20 multiplier absorbs it (05) |
 | `maxDeviationBps` (swap price against the oracle) | 200 for all, 300 for TSLAc and SPCXc | Measured on a weekday: up to 0.84% when buying and 1.32% when selling $50,000 through 1inch (05). Over a weekend the DEX moves while the feed stays frozen, so opens may be refused then; that is the soft layer doing its job |
 | `nextCloseAt` and the pre-close window | Friday 20:00 New York time, 4 hour window | The closed soft limit must apply before the Base feeds freeze, which is four hours later than the stock market close. The calendar poster posts a separate time for the Base `RiskManager` (BE-30) |
 
@@ -413,7 +413,7 @@ Gap data as in "Base limits" (five years, Yahoo Finance; SPY and QQQ from the ta
 | `MAX_FEED_AGE` (hard, open clock) | 36 hours | Holidays count as open (D-76); a frozen holiday must not revert the price |
 | `MAX_PUBLISH_AGE` (hard, closed clock) | 4 days | As on Base and Monad |
 | `maxOracleAge` (soft, to open) | 30 minutes, bounds 10 minutes to 36 hours | The xStocks feeds write every 1 to 3 minutes on weekdays, overnight included (05), so a price older than 30 minutes means the feed is in trouble |
-| Price bounds | One tenth and ten times the deployment price | The feeds have `minAnswer = 1` (D-69) |
+| Price bounds | One hundredth and a hundred times the deployment price (D-89) | The feeds have `minAnswer = 1` (D-69) |
 | `nextCloseAt` | Friday 20:00 New York time, 4 hour window | Same freeze as Base; the X Layer `RiskManager` gets its own calendar post (BE-30) |
 | Supply caps | None from us | Earn on X Layer is direct supply to each market (D-84); a lender picks the market and its risk. Caps come back with our own Vault V2 |
 
