@@ -32,13 +32,13 @@ All three products, same flows as 01 (D-45):
 
 | Product | On Base | Lending side |
 |---|---|---|
-| Long | Borrow USDC against a Coinbase stock in one confirmation | Existing Morpho markets (verified: 5 markets, LLTV 62.5%, Alphabet 77%) |
+| Long | Borrow USDC against a Coinbase stock in one confirmation | Existing Morpho markets (verified onchain on 19 November 2026: 8 stocks with a listed market, LLTV 62.5%, Alphabet also 77%, see 05) |
 | Short | Borrow the stock against USDC, sell it, buy back to close | **New Morpho markets created by Levra**: collateral USDC, loan the stock |
 | Earn | Lend stocks (feeds the short markets) or USDC (feeds longs) | Levra vaults on Morpho, same model as SC-23 |
 
 The team seeds a small amount of each stock into the short markets so shorts work from day one (D-47). Size: about $100 per listed stock plus $200 USDC in the vault, initial proposal (D-70).
 
-Markets at launch: the Coinbase stocks that have both a Morpho long market and a Chainlink feed. At the time of writing that is NVDAc, METAc, AAPLc, GOOGLc and possibly SPCXc. The list is confirmed onchain in SC-71.
+Markets at launch: the Coinbase stocks that have both a Morpho long market and a Chainlink feed. SC-70 found 8 on 19 November 2026: AAPLc, AMZNc, GOOGLc, METAc, MSFTc, NVDAc, SPCXc and TSLAc (05, Base). The final list also needs the policy check in SC-71.
 
 ### Agent
 
