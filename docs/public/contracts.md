@@ -47,7 +47,7 @@ To do this, the router needs your authorization on Morpho. That authorization le
 | Fact | Why |
 |---|---|
 | The contract code | None of the contracts is upgradeable. There are no proxies |
-| The exchange the router and the liquidator may call | Fixed at deployment to the KyberSwap router `0x6131B5fae19EA4f9D964eAc0408E4408b66337b5` |
+| The exchange the router and the liquidator may call | Fixed at deployment to the KyberSwap router `0x6131B5fae19EA4f9D964eAc0408E4408b66337b5`. New deployments take one to three exchange addresses, also fixed forever (D-79) |
 | The hard limit, the oracle and the interest rate model of each market | Morpho markets are immutable |
 | How each `SessionOracle` reads the price, and its maximum price ages | The oracle has no owner and no settings |
 | The fee ceiling | The trading fee can never exceed 0.50% and the keeper fee can never exceed 0.30% |

@@ -55,7 +55,7 @@ Every row must have a test that shows its mitigation works.
 
 | No | Threat | Impact | Mitigation |
 |---|---|---|---|
-| T-01 | Swap calldata crafted by an attacker makes the router call Morpho or a token | Borrow or take collateral on behalf of all users who gave authorization | Swap target allowlist; token approval only for the amount used and set back to zero; invariants 2 and 7 |
+| T-01 | Swap calldata crafted by an attacker makes the router call Morpho or a token | Borrow or take collateral on behalf of all users who gave authorization | Swap target allowlist: one to three targets fixed in the constructor, never changeable, never Morpho or the zero address (D-79, `test/SwapTargets.t.sol`); token approval only for the amount used and set back to zero; invariants 2 and 7 |
 | T-02 | Someone calls the flash loan callback function directly | Runs a step on behalf of someone else | Check that the caller is Morpho and that the router is in the middle of its own call |
 | T-03 | Reentrancy through a token or swap target | Broken state in the middle of a transaction | Reentrancy guard on all external functions |
 | T-04 | A malicious keeper deleverages a user's position at a bad price | The user loses money | `deleverage` conditions; limit on deviation from the oracle price; keeper fee is capped; at first only registered keepers (Q-08) |
