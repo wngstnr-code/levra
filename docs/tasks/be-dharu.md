@@ -329,6 +329,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 
 - [ ] **BE-82 · TapeOut spike**
   - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits. First answer Q-40: does a tape out need FabX transistors, and can we get them? If not, raise it to the team the same day, since it blocks BE-83 and BE-86.
+  - Note: research on 19 November 2026 (05, TapeOut transistors): FAB-Genesis transistors are sold out; OrderGuard has 9,215 left at 0.0001 OKB each. Still to do: buy enough early, check whether our own processor via the factory gets its own supply, and measure the gate count of the risk and clock circuits.
   - Done when: findings in 05 and the circuit and message are readable onchain.
 
 - [ ] **BE-83 · Risk circuit**
