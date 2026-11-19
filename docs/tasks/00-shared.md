@@ -132,6 +132,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 - [ ] **X-31 · Seed funds for Base** (driver: Wangsit)
   - Do: agree the amount of USDC and of each stock the team puts into the short markets and the vault (initial proposal), and buy the stocks.
+  - Note: amount agreed on 19 November 2026 (D-70): about $100 of each listed stock plus $200 USDC, about $700. Still to do: buy them.
   - Done when: the funds are in the team wallet and the amount is in 09.
 
 - [ ] **X-32 · Partners** (driver: Dharu)
@@ -144,7 +145,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 - [ ] **X-34 · Stocks Maxxing submission** (driver: Nabil)
   - Needs: I-B1.
-  - Do: demo video with real Base transactions, the X post tagging @buildonbase, the form for both tracks, the list of what was built in the quest period, root README updated (Base addresses, hashes; the AI tool disclosure stays team written).
+  - Do: fill the Stocks Maxxing application form first (it is the registration, not the submission: project, stage, track, partners, demo URL); then the demo video with real Base transactions (D-65), the X post tagging @buildonbase, the submission form for Programmable Stock Markets (D-61), the list of what was built in the quest period, root README updated (Base addresses, hashes; the AI tool disclosure stays team written).
   - Done when: the submission is confirmed received before 5 December 2026.
 
 
@@ -156,6 +157,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 
 - [ ] **X-35 · Seed funds for X Layer** (driver: Wangsit)
   - Do: agree the amount of USDC and each wrapped xStock for the short markets and the vault (initial proposal), and buy them.
+  - Note: amount agreed on 19 November 2026 (D-70): about $100 of each stock in D-68 plus $200 USDC, about $600. Still to do: buy them.
   - Done when: funds in the team wallet and the amount in 09.
 
 - [ ] **X-36 · TapeOut and X Layer contacts** (driver: Dharu)

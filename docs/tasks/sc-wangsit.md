@@ -210,7 +210,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: every address has code on Base mainnet, read on a stated date, and is in 05.
 
 - [ ] **SC-71 · B20 policy check**
-  - Do: for each stock, read `policyExists` and `isAuthorized` for Morpho, the router, the liquidator and a plain wallet. Check pause state. Write a fork test that moves each token through Morpho and the router.
+  - Do: for each stock, read `policyExists` and `isAuthorized` for Morpho, the router, the liquidator, the 1inch router, the Aerodrome router and a plain wallet, in every scope including the transfer executor (D-72). Check pause state. Write a fork test that moves each token through Morpho and the router.
   - Done when: the result per token is in 05 and Q-36 is answered. Tokens that block our contracts are not listed.
 
 - [ ] **SC-72 · `ChainlinkSessionOracle`**
@@ -219,6 +219,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: ABI exported to `packages/shared/abis/`, tests pass on a Base fork, docs updated.
 
 - [ ] **SC-73 · Chain keyed shared package**
+  - Contract: D-60.
   - Do: `packages/shared` gets `chains.ts`; `addresses.ts`, `markets.ts` and deployments become keyed by chain ID; Monad stays the default. Follow the interface change process in 06 with Dharu and Nabil.
   - Done when: API, keeper and web still build and pass tests on Monad with the new shape.
 
@@ -227,9 +228,9 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: initial proposals in 04 for Base: LLTV of the new short markets, position caps from Aerodrome depth, max oracle age per session (24 hour heartbeat), weekend behaviour, issuer block or pause risk.
   - Done when: 04 has a Base table marked "initial proposal" and Dharu has checked it against `math.ts`.
 
-- [ ] **SC-75 · Swap allowlist for 0x or 1inch**
+- [ ] **SC-75 · Swap allowlist for 1inch and Aerodrome**
   - Needs: BE-71.
-  - Do: add the chosen aggregator router(s) to the router allowlist per chain. Fork test a long and a short through it on Base and on Monad.
+  - Do: add the 1inch router and the Aerodrome router to the router allowlist on Base (D-72); Monad keeps KyberSwap until BE-71 shows 1inch routes Anchored stocks. Fork test a long and a short through each Base route.
   - Done when: both tests pass.
 
 - [ ] **SC-76 · Deploy on Base**
@@ -239,7 +240,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 - [ ] **SC-77 · Seed the short markets**
   - Needs: SC-76, X-31.
-  - Do: supply the team's seed stocks to the short markets and seed USDC to the long side vault. Script it like `make first-run-monad`.
+  - Do: supply the team's seed stocks to the short markets and seed USDC to the long side vault (amounts in D-70). Script it like `make first-run-monad`.
   - Done when: real transaction hashes in PROGRESS.
 
 - [ ] **SC-78 · First real long and short on Base**
@@ -255,17 +256,19 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
 
 - [ ] **SC-80 · X Layer addresses and facts**
+  - Needs: SC-73 for the shared package part.
   - Do: add an "X Layer" section to 05: Morpho core, IRM, vault factories, the xStocks markets (IDs, LLTV, oracle, which USDC they lend), every wrapped xStocks token, USDC native and USDC.e, Permit2, Multicall3, Safe. Add X Layer (196) to `packages/shared` chains, addresses and markets.
   - Done when: every address has code on X Layer, is in 05 with a read date, and the shared package builds.
 
-- [ ] **SC-81 · xStocks oracle check**
+- [~] **SC-81 · xStocks oracle check**
   - Needs: SC-80.
   - Do: find who runs the `wNVDAx-USD (Calculated)` style feeds (aggregator owner, vendor docs), their heartbeat, deviation and weekend behaviour. Log a week of updates with BE-03's logger if needed. Check token transfer rules of the wrapped xStocks (denylist, pause) for Morpho, the router and the liquidator.
   - Done when: findings in 05 and Q-37 answered. If the feed is not an official one, raise it to the team before SC-82.
+  - Note: done on 19 November 2026 from the chain (05, X Layer): the four feeds are Chainlink style OCR2 aggregators owned by one 4 of 9 Safe, update every 1 to 3 minutes and stop from Friday 20:00 to Sunday 20:00 ET; `minAnswer` is 1. wNVDAx wrapper and underlying are pausable upgradeable proxies, the underlying has a sanctions list. Team decision in D-69. Still to do: confirm the Safe is Chainlink's (Q-42), check the other three tokens, and a fork test moving each token through Morpho, the router and the liquidator.
 
 - [ ] **SC-82 · Oracle adapter and limits for X Layer**
-  - Needs: SC-81, BE-81.
-  - Do: reuse `ChainlinkSessionOracle` (SC-72) for the xStocks feeds, without the Coinbase multiplier and registry parts. Initial proposals in 04 for X Layer: short market LLTV, caps from DEX depth, max oracle age per session.
+  - Needs: SC-72, SC-81, BE-81.
+  - Do: reuse `ChainlinkSessionOracle` (SC-72) for the xStocks feeds, without the Coinbase multiplier and registry parts. Treat Friday 20:00 to Sunday 20:00 ET as frozen and reject prices outside our own bounds (D-69). Initial proposals in 04 for X Layer: short market LLTV, caps from DEX depth, max oracle age per session.
   - Done when: fork tests pass on X Layer and 04 has an X Layer table marked "initial proposal".
 
 - [ ] **SC-83 · Deploy on X Layer**
@@ -275,10 +278,10 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 
 - [ ] **SC-84 · Seed and first real trades on X Layer**
   - Needs: SC-83, X-35.
-  - Do: seed the short markets and the vault, then one long and one short per listed stock with small size, then close.
+  - Do: seed the short markets and the vault (amounts in D-70), then one long and one short per listed stock with small size, then close.
   - Done when: hashes in PROGRESS (checkpoint I-X1 with FE-80).
 
 - [ ] **SC-85 · Review the TapeOut risk circuit**
   - Needs: BE-83.
-  - Do: check that the circuit's math matches the contracts and `math.ts`, and that nothing in the contracts reads it.
+  - Do: check that the risk circuit's math and the Wall Street Clock circuit's sessions match the contracts, `math.ts` and `calendar.ts`, and that nothing in the contracts reads them (D-66). Run an equivalence check with a TapeOut tool such as Forgeout if it fits.
   - Done when: review notes in the PR and the test of BE-83 passes.

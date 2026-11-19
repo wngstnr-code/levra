@@ -271,9 +271,9 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.
   - Done when: 03 updated and agreed, routes serve Monad under the new shape.
 
-- [ ] **BE-71 · Aggregator spike: 0x and 1inch**
-  - Do: on Base and Monad, quote and build a swap for each stock, contract sender and recipient. Compare price, rate limits, and whether they route to Aerodrome (Base) and to Anchored tokens (Monad). Pick one primary, keep KyberSwap as Monad backup.
-  - Done when: results in 05, choice recorded in 09, router addresses sent to Wangsit (SC-75).
+- [ ] **BE-71 · Swap providers: 1inch and Aerodrome**
+  - Do: the provider choice is made (D-72): 1inch Swap API primary and the Aerodrome router as fallback on Base, 0x dropped. Prove it: on Base, quote and build a 1inch swap and an Aerodrome swap for each stock with our router as sender and recipient; measure price and rate limits. On Monad, check whether 1inch routes Anchored tokens; until it does, KyberSwap stays.
+  - Done when: results in 05, router addresses sent to Wangsit (SC-75), and the Monad choice recorded in 09.
 
 - [ ] **BE-72 · Quotes on Base**
   - Needs: BE-70, BE-71, SC-73.
@@ -328,12 +328,12 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Done when: results in 05, router address sent to Wangsit (SC-83), long and short quotes work on X Layer.
 
 - [ ] **BE-82 · TapeOut spike**
-  - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits.
+  - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits. First answer Q-40: does a tape out need FabX transistors, and can we get them? If not, raise it to the team the same day, since it blocks BE-83 and BE-86.
   - Done when: findings in 05 and the circuit and message are readable onchain.
 
 - [ ] **BE-83 · Risk circuit**
   - Needs: BE-82.
-  - Do: health factor, liquidation price and session limit from `math.ts` as a TapeOut circuit. A test compares its output with `math.ts` on many inputs. The API and the agent show the circuit result next to ours and flag any difference.
+  - Do: health factor, liquidation price and session limit from `math.ts` as a TapeOut circuit. A test compares its output with `math.ts` on many inputs. The API and the agent show the circuit result next to ours and flag any difference. The circuit answers for any Morpho xStocks borrower on X Layer, not only Levra users (D-66).
   - Done when: the test passes and the agent answers "my health" with the circuit result.
 
 - [ ] **BE-84 · PnL proofs through TapeSend**
@@ -345,3 +345,13 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-76.
   - Do: deposits and withdrawals for X Layer through CCTP V2 with native USDC.
   - Done when: a real deposit from another chain into X Layer, hash in PROGRESS.
+
+- [ ] **BE-86 · Wall Street Clock circuit**
+  - Needs: BE-82.
+  - Do: the market sessions from `calendar.ts` (regular, pre, after, overnight, weekend, holiday) as a TapeOut circuit on X Layer that any app can read (D-66). A test compares it with `calendar.ts` across a year of times, including holidays and daylight saving changes. Soft layer only: no contract and no hard limit reads it.
+  - Done when: the test passes, the circuit address and ID are in 05 and 03, and the agent and the stats page read it.
+
+- [ ] **BE-87 · Agent checked by circuits**
+  - Needs: BE-83, BE-86, BE-77.
+  - Do: before the agent offers a long, short, close or add-collateral action on X Layer, it checks the action against the risk circuit and the clock circuit and shows the result. The user still signs and the contracts check again (D-66). Only if time allows before 3 December 2026.
+  - Done when: the agent shows a circuit check on each prepared action on X Layer.

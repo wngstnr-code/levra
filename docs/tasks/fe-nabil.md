@@ -222,7 +222,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 - [ ] **FE-72 · Long, short and close on Base**
   - Needs: BE-72, SC-76.
-  - Do: reuse the trade flow; Base specific notices (weekend frozen price, issuer can pause a token).
+  - Do: reuse the trade flow; Base specific notices (weekend frozen price, issuer can pause a token); the remaining short capacity per stock, since the seed caps it until Earn users add more (D-70); the geo block and risk disclosure before the first trade (D-73).
   - Done when: a real long and short on Base are opened and closed from the web app (checkpoint I-B1).
 
 - [ ] **FE-73 · Earn on Base**
@@ -257,7 +257,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 
 - [ ] **FE-80 · X Layer in the app**
   - Needs: FE-70, SC-80.
-  - Do: X Layer in the chain picker and routes (`/xlayer/...`); markets, trade, positions and Earn for xStocks; OKX Wallet works as an external wallet through Privy.
+  - Do: X Layer in the chain picker and routes (`/xlayer/...`); markets, trade, positions and Earn for the stocks in D-68; OKX Wallet works as an external wallet through Privy; the same short capacity, weekend frozen price (Friday 20:00 to Sunday 20:00 ET), issuer pause notice, geo block and risk disclosure as on Base (D-69, D-70, D-73).
   - Done when: a real long and short on X Layer are opened and closed from the app (checkpoint I-X1).
 
 - [ ] **FE-81 · Verified PnL on the share card and leaderboard**
@@ -265,10 +265,10 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: the share card and leaderboard show "verified onchain" with a link to the TapeSend proof, checked in the browser against the chain.
   - Done when: a real proof is shown and checked.
 
-- [ ] **FE-82 · DeWEB mirror (optional)**
+- [ ] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
-  - Do: publish the stats page or a light landing page on X Layer DeWEB if the tools support a static export.
-  - Done when: the page loads from DeWEB, or the reason it cannot is written in 05.
+  - Do: publish the stats page and a light landing page on X Layer DeWEB. Required since D-66.
+  - Done when: the page loads from DeWEB and its address is in 05. If the tools cannot export it, raise it to the team the same day.
 
 - [ ] **FE-83 · Show the risk circuit**
   - Needs: BE-83.
