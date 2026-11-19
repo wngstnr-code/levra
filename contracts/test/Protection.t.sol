@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {Position} from "morpho-blue/src/interfaces/IMorpho.sol";
 import {IMarginRouter} from "../src/interfaces/IMarginRouter.sol";
 import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
+import {ISessionOracle} from "../src/interfaces/ISessionOracle.sol";
+import {Session} from "../src/interfaces/Types.sol";
 import {BaseTest} from "./Base.t.sol";
 
 contract ProtectionTest is BaseTest {
@@ -63,6 +65,19 @@ contract ProtectionTest is BaseTest {
         assertApproxEqAbs(USDC.balanceOf(keeper), 41e6 * 30 / 10_000, 0.01e6);
         assertGt(USDC.balanceOf(user), userBefore);
         _assertRouterEmpty();
+    }
+
+    /// SC-86 loosens only the user's full close. A keeper still needs a fresh price.
+    function test_keeperCannotReduceOnAStaleOracle() public {
+        vm.prank(user);
+        router.setProtection(longId, true);
+        _enterPreClose();
+        IMarginRouter.CloseParams memory p = _reduce(41e6, 40e6, 0);
+        _mockOracle(Session.Regular, 3 hours, 3 hours, int128(uint128(_priceE8())));
+
+        vm.prank(keeper);
+        vm.expectPartialRevert(ISessionOracle.OracleStale.selector);
+        router.deleverage(user, p);
     }
 
     function test_onlyAKeeperMayDeleverage() public {
