@@ -236,6 +236,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Needs: BE-71.
   - Do: add the 1inch router and the Aerodrome router to the router allowlist on Base (D-72); Monad keeps KyberSwap until BE-71 shows 1inch routes Anchored stocks. Fork test a long and a short through each Base route.
   - Done when: both tests pass.
+  - Note: D-79 changes the plan: there is no allowlist to add to after deployment. On 19 November 2026 the router and the liquidator gained `SwapTargets`, one to three targets set in the constructor, on branch `sc/D-79-swap-targets` (`test/SwapTargets.t.sol`: limits, refusals, a swap through the second target, the liquidator). SC-75 is now: pass the 1inch and Aerodrome routers to the Base deployment (SC-76) and fork test a long and a short through each route once BE-71 gives calldata.
 
 - [ ] **SC-76 · Deploy on Base**
   - Needs: SC-71, SC-72, SC-74, SC-75.

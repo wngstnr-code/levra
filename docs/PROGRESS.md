@@ -250,6 +250,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: D-76 agreed (Base oracle rules). Per the user, SC-86 goes straight to `main` without a second reader; a review is still owed before the Monad router is redeployed.
 - Wangsit: SC-80 done. X Layer (196) is in `packages/shared`; its Morpho, USDC (native, on Circle's list, CCTP domain 37) and infrastructure are in 05. Two findings open questions for all three: X Layer has no MetaMorpho factory, only Vault V2, so our Earn vault cannot be copied there (Q-44); and the existing X Layer long markets are big and incentivized, so D-77 is not automatic there (Q-45). Dharu and Nabil: `chains` now has `xlayer`; `morphoVaultFactory` moved out of the core keys (03).
 - Wangsit: D-78, Base first, X Layer after. Found that the router and liquidator accept one swap target only; D-79 makes it a small fixed set set at deployment, so 1inch and Aerodrome can both be used on Base without an admin allowlist.
+- Wangsit: D-79 written on `sc/D-79-swap-targets`: `SwapTargets` (1 to 3 fixed targets) in the router and the liquidator, 114 Monad tests and Slither pass. Constructors change for new deployments only; the live Monad contracts are not touched. Dharu: the router and liquidator ABIs gain `swapTargets()` (additive).
 
 ### 12 November 2026
 
