@@ -3,11 +3,16 @@
 /apps/indexer/                       @dharumahendra
 /apps/keeper/                        @dharumahendra
 /apps/web/                           @Nabil-Aufa
+/packages/db/                        @dharumahendra
+/packages/kyber/                     @dharumahendra
+/packages/intents/                   @dharumahendra
 
 /packages/shared/                    @wngstnr-code @dharumahendra
 /packages/shared/abis/               @wngstnr-code
 /packages/shared/addresses.ts        @wngstnr-code
 /packages/shared/markets.ts          @wngstnr-code
+/packages/shared/chains.ts           @wngstnr-code
+/packages/shared/deployments*.ts     @wngstnr-code
 /packages/shared/api/                @dharumahendra
 /packages/shared/math.ts             @dharumahendra
 /packages/shared/gaps.ts             @dharumahendra

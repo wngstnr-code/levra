@@ -1,17 +1,25 @@
 # Levra development docs
 
-This folder is the working guide for building the final version of Levra, a margin account for tokenized stocks on Monad. It is not a trial version. The source of the idea is `Ide Gabungan - Akun Margin Saham Ter-tokenisasi.pdf`. The docs here turn that idea into a design, interface agreements, and task lists.
+This folder is the working guide for building the final version of Levra. It is not a trial version. The source of the idea is `Ide Gabungan - Akun Margin Saham Ter-tokenisasi.pdf`. The docs here turn that idea into a design, interface agreements, and task lists.
 
-The product in one sentence: one account on Monad to buy tokenized stocks with borrowed money (long), profit when the price falls (short), or lend assets to earn interest, with funds that can be sent from any network.
+The product in one sentence: one account to buy tokenized stocks with borrowed money (long), profit when the price falls (short), or lend assets to earn interest, with funds that can be sent from any network. It runs on three chains:
+
+| Chain | Stocks | Status |
+|---|---|---|
+| Monad | Anchored stocks | Live on mainnet since 13 October 2026 |
+| Base | Coinbase stocks (B20) | Built and rehearsed, not deployed yet. Current focus (D-78) |
+| X Layer | Wrapped xStocks | Researched; built after Base |
 
 ## Team
 
-| Person | Part | Folders owned | Task list |
+Ownership as in [06-team-workflow.md](06-team-workflow.md) and `.github/CODEOWNERS`.
+
+| Person | Part | Owns | Task list |
 |---|---|---|---|
-| Wangsit | Smart contracts (SC) | `contracts/` | [tasks/sc-wangsit.md](tasks/sc-wangsit.md) |
-| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/` | [tasks/be-dharu.md](tasks/be-dharu.md) |
+| Wangsit | Smart contracts (SC) | `contracts/`; in `packages/shared`: `abis/`, `addresses.ts`, `markets.ts`, `chains.ts`, `deployments*.ts` | [tasks/sc-wangsit.md](tasks/sc-wangsit.md) |
+| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`; in `packages/shared`: `api/`, `math.ts`, `gaps.ts` | [tasks/be-dharu.md](tasks/be-dharu.md) |
 | Nabil | Frontend (FE) | `apps/web/` | [tasks/fe-nabil.md](tasks/fe-nabil.md) |
-| All three | Shared things | `packages/shared/`, `docs/` | [tasks/00-shared.md](tasks/00-shared.md) |
+| All three | Shared things | `docs/`, repo setup, non-engineering work | [tasks/00-shared.md](tasks/00-shared.md) |
 
 ## Reading order
 
@@ -54,14 +62,15 @@ Claude sessions in this repo follow [`../CLAUDE.md`](../CLAUDE.md). It tells eve
 
 | Marker | Meaning |
 |---|---|
-| **Verified** | Read directly from the network or from official documentation on 13 October 2026 |
+| **Verified** | Read directly from the network or from official documentation. Each fact states the date it was read |
 | **Not verified** | A reasonable assumption that is not yet proven. There is a task to prove it |
 | **Initial proposal** | A starting number that must be tested before it is used with real money |
 | `SC-12`, `BE-12`, `FE-11`, `X-03` | Task numbers. SC, BE, FE match the part; X is for shared tasks |
 | `D-03`, `Q-04` | Decision (D) and open question (Q) numbers in 09-decisions-and-questions.md |
 | M0 to M6 | Build milestones, explained in PROGRESS.md |
 
-## Things not yet decided that need attention soon
+## Where to find what is open
 
-- The decisions listed with options in 09 under "Decisions waiting for the team". The product name is decided: Levra (D-15). Packages use the `@levra/*` scope and contract names stay descriptive, such as `MarginRouter`.
-- The three riskiest things to prove in M0: a real swap transaction from a contract (SC-04), how the Anchored oracle behaves when the market is closed (BE-03), and a real cross-chain deposit (BE-05).
+- Open questions and the decisions still waiting for the team: [09-decisions-and-questions.md](09-decisions-and-questions.md).
+- Blockers, known issues and the latest daily log: [PROGRESS.md](PROGRESS.md).
+- The product name is Levra (D-15). Packages use the `@levra/*` scope and contract names stay descriptive, such as `MarginRouter`.
