@@ -34,6 +34,9 @@ make build
 | `make fmt` | Format |
 | `make fork` | Start a local fork of Monad mainnet on port 8545. `FORK_BLOCK=<number>` pins the block |
 | `make deploy-fork` | Deploy everything to the local fork and write `deployments/fork.json` |
+
+One deployment script serves every chain. `script/Deploy.s.sol` reads `config/<chain>.json` (`DEPLOY_CONFIG`): Morpho, IRM, USDC, the swap targets (D-79), the oracle kind (Anchored on Monad, Chainlink on Base), the vault factory and caps, and every market with its limits from `docs/04-risk-rules.md`. `test/DeployScript.t.sol` proves that `config/monad.json` reproduces the live Monad plan and rehearses Base on a fork; `packages/shared/deploy-config.test.ts` checks that every address in the configs matches `packages/shared`. Stock decimals come from the config, because Coinbase stock tokens are precompiles that a fork cannot call. The deployment file is written only on a real broadcast.
+
 | `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route. `SYMBOL` picks the stock, here and in the scripts below |
 | `./script/e2e-short.sh` | On the fork: lend stock, open a short and close it through the live route |
 | `./script/e2e-liquidation.sh` | On the fork: open a long, push the oracle price down as the Anchored operator, and liquidate through the live route |
@@ -44,6 +47,10 @@ make build
 | `make first-long-monad` | The same for one long. `SYMBOL` picks the stock |
 | `make first-short-monad` | The same for one short, including buying the stock that is lent. `SYMBOL` picks the stock |
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
+| `make base-live-e2e` | Open and close a real NVDAc long (1inch in, Aero out) and short (KyberSwap in, 1inch out) inside `eth_simulateV1` on the live Base node, with our contracts deployed in the same simulation by `script/live/BaseLiveHarness.sol`. Sends nothing. Needs `ONEINCH_API_KEY`. The harness lives in `script/`, not `test/`, because Foundry builds contracts under `test/` with cheatcode linking that only runs inside forge |
+| `make redeploy-router-monad` | REAL transactions: a new router and lens on Monad over the live risk manager, the old router kept under `previousRouters` (SC-87). Read the migration steps in SC-87 first |
+| `make deploy-base-dry` | Simulate the Base deployment against the live chain (`config/base.json`). Sends nothing and writes no file |
+| `make deploy-base` | REAL transactions: deploy to Base mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/base.json` |
 
 Tests and scripts need `--network monad`, which the Makefile passes. The public RPC limits requests, so a test run can fail with a timeout. Run it again or set `MONAD_RPC_URL`.
 

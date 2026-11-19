@@ -36,12 +36,17 @@ fork:
 	anvil --fork-url $(RPC) --port 8545 $(if $(FORK_BLOCK),--fork-block-number $(FORK_BLOCK))
 
 deploy-fork:
-	DEPLOY_ENV=fork forge script script/Deploy.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast
+	DEPLOY_ENV=fork DEPLOY_CONFIG=config/monad.json forge script script/Deploy.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast
 
 deploy-vault-fork:
 	DEPLOY_ENV=fork forge script script/DeployVault.s.sol --network monad --rpc-url $(FORK_RPC) --private-key $(FORK_KEY) --broadcast
 
 # The @ keeps make from printing the private key with the command.
+# REAL transactions on Monad mainnet: a new router and lens over the live risk manager (SC-87).
+# Pass KEEPER to grant the keeper role on the new router. Updates deployments/monad.json.
+redeploy-router-monad:
+	@DEPLOY_ENV=monad DEPLOY_CONFIG=config/monad.json forge script script/RedeployRouter.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
+
 deploy-vault-monad:
 	@DEPLOY_ENV=monad forge script script/DeployVault.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
@@ -73,6 +78,21 @@ set-roles-monad:
 	CONFIRM=$(CONFIRM) ./script/mainnet-set-roles.sh
 
 deploy-monad:
-	@DEPLOY_ENV=monad forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
+	@DEPLOY_ENV=monad DEPLOY_CONFIG=config/monad.json forge script script/Deploy.s.sol --network monad --rpc-url $(RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
-.PHONY: build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad first-earn-monad close-all-monad set-roles-monad
+BASE_RPC ?= https://mainnet.base.org
+
+# Simulates the Base deployment against the live chain. Sends nothing and writes no file.
+deploy-base-dry:
+	DEPLOY_ENV=base DEPLOY_CONFIG=config/base.json forge script script/Deploy.s.sol --network optimism --rpc-url $(BASE_RPC)
+
+# Full long and short through 1inch, KyberSwap and Aero inside eth_simulateV1 on the live Base node (SC-75).
+# Sends nothing. Needs ONEINCH_API_KEY, for example: set -a; . ../.env; set +a; make base-live-e2e
+base-live-e2e: build
+	node script/base-live-e2e.mjs
+
+# REAL transactions on Base mainnet. Needs DEPLOYER_PRIVATE_KEY with ETH on Base (SC-76).
+deploy-base:
+	@DEPLOY_ENV=base DEPLOY_CONFIG=config/base.json forge script script/Deploy.s.sol --network optimism --rpc-url $(BASE_RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
+
+.PHONY: redeploy-router-monad base-live-e2e deploy-base-dry deploy-base build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad first-earn-monad close-all-monad set-roles-monad
