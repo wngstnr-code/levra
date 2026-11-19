@@ -52,6 +52,8 @@ interface IRiskManager {
 
     function checkOpen(Id id, address user, uint256 execPriceE8) external view;
 
+    /// Owner only. maxOracleAge must be at most the oracle's MAX_FEED_AGE and inside the bounds when set;
+    /// maxDeviationBps at most MAX_DEVIATION_BPS.
     function setMarketConfig(Id id, MarketConfig calldata c) external;
 
     /// Guardian only. May only tighten.
@@ -66,7 +68,9 @@ interface IRiskManager {
     /// Seconds. A cap of zero means no bounds are set and the poster cannot act.
     function oracleAgeBounds(Id id) external view returns (uint32 minOracleAge, uint32 capOracleAge);
 
-    /// Owner only. The cap may not exceed the hard source quote age of the market's oracle.
+    /// Owner only. The cap may not exceed the hard source quote age of the market's oracle, and the current
+    /// maxOracleAge must sit inside the new bounds; (0, 0) clears them. Through the timelock, batch it after
+    /// setMaxOracleAge, because the poster may move the value during the delay.
     function setOracleAgeBounds(Id id, uint32 minOracleAge, uint32 capOracleAge) external;
 
     /// Oracle age poster only. Moves maxOracleAge inside the bounds the owner set.

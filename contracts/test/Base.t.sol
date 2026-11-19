@@ -114,7 +114,7 @@ abstract contract BaseTest is Test {
             softLtvOpen: SOFT_OPEN,
             softLtvClosed: SOFT_CLOSED,
             maxDeviationBps: 500,
-            maxOracleAge: 2 hours,
+            maxOracleAge: 1 hours,
             maxPositionUsd: 5_000e6
         });
     }

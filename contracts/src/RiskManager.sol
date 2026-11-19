@@ -19,6 +19,8 @@ contract RiskManager is IRiskManager, Ownable2Step {
     uint256 private constant WAD = 1e18;
     uint256 private constant BPS = 10_000;
     uint256 private constant ORACLE_PRICE_SCALE = 1e36;
+    /// Well under BPS less the keeper fee cap and slack, so the router's keeper size bound stays finite.
+    uint256 public constant MAX_DEVIATION_BPS = 5_000;
 
     uint64 public constant MAX_CLOSE_HORIZON = 8 days;
     uint32 public constant MAX_PRE_CLOSE_WINDOW = 1 days;
@@ -123,7 +125,10 @@ contract RiskManager is IRiskManager, Ownable2Step {
         MarketParams memory mp = MORPHO.idToMarketParams(id);
         if (mp.lltv == 0 || c.oracle != mp.oracle) revert InvalidConfig();
         if (c.softLtvClosed > c.softLtvOpen || c.softLtvOpen >= mp.lltv) revert InvalidConfig();
-        if (c.maxDeviationBps > BPS || ISessionOracle(c.oracle).side() != c.side) revert InvalidConfig();
+        if (c.maxDeviationBps > MAX_DEVIATION_BPS || ISessionOracle(c.oracle).side() != c.side) revert InvalidConfig();
+        if (c.maxOracleAge > ISessionOracle(c.oracle).MAX_FEED_AGE()) revert InvalidConfig();
+        OracleAgeBounds memory b = _oracleAgeBounds[id];
+        if (b.cap != 0 && (c.maxOracleAge < b.min || c.maxOracleAge > b.cap)) revert InvalidConfig();
         if (_config[id].oracle == address(0)) _marketIds.push(id);
         _config[id] = c;
         emit MarketConfigured(id, c);
@@ -161,6 +166,9 @@ contract RiskManager is IRiskManager, Ownable2Step {
         address oracle = _config[id].oracle;
         if (oracle == address(0) || minOracleAge > capOracleAge) revert InvalidConfig();
         if (capOracleAge > ISessionOracle(oracle).MAX_FEED_AGE()) revert InvalidConfig();
+        uint32 current = _config[id].maxOracleAge;
+        bool clearing = minOracleAge == 0 && capOracleAge == 0;
+        if (!clearing && (current < minOracleAge || current > capOracleAge)) revert InvalidConfig();
         _oracleAgeBounds[id] = OracleAgeBounds(minOracleAge, capOracleAge);
         emit OracleAgeBoundsSet(id, minOracleAge, capOracleAge);
     }

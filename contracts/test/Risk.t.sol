@@ -193,6 +193,27 @@ contract RiskTest is BaseTest {
         assertEq(risk.config(longId).maxOracleAge, 1 hours);
     }
 
+    /// Review of 20 November: the open time age must sit under the hard age and inside the bounds.
+    function test_configRefusesAnOracleAgeOutsideTheHardAgeOrTheBounds() public {
+        IRiskManager.MarketConfig memory c = risk.config(longId);
+        c.maxOracleAge = uint32(longOracle.MAX_FEED_AGE()) + 1;
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setMarketConfig(longId, c);
+
+        risk.setOracleAgeBounds(longId, 30 minutes, 90 minutes);
+        c.maxOracleAge = 20 minutes;
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setMarketConfig(longId, c);
+
+        vm.expectRevert(RiskManager.InvalidConfig.selector);
+        risk.setOracleAgeBounds(longId, 70 minutes, 90 minutes);
+        // (0, 0) clears the bounds whatever the current value, so the owner can move both.
+        risk.setOracleAgeBounds(longId, 0, 0);
+        (uint32 min, uint32 cap) = risk.oracleAgeBounds(longId);
+        assertEq(min, 0);
+        assertEq(cap, 0);
+    }
+
     function test_posterCanDoNothingWithoutBounds() public {
         address poster = makeAddr("poster");
         risk.setOracleAgePoster(poster);
