@@ -2,6 +2,9 @@
 export { marginRouterAbi } from "./marginRouter";
 export { riskManagerAbi } from "./riskManager";
 export { sessionOracleAbi } from "./sessionOracle";
+export { chainlinkSessionOracleAbi } from "./chainlinkSessionOracle";
+export { chainlinkFeedAbi } from "./chainlinkFeed";
+export { coinbaseOracleRegistryAbi } from "./coinbaseOracleRegistry";
 export { lensAbi } from "./lens";
 export { liquidatorAbi } from "./liquidator";
 export { anchoredStockOracleAbi } from "./anchoredStockOracle";
