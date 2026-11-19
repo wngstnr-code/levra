@@ -271,7 +271,9 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.
   - Done when: 03 updated and agreed, routes serve Monad under the new shape.
 
-- [ ] **BE-71 · Swap providers: 1inch and Aerodrome**
+- [x] **BE-71 · Swap providers: 1inch and Aerodrome**
+  - Owner for this task: Wangsit, agreed with Dharu on 19 November 2026. Results go to 05 and are handed to Dharu for BE-72.
+  - Note: started on 19 November 2026. The deepest stock pools are in Aero (the Aerodrome and Velodrome merger), not in the pre-merger Aerodrome factories; the Base swap targets are now 1inch, KyberSwap and the Aero SwapRouter (D-80, 05). All three pass the B20 policy and a simulated pull for every stock. Finished the same day: 1inch quotes for all 8 stocks at $100, $1,000 and $10,000, built swaps with a contract as sender and receiver that deliver the exact quote in a live simulation, and the Monad check (1inch cannot route aBIL, so KyberSwap stays, D-81). All in 05. A KyberSwap quote on Base is left for BE-72, since the KyberSwap API key is still a blocker (BE-04). For BE-72: send a plain User-Agent to the 1inch API, and expect 450,000 to 565,000 gas per swap.
   - Do: the provider choice is made (D-72): 1inch Swap API primary and the Aerodrome router as fallback on Base, 0x dropped. Prove it: on Base, quote and build a 1inch swap and an Aerodrome swap for each stock with our router as sender and recipient; measure price and rate limits. On Monad, check whether 1inch routes Anchored tokens; until it does, KyberSwap stays.
   - Done when: results in 05, router addresses sent to Wangsit (SC-75), and the Monad choice recorded in 09.
 
