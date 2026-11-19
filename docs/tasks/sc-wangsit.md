@@ -219,10 +219,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: an adapter behind `ISessionOracle` that reads the Coinbase Chainlink feed (8 decimals) and the registry pause flag, scales to our price units (03 section 1), and reports a frozen or halted market. Fuzz and fork tests. Update 04 and the product rule in CLAUDE.md (D-49) in the same PR.
   - Done when: ABI exported to `packages/shared/abis/`, tests pass on a Base fork, docs updated.
 
-- [ ] **SC-73 · Chain keyed shared package**
+- [~] **SC-73 · Chain keyed shared package**
   - Contract: D-60.
   - Do: `packages/shared` gets `chains.ts`; `addresses.ts`, `markets.ts` and deployments become keyed by chain ID; Monad stays the default. Follow the interface change process in 06 with Dharu and Nabil.
   - Done when: API, keeper and web still build and pass tests on Monad with the new shape.
+  - Note: written on branch `sc/SC-73-chain-keyed-shared` on 19 November 2026, additive only: `chains.ts` (Monad and Base), `externalByChain`, `tokensByChain`, `stocksByChain` with the 8 Base stocks, and chain aware `listMarkets`. The Monad exports are unchanged. Typecheck and tests pass in all 8 packages (shared 88 tests). `next build` for web compiles and renders every page but then stops on Next.js's own security check for version 16.4.0, which is not caused by this change (blocker for Nabil). Waiting for the PR review by Dharu and Nabil (06).
 
 - [ ] **SC-74 · Base risk limits**
   - Needs: SC-70, BE-71.
