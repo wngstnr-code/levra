@@ -361,6 +361,41 @@ Our geo-blocking list is an open decision (Q-24). Earlier docs said "outside the
 | Vercel Web Analytics | Counts page views without cookies. The app also sends five funnel steps with no amounts or addresses (`apps/web/lib/metrics.ts`): `sign_in_opened`, `confirm_opened`, `position_opened`, `deposit_address_shown`, `supply_confirmed`. Custom events need a paid Vercel plan; on Hobby only page views are kept | From documentation. Not checked on the dashboard (FE-54) |
 | Local fork | Anvil 1.8.3 forks Monad through the public RPC. Reads and an impersonated `approve` work | Verified for those calls only (SC-02) |
 
+## X Layer (chain 196)
+
+Read from the X Layer RPC (`https://rpc.xlayer.tech`) and the Morpho API on 19 November 2026, around 10:00 UTC. This is the part of SC-81 done so far. The full address list (Morpho core, IRM, vault factories, USDC, Permit2, Multicall3, Safe) is SC-80.
+
+### Stocks listed at launch (D-68)
+
+| Stock | Wrapped token | Underlying xStock | Morpho oracle | Price feed (proxy) |
+|---|---|---|---|---|
+| wQQQx | `0x4C1AE29c159838fC1b224636E28E086EB69101f7` | `0xa753A7395cAe905Cd615Da0B82A53E0560f250af` | `0x110e7de022cb034d017806AA97d9B69B2023A61c` | `0x70149e006a03dF3739B8C37E4d80145Dea4c09F6` |
+| wNVDAx | `0xa8ddb5Cd96b5222AFe198316E9A57CAA642850D5` | `0xc845b2894dBddd03858fd2D643B4eF725fE0849d` | `0x787f5aCC336AFB68f72F125a5E20B0f0849E27dd` | `0x761FE3B4C1043862bB0c53F5fAAe19F159F6b303` |
+| wSPYx | `0xE7E553Cd128F0011777323A0b44a7b96EA1CB540` | `0x90A2a4c76b5D8c0bc892A69EA28Aa775a8f2dD48` | `0xB03Fa908cd4BaD0fa962929cdc53716Eff94b810` | `0xFf1Ad069D1500970e5f0e5375b011C24EA819950` |
+| wGOOGLx | `0xf8c5308F80E459bb53d9EbE689854d9cBb2Caa6f` | `0xe92f673Ca36C5E2Efd2DE7628f815f84807e803F` | `0x40d4877fEDdc2bbAD31B1F5c33E724e33C5bc41B` | `0x64B67C4C176E78064E0470a062C83c17AE0FA779` |
+
+Each Morpho oracle uses only `BASE_FEED_1` (no second feed, no quote feed, no vault). All four markets lend USDC.
+
+### Price feeds
+
+| Item | Finding | Status |
+|---|---|---|
+| Contract | Proxy (`version` 6, phase 1) in front of `AccessControlledOCR2Aggregator 1.0.0`, with 10 transmitters. Names end in "(Calculated)", 8 decimals | Verified onchain |
+| Owner | Proxy and aggregator are owned by a Safe 1.3.0, 4 of 9: `0xd9F6f0C071AE8d804129309fa7bB371626eafb04`. Same owner for all four feeds | Verified onchain. Whether this Safe is Chainlink's is not verified (Q-42) |
+| Update rhythm | About one round every 1 to 3 minutes on weekdays, also outside US market hours (feed ages 71 to 206 seconds at 04:00 ET) | Verified onchain |
+| Weekends | wNVDAx stopped from Saturday 14 November 00:59 UTC (round 11859) to Monday 16 November 01:00 UTC (round 11860), that is Friday 20:00 ET to Sunday 20:00 ET. So the feeds run 24/5 | Verified for one weekend on wNVDAx |
+| Bounds | `minAnswer = 1`, `maxAnswer` near the int192 maximum, so the aggregator has no useful price floor | Verified onchain. Our adapter needs its own bounds (D-69) |
+
+### Wrapped xStocks (checked on wNVDAx)
+
+| Item | Finding | Status |
+|---|---|---|
+| Form | ERC-4626 style wrapper over the xStock (`asset()` is "NVIDIA xStock"). 1 wNVDAx converts to 1.0017 NVDAx, so the underlying multiplier is absorbed in the wrapper rate and balances do not change by themselves | Verified onchain |
+| Upgrades | Both wrapper and underlying are transparent upgradeable proxies with separate admins (wrapper `0x312063009e74142339edc92bcff6cfcfaa958bfa`, underlying `0x696c685a02a1fc6e2aacbe26cd6695f4f4a6a085`). The token rules can change | Verified onchain |
+| Pause | Both have `pauser()` = `0x8768cDA7A463DAe1baA6b2500EFB025ebd7FFC50` and `isPaused()` = false. A pause can block closes, as on Base | Verified onchain |
+| Sanctions | The underlying has `sanctionsList()` = `0x615Dd3B9445A94334C1579F68115042D77CC7c44`. No sanctions getter was found on the wrapper | Verified onchain. Whether it can block Morpho, our router or our liquidator is not tested (SC-81 fork test) |
+| Wrapper owner | `0x49754062E35f7591B93cc4F9915965be89643a65` for all four wrappers | Verified onchain |
+
 ## Name and domains
 
 Checked by DNS lookup on 13 October 2026. A domain with no name servers may be free, but only a registrar can confirm.
