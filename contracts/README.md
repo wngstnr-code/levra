@@ -35,7 +35,7 @@ make build
 | `make fork` | Start a local fork of Monad mainnet on port 8545. `FORK_BLOCK=<number>` pins the block |
 | `make deploy-fork` | Deploy everything to the local fork and write `deployments/fork.json` |
 
-One deployment script serves every chain. `script/Deploy.s.sol` reads `config/<chain>.json` (`DEPLOY_CONFIG`): Morpho, IRM, USDC, the swap targets (D-79), the oracle kind (Anchored on Monad, Chainlink on Base), the vault factory and caps, and every market with its limits from `docs/04-risk-rules.md`. `test/DeployScript.t.sol` proves that `config/monad.json` reproduces the live Monad plan and rehearses Base on a fork; `packages/shared/deploy-config.test.ts` checks that every address in the configs matches `packages/shared`. Stock decimals come from the config, because Coinbase stock tokens are precompiles that a fork cannot call. The deployment file is written only on a real broadcast.
+One deployment script serves every chain. `script/Deploy.s.sol` reads `config/<chain>.json` (`DEPLOY_CONFIG`): Morpho, IRM, USDC, the swap targets (D-79) and, where a target pulls through a separate approve contract, `swapSpenders` (D-88), the oracle kind (Anchored on Monad, Chainlink on Base), the vault factory and caps, and every market with its limits from `docs/04-risk-rules.md`. `test/DeployScript.t.sol` proves that `config/monad.json` reproduces the live Monad plan and rehearses Base on a fork; `packages/shared/deploy-config.test.ts` checks that every address in the configs matches `packages/shared`. Stock decimals come from the config, because Coinbase stock tokens are precompiles that a fork cannot call. The deployment file is written only on a real broadcast.
 
 | `./script/e2e-long.sh` | On the fork: open and close a long through the live KyberSwap route. `SYMBOL` picks the stock, here and in the scripts below |
 | `./script/e2e-short.sh` | On the fork: lend stock, open a short and close it through the live route |
@@ -49,6 +49,7 @@ One deployment script serves every chain. `script/Deploy.s.sol` reads `config/<c
 | `make deploy-monad` | Deploy to Monad mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/monad.json` |
 | `make base-live-e2e` | Open and close a real NVDAc long (1inch in, Aero out) and short (KyberSwap in, 1inch out) inside `eth_simulateV1` on the live Base node, with our contracts deployed in the same simulation by `script/live/BaseLiveHarness.sol`. Sends nothing. Needs `ONEINCH_API_KEY`. The harness lives in `script/`, not `test/`, because Foundry builds contracts under `test/` with cheatcode linking that only runs inside forge |
 | `make redeploy-router-monad` | REAL transactions: a new router and lens on Monad over the live risk manager, the old router kept under `previousRouters` (SC-87). Read the migration steps in SC-87 first |
+| `make xlayer-fork-e2e` | Deploy `config/xlayer.json` to a local X Layer fork, then open and close an NVDA long through OKX DEX and a QQQ short (Uniswap in, OKX DEX out) with calldata from the live OKX DEX API. Needs the `OKX_*` keys in `../.env` |
 | `make deploy-base-dry` | Simulate the Base deployment against the live chain (`config/base.json`). Sends nothing and writes no file |
 | `make deploy-base` | REAL transactions: deploy to Base mainnet with `DEPLOYER_PRIVATE_KEY` and write `deployments/base.json` |
 

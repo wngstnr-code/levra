@@ -91,8 +91,13 @@ deploy-base-dry:
 base-live-e2e: build
 	node script/base-live-e2e.mjs
 
+# The X Layer deployment on a local anvil fork, then an NVDA long through OKX DEX both ways and a QQQ
+# short in through Uniswap and out through OKX DEX (SC-83). Needs the OKX_* keys: set -a; . ../.env; set +a
+xlayer-fork-e2e: build
+	node script/xlayer-fork-e2e.mjs
+
 # REAL transactions on Base mainnet. Needs DEPLOYER_PRIVATE_KEY with ETH on Base (SC-76).
 deploy-base:
 	@DEPLOY_ENV=base DEPLOY_CONFIG=config/base.json forge script script/Deploy.s.sol --network optimism --rpc-url $(BASE_RPC) --private-key $(DEPLOYER_PRIVATE_KEY) --broadcast --slow
 
-.PHONY: redeploy-router-monad base-live-e2e deploy-base-dry deploy-base build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad first-earn-monad close-all-monad set-roles-monad
+.PHONY: xlayer-fork-e2e redeploy-router-monad base-live-e2e deploy-base-dry deploy-base build test invariants slither gas fmt abis fork deploy-fork deploy-vault-fork deploy-monad deploy-vault-monad first-long-monad first-short-monad first-run-monad first-earn-monad close-all-monad set-roles-monad
