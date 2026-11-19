@@ -29,10 +29,13 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
 
     error InvalidParams();
 
-    constructor(IMorpho morpho, address[] memory swapTargets_, address owner_, address treasury_)
-        Ownable(owner_)
-        SwapTargets(swapTargets_, address(morpho))
-    {
+    constructor(
+        IMorpho morpho,
+        address[] memory swapTargets_,
+        address[] memory swapSpenders_,
+        address owner_,
+        address treasury_
+    ) Ownable(owner_) SwapTargets(swapTargets_, swapSpenders_, address(morpho)) {
         if (treasury_ == address(0)) revert InvalidParams();
         MORPHO = morpho;
         treasury = treasury_;
@@ -102,14 +105,15 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
     function _swap(address tokenIn, address tokenOut, uint256 amountIn, Swap memory swap) private {
         if (!_isSwapTarget(swap.target)) revert SwapTargetNotAllowed(swap.target);
         uint256 beforeOut = IERC20(tokenOut).balanceOf(address(this));
-        IERC20(tokenIn).forceApprove(swap.target, amountIn);
+        address spender = swapSpender(swap.target);
+        IERC20(tokenIn).forceApprove(spender, amountIn);
         (bool ok, bytes memory result) = swap.target.call(swap.data);
         if (!ok) {
             assembly ("memory-safe") {
                 revert(add(result, 0x20), mload(result))
             }
         }
-        IERC20(tokenIn).forceApprove(swap.target, 0);
+        IERC20(tokenIn).forceApprove(spender, 0);
         uint256 out = IERC20(tokenOut).balanceOf(address(this)) - beforeOut;
         if (out < swap.minOut) revert InsufficientSwapOutput(out, swap.minOut);
     }
