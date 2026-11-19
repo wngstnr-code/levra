@@ -203,3 +203,47 @@ Four rules for the frontend:
 - [ ] **FE-61 · Final check**
   - Do: go through every screen and every state one by one in production.
   - Done when: there is no dead button, unfinished page, placeholder text or sample number.
+
+---
+
+## B. Base (Stocks Maxxing)
+
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+
+- [ ] **FE-70 · Chain picker and chain in the URL**
+  - Needs: SC-73 for the final shape; can start on Monad first.
+  - Do: Privy and wagmi with Base and Monad; chain picker in the header; routes `/base/...` and `/monad/...`; balances per chain.
+  - Done when: switching chain changes every page with no reload and no wrong-chain transaction is possible.
+
+- [ ] **FE-71 · Base markets page**
+  - Needs: SC-70.
+  - Do: Coinbase stocks with Chainlink price, session, feed frozen and halted states, share units through the multiplier.
+  - Done when: real Base prices show next to Monad ones.
+
+- [ ] **FE-72 · Long, short and close on Base**
+  - Needs: BE-72, SC-76.
+  - Do: reuse the trade flow; Base specific notices (weekend frozen price, issuer can pause a token).
+  - Done when: a real long and short on Base are opened and closed from the web app (checkpoint I-B1).
+
+- [ ] **FE-73 · Earn on Base**
+  - Needs: SC-76.
+  - Do: lend stocks into the short markets and USDC into the long side vault.
+  - Done when: a real supply and withdraw from the app.
+
+- [ ] **FE-74 · Base Account and sponsored gas**
+  - Do: Base Account as a sign-in option through Privy, and a Base paymaster for the first actions (budget Q-34).
+  - Done when: a new user opens a first position with no ETH.
+
+- [ ] **FE-75 · Public stats page**
+  - Needs: BE-79.
+  - Do: wallets, open interest, volume, Earn supplied, per chain.
+  - Done when: live numbers show from the API.
+
+- [ ] **FE-76 · Shareable position card**
+  - Do: image card for X after open or close (market, side, leverage, PnL in percent), with a link to the app.
+  - Done when: a card is generated from a real position.
+
+- [ ] **FE-77 · Agent entry in the app**
+  - Needs: BE-77.
+  - Do: link and short guide to the Bankr and Telegram agent; show prepared transactions from the agent for signing.
+  - Done when: a close prepared in chat is signed in the app.
