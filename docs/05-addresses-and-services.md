@@ -361,6 +361,78 @@ Our geo-blocking list is an open decision (Q-24). Earlier docs said "outside the
 | Vercel Web Analytics | Counts page views without cookies. The app also sends five funnel steps with no amounts or addresses (`apps/web/lib/metrics.ts`): `sign_in_opened`, `confirm_opened`, `position_opened`, `deposit_address_shown`, `supply_confirmed`. Custom events need a paid Vercel plan; on Hobby only page views are kept | From documentation. Not checked on the dashboard (FE-54) |
 | Local fork | Anvil 1.8.3 forks Monad through the public RPC. Reads and an impersonated `approve` work | Verified for those calls only (SC-02) |
 
+## Base (chain 8453)
+
+Read from the Base RPC (`https://mainnet.base.org`, block 59495063), the Morpho API, Sourcify, Morpho Docs and Base Docs on 19 November 2026, around 11:00 to 12:00 UTC (SC-70). Every address below has code on Base mainnet at that block. "Verified onchain" means a call to the contract returned the stated value. The transfer policy per token is SC-71 and is not covered here.
+
+### Infrastructure
+
+| Contract | Address | Status |
+|---|---|---|
+| Morpho (Blue core) | `0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb` | Verified onchain. Same address as on Ethereum |
+| AdaptiveCurveIrm | `0x46415998764C29aB2a25CbeA6254146D50D22687` | Verified onchain: `MORPHO()` is the core above. Every stock market below uses it |
+| MorphoChainlinkOracleV2 factory | `0x2DC205F24BCb6B311E5cdf0745B0741648Aebd3d` | Code present. Address from Morpho Docs |
+| MetaMorpho factory v1.1 | `0xFf62A7c278C62eD665133147129245053Bbf5918` | Verified onchain: `MORPHO()` is the core above. Address from Morpho Docs. The one to use for Levra vaults (as D-24 on Monad) |
+| MetaMorpho factory v1.0 (old) | `0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101` | Verified onchain: `MORPHO()` is the core above. Do not use |
+| Vault V2 factory | `0x4501125508079A99ebBebCE205DeC9593C2b5857` | Code present. Address from a summary of Morpho Docs, not read verbatim |
+| PublicAllocator (for MetaMorpho vaults) | `0xA090dD1a701408Df1d4d0B85b716c87565f90467` | Verified onchain: `MORPHO()` is the core above, Sourcify name `PublicAllocator` |
+| BluePublicAllocator (for Vault V2) | `0xAED282B8aD9257BB1272e93aE63A32A53621e412` | Sourcify name `BluePublicAllocator`, reads `vaultV2Factory()`. Not for MetaMorpho vaults |
+| MorphoRegistry | `0x5C2531Cbd2cf112Cf687da3Cd536708aDd7DB10a` | Code present. Address from Morpho Docs |
+| USDC (native, Circle) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | Verified onchain: `symbol()` is "USDC". Every stock market below lends it |
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` | Code present (canonical address) |
+| Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` | Code present (canonical address) |
+| Safe 1.4.1 singleton | `0x41675C099F32341bf84BFc5382aF534df5C7461a` | Verified onchain: `VERSION()` is "1.4.1" |
+| Safe 1.4.1 L2 singleton | `0x29fcB43b46531BcA003ddC8FCB67FFE91900C762` | Code present (canonical address) |
+| Safe 1.4.1 proxy factory | `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67` | Code present (canonical address) |
+| Coinbase oracle registry | `0x3f3E8cf41cdd3b1D118c16471aB0113DfDDd5CaD` | Sourcify name `OracleRegistry`. `getOracleParams(address token)` returns `(uint256 multiplier, bool paused)`, keyed by the stock token, not by the feed. Pausing is `setOraclePaused` behind `PAUSER_ROLE`. Verified onchain for the 8 tokens below. Address from Base Docs |
+| B20 policy registry | `0x8453000000000000000000000000000000000002` | Precompile (code size 1 byte). Address from `api.coinbase.com/v1/tokenized-stocks/chains`. `policyExists` and `isAuthorized` are read in SC-71 |
+| Stock token factory (`B20AssetFactory`) | `0x4bA3E29E254F25E94E61C4c9d67b37027331534D` | Verified onchain: ERC-1967 proxy to `0xbbcb88b1e706624d7fb631b0b2557a173ef028ca` (Sourcify name `B20AssetFactory`), deployed at block 48459816. `transferPolicyId()` is 5, `SECURITY_TOKEN_DECIMALS()` is 8, `tokenSupplyManager()` is the manager below. Each new token emits `SecurityTokenDeployed` |
+| Token supply manager | `0xD1Ca4dAcdf3231011D175351f1f02D15C7c5664C` | Verified onchain: ERC-1967 proxy to `0x3f27d252526470a04d6222252e37b84580a4c6e3` (Sourcify name `TokenSupplyManager`) |
+
+The last three addresses come from `api.coinbase.com/v1/tokenized-stocks/chains`. Our network blocks that host, so it was read over another connection on 19 November 2026.
+
+### Stock tokens and Morpho long markets
+
+All stock tokens are B20 precompiles: the address starts with `0xb2000`, its code size is 1 byte, and `symbol()` and `decimals()` answer. All have 8 decimals. Each "listed" market below is shown by Morpho's own app and lends USDC with the AdaptiveCurveIrm. Supply and borrow in USD are from the Morpho API and change daily.
+
+| Stock | Token | Market ID (listed) | LLTV | Morpho oracle | Supply / borrow (USD) |
+|---|---|---|---|---|---|
+| AAPLc | `0xb200000000000000000000C2e324d24d7eEcd1fb` | `0xae1a30486234bf7e7ac166c7c03d9bc5f2cd8a39be2c48e73c665ac7148c3c28` | 62.5% | `0xEcC5c9bf18CB2CfC94C2f7EFf8BDd5837A60AB0e` | 16,148 / 14,653 |
+| AMZNc | `0xb200000000000000000000d9192b6B456483C2E8` | `0xcca091ada0a486dd74743ab5f1b1b972adefaad357e2634fd7362a0d798dcd42` | 62.5% | `0x52cE337EC871EC8f3490285b70A42aAb07814769` | 27 / 25 |
+| GOOGLc | `0xb2000000000000000000002D0BA3164cc74f58B7` | `0xa3913d896b7e9c0e0a84f1be27d376cf2065616101cb7c44674af8a154e684cc` | 77% | `0x24DC11055aa5b2C5692E4B77d7285c4f0fd9Cf99` | 5,271 / 4,773 |
+| GOOGLc | same | `0x0cc78b1f4993015116e90626a18a1ba0e1ca73d0b75781b231d02fa5536e62a5` | 62.5% | same | 0 / 0 |
+| METAc | `0xb2000000000000000000008bC8786B856E61707C` | `0x44b343b5087c0bd34207cb5c199f12030777bf6b8c0a128438246f1212f37ca5` | 62.5% | `0x4752B27dFc1931eb9a5DFEFC7FBC9d0af9020dC7` | 11,915 / 10,959 |
+| MSFTc | `0xB200000000000000000000Ab99cFa739E253872B` | `0x4f9329a87a70e722cdab07b3647ef705671b25079d4f3bae559be5cfe12a7318` | 62.5% | `0x5a4CEB3240d50A16a8BBBBc0F72C53018B8E38be` | 37 / 25 |
+| NVDAc | `0xb20000000000000000000078ee7ce2fE4908108C` | `0xb4b42dd66cef25614b94510a910d54b2c148e7621d22b4271566724beda63d13` | 62.5% | `0x4F698C04d01d9CebCDd9494c189aBdD6C5453f84` | 1,593 / 1,455 |
+| SPCXc | `0xb2000000000000000000007b9fcbd005511aCBd5` | `0xce983b9ee6344e16ebbcc66812f23caafc63ae83fcc14fa29b66c7e69e9cecf6` | 62.5% | `0x9079857a2b5FFfC3d87052b11b866a185B4A6483` | 6,255 / 5,671 |
+| TSLAc | `0xb2000000000000000000001e800a7f5189430cD0` | `0xc819df1685193012fc1d189e4ae22f6658442805f121303aebb04c81bd6d55d5` | 62.5% | `0xFDD26bC94502a281f333e9593501d9A3C5a9905c` | 0 / 0 |
+
+Morpho also has unlisted markets for these tokens (other oracles, LLTV up to 98%). They hold almost nothing and are ignored. The listed markets that hold real supply are about 90% borrowed, and the TSLAc market and the 62.5% GOOGLc market are empty, so a new long finds little USDC until a vault (ours or others) supplies more.
+
+### Price feeds
+
+Each Morpho oracle above is a ChainlinkOracleV2 that uses only `BASE_FEED_1`, with no second feed, no quote feed and no vault. That feed is the Coinbase feed named in Base Docs.
+
+| Stock | Feed proxy (`BASE_FEED_1`) | Description | Answer at the read (8 decimals) | Multiplier in the registry |
+|---|---|---|---|---|
+| AAPLc | `0x787f13dEa48Db0897CbCDD985de77809D837F988` | Coinbase AAPL | 354.72 | 1.000500 |
+| AMZNc | `0x06A8E4b3aBB3B7543d8396FB2B763d22820cB295` | Coinbase AMZN | 274.06 | 1.000000 |
+| GOOGLc | `0x5bF49E0ffA937CE2FfF033c739aD7C634c4D34F2` | Coinbase GOOGL | 293.94 | 1.000377 |
+| METAc | `0x6526aE6797A76123638b863AeE4dD27Ba4E4b27D` | Coinbase META | 624.87 | 1.000314 |
+| MSFTc | `0xeB10A6c9aa7E537aEd766C08c35Dae35B321b18c` | Coinbase MSFT | 513.78 | 1.000000 |
+| NVDAc | `0x04689a41629776563E6822F76f2e57D148d28513` | Coinbase NVDA | 154.54 | 1.000538 |
+| SPCXc | `0x6A634B235903C4ad6376892180d6fF8612e3Fa68` | Coinbase SPCX | 146.72 | 1.000000 |
+| TSLAc | `0xFaf869185383a24F8cb00e27BdA6b63B9905DCb4` | Coinbase TSLA | 391.04 | 1.000000 |
+
+| Item | Finding | Status |
+|---|---|---|
+| Form | Proxy with `version()` 6, 8 decimals, one aggregator per feed | Verified onchain for all 8 |
+| Owner | All 8 proxies are owned by one Safe 1.3.0, 4 of 9: `0xf0Db7318A51a21C413CaDd4AbDC1E8a500fE5B1b` | Verified onchain. Whether this Safe is Chainlink's is not verified |
+| Multiplier | The registry multiplier equals the token's own `uiMultiplier()` for all 8 (WAD, 1e18) | Verified onchain |
+| Pause | `paused` is false for all 8 in the registry | Verified onchain at the read |
+| Age | At 11:56 UTC on a Thursday (US pre-market) the last updates were 13 minutes (NVDA) to 11 hours (AAPL) old. Base Docs: 0.5% deviation or 24 hours in market hours, held when closed | Ages verified onchain. Heartbeat and deviation from Base Docs only |
+| Other feeds | Base Docs also list Coinbase MSTR `0xB3cE282CD188b35DA0E38D8Bc7d58e33173D202a` and Coinbase SNDK `0x388b0dC46C0Fb05A74BeE0994fa5b02c6Fcca2eA` (descriptions verified onchain). No Morpho market was found for these two, and their token addresses were not found | Not in scope until a market exists |
+
 ## X Layer (chain 196)
 
 Read from the X Layer RPC (`https://rpc.xlayer.tech`) and the Morpho API on 19 November 2026, around 10:00 UTC. This is the part of SC-81 done so far. The full address list (Morpho core, IRM, vault factories, USDC, Permit2, Multicall3, Safe) is SC-80.
