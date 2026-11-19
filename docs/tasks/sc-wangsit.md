@@ -246,3 +246,39 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Needs: SC-77.
   - Do: one long and one short on each listed stock with small size, then close.
   - Done when: hashes in PROGRESS. This is checkpoint I-B1 together with FE-72.
+
+
+---
+
+## X. X Layer (TapeOut Accelerate)
+
+Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
+
+- [ ] **SC-80 · X Layer addresses and facts**
+  - Do: add an "X Layer" section to 05: Morpho core, IRM, vault factories, the xStocks markets (IDs, LLTV, oracle, which USDC they lend), every wrapped xStocks token, USDC native and USDC.e, Permit2, Multicall3, Safe. Add X Layer (196) to `packages/shared` chains, addresses and markets.
+  - Done when: every address has code on X Layer, is in 05 with a read date, and the shared package builds.
+
+- [ ] **SC-81 · xStocks oracle check**
+  - Needs: SC-80.
+  - Do: find who runs the `wNVDAx-USD (Calculated)` style feeds (aggregator owner, vendor docs), their heartbeat, deviation and weekend behaviour. Log a week of updates with BE-03's logger if needed. Check token transfer rules of the wrapped xStocks (denylist, pause) for Morpho, the router and the liquidator.
+  - Done when: findings in 05 and Q-37 answered. If the feed is not an official one, raise it to the team before SC-82.
+
+- [ ] **SC-82 · Oracle adapter and limits for X Layer**
+  - Needs: SC-81, BE-81.
+  - Do: reuse `ChainlinkSessionOracle` (SC-72) for the xStocks feeds, without the Coinbase multiplier and registry parts. Initial proposals in 04 for X Layer: short market LLTV, caps from DEX depth, max oracle age per session.
+  - Done when: fork tests pass on X Layer and 04 has an X Layer table marked "initial proposal".
+
+- [ ] **SC-83 · Deploy on X Layer**
+  - Needs: SC-82.
+  - Do: deploy router, risk manager, oracle adapter, lens and liquidator; add the OKX DEX router to the allowlist; create the short markets and Earn vaults; write `deployments.xlayer.ts`; hand ownership to the multisig on X Layer.
+  - Done when: contracts verified on the X Layer explorer, addresses in 05 and `docs/public/contracts.md`.
+
+- [ ] **SC-84 · Seed and first real trades on X Layer**
+  - Needs: SC-83, X-35.
+  - Do: seed the short markets and the vault, then one long and one short per listed stock with small size, then close.
+  - Done when: hashes in PROGRESS (checkpoint I-X1 with FE-80).
+
+- [ ] **SC-85 · Review the TapeOut risk circuit**
+  - Needs: BE-83.
+  - Do: check that the circuit's math matches the contracts and `math.ts`, and that nothing in the contracts reads it.
+  - Done when: review notes in the PR and the test of BE-83 passes.

@@ -33,6 +33,7 @@ After that, read your own task list, then other docs when needed:
 | [09-decisions-and-questions.md](09-decisions-and-questions.md) | Decisions already made and questions still open | Everyone |
 | [10-screens.md](10-screens.md) | Draft of every screen: data, actions, states, and data still missing from the API | FE, BE |
 | [11-base-stocksmaxxing.md](11-base-stocksmaxxing.md) | Levra on Base and the Stocks Maxxing submission: idea, stack per chain, Coinbase stock facts, task split | Everyone |
+| [12-xlayer-tapeout.md](12-xlayer-tapeout.md) | Levra on X Layer and the TapeOut Accelerate submission: final 3-chain idea, X Layer facts, TapeOut use, task split | Everyone |
 | [public/contracts.md](public/contracts.md) | Public contract documentation: addresses, roles, what the team can and cannot do, how to leave without the app | Everyone |
 | [outreach/anchored-questions.md](outreach/anchored-questions.md) | Draft message to the token issuer | SC |
 | [drafts/risk-disclosure.md](drafts/risk-disclosure.md) | Draft risk disclosure, not reviewed by counsel | Everyone |

@@ -2,7 +2,7 @@
 
 Rules for every Claude session in this repo.
 
-The product is Levra: a margin account for tokenized stocks on Monad and Base. One account to buy tokenized stocks with leverage (long), profit when prices fall (short), or lend assets for interest, with funds that can arrive from any chain. The goal is a final, startup-ready product. It is not an MVP and not a demo.
+The product is Levra: a margin account for tokenized stocks on Monad, Base and X Layer. One account to buy tokenized stocks with leverage (long), profit when prices fall (short), or lend assets for interest, with funds that can arrive from any chain. The goal is a final, startup-ready product. It is not an MVP and not a demo.
 
 ## 1. Start of every session (mandatory)
 
@@ -80,6 +80,6 @@ A task is not done until its docs are updated.
 - User funds stay in the user's own Morpho position. Our contracts never hold funds between transactions.
 - Closing, reducing and adding collateral can never be paused.
 - Auto-deleverage is opt-in per user and per market.
-- The hard limit uses the issuer's official oracle only: Anchored on Monad, Chainlink's Coinbase feed on Base (D-49). DEX prices are used only in the soft layer.
+- The hard limit uses the issuer's official oracle only: Anchored on Monad, Chainlink's Coinbase feed on Base (D-49), the Morpho xStocks feed on X Layer (D-56). DEX prices are used only in the soft layer.
 - All limits in `docs/04-risk-rules.md` are initial proposals. Do not present them as tested or safe.
 - Mark facts honestly: verified, not verified, or initial proposal. Never state a not-verified item as fact.
