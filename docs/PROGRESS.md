@@ -64,6 +64,15 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
+| 20 November 2026 | Wangsit | Dharu | Check the Base limits (04, Base limits, SC-74) and the X Layer limits (04, X Layer limits, SC-82) against `math.ts`; Coinbase stock tokens have 8 decimals, wrapped xStocks 18. Both deployments wait for this | SC-74, SC-82, SC-76, SC-83 |
+| 20 November 2026 | Wangsit | Dharu | Add the eight Base stocks to `gapTable` in `packages/shared/gaps.ts` (numbers in 04, Base limits) | SC-74, BE-34 |
+| 20 November 2026 | Wangsit | Dharu | Calendar poster for the Base and X Layer `RiskManager`: post `nextCloseAt` at Friday 20:00 New York time, when the Coinbase and xStocks feeds freeze | BE-30, SC-76, SC-83 |
+| 20 November 2026 | Wangsit | Dharu | Keeper and indexer on Base and X Layer: `priceId()` of `ChainlinkSessionOracle` is the feed address, and prices arrive as Chainlink `AnswerUpdated` events, not Anchored events | BE-73, BE-80 |
+| 20 November 2026 | Wangsit | Dharu | After the Monad router is replaced (SC-87), the indexer reads events from `router` and every address in `previousRouters`, and the protector key gets the keeper role on the new router | SC-87, BE-13 |
+| 20 November 2026 | Wangsit | Dharu, Nabil | A second reader for the contract changes of SC-86, D-79 and D-88 (`MarginRouter`, `Liquidator`, `SwapTargets`), required by 06 before any of them is deployed | SC-86, SC-87, SC-76, SC-83 |
+| 20 November 2026 | Wangsit | Nabil | After SC-87: users with an open position authorize the new router on their next action, and users who had protection on are asked to turn it on again. On Monad and Base the TapeOut label reads "calculation verified" (D-87). Earn on X Layer offers `market:<id>` options only (D-84) | SC-87, FE-81, FE-80 |
+| 20 November 2026 | Wangsit | All three | Funds and signers for the new chains: about 0.005 ETH on Base and some OKB on X Layer for the deployer, the multisig signers on each chain, and the seed of X-31 (Base) and X-35 (X Layer). Hand ownership to the multisig before real funds go in; today one key (`0x7029...1855`) owns every Monad contract | SC-76, SC-83, SC-77, SC-84, SC-55 |
+| 20 November 2026 | Wangsit | All three | The risk disclosure draft (`docs/drafts/risk-disclosure.md`) must name the issuer risks: one key can block or pause every Coinbase stock on Base (T-21), and the xStocks sanctions list reaches the wrapped tokens on X Layer (T-23) | X-11 |
 | 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap API key (client IDs are no longer whitelisted; ask business@kyber.network, then set `KYBER_API_KEY` on api and keeper) and Aurora Intents API key | BE-04, BE-05 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
@@ -72,7 +81,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 19 November 2026 | Wangsit, Nabil | Nabil | `next build` in `apps/web` stops with `SecurityFatalError` on Wangsit's machine: the installed Next.js 16.4.0 has a known vulnerability. The Vercel preview build of PR 84 passed, so it may only stop outside Vercel. Nabil: check it and upgrade Next.js in `apps/web` | FE-01 |
 | 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
-| 14 October 2026 | Nabil | Wangsit | Set `NEXT_PUBLIC_API_URL=https://api-production-c154.up.railway.app` on the Vercel project (Production and Preview) and redeploy. The Vercel project is on Wangsit's account. This is the last step of BE-15 | FE-10, FE-11, FE-12, FE-13, BE-15 |
 
 ## Open questions that block work soon
 
@@ -237,6 +245,7 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: SC-87 prepared, not run: `make redeploy-router-monad` puts a new router and lens with the SC-86 and D-79 code over the live Monad risk manager and keeps the old router under `previousRouters` in the deployment file (03, additive). Dharu: the indexer must read every router in `previousRouters`. Nabil: users re-authorize the new router and opt in to protection again. Waiting for a second reader of SC-86 and D-79.
 - Wangsit: `docs/README.md` brought up to date: three chains with their status, ownership per file in `packages/shared` and for `packages/db`, `kyber` and `intents` (now also in `.github/CODEOWNERS`, 06 and CLAUDE.md), dated "Verified" facts, and pointers to 09 and PROGRESS instead of the M0 list.
 - Wangsit: X Layer goes ahead while Base waits (D-82). Decided: our own long markets (D-83), Earn as direct market supply (D-84), OKX DEX plus Uniswap v3 as swap targets once measured (D-85), token pauses handled by keeper and guardian (D-86).
+- Wangsit: blocker of 14 October closed: `NEXT_PUBLIC_API_URL` is set on the Vercel project (confirmed by Wangsit). Every open request to Dharu, Nabil or the team from the work of 19 and 20 November is now a row in Blockers.
 - All: TapeOut features show on every chain (D-87). Dharu: the clock circuit, PnL proofs and the risk circuit serve Monad and Base too (BE-83, BE-84, BE-86). Nabil: the "verified" label on Monad and Base says the calculation is verified, not the position (FE-81).
 - Wangsit: our ISP (XL Axiata) blocks `web3.okx.com` and `www.okx.com` from the terminal, as it did `api.coinbase.com`; OKX DEX API calls need a VPN.
 - Wangsit: OKX DEX API v6 works with key, secret and passphrase, no project ID; the block is DNS only (XL and Telkomsel both redirect `web3.okx.com`; resolving through 1.1.1.1 works). X Layer is supported and quotes route through Uniswap v3 and v4. Found Q-47: OKX pulls tokens through a separate approve contract, so our router cannot use OKX as it stands (proved on a fork).

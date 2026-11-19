@@ -328,6 +328,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 - [ ] **BE-81 · OKX DEX API spike and swap provider**
   - Do: quote and build swaps for each wrapped xStock with a contract sender and recipient; measure price, depth and rate limits; check 1inch on X Layer too. Put the provider behind the shared aggregator interface (D-53).
   - Done when: results in 05, router address sent to Wangsit (SC-83), long and short quotes work on X Layer.
+  - Note from Wangsit (20 November 2026, SC-82 and SC-83): the v6 API works on chain 196 with key, secret and passphrase, no project ID (v5 is retired). Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS; resolve it through 1.1.1.1 or call from a server. Send a plain User-Agent. The swap `tx.to` is the router `0x7c5b...AEaF`, but tokens must be approved to `0x8b77...F000`; our contracts handle that since D-88. Swap costs per size are in 05, and `make xlayer-fork-e2e` runs a long and a short through OKX on a fork.
 
 - [ ] **BE-82 · TapeOut spike**
   - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits. First answer Q-40: does a tape out need FabX transistors, and can we get them? If not, raise it to the team the same day, since it blocks BE-83 and BE-86.
