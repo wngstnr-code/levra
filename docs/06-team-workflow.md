@@ -27,7 +27,7 @@ If you find a problem in someone else's folder: do not fix it yourself. Write it
 - The PR title starts with the task number: `SC-12: router for opening and closing long`.
 - PR to your own folder: you may merge it yourself after the automatic tests pass. For `contracts/src/`, one other person must read it before merging, because mistakes there involve money.
 - A PR that touches `packages/shared/` or the interface docs: must be approved by the file owner and the people affected.
-- No direct pushes to `main`.
+- Code changes never go straight to `main`: always a branch and a PR. Docs-only changes (`docs/`, `CLAUDE.md`, READMEs) may be pushed straight to `main`, as in CLAUDE.md section 4.
 
 ## Changing the interface agreements
 
