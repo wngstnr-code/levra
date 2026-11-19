@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Position} from "morpho-blue/src/interfaces/IMorpho.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {MarketParams, Position} from "morpho-blue/src/interfaces/IMorpho.sol";
+import {MarketParamsLib} from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import {ILiquidator} from "../src/interfaces/ILiquidator.sol";
 import {IMarginRouter} from "../src/interfaces/IMarginRouter.sol";
 import {Session, Swap} from "../src/interfaces/Types.sol";
@@ -9,6 +11,8 @@ import {Liquidator} from "../src/Liquidator.sol";
 import {BaseTest} from "./Base.t.sol";
 
 contract LiquidatorTest is BaseTest {
+    using MarketParamsLib for MarketParams;
+
     int128 internal constant START = 740e8;
 
     Liquidator internal liquidator;
@@ -93,11 +97,35 @@ contract LiquidatorTest is BaseTest {
         vm.expectPartialRevert(ILiquidator.InsufficientResult.selector);
         liquidator.liquidate(longId, user, seized, seized, badFill, 0, 0);
 
+        // A keeper alone cannot spend the float: the owner must set a loss budget first (D-90).
+        vm.prank(keeper);
+        vm.expectPartialRevert(ILiquidator.LossTooLarge.selector);
+        liquidator.liquidate(longId, user, seized, seized, badFill, -10e6, 0);
+
+        liquidator.addLossBudget(address(USDC), 4e6);
+        liquidator.addLossBudget(address(USDC), 6e6);
         vm.prank(keeper);
         (int256 delta,) = liquidator.liquidate(longId, user, seized, seized, badFill, -10e6, 0);
         assertLt(delta, 0);
         assertEq(USDC.balanceOf(address(liquidator)), uint256(int256(20e6) + delta));
         assertEq(USDC.balanceOf(treasury), 0);
+        assertEq(liquidator.lossBudgetOf(address(USDC)), uint256(int256(10e6) + delta), "the loss spends the budget");
+
+        vm.prank(keeper);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, keeper));
+        liquidator.addLossBudget(address(USDC), 1);
+
+        liquidator.clearLossBudget(address(USDC));
+        assertEq(liquidator.lossBudgetOf(address(USDC)), 0);
+    }
+
+    /// A market with the same loan and collateral token would count one profit twice (review 4).
+    function test_refusesAMarketWithTheSameLoanAndCollateralToken() public {
+        MarketParams memory same = MarketParams(address(USDC), address(USDC), address(longOracle), IRM, LLTV);
+        MORPHO.createMarket(same);
+        vm.prank(keeper);
+        vm.expectRevert(Liquidator.InvalidParams.selector);
+        liquidator.liquidate(same.id(), user, 1, 0, _swapData(USDC, USDC, 0, 0), 0, 0);
     }
 
     function test_cannotLiquidateAHealthyPosition() public {

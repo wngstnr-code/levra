@@ -21,6 +21,9 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
 
     address public treasury;
     mapping(address => bool) public isKeeper;
+    /// Loan token base units the float may still lose, across all liquidations. Each loss spends it and only
+    /// the owner refills it. Zero by default, so a keeper key alone can never spend the float.
+    mapping(address => uint256) public lossBudgetOf;
 
     bool private transient _active;
 
@@ -56,6 +59,7 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
     ) external nonReentrant returns (int256 loanTokenDelta, uint256 collateralLeft) {
         if (!isKeeper[msg.sender]) revert Unauthorized();
         MarketParams memory mp = MORPHO.idToMarketParams(marketId);
+        if (mp.loanToken == mp.collateralToken) revert InvalidParams();
         IERC20 loan = IERC20(mp.loanToken);
         IERC20 collateral = IERC20(mp.collateralToken);
         uint256 loanBefore = loan.balanceOf(address(this));
@@ -70,6 +74,13 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
         collateralLeft = collateral.balanceOf(address(this)) - collateralBefore;
         if (loanTokenDelta < minLoanTokenDelta || collateralLeft < minCollateralLeft) {
             revert InsufficientResult(loanTokenDelta, collateralLeft);
+        }
+        if (loanTokenDelta < 0) {
+            uint256 budget = lossBudgetOf[mp.loanToken];
+            uint256 loss = uint256(-loanTokenDelta);
+            if (loss > budget) revert LossTooLarge(loanTokenDelta, budget);
+            lossBudgetOf[mp.loanToken] = budget - loss;
+            emit LossBudgetSpent(mp.loanToken, loss, budget - loss);
         }
 
         if (loanTokenDelta > 0) loan.safeTransfer(treasury, uint256(loanTokenDelta));
@@ -89,6 +100,19 @@ contract Liquidator is ILiquidator, IMorphoLiquidateCallback, Ownable2Step, Reen
     function setKeeper(address keeper, bool allowed) external onlyOwner {
         isKeeper[keeper] = allowed;
         emit KeeperSet(keeper, allowed);
+    }
+
+    /// Adds to whatever the budget is when the call runs, so a refill scheduled through the timelock still
+    /// applies after losses during the delay.
+    function addLossBudget(address token, uint256 amount) external onlyOwner {
+        uint256 budget = lossBudgetOf[token] + amount;
+        lossBudgetOf[token] = budget;
+        emit LossBudgetSet(token, budget);
+    }
+
+    function clearLossBudget(address token) external onlyOwner {
+        lossBudgetOf[token] = 0;
+        emit LossBudgetSet(token, 0);
     }
 
     function setTreasury(address treasury_) external onlyOwner {
