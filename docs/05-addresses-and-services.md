@@ -455,7 +455,33 @@ Each Morpho oracle above is a ChainlinkOracleV2 that uses only `BASE_FEED_1`, wi
 
 ## X Layer (chain 196)
 
-Read from the X Layer RPC (`https://rpc.xlayer.tech`) and the Morpho API on 19 November 2026, around 10:00 UTC. This is the part of SC-81 done so far. The full address list (Morpho core, IRM, vault factories, USDC, Permit2, Multicall3, Safe) is SC-80.
+Read from the X Layer RPC (`https://rpc.xlayer.tech`, block 76329283), the Morpho API, Morpho Docs and Circle's docs on 19 November 2026 (SC-80 and SC-81). Every address below has code on X Layer mainnet at that block.
+
+### Infrastructure (SC-80)
+
+| Contract | Address | Status |
+|---|---|---|
+| Morpho (Blue core) | `0xeb00C490E888286357dC5B0a35D37D9260D11Ab5` | Verified onchain. Address from Morpho Docs and the Morpho API |
+| AdaptiveCurveIrm | `0x5688FF1aBC4089cB69dC0F56727E696A49D77E24` | Verified onchain: `MORPHO()` is the core above |
+| MorphoChainlinkOracleV2 factory | `0x625Eb26d759ef8077202d4a5A63098B4B28616Db` | Code present. Address from Morpho Docs |
+| Vault V2 factory | `0x63D6eAc0d16D57dd131D9023ADb060277d3237d7` | Code present. Address from Morpho Docs |
+| MorphoMarketV1AdapterV2 factory | `0xDD0FC0c74bd89A9C6623202473E75CbF472b33A4` | Code present. Address from Morpho Docs |
+| MorphoVaultV1Adapter factory | `0xFb1887f36664AAc366FA2aCf1532d99f1743b851` | Code present. Address from Morpho Docs |
+| MorphoRegistry | `0xe9F2A824Eb33B97D0F7b3266A569d71342104829` | Code present. Address from Morpho Docs |
+| BluePublicAllocator (for Vault V2) | `0x1b7C60330E3aFe5bA876F518Ff14316EA497f683` | Verified onchain: `vaultV2Factory()` is the factory above |
+| VaultBundlesV1 | `0xB9c332379D8Fba06b55e7ecF446E03a3365be8FE` | Code present. Address from Morpho Docs |
+| MetaMorpho (Vault V1) factory | None | Morpho Docs list no Vault V1 section for X Layer, the v1.1 factory addresses of Ethereum, Base and Monad have no code here, and the Morpho API lists 0 Vault V1 vaults and 5 Vault V2 vaults on chain 196 (Gauntlet, Steakhouse, Spark). Verified on 19 November 2026 (Q-44) |
+| USDC (native, Circle) | `0xB6CEceAB302E2E4948951eE7843FC24E92933061` | On Circle's official list for X Layer. FiatToken `version()` 2, 6 decimals, supply about 106 million. Every xStocks Morpho market lends it. CCTP domain 37 (standard and fast transfer) |
+| Second USDC (`USD Coin`, 6 decimals) | `0x74b7F16337b8972027F6196A17a631aC6dE26d22` | Code present, supply about 775,000, owner and master minter one address. Circle says a bridged `USDC.e` exists on X Layer that it does not issue; that this is it is not verified. Not used by Levra |
+| USDT | `0x1E4a5963aBFD975d8c9021ce480b42188849D41d` | Code present, `symbol()` "USDT", 6 decimals. Not used yet |
+| Wrapped OKB | `0xe538905cf8410324e03A5A23C1c177a474D59b2b` | Code present, `symbol()` "WOKB" |
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` | Code present (canonical address) |
+| Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` | Code present (canonical address) |
+| Safe 1.4.1 singleton | `0x41675C099F32341bf84BFc5382aF534df5C7461a` | Verified onchain: `VERSION()` is "1.4.1" |
+| Safe 1.4.1 L2 singleton | `0x29fcB43b46531BcA003ddC8FCB67FFE91900C762` | Code present (canonical address) |
+| Safe 1.4.1 proxy factory | `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67` | Code present (canonical address) |
+
+The listed xStocks markets and their IDs are under "Wrapped xStocks" below. The OKX DEX router for the swap allowlist comes with SC-83.
 
 ### Stocks listed at launch (D-68)
 

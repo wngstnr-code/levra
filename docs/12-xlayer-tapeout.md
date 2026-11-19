@@ -70,9 +70,11 @@ Read from the Morpho API (chain 196) and the X Layer RPC. All markets lend USDC 
 | wSPCXx | 62.5% | 8K / 4K |
 | wAAPLx, wTSLAx | 77% | under 1K |
 
-- Example feed: `wNVDAx-USD (Calculated)` at `0x761FE3B4C1043862bB0c53F5fAAe19F159F6b303`, 8 decimals, last update about 2 minutes before the read. Vendor and weekend behaviour not verified (SC-81).
+- Example feed: `wNVDAx-USD (Calculated)` at `0x761FE3B4C1043862bB0c53F5fAAe19F159F6b303`, 8 decimals. Run by Chainlink (the same Safe owns Chainlink's ETH / USD on X Layer, Q-42), 24/5 with a weekend stop (SC-81, 05).
 - Morpho launched on X Layer on 18 November 2026 with up to 350,000 USDC of incentives from OKX Wallet and xStocks (press).
 - No market lends stocks yet, so Levra creates the short markets (collateral USDC, loan the stock), as on Base.
+- The long markets above cannot be configured in our `RiskManager` (their oracle is not an `ISessionOracle`), as on Base (D-77). Whether X Layer longs use our own markets or a `RiskManager` change is Q-45, because these markets are larger and carry incentives.
+- X Layer has no MetaMorpho (Vault V1) factory, only Morpho Vault V2, and every Morpho vault there is a Vault V2 (SC-80). Our Earn vault on Monad and Base is MetaMorpho v1.1 (D-24), so X Layer needs a different vault (Q-44).
 
 ### Other services
 
@@ -85,7 +87,7 @@ Read from the Morpho API (chain 196) and the X Layer RPC. All markets lend USDC 
 | Across | Not listed | Across |
 | 1inch | Not checked (BE-81) | |
 
-Which USDC the Morpho markets lend (native or bridged) is checked in SC-80.
+The Morpho markets lend native USDC `0xB6CE...3061`, the address on Circle's official list (checked in SC-80). CCTP domain for X Layer: 37.
 
 ## 5. TapeOut and how Levra uses it
 
