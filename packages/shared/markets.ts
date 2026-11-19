@@ -1,4 +1,5 @@
-import { tokens, type Address } from "./addresses";
+import { baseTokens, tokens, type Address } from "./addresses";
+import { isChainId, type ChainId } from "./chains";
 import type { DeployedMarket, Deployment } from "./deployments";
 
 export type StockSymbol = "QQQ" | "HOOD" | "BIL";
@@ -41,21 +42,65 @@ export const stocks = {
   },
 } as const satisfies Record<StockSymbol, Stock>;
 
+/** Monad stock symbols. */
 export function isStockSymbol(value: string): value is StockSymbol {
   return Object.hasOwn(stocks, value);
 }
 
-export type MarketInfo = DeployedMarket & { stock: Stock };
+export type BaseStockSymbol = "AAPL" | "AMZN" | "GOOGL" | "META" | "MSFT" | "NVDA" | "SPCX" | "TSLA";
 
-/** Deployed markets joined with their stock. A market for a stock we do not list is an error. */
+/** A stock priced by a Chainlink feed with 8 decimals, as the Coinbase stocks on Base. */
+export type ChainlinkStock = {
+  symbol: BaseStockSymbol;
+  /** Name of the underlying, taken from the token's on-chain name. */
+  name: string;
+  tokenSymbol: `${BaseStockSymbol}c`;
+  token: Address;
+  decimals: number;
+  priceFeed: Address;
+};
+
+function coinbaseStock(symbol: BaseStockSymbol, name: string, priceFeed: Address): ChainlinkStock {
+  const tokenSymbol = `${symbol}c` as const;
+  const token = baseTokens[tokenSymbol];
+  return { symbol, name, tokenSymbol, token: token.address, decimals: token.decimals, priceFeed };
+}
+
+/** Coinbase stocks on Base with a listed Morpho long market and a Chainlink feed (05, Base). */
+export const baseStocks = {
+  AAPL: coinbaseStock("AAPL", "Apple Inc.", "0x787f13dEa48Db0897CbCDD985de77809D837F988"),
+  AMZN: coinbaseStock("AMZN", "Amazon.com Inc.", "0x06A8E4b3aBB3B7543d8396FB2B763d22820cB295"),
+  GOOGL: coinbaseStock("GOOGL", "Alphabet Inc.", "0x5bF49E0ffA937CE2FfF033c739aD7C634c4D34F2"),
+  META: coinbaseStock("META", "Meta Platforms Inc.", "0x6526aE6797A76123638b863AeE4dD27Ba4E4b27D"),
+  MSFT: coinbaseStock("MSFT", "Microsoft Corporation", "0xeB10A6c9aa7E537aEd766C08c35Dae35B321b18c"),
+  NVDA: coinbaseStock("NVDA", "NVIDIA Corporation", "0x04689a41629776563E6822F76f2e57D148d28513"),
+  SPCX: coinbaseStock("SPCX", "Space Exploration Technologies Corp.", "0x6A634B235903C4ad6376892180d6fF8612e3Fa68"),
+  TSLA: coinbaseStock("TSLA", "Tesla Inc.", "0xFaf869185383a24F8cb00e27BdA6b63B9905DCb4"),
+} as const satisfies Record<BaseStockSymbol, ChainlinkStock>;
+
+export const stocksByChain = { 143: stocks, 8453: baseStocks } as const satisfies Record<ChainId, Record<string, Stock | ChainlinkStock>>;
+
+export type AnyStock = Stock | ChainlinkStock;
+
+export function findStock(chainId: ChainId, symbol: string): AnyStock | undefined {
+  const list: Record<string, AnyStock> = stocksByChain[chainId];
+  return Object.hasOwn(list, symbol) ? list[symbol] : undefined;
+}
+
+export type MarketInfo = DeployedMarket & { stock: AnyStock };
+
+/** Deployed markets joined with their stock on the deployment's chain. An unknown chain or stock is an error. */
 export function listMarkets(deployment: Deployment): MarketInfo[] {
+  const chainId = deployment.chainId;
+  if (!isChainId(chainId)) throw new Error(`Unknown chain in deployment: ${chainId}`);
   return deployment.markets.map((market) => {
-    if (!isStockSymbol(market.symbol)) throw new Error(`Unknown stock in deployment: ${market.symbol}`);
-    return { ...market, stock: stocks[market.symbol] };
+    const stock = findStock(chainId, market.symbol);
+    if (!stock) throw new Error(`Unknown stock in deployment: ${market.symbol}`);
+    return { ...market, stock };
   });
 }
 
-export function findMarket(deployment: Deployment, symbol: StockSymbol, side: DeployedMarket["side"]): MarketInfo {
+export function findMarket(deployment: Deployment, symbol: string, side: DeployedMarket["side"]): MarketInfo {
   const market = listMarkets(deployment).find((m) => m.symbol === symbol && m.side === side);
   if (!market) throw new Error(`No ${side} market for ${symbol} in this deployment`);
   return market;
