@@ -274,15 +274,17 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Done when: findings in 05 and Q-37 answered. If the feed is not an official one, raise it to the team before SC-82.
   - Note: done on 19 November 2026 from the chain (05, X Layer): the four feeds are Chainlink style OCR2 aggregators owned by one 4 of 9 Safe, update every 1 to 3 minutes and stop from Friday 20:00 to Sunday 20:00 ET; `minAnswer` is 1. wNVDAx wrapper and underlying are pausable upgradeable proxies, the underlying has a sanctions list. Team decision in D-69. The rest done later on 19 November 2026 on the SC-71 branch: Q-42 answered (the same Safe owns Chainlink's own X Layer feeds), the other three tokens share the same code, admins, pauser and sanctions list, and `test/XStocks.t.sol` moves each through Morpho and stand-ins for the router and liquidator on a fork. The sanctions list also blocks the wrapped token (T-23).
 
-- [ ] **SC-82 · Oracle adapter and limits for X Layer**
+- [x] **SC-82 · Oracle adapter and limits for X Layer**
   - Needs: SC-72, SC-81, BE-81.
   - Do: reuse `ChainlinkSessionOracle` (SC-72) for the xStocks feeds, without the Coinbase multiplier and registry parts. Treat Friday 20:00 to Sunday 20:00 ET as frozen and reject prices outside our own bounds (D-69). Initial proposals in 04 for X Layer: short market LLTV, caps from DEX depth, max oracle age per session.
   - Done when: fork tests pass on X Layer and 04 has an X Layer table marked "initial proposal".
+  - Note: groundwork on 20 November 2026. OKX DEX API v6 works for chain 196 (key, secret, passphrase; no project ID) and quotes route through Uniswap v3 and v4. OKX pulls tokens through a separate approve contract, so `SwapTargets` now keeps a fixed spender per target (D-88, tests in `SwapTargets.t.sol`; the Base live test still passes). Done the same day: OKX DEX swap costs per size for the four stocks (05), the X Layer limits in 04, `contracts/config/xlayer.json` (8 markets, OKX DEX with its approve contract and Uniswap SwapRouter02 as targets, no registry), and `DeployXLayerForkTest`: the deployment runs on an X Layer fork and our wNVDAx oracle answers exactly what Morpho's own oracle answers. Still open for SC-83: a full long and short on an X Layer fork with a real OKX swap through our router.
 
-- [ ] **SC-83 · Deploy on X Layer**
+- [~] **SC-83 · Deploy on X Layer**
   - Needs: SC-82.
   - Do: deploy router, risk manager, oracle adapter, lens and liquidator; add the OKX DEX router to the allowlist; create the short markets and Earn vaults; write `deployments.xlayer.ts`; hand ownership to the multisig on X Layer.
   - Done when: contracts verified on the X Layer explorer, addresses in 05 and `docs/public/contracts.md`.
+  - Note: rehearsed on 20 November 2026 with `make xlayer-fork-e2e`: the deployment script with `config/xlayer.json` runs on an X Layer fork, an NVDA long opens and closes through OKX DEX, and a QQQ short opens through Uniswap and closes through OKX DEX, with the router empty at the end (05). The real deployment waits for OKB for gas, the multisig on X Layer, and Dharu's check of the SC-82 limits. The OKX DEX router and its approve contract are fixed in the config (D-85, D-88).
 
 - [ ] **SC-84 · Seed and first real trades on X Layer**
   - Needs: SC-83, X-35.
