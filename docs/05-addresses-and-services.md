@@ -389,8 +389,12 @@ Read from the Base RPC (`https://mainnet.base.org`, block 59495063), the Morpho 
 | Stock token factory (`B20AssetFactory`) | `0x4bA3E29E254F25E94E61C4c9d67b37027331534D` | Verified onchain: ERC-1967 proxy to `0xbbcb88b1e706624d7fb631b0b2557a173ef028ca` (Sourcify name `B20AssetFactory`), deployed at block 48459816. `transferPolicyId()` is 5, `SECURITY_TOKEN_DECIMALS()` is 8, `tokenSupplyManager()` is the manager below. Each new token emits `SecurityTokenDeployed` |
 | Token supply manager | `0xD1Ca4dAcdf3231011D175351f1f02D15C7c5664C` | Verified onchain: ERC-1967 proxy to `0x3f27d252526470a04d6222252e37b84580a4c6e3` (Sourcify name `TokenSupplyManager`) |
 | 1inch AggregationRouterV6 | `0x111111125421cA6dc452d289314280a0f8842A65` | Sourcify name `AggregationRouterV6`. Same address as on other chains. Swap target on Base (D-72) |
-| Aerodrome Router (v2 pools) | `0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43` | Verified onchain: `defaultFactory()` is Aerodrome's PoolFactory `0x420DD381b31aEf6683db6B902084cB0FFECe40Da`, which lists 30,022 pools. Sourcify name `Router` |
-| Aerodrome Slipstream SwapRouter (concentrated pools) | `0xBE6D8f0d05cC4be24d5167a3eF062215bE6D18a5` | Verified onchain: `factory()` is the Slipstream factory `0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A`. Sourcify name `SwapRouter`. Which of the two Aerodrome routers the stock pools need is BE-71 |
+| KyberSwap MetaAggregationRouterV2 | `0x6131B5fae19EA4f9D964eAc0408E4408b66337b5` | Sourcify name `MetaAggregationRouterV2`, the same address as on Monad. Seen routing into the Aero NVDAc pool on 19 November 2026. Swap target on Base (D-80) |
+| Aero Slipstream V3 CL factory | `0x9CB220581b91b0C83223012FE69688b92aD07a76` | Listed as `clFactory` in Dromos Labs' official deployment file (`github.com/Dromos-Labs/metadex-slipstream-public`, `deployment-addresses/cl-base.json`; the org is linked from aero.xyz). Aero is the merger of Aerodrome and Velodrome, live since 21 October 2026 (press). Holds the deepest stock pools, see below |
+| Aero SwapRouter | `0x9Ee35Bf1bd69a03c6F0393582030fCe8Bb93D418` | `swapRouter` in the same file. Verified onchain: `factory()` is the factory above, Sourcify name `SwapRouter`. Swap target on Base (D-80) |
+| Aero MetaQuoter | `0x1dDfeC5058180C207F55BB77D95AcDd0d8227868` | `metaquoter` in the same file. Code present |
+| Aero Voter | `0x382409fad8503FbCdbB27A4211551fa03e884078` | `voter` in the same file; the factory's `voter()` returns it |
+| Aerodrome (before the merger) | v2 PoolFactory `0x420DD381b31aEf6683db6B902084cB0FFECe40Da` and Router `0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43`; Slipstream factories `0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A` (SwapRouter `0xBE6D8f0d05cC4be24d5167a3eF062215bE6D18a5`) and `0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef` (SwapRouter `0x698Cb2b6dd822994581fEa6eA4Fc755d1363A92F`) | From the aerodrome-finance GitHub READMEs. Their stock pools are empty (v2: AAPLc, NVDAc and SPCXc pools hold under $30) or much smaller than Aero's. Not used |
 
 The last three addresses come from `api.coinbase.com/v1/tokenized-stocks/chains`. Our network blocks that host, so it was read over another connection on 19 November 2026.
 
@@ -412,6 +416,44 @@ All stock tokens are B20 precompiles: the address starts with `0xb2000`, its cod
 
 Morpho also has unlisted markets for these tokens (other oracles, LLTV up to 98%). They hold almost nothing and are ignored. The listed markets that hold real supply are about 90% borrowed, and the TSLAc market and the 62.5% GOOGLc market are empty, so a new long finds little USDC until a vault (ours or others) supplies more.
 
+### Stock liquidity (BE-71)
+
+Pools against USDC from GeckoTerminal on 19 November 2026 around 15:00 UTC, largest first. "Aero" is the Aero Slipstream V3 factory above; "Aerodrome 3" is the pre-merger factory `0xf8f2...`. Reserves and volume change daily.
+
+| Stock | Largest pool (Aero) | Reserve | 24 h volume | Next pools |
+|---|---|---|---|---|
+| NVDAc | `0xf668e21993f0acd7ab00bb1cfbaed0df28a3c8ec`, dynamic fee (0.146% at the read) | $1.80M | $14.6M | Aerodrome 3 $368k, Uniswap v3 $92k, Uniswap v4 $53k |
+| AMZNc | `0x532e0f46...` | $1.40M | $8.9M | Aerodrome 3 $47k, Uniswap v4 $29k |
+| GOOGLc | `0x16c70f04...` | $1.36M | $8.3M | Aerodrome 3 $213k, Uniswap v3 $43k |
+| METAc | `0xd072410f...` | $876k | $6.8M | Aerodrome 3 $103k, Uniswap v4 $27k |
+| AAPLc | `0xf5fcb9cd...` | $340k | $3.5M | Aerodrome 3 $58k, Uniswap v4 $27k |
+| MSFTc | `0x2740c0fa...` | $318k | $3.5M | Uniswap v4 $27k, Aerodrome 3 $16k |
+| SPCXc, TSLAc | not read (rate limited) | | | |
+
+Reserve is the whole pool, not the depth near the price.
+
+### Swap cost through 1inch (BE-71)
+
+1inch Swap API v6.0 (`api.1inch.dev`, chain 8453), 19 November 2026 around 15:30 UTC, a Thursday in US regular hours. The cost is the price paid against the Chainlink feed price, in basis points: positive means paying more than the oracle when buying, or getting less when selling. It mixes the gap between the DEX and the oracle with price impact.
+
+| Stock | Buy $100 | Buy $1,000 | Buy $10,000 | Sell $1,000 | Main venues |
+|---|---|---|---|---|---|
+| AAPLc | 32 | 37 | 38 | 27 | Metric |
+| AMZNc | -2 | -1 | 2 | 66 | Metric |
+| GOOGLc | -8 | -7 | -6 | 71 | Metric |
+| METAc | 57 | 58 | 58 | 8 | Metric |
+| MSFTc | 52 | 53 | 70 | 37 | Aero CL |
+| NVDAc | 42 | 50 | 48 | 20 | Metric, Baibai |
+| SPCXc | 71 | 72 | 67 | -1 | Metric |
+| TSLAc | 54 | 57 | 84 | 38 | Aerodrome Slipstream, Aero CL |
+
+- 1inch routes all 8 stocks. A $10,000 trade costs about the same as $100 for six of them, so the depth is well above our first position sizes. MSFTc and TSLAc rise by 17 and 30 bps at $10,000.
+- Built swaps (`/swap`, sender and receiver a contract, `disableEstimate`) for $1,000 of NVDAc, TSLAc and MSFTc target the 1inch router `0x1111...2A65`. Run with `eth_simulateV1` on the live node from Morpho's address (a contract holding USDC, standing for our router), each succeeds and delivers exactly the quoted amount, using 446,000 to 565,000 gas.
+- The API refuses requests whose User-Agent looks like a script library (Cloudflare error 1010). Send a plain client name.
+- Verified by quote and simulation on this date only. Prices and routes change by the minute.
+
+On Monad (chain 143), 1inch quotes aQQQ and aHOOD through the same Uniswap v4 pools KyberSwap uses, and returns `INSUFFICIENT_LIQUIDITY` for aBIL. So Monad keeps KyberSwap (D-81).
+
 ### Transfer policy and pause (SC-71)
 
 Read and simulated against the live Base node on 19 November 2026 at 13:20 UTC (block 59520298). The check is `packages/shared/b20-policy.live.test.ts`; run it with `BASE_RPC_URL` set.
@@ -419,7 +461,7 @@ Read and simulated against the live Base node on 19 November 2026 at 13:20 UTC (
 | Item | Finding | Status |
 |---|---|---|
 | Policy per scope | All 8 tokens use policy 5 for `TRANSFER_SENDER_POLICY`, `TRANSFER_RECEIVER_POLICY` and `TRANSFER_EXECUTOR_POLICY` (read with `policyId(bytes32)` on the token). It is also the default the stock token factory gives new tokens (`transferPolicyId()` is 5) | Verified onchain |
-| Policy 5 | Exists. Authorizes Morpho, the 1inch router, both Aerodrome routers, the zero address and fresh addresses that never held anything. So it acts as a blocklist: everyone may send, receive and pull except listed accounts. The list itself cannot be read without the registry's event history | Verified onchain |
+| Policy 5 | Exists. Authorizes Morpho, the 1inch, KyberSwap and Aero routers (D-80; the pre-merger Aerodrome routers too), the zero address and fresh addresses that never held anything. So it acts as a blocklist: everyone may send, receive and pull except listed accounts. The list itself cannot be read without the registry's event history | Verified onchain |
 | Policy admin | `policyAdmin(5)` is `0xEC0F05C174e54FBf0Fe16ad930a8AFEbCe612812`, an address with no code, so one key can add Morpho, our router or a user to the blocklist at once, for all 8 stocks | Verified onchain. Whose key it is is not verified |
 | Executor check | `transferFrom` checks the caller under the executor scope. `approve` is not policy gated (Base Docs) | From Base Docs. The simulation below covers it |
 | Pause | `isPaused` is false for transfer, mint, burn and seize on all 8 tokens. Pausing is per feature. The Coinbase oracle registry also has its own per token pause flag | Verified onchain at the read |
