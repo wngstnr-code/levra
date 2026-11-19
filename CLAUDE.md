@@ -16,7 +16,7 @@ Do this before answering questions about the project or changing any file. Do no
 
 Read the other docs when the task needs them: `01-product.md` for flows, `02-architecture.md` for structure, `04-risk-rules.md` for limits and formulas, `05-addresses-and-services.md` for addresses, `07-testing-and-security.md` before writing contract or keeper code, `08-startup-readiness.md` for launch gates.
 
-If a doc and the code disagree, say so and fix the one that is wrong in the same piece of work.
+If a doc and the code disagree, the code shows what exists and the doc shows what should exist. Tell the user about the mismatch, do not silently pick one, and fix the one that is wrong in the same piece of work.
 
 ## 2. Language
 
@@ -83,3 +83,41 @@ A task is not done until its docs are updated.
 - The hard limit uses the issuer's official oracle only: Anchored on Monad, Chainlink's Coinbase feed on Base (D-49), the Morpho xStocks feed on X Layer (D-56). DEX prices are used only in the soft layer.
 - All limits in `docs/04-risk-rules.md` are initial proposals. Do not present them as tested or safe.
 - Mark facts honestly: verified, not verified, or initial proposal. Never state a not-verified item as fact.
+
+## 9. Session workflow
+
+1. Do the start of session steps in section 1.
+2. Before you write code, tell the user (in Indonesian) which task ID you are about to do and why.
+3. Work in small steps. Build and test after each meaningful change, then do the quick review in section 10.
+4. If you change a mechanic, a limit or a formula: update the doc that defines it first (`04-risk-rules.md`, `03-interfaces.md`), then the code. Record the reason in `docs/09-decisions-and-questions.md`.
+5. Before the session ends, or after a task is done, update `docs/PROGRESS.md`: what changed, the exact next step, blockers, and the date. The next session and the teammates depend on it.
+6. Summarize in chat (in Indonesian) what was done and what is next.
+
+## 10. Self-review (mandatory)
+
+Review everything you write before moving on. Do not wait for the user to ask.
+
+**Quick review, after every change.** Re-read your own diff (`git diff`) and check:
+
+| Area | Questions |
+|---|---|
+| Spec | Does it match `04-risk-rules.md` and the units table in `03-interfaces.md` section 1 exactly (scale, decimals, rounding direction, limits)? |
+| Edge cases | Zero and dust amounts, maximum values and overflow, an empty market with no liquidity, the first and last position, repeated calls. Oracle price zero, negative, stale or missing. Market open, in the pre-close window, closed, over the weekend, and with an unknown calendar. |
+| Security | Who can call it, and is every role checked? Reentrancy, the flash loan callback, the swap target allowlist, signature replay. Can a failed step leave state half updated? Can anything drain a user position, the vault or the fees? Can a stale or manipulated price reach the hard limit? |
+| Product rules | Do the rules in section 8 still hold? Can closing, reducing or adding collateral be blocked or paused? Does the router end every transaction with no tokens? |
+| Invariants | Do the properties in `07-testing-and-security.md` still hold? Is there a test for each one touched? |
+| Tests | Does every new behavior have a test, including the failure paths (expected reverts)? Fork tests where real Morpho, oracles or swap routes are involved. |
+| Completeness | Is every part of the task's "Done when" line covered? Any TODO, placeholder or unchecked input left behind? |
+| Interfaces | Did you change anything another area depends on (ABI, events, deployment file, `packages/shared`, API shapes)? If yes, are `03-interfaces.md` and section 6 followed and the user told? |
+| Docs | Are the docs touched by the change still consistent with it (section 7)? |
+| Hygiene | No em dashes, no secrets, no AI attribution, English in files. |
+
+**Deep review, at every integration checkpoint and before a batch of commits.**
+
+1. Run the full build and test suite, including `make invariants` and `make slither` for contract changes.
+2. Put `04-risk-rules.md` next to the code and check every rule, one by one.
+3. Run a code review of the diff since the last checkpoint (for example the `/code-review` skill) and fix real findings.
+4. Think like an attacker for five minutes: oracle timing and staleness, market hours, rounding, swap routes and slippage, keeper abuse, liquidation, vault share price, griefing.
+5. Re-read the docs touched since the last checkpoint for contradictions or stale facts.
+
+**Record what you found.** Write findings and fixes under "Review notes" in `docs/PROGRESS.md`. A weakness you cannot fix now goes under "Known issues" with a severity (high, medium, low), and you tell the user in chat. A weakness that is a threat to user funds also goes into the threat list in `07-testing-and-security.md`.
