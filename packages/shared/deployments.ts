@@ -21,6 +21,8 @@ export const deployment = z.object({
   lens: address,
   liquidator: address.nullable().optional(),
   usdcVault: address.nullable().optional(),
+  /** Routers this deployment used before, oldest first (SC-87). Their events still belong to users' history. */
+  previousRouters: z.array(address).optional(),
   markets: z.array(deployedMarket),
 });
 export type Deployment = z.infer<typeof deployment>;

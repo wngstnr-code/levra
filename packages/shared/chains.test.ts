@@ -115,6 +115,12 @@ describe("deployment per chain", () => {
     expect(market.loanToken).toBe(market.stock.token);
   });
 
+  it("accepts the routers a deployment used before", () => {
+    const old = "0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6";
+    expect(parseDeployment({ ...baseSample, previousRouters: [old] }).previousRouters).toEqual([old]);
+    expect(parseDeployment(baseSample).previousRouters).toBeUndefined();
+  });
+
   it("rejects an unknown chain or a stock from another chain", () => {
     expect(() => listMarkets(parseDeployment({ ...baseSample, chainId: 1 }))).toThrow(/Unknown chain/);
     const monadStock = { ...baseSample, markets: [{ ...baseSample.markets[0], symbol: "QQQ" }] };
