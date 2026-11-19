@@ -1,0 +1,282 @@
+{
+  "chainId": 8453,
+  "morpho": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  "irm": "0x46415998764C29aB2a25CbeA6254146D50D22687",
+  "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "usdcDecimals": 6,
+  "swapTargets": [
+    "0x111111125421cA6dc452d289314280a0f8842A65",
+    "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+    "0x9Ee35Bf1bd69a03c6F0393582030fCe8Bb93D418"
+  ],
+  "oracleKind": "chainlink",
+  "anchoredOracle": "0x0000000000000000000000000000000000000000",
+  "coinbaseRegistry": "0x3f3E8cf41cdd3b1D118c16471aB0113DfDDd5CaD",
+  "priceBoundFactor": 10,
+  "feeBps": 10,
+  "keeperFeeBps": 30,
+  "preCloseWindow": 14400,
+  "minOracleAge": 7200,
+  "maxPublishAge": 345600,
+  "vaultFactory": "0xFf62A7c278C62eD665133147129245053Bbf5918",
+  "markets": [
+    {
+      "symbol": "AAPL",
+      "stock": "0xb200000000000000000000C2e324d24d7eEcd1fb",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "700000000000000000",
+      "softLtvClosed": "660000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x787f13dEa48Db0897CbCDD985de77809D837F988"
+    },
+    {
+      "symbol": "AMZN",
+      "stock": "0xb200000000000000000000d9192b6B456483C2E8",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "720000000000000000",
+      "softLtvClosed": "680000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x06A8E4b3aBB3B7543d8396FB2B763d22820cB295"
+    },
+    {
+      "symbol": "GOOGL",
+      "stock": "0xb2000000000000000000002D0BA3164cc74f58B7",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "730000000000000000",
+      "softLtvClosed": "700000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x5bF49E0ffA937CE2FfF033c739aD7C634c4D34F2"
+    },
+    {
+      "symbol": "META",
+      "stock": "0xb2000000000000000000008bC8786B856E61707C",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "720000000000000000",
+      "softLtvClosed": "680000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x6526aE6797A76123638b863AeE4dD27Ba4E4b27D"
+    },
+    {
+      "symbol": "MSFT",
+      "stock": "0xB200000000000000000000Ab99cFa739E253872B",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "730000000000000000",
+      "softLtvClosed": "700000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0xeB10A6c9aa7E537aEd766C08c35Dae35B321b18c"
+    },
+    {
+      "symbol": "NVDA",
+      "stock": "0xb20000000000000000000078ee7ce2fE4908108C",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "580000000000000000",
+      "softLtvClosed": "500000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "2500000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x04689a41629776563E6822F76f2e57D148d28513"
+    },
+    {
+      "symbol": "SPCX",
+      "stock": "0xb2000000000000000000007b9fcbd005511aCBd5",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "550000000000000000",
+      "softLtvClosed": "450000000000000000",
+      "maxDeviationBps": 300,
+      "maxPositionUsd": "1000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x6A634B235903C4ad6376892180d6fF8612e3Fa68"
+    },
+    {
+      "symbol": "TSLA",
+      "stock": "0xb2000000000000000000001e800a7f5189430cD0",
+      "stockDecimals": 8,
+      "side": "long",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "580000000000000000",
+      "softLtvClosed": "520000000000000000",
+      "maxDeviationBps": 300,
+      "maxPositionUsd": "2500000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0xFaf869185383a24F8cb00e27BdA6b63B9905DCb4"
+    },
+    {
+      "symbol": "AAPL",
+      "stock": "0xb200000000000000000000C2e324d24d7eEcd1fb",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "700000000000000000",
+      "softLtvClosed": "660000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x787f13dEa48Db0897CbCDD985de77809D837F988"
+    },
+    {
+      "symbol": "AMZN",
+      "stock": "0xb200000000000000000000d9192b6B456483C2E8",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "720000000000000000",
+      "softLtvClosed": "680000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x06A8E4b3aBB3B7543d8396FB2B763d22820cB295"
+    },
+    {
+      "symbol": "GOOGL",
+      "stock": "0xb2000000000000000000002D0BA3164cc74f58B7",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "730000000000000000",
+      "softLtvClosed": "700000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x5bF49E0ffA937CE2FfF033c739aD7C634c4D34F2"
+    },
+    {
+      "symbol": "META",
+      "stock": "0xb2000000000000000000008bC8786B856E61707C",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "720000000000000000",
+      "softLtvClosed": "680000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x6526aE6797A76123638b863AeE4dD27Ba4E4b27D"
+    },
+    {
+      "symbol": "MSFT",
+      "stock": "0xB200000000000000000000Ab99cFa739E253872B",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "730000000000000000",
+      "softLtvClosed": "700000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "5000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0xeB10A6c9aa7E537aEd766C08c35Dae35B321b18c"
+    },
+    {
+      "symbol": "NVDA",
+      "stock": "0xb20000000000000000000078ee7ce2fE4908108C",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "580000000000000000",
+      "softLtvClosed": "500000000000000000",
+      "maxDeviationBps": 200,
+      "maxPositionUsd": "2500000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x04689a41629776563E6822F76f2e57D148d28513"
+    },
+    {
+      "symbol": "SPCX",
+      "stock": "0xb2000000000000000000007b9fcbd005511aCBd5",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "550000000000000000",
+      "softLtvClosed": "450000000000000000",
+      "maxDeviationBps": 300,
+      "maxPositionUsd": "1000000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0x6A634B235903C4ad6376892180d6fF8612e3Fa68"
+    },
+    {
+      "symbol": "TSLA",
+      "stock": "0xb2000000000000000000001e800a7f5189430cD0",
+      "stockDecimals": 8,
+      "side": "short",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "580000000000000000",
+      "softLtvClosed": "520000000000000000",
+      "maxDeviationBps": 300,
+      "maxPositionUsd": "2500000000",
+      "maxFeedAge": 129600,
+      "maxOracleAge": 93600,
+      "feed": "0xFaf869185383a24F8cb00e27BdA6b63B9905DCb4"
+    }
+  ],
+  "vaultCaps": [
+    {
+      "symbol": "AAPL",
+      "cap": "10000000000"
+    },
+    {
+      "symbol": "AMZN",
+      "cap": "10000000000"
+    },
+    {
+      "symbol": "GOOGL",
+      "cap": "10000000000"
+    },
+    {
+      "symbol": "META",
+      "cap": "10000000000"
+    },
+    {
+      "symbol": "MSFT",
+      "cap": "10000000000"
+    },
+    {
+      "symbol": "NVDA",
+      "cap": "5000000000"
+    },
+    {
+      "symbol": "SPCX",
+      "cap": "2000000000"
+    },
+    {
+      "symbol": "TSLA",
+      "cap": "5000000000"
+    }
+  ]
+}

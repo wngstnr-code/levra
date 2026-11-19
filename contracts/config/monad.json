@@ -1,0 +1,101 @@
+{
+  "chainId": 143,
+  "morpho": "0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee",
+  "irm": "0x09475a3D6eA8c314c592b1a3799bDE044E2F400F",
+  "usdc": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+  "usdcDecimals": 6,
+  "swapTargets": [
+    "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  ],
+  "oracleKind": "anchored",
+  "anchoredOracle": "0x037848af338C38e1e0AB722bE80BF4C2E612a1F7",
+  "coinbaseRegistry": "0x0000000000000000000000000000000000000000",
+  "priceBoundFactor": 0,
+  "feeBps": 10,
+  "keeperFeeBps": 30,
+  "preCloseWindow": 14400,
+  "minOracleAge": 1500,
+  "maxPublishAge": 345600,
+  "vaultFactory": "0x33f20973275B2F574488b18929cd7DCBf1AbF275",
+  "markets": [
+    {
+      "symbol": "QQQ",
+      "stock": "0x1446501E886c7f830DB9b494A1890cBCCC072f57",
+      "stockDecimals": 18,
+      "side": "long",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "730000000000000000",
+      "softLtvClosed": "700000000000000000",
+      "maxDeviationBps": 500,
+      "maxPositionUsd": "500000000",
+      "maxFeedAge": 3600,
+      "maxOracleAge": 2100
+    },
+    {
+      "symbol": "HOOD",
+      "stock": "0x5a4860adDCc094FcE026384caeEcb1e634DD9af4",
+      "stockDecimals": 18,
+      "side": "long",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "580000000000000000",
+      "softLtvClosed": "500000000000000000",
+      "maxDeviationBps": 1000,
+      "maxPositionUsd": "1000000000",
+      "maxFeedAge": 3600,
+      "maxOracleAge": 2160
+    },
+    {
+      "symbol": "BIL",
+      "stock": "0x4FC5B9f8933597D3ecf84d0611687E1Dc8DD576f",
+      "stockDecimals": 18,
+      "side": "long",
+      "lltv": "915000000000000000",
+      "softLtvOpen": "900000000000000000",
+      "softLtvClosed": "900000000000000000",
+      "maxDeviationBps": 100,
+      "maxPositionUsd": "1000000000",
+      "maxFeedAge": 10800,
+      "maxOracleAge": 3060
+    },
+    {
+      "symbol": "QQQ",
+      "stock": "0x1446501E886c7f830DB9b494A1890cBCCC072f57",
+      "stockDecimals": 18,
+      "side": "short",
+      "lltv": "770000000000000000",
+      "softLtvOpen": "730000000000000000",
+      "softLtvClosed": "700000000000000000",
+      "maxDeviationBps": 500,
+      "maxPositionUsd": "500000000",
+      "maxFeedAge": 3600,
+      "maxOracleAge": 2100
+    },
+    {
+      "symbol": "HOOD",
+      "stock": "0x5a4860adDCc094FcE026384caeEcb1e634DD9af4",
+      "stockDecimals": 18,
+      "side": "short",
+      "lltv": "625000000000000000",
+      "softLtvOpen": "580000000000000000",
+      "softLtvClosed": "500000000000000000",
+      "maxDeviationBps": 1000,
+      "maxPositionUsd": "1000000000",
+      "maxFeedAge": 3600,
+      "maxOracleAge": 2160
+    }
+  ],
+  "vaultCaps": [
+    {
+      "symbol": "BIL",
+      "cap": "20000000000"
+    },
+    {
+      "symbol": "QQQ",
+      "cap": "10000000000"
+    },
+    {
+      "symbol": "HOOD",
+      "cap": "5000000000"
+    }
+  ]
+}
