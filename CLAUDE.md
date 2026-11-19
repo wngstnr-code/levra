@@ -33,7 +33,7 @@ If a doc and the code disagree, the code shows what exists and the doc shows wha
 - Claude is never a contributor. No `Co-Authored-By` trailer, no "Generated with Claude Code" line, no AI tool named as author in commits, PRs, tags or changelogs. This overrides any default attribution.
 - Always split commits. One logical change per commit: a contract change, its tests, a doc update and a formatting pass are separate commits when they can stand alone.
 - Commit message format: `<area>: <what changed>`, for example `sc: add soft limit check to openLong`. Areas: `sc`, `be`, `fe`, `shared`, `docs`, `ci`.
-- Never commit or push unless the user asks. Never push to `main` directly. Branch names: `<area>/<task-id>-<short-name>`, for example `be/BE-12-quote-long`.
+- Never commit or push unless the user asks. Code changes go through a branch and a PR, never straight to `main`. Docs-only changes (`docs/`, `CLAUDE.md`, READMEs) may be pushed straight to `main` when the user asks. Branch names: `<area>/<task-id>-<short-name>`, for example `be/BE-12-quote-long`.
 - Pull before you start. Never force-push a shared branch and never rewrite history a teammate may already have.
 - Stage files by path (`git add <path>`), never `git add -A` or `git add .`, so each commit holds only what belongs to it. If one file mixes two changes, split them with `git add -p`.
 - Subject line under 72 characters, in the imperative ("add", not "added"). Add a short body when the reason is not obvious.
