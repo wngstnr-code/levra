@@ -388,6 +388,9 @@ Read from the Base RPC (`https://mainnet.base.org`, block 59495063), the Morpho 
 | B20 policy registry | `0x8453000000000000000000000000000000000002` | Precompile (code size 1 byte). Address from `api.coinbase.com/v1/tokenized-stocks/chains`. `policyExists` and `isAuthorized` are read in SC-71 |
 | Stock token factory (`B20AssetFactory`) | `0x4bA3E29E254F25E94E61C4c9d67b37027331534D` | Verified onchain: ERC-1967 proxy to `0xbbcb88b1e706624d7fb631b0b2557a173ef028ca` (Sourcify name `B20AssetFactory`), deployed at block 48459816. `transferPolicyId()` is 5, `SECURITY_TOKEN_DECIMALS()` is 8, `tokenSupplyManager()` is the manager below. Each new token emits `SecurityTokenDeployed` |
 | Token supply manager | `0xD1Ca4dAcdf3231011D175351f1f02D15C7c5664C` | Verified onchain: ERC-1967 proxy to `0x3f27d252526470a04d6222252e37b84580a4c6e3` (Sourcify name `TokenSupplyManager`) |
+| 1inch AggregationRouterV6 | `0x111111125421cA6dc452d289314280a0f8842A65` | Sourcify name `AggregationRouterV6`. Same address as on other chains. Swap target on Base (D-72) |
+| Aerodrome Router (v2 pools) | `0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43` | Verified onchain: `defaultFactory()` is Aerodrome's PoolFactory `0x420DD381b31aEf6683db6B902084cB0FFECe40Da`, which lists 30,022 pools. Sourcify name `Router` |
+| Aerodrome Slipstream SwapRouter (concentrated pools) | `0xBE6D8f0d05cC4be24d5167a3eF062215bE6D18a5` | Verified onchain: `factory()` is the Slipstream factory `0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A`. Sourcify name `SwapRouter`. Which of the two Aerodrome routers the stock pools need is BE-71 |
 
 The last three addresses come from `api.coinbase.com/v1/tokenized-stocks/chains`. Our network blocks that host, so it was read over another connection on 19 November 2026.
 
@@ -409,6 +412,22 @@ All stock tokens are B20 precompiles: the address starts with `0xb2000`, its cod
 
 Morpho also has unlisted markets for these tokens (other oracles, LLTV up to 98%). They hold almost nothing and are ignored. The listed markets that hold real supply are about 90% borrowed, and the TSLAc market and the 62.5% GOOGLc market are empty, so a new long finds little USDC until a vault (ours or others) supplies more.
 
+### Transfer policy and pause (SC-71)
+
+Read and simulated against the live Base node on 19 November 2026 at 13:20 UTC (block 59520298). The check is `packages/shared/b20-policy.live.test.ts`; run it with `BASE_RPC_URL` set.
+
+| Item | Finding | Status |
+|---|---|---|
+| Policy per scope | All 8 tokens use policy 5 for `TRANSFER_SENDER_POLICY`, `TRANSFER_RECEIVER_POLICY` and `TRANSFER_EXECUTOR_POLICY` (read with `policyId(bytes32)` on the token). It is also the default the stock token factory gives new tokens (`transferPolicyId()` is 5) | Verified onchain |
+| Policy 5 | Exists. Authorizes Morpho, the 1inch router, both Aerodrome routers, the zero address and fresh addresses that never held anything. So it acts as a blocklist: everyone may send, receive and pull except listed accounts. The list itself cannot be read without the registry's event history | Verified onchain |
+| Policy admin | `policyAdmin(5)` is `0xEC0F05C174e54FBf0Fe16ad930a8AFEbCe612812`, an address with no code, so one key can add Morpho, our router or a user to the blocklist at once, for all 8 stocks | Verified onchain. Whose key it is is not verified |
+| Executor check | `transferFrom` checks the caller under the executor scope. `approve` is not policy gated (Base Docs) | From Base Docs. The simulation below covers it |
+| Pause | `isPaused` is false for transfer, mint, burn and seize on all 8 tokens. Pausing is per feature. The Coinbase oracle registry also has its own per token pause flag | Verified onchain at the read |
+| Moves through Morpho and the routers | `eth_simulateV1` on the live node, per token: Morpho sends 1 base unit to a fresh address; the fresh address approves each swap router, the router pulls it with `transferFrom` and sends it back; then Morpho pulls it back with `transferFrom`. Every call succeeds. A pull without approval fails, so the simulation enforces the token rules | Verified by simulation, nothing sent |
+| Local forks | Anvil 1.8.3 cannot run B20 tokens: the code is the single byte `0xef` and every call ends in `OpcodeNotFound`, with `--network optimism` too. Foundry fork tests cannot move Base stocks | Verified locally |
+
+Result for Q-36: no listed stock blocks Morpho, the swap routers or a fresh contract today, so all 8 stay listed. This can change at any time, by one key, with no delay.
+
 ### Price feeds
 
 Each Morpho oracle above is a ChainlinkOracleV2 that uses only `BASE_FEED_1`, with no second feed, no quote feed and no vault. That feed is the Coinbase feed named in Base Docs.
@@ -427,10 +446,11 @@ Each Morpho oracle above is a ChainlinkOracleV2 that uses only `BASE_FEED_1`, wi
 | Item | Finding | Status |
 |---|---|---|
 | Form | Proxy with `version()` 6, 8 decimals, one aggregator per feed | Verified onchain for all 8 |
-| Owner | All 8 proxies are owned by one Safe 1.3.0, 4 of 9: `0xf0Db7318A51a21C413CaDd4AbDC1E8a500fE5B1b` | Verified onchain. Whether this Safe is Chainlink's is not verified |
+| Owner | All 8 proxies are owned by one Safe 1.3.0, 4 of 9: `0xf0Db7318A51a21C413CaDd4AbDC1E8a500fE5B1b`. The same Safe owns Chainlink's ETH / USD (`0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70`), BTC / USD and USDC / USD feeds on Base | Verified onchain on 19 November 2026 |
 | Multiplier | The registry multiplier equals the token's own `uiMultiplier()` for all 8 (WAD, 1e18) | Verified onchain |
 | Pause | `paused` is false for all 8 in the registry | Verified onchain at the read |
 | Age | At 11:56 UTC on a Thursday (US pre-market) the last updates were 13 minutes (NVDA) to 11 hours (AAPL) old. Base Docs: 0.5% deviation or 24 hours in market hours, held when closed | Ages verified onchain. Heartbeat and deviation from Base Docs only |
+| Weekly rhythm | Round history from 11 to 19 November 2026 (NVDA 415 rounds, MSFT 96, AAPL 33): the last write of the week came on Friday afternoon or evening ET, then nothing until Sunday 20:00 ET sharp, when every feed wrote. Gaps over the weekend: 49.4 hours (NVDA), 51.9 hours (AAPL), 52.0 hours (MSFT). The longest gap on a weekday was 17.2 hours (AAPL, Tuesday to Wednesday): a quiet stock does not write for most of a day | Verified onchain for these three feeds and this week. No holiday was in the range |
 | Other feeds | Base Docs also list Coinbase MSTR `0xB3cE282CD188b35DA0E38D8Bc7d58e33173D202a` and Coinbase SNDK `0x388b0dC46C0Fb05A74BeE0994fa5b02c6Fcca2eA` (descriptions verified onchain). No Morpho market was found for these two, and their token addresses were not found | Not in scope until a market exists |
 
 ## X Layer (chain 196)
@@ -453,20 +473,23 @@ Each Morpho oracle uses only `BASE_FEED_1` (no second feed, no quote feed, no va
 | Item | Finding | Status |
 |---|---|---|
 | Contract | Proxy (`version` 6, phase 1) in front of `AccessControlledOCR2Aggregator 1.0.0`, with 10 transmitters. Names end in "(Calculated)", 8 decimals | Verified onchain |
-| Owner | Proxy and aggregator are owned by a Safe 1.3.0, 4 of 9: `0xd9F6f0C071AE8d804129309fa7bB371626eafb04`. Same owner for all four feeds | Verified onchain. Whether this Safe is Chainlink's is not verified (Q-42) |
+| Owner | Proxy and aggregator are owned by a Safe 1.3.0, 4 of 9: `0xd9F6f0C071AE8d804129309fa7bB371626eafb04`. Same owner for all four feeds. The same Safe owns the proxy and the aggregator of Chainlink's ETH / USD, BTC / USD, USDC / USD and OKB / USD feeds on X Layer, and all four xStocks feeds are listed as "TokenizedEquities" in Chainlink's feed directory for X Layer (`reference-data-directory.vercel.app/feeds-ethereum-mainnet-xlayer-1.json`, the data behind docs.chain.link) | Verified onchain on 19 November 2026. Answers Q-42 |
 | Update rhythm | About one round every 1 to 3 minutes on weekdays, also outside US market hours (feed ages 71 to 206 seconds at 04:00 ET) | Verified onchain |
 | Weekends | wNVDAx stopped from Saturday 14 November 00:59 UTC (round 11859) to Monday 16 November 01:00 UTC (round 11860), that is Friday 20:00 ET to Sunday 20:00 ET. So the feeds run 24/5 | Verified for one weekend on wNVDAx |
 | Bounds | `minAnswer = 1`, `maxAnswer` near the int192 maximum, so the aggregator has no useful price floor | Verified onchain. Our adapter needs its own bounds (D-69) |
 
-### Wrapped xStocks (checked on wNVDAx)
+### Wrapped xStocks (all four checked on 19 November 2026)
 
 | Item | Finding | Status |
 |---|---|---|
-| Form | ERC-4626 style wrapper over the xStock (`asset()` is "NVIDIA xStock"). 1 wNVDAx converts to 1.0017 NVDAx, so the underlying multiplier is absorbed in the wrapper rate and balances do not change by themselves | Verified onchain |
-| Upgrades | Both wrapper and underlying are transparent upgradeable proxies with separate admins (wrapper `0x312063009e74142339edc92bcff6cfcfaa958bfa`, underlying `0x696c685a02a1fc6e2aacbe26cd6695f4f4a6a085`). The token rules can change | Verified onchain |
-| Pause | Both have `pauser()` = `0x8768cDA7A463DAe1baA6b2500EFB025ebd7FFC50` and `isPaused()` = false. A pause can block closes, as on Base | Verified onchain |
-| Sanctions | The underlying has `sanctionsList()` = `0x615Dd3B9445A94334C1579F68115042D77CC7c44`. No sanctions getter was found on the wrapper | Verified onchain. Whether it can block Morpho, our router or our liquidator is not tested (SC-81 fork test) |
-| Wrapper owner | `0x49754062E35f7591B93cc4F9915965be89643a65` for all four wrappers | Verified onchain |
+| Form | ERC-4626 style wrapper over the xStock, 18 decimals. The wrapper rate absorbs the underlying multiplier, so balances do not change by themselves. 1 wrapped token converts to 1.0017 NVDAx, 1.0035 QQQx, 1.0075 SPYx and 1.0024 GOOGLx | Verified onchain |
+| Same code | All four wrappers share one implementation (`0x76c6851ea0b2741eedcbbed240715e8817e85583`) and all four underlying xStocks share another (`0x65c40d624af3b18c109fbf87b7deff34cdc5f19b`) | Verified onchain |
+| Upgrades | Transparent upgradeable proxies with separate admins: wrapper `0x312063009e74142339edc92bcff6cfcfaa958bfa`, underlying `0x696c685a02a1fc6e2aacbe26cd6695f4f4a6a085`, the same for all four. The token rules can change | Verified onchain |
+| Pause | All eight contracts have `pauser()` = `0x8768cDA7A463DAe1baA6b2500EFB025ebd7FFC50` (a Safe, threshold 2) and `isPaused()` = false. A pause can block closes, as on Base | Verified onchain |
+| Sanctions | The underlying has `sanctionsList()` = `0x615Dd3B9445A94334C1579F68115042D77CC7c44` (Sourcify name `SanctionsListDeployment`, `isSanctioned(address)`), the same for all four. Morpho is not listed. On a fork, adding a contract to the list makes a wrapped token transfer to it revert, so the list reaches the wrapped token too | Verified onchain and on a fork (`test/XStocks.t.sol`) |
+| Owners | The four wrappers and the sanctions list are owned by `0x49754062E35f7591B93cc4F9915965be89643a65`, a Safe 2 of 3 | Verified onchain |
+| Moves through Morpho | On a fork at block 76327204, each wrapped token goes from Morpho to a contract standing for our router, is supplied as collateral and withdrawn on its listed Morpho market, is pulled with `transferFrom` by a contract standing for our liquidator, and goes back | Verified on a fork (`test/XStocks.t.sol`) |
+| Morpho on X Layer | Morpho core `0xeb00C490E888286357dC5B0a35D37D9260D11Ab5`, IRM `0x5688FF1aBC4089cB69dC0F56727E696A49D77E24` (from the Morpho API). Listed markets lend USDC `0xB6CEceAB302E2E4948951eE7843FC24E92933061`: wNVDAx 77%, wQQQx 86%, wSPYx 86%, wGOOGLx 77%, each about half borrowed | Read from the Morpho API and the fork. The full address check is SC-80 |
 
 ### TapeOut transistors (Q-40)
 
