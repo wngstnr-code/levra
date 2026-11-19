@@ -216,6 +216,7 @@ Findings from the self-review in CLAUDE.md section 10, newest first: date, who, 
 
 | Date | Who | Finding | Fix |
 |---|---|---|---|
+| 19 November 2026 | Wangsit | SC-72 review: the Coinbase registry reads the stock token, so a failing registry would revert `price()` and burn the caller's gas. SC-72 review: a router close needs a fresh price (SC-86). After push: the skipped live B20 test still built a viem client with no URL, which failed `main` CI | Registry read in a `try` with 100,000 gas; SC-86 written; client given a fallback URL in `9842c80` |
 
 ## Known issues
 
@@ -223,7 +224,7 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 | Date | Who | Issue | Severity | Task |
 |---|---|---|---|---|
-| 19 November 2026 | Wangsit | A close through the router reads `price()` first (`RISK.positionLtv`), so while the oracle is past its hard age a user cannot close through Levra, only straight on Morpho. Applies to Monad and Base; more likely on Base around holidays | High | SC-86 |
+| 19 November 2026 | Wangsit | A close through the router reads `price()` first (`RISK.positionLtv`), so while the oracle is past its hard age a user cannot close through Levra, only straight on Morpho. Applies to Monad and Base; more likely on Base around holidays. Fix written in SC-86, waiting for review and a redeploy of the Monad router | High | SC-86 |
 
 ## Daily log
 
@@ -244,6 +245,8 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: SC-72 written: `ChainlinkSessionOracle` for Base, matching Morpho's own NVDAc oracle to the unit on a fork, on a weekday and over a weekend. Its rules (weekly close in UTC, pause, registry failure, price bounds) are D-76, waiting for the team. Found SC-86: a router close needs a fresh price, on Monad too. Open question Q-43: Base long markets cannot use the existing Morpho markets with our `RiskManager` as it is.
 - Wangsit: SC-81 finished, Q-42 answered. The xStocks feeds on X Layer and the Coinbase feeds on Base are owned by the same Safes as Chainlink's own ETH / USD feeds on those chains. The four wrapped xStocks share code, admins and pauser, Morpho is not sanctioned, and a fork test moves each through Morpho. The sanctions list does reach the wrapped token (T-23). Proposed (a) for Q-43: our own long markets on Base.
 - Wangsit: Q-43 decided as D-77: Base longs use our own Morpho markets. SC-73 merged as PR 84. Per the user, SC-71, SC-72 and the SC-81 tests go straight to `main` instead of separate PRs.
+- Wangsit: the live B20 test broke `main` CI for one commit (viem refused an empty URL while the suite was skipped); fixed in `9842c80`, CI green again. SC-86 written: a full close through the router works with a stale oracle, partial closes and keeper reductions still need a fresh price. Dharu: `PositionReduced.oraclePriceE8` can now be 0 (03). The live Monad router keeps the old behaviour until it is redeployed.
+- Wangsit: D-76 agreed (Base oracle rules). Per the user, SC-86 goes straight to `main` without a second reader; a review is still owed before the Monad router is redeployed.
 
 ### 12 November 2026
 
