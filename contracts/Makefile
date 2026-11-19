@@ -11,8 +11,10 @@ build:
 	forge build
 
 # The invariant campaign is slow on a fork, so it has its own target.
+# Base and X Layer forks run apart, because a Monad EVM cannot fork them. Coinbase stock tokens cannot run on any fork.
 test:
-	forge test --network monad --no-match-contract InvariantsTest
+	forge test --network monad --no-match-contract 'InvariantsTest|BaseForkTest|XLayerForkTest'
+	forge test --network optimism --match-contract 'BaseForkTest|XLayerForkTest'
 
 invariants:
 	forge test --network monad --match-contract InvariantsTest -vv
