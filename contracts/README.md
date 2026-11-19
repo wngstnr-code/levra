@@ -168,3 +168,5 @@ Monad charges for the gas limit, not the gas used, so the backend should send a 
 | `missing-zero-check` | Setting the guardian or the calendar poster to the zero address switches the role off |
 | `calls-loop` | Only in `Lens`, which is read-only |
 | `timestamp` | Market hours and deadlines need the block time |
+
+One finding is silenced in place instead: `weak-prng` in `ChainlinkSessionOracle._weeklyClose`, where `%` turns the block time into a weekday and a time of day. Nothing is random there.
