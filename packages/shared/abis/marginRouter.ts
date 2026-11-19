@@ -2,6 +2,32 @@
 export const marginRouterAbi = [
   {
     "type": "function",
+    "name": "DELEVERAGE_FLOOR",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DELEVERAGE_SLACK_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "addCollateral",
     "inputs": [
       {
@@ -864,6 +890,38 @@ export const marginRouterAbi = [
   },
   {
     "type": "error",
+    "name": "DeleverageTooDeep",
+    "inputs": [
+      {
+        "name": "ltvAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "floor",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DeleverageTooLarge",
+    "inputs": [
+      {
+        "name": "removedValue",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "allowed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "InsufficientReturn",
     "inputs": [
       {
@@ -893,6 +951,27 @@ export const marginRouterAbi = [
         "internalType": "uint256"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "LtvNotReduced",
+    "inputs": [
+      {
+        "name": "ltvAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ltvBefore",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "MarketClosed",
+    "inputs": []
   },
   {
     "type": "error",
