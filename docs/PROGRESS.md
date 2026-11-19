@@ -33,6 +33,7 @@ Status values: not started, in progress, done. A milestone is done only when its
 | M4. Cross-chain deposits | Deposit from and withdraw to other chains | SC-40 | BE-40 to BE-42 | FE-40 to FE-41 | I-4 | not started |
 | M5. Hardening | Invariant tests, audit, monitoring, compliance gates | SC-50 to SC-56 | BE-50 to BE-55 | FE-50 to FE-55 | I-5 | not started |
 | M6. Launch | Production deployment owned by the multisig, open to the public | SC-60 to SC-61 | BE-60 to BE-61 | FE-60 to FE-61 | I-6 | not started |
+| B. Base (Stocks Maxxing) | Long, short and Earn on Base, agent, submission by 5 December 2026 (doc 11) | SC-70 to SC-78 | BE-70 to BE-79 | FE-70 to FE-77 | I-B1, I-B2 | not started |
 
 Milestones are ordered, but work inside a milestone runs in parallel. Work from a later milestone may start early when it does not depend on anything unfinished. For example BE-03 (one week of oracle logging), X-12 (talking to Anchored) and FE-04 (screen design) should start on day one.
 
@@ -209,6 +210,10 @@ One line for every change to 03 after the freeze.
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+
+### 19 November 2026
+
+- All: agreed to bring Levra to Base and submit it to Stocks Maxxing (D-44 to D-51): long, short and Earn on Base with Morpho, Chainlink as the Base oracle, 0x or 1inch and CCTP plus Across on both chains, two tracks with an agent. Plan in doc 11, tasks SC-70 to SC-78, BE-70 to BE-79, FE-70 to FE-77, X-30 to X-34.
 
 ### 12 November 2026
 
