@@ -5,12 +5,12 @@ export type TokenInfo = { address: Address; decimals: number };
 
 export const MONAD_CHAIN_ID = 143 satisfies ChainId;
 export const BASE_CHAIN_ID = 8453 satisfies ChainId;
+export const XLAYER_CHAIN_ID = 196 satisfies ChainId;
 
 /** Contracts every chain has. Chain specific contracts sit next to them. */
 type CommonExternal = {
   morpho: Address;
   morphoAdaptiveCurveIrm: Address;
-  morphoVaultFactory: Address;
   morphoVaultV2Factory: Address;
   /** The BluePublicAllocator, for Vault V2 vaults. It does not serve MetaMorpho vaults. */
   morphoPublicAllocator: Address;
@@ -86,6 +86,41 @@ export const baseTokens = {
   TSLAc: { address: "0xb2000000000000000000001e800a7f5189430cD0", decimals: 8 },
 } as const satisfies Record<string, TokenInfo>;
 
-export const externalByChain = { 143: external, 8453: baseExternal } as const satisfies Record<ChainId, CommonExternal>;
+/**
+ * Contracts we use but did not deploy on X Layer. Each was confirmed to have code on X Layer mainnet (05, X Layer).
+ * X Layer has no MetaMorpho (Vault V1) factory, only Vault V2.
+ */
+export const xlayerExternal = {
+  morpho: "0xeb00C490E888286357dC5B0a35D37D9260D11Ab5",
+  morphoAdaptiveCurveIrm: "0x5688FF1aBC4089cB69dC0F56727E696A49D77E24",
+  morphoVaultV2Factory: "0x63D6eAc0d16D57dd131D9023ADb060277d3237d7",
+  morphoMarketAdapterV2Factory: "0xDD0FC0c74bd89A9C6623202473E75CbF472b33A4",
+  morphoPublicAllocator: "0x1b7C60330E3aFe5bA876F518Ff14316EA497f683",
+  morphoChainlinkOracleV2Factory: "0x625Eb26d759ef8077202d4a5A63098B4B28616Db",
+  xStocksSanctionsList: "0x615Dd3B9445A94334C1579F68115042D77CC7c44",
+  permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  multicall3: "0xcA11bde05977b3631167028862bE2a173976CA11",
+  safeSingleton: "0x41675C099F32341bf84BFc5382aF534df5C7461a",
+  safeSingletonL2: "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+  safeProxyFactory: "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+  wrappedOkb: "0xe538905cf8410324e03A5A23C1c177a474D59b2b",
+} as const satisfies CommonExternal & Record<string, Address>;
 
-export const tokensByChain = { 143: tokens, 8453: baseTokens } as const satisfies Record<ChainId, { USDC: TokenInfo }>;
+/** X Layer tokens. USDC is Circle's native token; the stocks are the wrapped xStocks the Morpho markets use. */
+export const xlayerTokens = {
+  USDC: { address: "0xB6CEceAB302E2E4948951eE7843FC24E92933061", decimals: 6 },
+  wNVDAx: { address: "0xa8ddb5Cd96b5222AFe198316E9A57CAA642850D5", decimals: 18 },
+  wQQQx: { address: "0x4C1AE29c159838fC1b224636E28E086EB69101f7", decimals: 18 },
+  wSPYx: { address: "0xE7E553Cd128F0011777323A0b44a7b96EA1CB540", decimals: 18 },
+  wGOOGLx: { address: "0xf8c5308F80E459bb53d9EbE689854d9cBb2Caa6f", decimals: 18 },
+} as const satisfies Record<string, TokenInfo>;
+
+export const externalByChain = { 143: external, 8453: baseExternal, 196: xlayerExternal } as const satisfies Record<
+  ChainId,
+  CommonExternal
+>;
+
+export const tokensByChain = { 143: tokens, 8453: baseTokens, 196: xlayerTokens } as const satisfies Record<
+  ChainId,
+  { USDC: TokenInfo }
+>;

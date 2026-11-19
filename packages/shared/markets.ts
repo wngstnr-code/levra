@@ -1,4 +1,4 @@
-import { baseTokens, tokens, type Address } from "./addresses";
+import { baseTokens, tokens, xlayerTokens, type Address } from "./addresses";
 import { isChainId, type ChainId } from "./chains";
 import type { DeployedMarket, Deployment } from "./deployments";
 
@@ -49,18 +49,20 @@ export function isStockSymbol(value: string): value is StockSymbol {
 
 export type BaseStockSymbol = "AAPL" | "AMZN" | "GOOGL" | "META" | "MSFT" | "NVDA" | "SPCX" | "TSLA";
 
-/** A stock priced by a Chainlink feed with 8 decimals, as the Coinbase stocks on Base. */
-export type ChainlinkStock = {
-  symbol: BaseStockSymbol;
+/** A stock priced by a Chainlink feed with 8 decimals, as the Coinbase stocks on Base and the xStocks on X Layer. */
+export type ChainlinkStock<Symbol extends string = BaseStockSymbol | XLayerStockSymbol, TokenSymbol extends string = string> = {
+  symbol: Symbol;
   /** Name of the underlying, taken from the token's on-chain name. */
   name: string;
-  tokenSymbol: `${BaseStockSymbol}c`;
+  tokenSymbol: TokenSymbol;
   token: Address;
   decimals: number;
   priceFeed: Address;
 };
 
-function coinbaseStock(symbol: BaseStockSymbol, name: string, priceFeed: Address): ChainlinkStock {
+export type BaseStock = ChainlinkStock<BaseStockSymbol, `${BaseStockSymbol}c`>;
+
+function coinbaseStock(symbol: BaseStockSymbol, name: string, priceFeed: Address): BaseStock {
   const tokenSymbol = `${symbol}c` as const;
   const token = baseTokens[tokenSymbol];
   return { symbol, name, tokenSymbol, token: token.address, decimals: token.decimals, priceFeed };
@@ -76,9 +78,29 @@ export const baseStocks = {
   NVDA: coinbaseStock("NVDA", "NVIDIA Corporation", "0x04689a41629776563E6822F76f2e57D148d28513"),
   SPCX: coinbaseStock("SPCX", "Space Exploration Technologies Corp.", "0x6A634B235903C4ad6376892180d6fF8612e3Fa68"),
   TSLA: coinbaseStock("TSLA", "Tesla Inc.", "0xFaf869185383a24F8cb00e27BdA6b63B9905DCb4"),
-} as const satisfies Record<BaseStockSymbol, ChainlinkStock>;
+} as const satisfies Record<BaseStockSymbol, BaseStock>;
 
-export const stocksByChain = { 143: stocks, 8453: baseStocks } as const satisfies Record<ChainId, Record<string, Stock | ChainlinkStock>>;
+export type XLayerStockSymbol = "NVDA" | "QQQ" | "SPY" | "GOOGL";
+export type XLayerStock = ChainlinkStock<XLayerStockSymbol, `w${XLayerStockSymbol}x`>;
+
+function xStock(symbol: XLayerStockSymbol, name: string, priceFeed: Address): XLayerStock {
+  const tokenSymbol = `w${symbol}x` as const;
+  const token = xlayerTokens[tokenSymbol];
+  return { symbol, name, tokenSymbol, token: token.address, decimals: token.decimals, priceFeed };
+}
+
+/** Wrapped xStocks on X Layer with a listed Morpho long market (D-68). The feeds price one wrapped token (05, X Layer). */
+export const xlayerStocks = {
+  NVDA: xStock("NVDA", "Wrapped NVIDIA xStock", "0x761FE3B4C1043862bB0c53F5fAAe19F159F6b303"),
+  QQQ: xStock("QQQ", "Wrapped Nasdaq xStock", "0x70149e006a03dF3739B8C37E4d80145Dea4c09F6"),
+  SPY: xStock("SPY", "Wrapped SP500 xStock", "0xFf1Ad069D1500970e5f0e5375b011C24EA819950"),
+  GOOGL: xStock("GOOGL", "Wrapped Alphabet xStock", "0x64B67C4C176E78064E0470a062C83c17AE0FA779"),
+} as const satisfies Record<XLayerStockSymbol, XLayerStock>;
+
+export const stocksByChain = { 143: stocks, 8453: baseStocks, 196: xlayerStocks } as const satisfies Record<
+  ChainId,
+  Record<string, Stock | ChainlinkStock>
+>;
 
 export type AnyStock = Stock | ChainlinkStock;
 

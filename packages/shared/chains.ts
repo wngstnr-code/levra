@@ -1,6 +1,7 @@
 export const chains = {
   143: { id: 143, slug: "monad", name: "Monad", nativeSymbol: "MON", explorer: "https://monadvision.com" },
   8453: { id: 8453, slug: "base", name: "Base", nativeSymbol: "ETH", explorer: "https://basescan.org" },
+  196: { id: 196, slug: "xlayer", name: "X Layer", nativeSymbol: "OKB", explorer: "https://www.oklink.com/x-layer" },
 } as const;
 
 export type ChainId = keyof typeof chains;
