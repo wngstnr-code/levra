@@ -26,9 +26,9 @@ How Levra earns: a small fee on open and close, a share of Earn interest through
 |---|---|---|---|
 | Chain ID | 143 | 8453 | 196 |
 | Stocks | Anchored | Coinbase B20 | xStocks (wrapped, for example wNVDAx) |
-| Hard limit oracle | Anchored | Chainlink (Coinbase feeds) | The Chainlink style feeds used by the Morpho markets (vendor not verified) |
+| Hard limit oracle | Anchored | Chainlink (Coinbase feeds) | The Chainlink style OCR2 feeds used by the Morpho markets, 24/5 (D-69, owner Q-42) |
 | Lending | Morpho | Morpho | Morpho |
-| Swap | 0x or 1inch, KyberSwap backup | 0x or 1inch, routes to Aerodrome | OKX DEX API |
+| Swap | KyberSwap until BE-71 shows 1inch routes Anchored | 1inch, Aerodrome router as fallback (D-72) | OKX DEX API |
 | Cross-chain | CCTP and Across | CCTP and Across | CCTP (Across does not list X Layer) |
 | Sign-in | Privy | Privy, Base Account | Privy, OKX Wallet as an external wallet |
 | Chain specific | | Builder Codes, Bankr agent | TapeOut risk circuit and PnL proofs |
@@ -102,7 +102,12 @@ What Levra builds on TapeOut:
 
 1. **Risk circuit.** Health factor, liquidation price and the session limit from `packages/shared/math.ts` as a TapeOut circuit. The agent and the stats page call it and show "verified by circuit". The result must match `math.ts` and the contracts exactly; a test compares them (BE-83).
 2. **PnL proofs.** When a position closes, Levra posts a commitment of the result (market, side, entry, exit, PnL in percent, transaction hash) through TapeSend. The share card (FE-76) and the leaderboard link to it, so anyone can check the number (BE-84, FE-81).
-3. **DeWEB mirror.** The stats page, or a light landing page, served from X Layer DeWEB if the tools support it (FE-82, optional).
+3. **DeWEB mirror.** The stats page and a light landing page served from X Layer DeWEB (FE-82, required since D-66).
+4. **Wall Street Clock circuit.** The market sessions from `calendar.ts` (regular, pre, after, overnight, weekend, holiday) as a circuit any app on X Layer can read. Soft layer only (D-66).
+5. **Open risk circuit.** The risk circuit answers for any Morpho xStocks borrower on X Layer, not only Levra users (D-66).
+6. **Agent checked by circuits.** The agent checks each action it prepares against circuits 4 and 5 before offering it. The user still signs, and the contracts check again. If time allows (D-66).
+
+Not used: a circuit that triggers auto-deleverage (it touches a path that moves funds) and FabX (D-74). The pitch presents this split as a design choice (D-67).
 
 ## 6. Changes to earlier decisions
 
@@ -117,7 +122,7 @@ Full tasks are in each task file under "X. X Layer (TapeOut Accelerate)".
 | Area | Tasks | First to unblock others |
 |---|---|---|
 | SC, Wangsit | SC-80 to SC-85 | SC-80 (addresses), SC-81 (oracle check) |
-| BE, Dharu | BE-80 to BE-85 | BE-81 (OKX DEX spike), BE-82 (TapeOut spike) |
+| BE, Dharu | BE-80 to BE-87 | BE-81 (OKX DEX spike), BE-82 (TapeOut spike) |
 | FE, Nabil | FE-80 to FE-83 | FE-80 (X Layer in the chain picker) |
 | Shared | X-35 to X-37 | X-35 (seed funds), X-37 (submission) |
 

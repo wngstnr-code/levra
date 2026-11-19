@@ -17,7 +17,7 @@ Source: the official page and rules, read on 19 November 2026. Items marked "pre
 | Name and host | Stocks Maxxing, run by Base (Coinbase Technologies, Inc.) |
 | Dates | 5 November to 5 December 2026. Submit by **5 December 2026** |
 | Prizes | $100,000+ in USDC on Base. Pool per track plus partner prizes. $6,000 build in public award (press) |
-| Our tracks | **Programmable Stock Markets** (financing tools) and **Agentic Stock Finance** (D-46). One submission per track is allowed |
+| Our track | **Programmable Stock Markets** only (D-61, replaces the track part of D-46). One prize per project. The agent is a product feature |
 | Judging | 50% traction (real onchain usage), 25% product quality, 25% build in public (press). The rules only say equal weights unless the quest page says otherwise. Not verified |
 | Submission | A public X post with a video demo that tags @buildonbase, plus the submission form with the post link and tracks. Must be built on or meaningfully integrate with Base |
 | Earlier code | Allowed if the form says clearly what was built during the quest period. We mark the line with the tag `pre-base` on the last `main` commit before this work |
@@ -36,11 +36,11 @@ All three products, same flows as 01 (D-45):
 | Short | Borrow the stock against USDC, sell it, buy back to close | **New Morpho markets created by Levra**: collateral USDC, loan the stock |
 | Earn | Lend stocks (feeds the short markets) or USDC (feeds longs) | Levra vaults on Morpho, same model as SC-23 |
 
-The team seeds a small amount of each stock into the short markets so shorts work from day one (D-47). Size: initial proposal, decided in X-31.
+The team seeds a small amount of each stock into the short markets so shorts work from day one (D-47). Size: about $100 per listed stock plus $200 USDC in the vault, initial proposal (D-70).
 
 Markets at launch: the Coinbase stocks that have both a Morpho long market and a Chainlink feed. At the time of writing that is NVDAc, METAc, AAPLc, GOOGLc and possibly SPCXc. The list is confirmed onchain in SC-71.
 
-### Agent (Agentic track)
+### Agent
 
 A Levra agent that can:
 
@@ -61,7 +61,7 @@ Rule: infrastructure that exists on both chains is shared. Assets and liquidity 
 | Lending | Morpho | Morpho | Keep |
 | Stock tokens | Coinbase B20 | Anchored | Per chain |
 | Hard limit oracle | Chainlink (Coinbase B20 feeds) | Anchored | New adapter, same interface (D-49) |
-| Swap | 0x or 1inch aggregator, which routes to Aerodrome | 0x or 1inch, KyberSwap kept as backup | Add (D-50) |
+| Swap | 1inch Swap API, Aerodrome router as fallback (D-72) | KyberSwap until 1inch is shown to route Anchored stocks (BE-71) | Add (D-50, D-72) |
 | Cross-chain deposit | Circle CCTP and Across | Circle CCTP and Across | Replaces Aurora Intents / 1Click (D-50) |
 | Indexer | Envio | Envio | Keep |
 | Attribution | Builder Codes on every transaction | none | Add |
@@ -115,7 +115,7 @@ Full tasks with "Do" and "Done when" are in each task file under "B. Base (Stock
 | Area | Tasks | First to unblock others |
 |---|---|---|
 | SC, Wangsit | SC-70 to SC-78 | SC-70 (Base addresses), SC-73 (chain keyed shared package), SC-72 (oracle adapter ABI) |
-| BE, Dharu | BE-70 to BE-79 | BE-70 (API chain routing in 03), BE-71 (0x or 1inch spike) |
+| BE, Dharu | BE-70 to BE-79 | BE-70 (API chain routing in 03), BE-71 (1inch quote check, D-72) |
 | FE, Nabil | FE-70 to FE-77 | FE-70 (chain picker on the existing pages) |
 | Shared | X-30 to X-34 | X-30 (build in public), X-31 (seed funds) |
 
