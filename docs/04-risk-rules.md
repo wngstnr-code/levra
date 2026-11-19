@@ -144,14 +144,14 @@ So the DEX price is only used in the soft layer:
 
 ## The Chainlink oracle on Base
 
-`ChainlinkSessionOracle` (SC-72) gives the hard limit on Base from the Coinbase feed (D-49). These rules are initial proposals (D-76, waiting for the team). The numbers for each market are SC-74.
+`ChainlinkSessionOracle` (SC-72) gives the hard limit on Base from the Coinbase feed (D-49). The rules are agreed (D-76). The numbers for each market are initial proposals in SC-74.
 
 | Rule | Proposal | Why |
 |---|---|---|
 | Weekly close | Saturday 00:00 to Monday 01:00 UTC counts as closed | Covers Friday 20:00 to Sunday 20:00 New York time in summer and winter without daylight saving math on chain. The feeds stopped from Friday evening and wrote again at Sunday 20:00 ET sharp on 15 November 2026 (05, Base) |
 | Clock while open | Feed age at most `MAX_FEED_AGE` | Feeds write on a 0.5% move or a 24 hour heartbeat, so a quiet stock can go 17 hours without a write (AAPL, 05). An old answer is still within 0.5% of the market while the feed is alive. Starting point for SC-74: 26 hours |
 | Clock while closed | Feed age at most `MAX_PUBLISH_AGE` | The Friday price is carried over the weekend, as D-23 does on Monad, so closing, reducing and liquidating keep working. Starting point for SC-74: 4 days, as on Monad |
-| Holidays | Count as open | Not known on chain. A holiday next to a weekend can push the feed age past the open clock, and then `price()` reverts until the next write. A full close straight on Morpho still works, because Morpho does not read the oracle once the debt is zero. A close through our router does not: it reads `positionLtv` first, which calls `price()` (known issue in PROGRESS, SC-86) |
+| Holidays | Count as open | Not known on chain. A holiday next to a weekend can push the feed age past the open clock, and then `price()` reverts until the next write. A full close straight on Morpho still works, because Morpho does not read the oracle once the debt is zero. Since SC-86, a full close through our router works too: it reads the LTV in a `try`, and a close that ends with no debt needs no price. A partial close and a keeper reduction still need a fresh price |
 | Issuer pause | `snapshot()` reports `Unknown` and `stale`, so no new positions and the closed soft limit applies. `price()` keeps the closed clock | A pause should stop new risk, not trap users or block liquidations. The keeper alerts on it (BE-75) |
 | Registry cannot be read | Treated as a pause. The call gets at most 100,000 gas | The registry reads the stock token. A failure must never block the price or use up the gas of a liquidation |
 | Price bounds | `MIN_PRICE_E8` and `MAX_PRICE_E8` per oracle, set at deployment. An answer outside them reverts | The feeds' own bounds are far too wide (X Layer has `minAnswer = 1`, D-69) |

@@ -297,6 +297,7 @@ event PositionReduced(
     uint256 execPriceE8, uint256 oraclePriceE8, uint256 fee, uint256 ltvAfter,
     uint8 reason, address caller
 );
+// oraclePriceE8 is 0 when the oracle cannot be read during a close (SC-86). Readers must not divide by it.
 
 event CollateralAdded(address indexed user, Id indexed marketId, uint256 assets);
 event CollateralRemoved(address indexed user, Id indexed marketId, uint256 assets);
