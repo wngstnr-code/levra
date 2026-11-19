@@ -27,13 +27,13 @@ contract GovernanceTest is BaseTest {
         Id[] memory ids = new Id[](1);
         ids[0] = longId;
         uint256[] memory caps = new uint256[](1);
-        caps[0] = VaultPlan.capFor(QQQ);
+        caps[0] = 10_000e6;
         vault = this.createVault(ids, caps);
         timelock = this.handOver();
     }
 
     function createVault(Id[] memory ids, uint256[] memory caps) external returns (IMetaMorpho) {
-        return VaultPlan.create(MORPHO, ids, caps, feeRecipient, bytes32(uint256(2)));
+        return VaultPlan.create(METAMORPHO_FACTORY, MORPHO, address(USDC), ids, caps, feeRecipient, bytes32(uint256(2)));
     }
 
     function handOver() external returns (TimelockController) {

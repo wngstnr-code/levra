@@ -7,6 +7,7 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {Authorization, Id, IMorpho, MarketParams, Position} from "morpho-blue/src/interfaces/IMorpho.sol";
 import {MarketParamsLib} from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import {IAnchoredStockOracle} from "../src/interfaces/IAnchoredStockOracle.sol";
+import {IMetaMorphoFactory} from "../src/interfaces/IMetaMorpho.sol";
 import {IMarginRouter} from "../src/interfaces/IMarginRouter.sol";
 import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
 import {Session, Side, Swap} from "../src/interfaces/Types.sol";
@@ -28,6 +29,8 @@ abstract contract BaseTest is Test {
     using MarketParamsLib for MarketParams;
 
     IMorpho internal constant MORPHO = IMorpho(0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee);
+    IMetaMorphoFactory internal constant METAMORPHO_FACTORY =
+        IMetaMorphoFactory(0x33f20973275B2F574488b18929cd7DCBf1AbF275);
     address internal constant IRM = 0x09475a3D6eA8c314c592b1a3799bDE044E2F400F;
     IAnchoredStockOracle internal constant STOCK_ORACLE =
         IAnchoredStockOracle(0x037848af338C38e1e0AB722bE80BF4C2E612a1F7);
