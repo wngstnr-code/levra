@@ -535,8 +535,38 @@ Read from the X Layer RPC (`https://rpc.xlayer.tech`, block 76329283), the Morph
 | Safe 1.4.1 singleton | `0x41675C099F32341bf84BFc5382aF534df5C7461a` | Verified onchain: `VERSION()` is "1.4.1" |
 | Safe 1.4.1 L2 singleton | `0x29fcB43b46531BcA003ddC8FCB67FFE91900C762` | Code present (canonical address) |
 | Safe 1.4.1 proxy factory | `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67` | Code present (canonical address) |
+| OKX DEX router | `0x7c5bee2a8091c3ef39072f64f18fac913060aeaf` | The `tx.to` of a v6 swap on chain 196 (OKX DEX API, 20 November 2026). Code present |
+| OKX DEX approve contract | `0x8b773D83bc66Be128c60e07E17C8901f7a64F000` | `dexTokenApproveAddress` for chain 196 in the v6 supported chain list. Tokens must be approved here, not to the router: on a fork a swap reverted with only the router approved (Q-47) |
 
-The listed xStocks markets and their IDs are under "Wrapped xStocks" below. The OKX DEX router for the swap allowlist comes with SC-83.
+| Uniswap v3 SwapRouter02 | `0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA` | Verified onchain: `factory()` is the Uniswap v3 factory `0x4B2ab38DBF28D31D467aA8993f6c2585981D6804` that holds the wQQQx / USDC pool, `factoryV2()` and `positionManager()` answer, `WETH9()` is WOKB, and the code holds the `exactInputSingle` selector of SwapRouter02. Found as the target of a real swap in that pool. Second swap target on X Layer (D-85) |
+
+The listed xStocks markets and their IDs are under "Wrapped xStocks" below.
+
+### Swap cost through OKX DEX (BE-81)
+
+OKX DEX API v6 on chain 196, 20 November 2026 around 03:00 UTC, against the xStocks feed price, in basis points (positive: paying more than the oracle when buying, getting less when selling).
+
+| Stock | Buy $100 | Buy $1,000 | Buy $10,000 | Buy $50,000 | Sell $1,000 | Sell $10,000 | Sell $50,000 | Venues at $1,000 |
+|---|---|---|---|---|---|---|---|---|
+| wQQQx | 10 | 12 | 17 | 28 | -4 | -1 | 15 | Caliber propAMM, Uniswap V3 |
+| wSPYx | 6 | 3 | 11 | 28 | 4 | 10 | 28 | JIT Router, Uniswap V3 and V4 |
+| wGOOGLx | 3 | 7 | 28 | 104 | 13 | 28 | 59 | JIT Router, Uniswap V3 and V4 |
+| wNVDAx | 8 | 11 | 44 | 137 | 8 | 45 | 250 | Uniswap V3 and V4 |
+
+The API needs a key, secret and passphrase, and no project ID; v5 is retired. Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS, so scripts resolve it through 1.1.1.1. Verified by quote only on this date.
+
+### Full long and short on an X Layer fork (SC-83)
+
+`make xlayer-fork-e2e` on 20 November 2026: the real deployment script with `config/xlayer.json` on a local fork, then a user with 1,000 USDC:
+
+| Step | Route | Result |
+|---|---|---|
+| Open NVDA long, $100 margin and $100 borrowed | OKX DEX (approve contract as spender, D-88) | 1.34104 wNVDAx collateral |
+| Open QQQ short, $50 of stock | Uniswap SwapRouter02, wQQQx / USDC pool | Borrowed wQQQx |
+| Close the long in full | OKX DEX | Debt and collateral 0 |
+| Close the short in full | OKX DEX | Debt and collateral 0 |
+
+The router ended with no USDC, wNVDAx or wQQQx. The user ended with 997.65 USDC and 0.00227 wQQQx (the buy back surplus), about $0.85 for both round trips. Calldata came from the live OKX DEX API; the transactions ran on the fork only. The OKX DEX router for the swap allowlist comes with SC-83.
 
 ### Stocks listed at launch (D-68)
 

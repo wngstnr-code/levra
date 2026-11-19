@@ -395,6 +395,30 @@ $10,000 per long market for MSFTc, GOOGLc, METAc, AMZNc and AAPLc, $5,000 for TS
 - The issuer, or the single key that runs transfer policy 5, can block or pause every Coinbase stock at once (T-21). Then closing and liquidating fail. No limit here can prevent it; small caps keep the loss small.
 - Over the weekend the token trades while the feed is frozen. Liquidations then use Friday's price, as on Monad.
 
+## X Layer limits (SC-82)
+
+Initial proposals for X Layer, made on 20 November 2026 with the same rules as Base. Longs and shorts use our own Morpho markets (D-83) with `ChainlinkSessionOracle` and no registry (D-86). Not tested with user money.
+
+| Stock | Hard limit (long and short) | Bonus | Soft, open | Soft, closed | Worst weekend gap (drop / rise) | Closed check, long / short | Cap per position | `maxDeviationBps` |
+|---|---|---|---|---|---|---|---|---|
+| wSPYx | 77% | 7.4% | 73% | 70% | -4.0% / +3.0% | 72.9% / 72.1% | $5,000 | 150 |
+| wQQQx | 77% | 7.4% | 73% | 70% | -5.4% / +3.9% | 74.0% / 72.7% | $5,000 | 150 |
+| wGOOGLx | 77% | 7.4% | 73% | 70% | -6.7% / +5.3% | 75.0% / 73.7% | $5,000 | 200 |
+| wNVDAx | 62.5% | 12.7% | 58% | 50% | -14.2% / +4.6% | 58.3% / 52.3% | $2,500 | 200 |
+
+Gap data as in "Base limits" (five years, Yahoo Finance; SPY and QQQ from the table above). The xStocks feeds freeze at the same weekend hours as the Coinbase feeds (05), so the same stand-in applies.
+
+| Setting | Proposal | Why |
+|---|---|---|
+| `MAX_FEED_AGE` (hard, open clock) | 36 hours | Holidays count as open (D-76); a frozen holiday must not revert the price |
+| `MAX_PUBLISH_AGE` (hard, closed clock) | 4 days | As on Base and Monad |
+| `maxOracleAge` (soft, to open) | 30 minutes, bounds 10 minutes to 36 hours | The xStocks feeds write every 1 to 3 minutes on weekdays, overnight included (05), so a price older than 30 minutes means the feed is in trouble |
+| Price bounds | One tenth and ten times the deployment price | The feeds have `minAnswer = 1` (D-69) |
+| `nextCloseAt` | Friday 20:00 New York time, 4 hour window | Same freeze as Base; the X Layer `RiskManager` gets its own calendar post (BE-30) |
+| Supply caps | None from us | Earn on X Layer is direct supply to each market (D-84); a lender picks the market and its risk. Caps come back with our own Vault V2 |
+
+Swap cost through OKX DEX on 20 November 2026 (05): buying or selling $50,000 cost at most 0.28% for wQQQx and wSPYx, 1.04% buying and 0.59% selling wGOOGLx, and 1.37% buying and 2.50% selling wNVDAx. All stay far under the bonus, so the caps are small for the size of the lending side, not for depth.
+
 ## Requirements for adding a new stock
 
 A stock may be added if all of these are met:
