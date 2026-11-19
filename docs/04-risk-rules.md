@@ -322,6 +322,79 @@ The USDC vault sends funds to the stock markets. Each market gets a maximum supp
 
 Caps are raised using the same rule as the position caps: following the measured market depth.
 
+## Base limits (SC-74)
+
+Initial proposals for Base, made on 19 November 2026 with the same three rules as Monad: the hard limit comes from Morpho's list, the closed soft limit must survive the worst five-year weekend gap, and the cost of selling a whole position plus the DEX gap must stay well under the liquidation bonus. Base longs and shorts both use our own Morpho markets (D-77) with `ChainlinkSessionOracle` (D-76). Not tested with user money.
+
+### Limits per stock
+
+| Stock | Hard limit (long and short) | Bonus | Soft, open | Soft, closed | Max long, open / closed | Max short, open / closed |
+|---|---|---|---|---|---|---|
+| MSFTc | 77% | 7.4% | 73% | 70% | 3.7x / 3.3x | 2.7x / 2.3x |
+| GOOGLc | 77% | 7.4% | 73% | 70% | 3.7x / 3.3x | 2.7x / 2.3x |
+| METAc | 77% | 7.4% | 72% | 68% | 3.6x / 3.1x | 2.6x / 2.1x |
+| AMZNc | 77% | 7.4% | 72% | 68% | 3.6x / 3.1x | 2.6x / 2.1x |
+| AAPLc | 77% | 7.4% | 70% | 66% | 3.3x / 2.9x | 2.3x / 1.9x |
+| TSLAc | 62.5% | 12.7% | 58% | 52% | 2.4x / 2.1x | 1.4x / 1.1x |
+| NVDAc | 62.5% | 12.7% | 58% | 50% | 2.4x / 2.0x | 1.4x / 1.0x |
+| SPCXc | 62.5% | 12.7% | 55% | 45% | 2.2x / 1.8x | 1.2x / 0.8x |
+
+Both 77% and 62.5% are enabled by Morpho on Base (verified onchain on 19 November 2026). The existing Coinbase stock markets on Morpho use 62.5%, and 77% for GOOGLc, so our 77% for five stocks is looser than other curators chose; the closed check below is what allows it.
+
+### Gap data and the closed check
+
+Weekend and holiday gaps from the daily close to the next open, 19 November 2021 to 19 November 2026, Yahoo Finance, with the BE-34 code (275 events per stock). The Coinbase feeds freeze from Friday 20:00 to Sunday 20:00 New York time (05), so the real oracle jump is the move between those two times. The close-to-open gap is used as a stand-in. Gaps on weekday nights are left out on purpose: the feeds keep writing through the overnight session.
+
+| Stock | Gaps over 2% | Worst drop | Worst rise | Long: soft closed after the worst drop | Short: soft closed after the worst rise | Safe |
+|---|---|---|---|---|---|---|
+| MSFT | 4.0% | -4.7% | +3.2% | 70% → 73.5% | 70% → 72.2% | Yes |
+| GOOGL | 9.5% | -6.7% | +5.3% | 70% → 75.0% | 70% → 73.7% | Yes |
+| META | 10.5% | -7.5% | +6.5% | 68% → 73.5% | 68% → 72.4% | Yes |
+| AMZN | 7.3% | -8.2% | +9.1% | 68% → 74.1% | 68% → 74.2% | Yes |
+| AAPL | 5.8% | -9.4% | +6.7% | 66% → 72.8% | 66% → 70.4% | Yes |
+| TSLA | 31.6% | -10.8% | +12.0% | 52% → 58.3% | 52% → 58.2% | Yes |
+| NVDA | 23.3% | -14.2% | +4.6% | 50% → 58.3% | 50% → 52.3% | Yes |
+| SPCX | 26.1% | -4.8% | +6.7% | 45% → 52.4% (with NVDA's -14.2%) | 45% → 48.0% | Yes |
+
+SPCX has only 23 weekend events since its listing in June 2026, too few to trust, so its limits assume NVDA's worst drop instead of its own. Revisit after a year of data.
+
+### Oracle ages and price bounds
+
+| Setting | Proposal | Why |
+|---|---|---|
+| `MAX_FEED_AGE` (hard, open clock) | 36 hours | The feeds write on a 0.5% move or a 24 hour heartbeat; the longest quiet gap seen on a weekday was 17.2 hours (05). A full-day US holiday can freeze the feed for about 24 hours on top of a quiet evening, and holidays count as open (D-76) |
+| `MAX_PUBLISH_AGE` (hard, closed clock) | 4 days | The weekly freeze is 48 hours; 4 days covers a holiday weekend with a day to spare, as on Monad (D-35) |
+| `maxOracleAge` (soft, to open a position) | 26 hours, bounds 2 to 36 hours | A heartbeat with 2 hours of margin. The oracle age poster may move it inside the bounds (D-31) |
+| `MIN_PRICE_E8`, `MAX_PRICE_E8` | One tenth and ten times the feed price at deployment | Catches a broken answer; wide enough for any market move. A split does not move the feed price, because the B20 multiplier absorbs it (05) |
+| `maxDeviationBps` (swap price against the oracle) | 200 for all, 300 for TSLAc and SPCXc | Measured on a weekday: up to 0.84% when buying and 1.32% when selling $50,000 through 1inch (05). Over a weekend the DEX moves while the feed stays frozen, so opens may be refused then; that is the soft layer doing its job |
+| `nextCloseAt` and the pre-close window | Friday 20:00 New York time, 4 hour window | The closed soft limit must apply before the Base feeds freeze, which is four hours later than the stock market close. The calendar poster posts a separate time for the Base `RiskManager` (BE-30) |
+
+### Position caps
+
+Rule as on Monad: selling the whole position, plus an unfavorable DEX gap, must stay well under the bonus. Selling through 1inch on 19 November 2026 cost (05):
+
+| Stock | Bonus | Sell $1,000 | Sell $10,000 | Sell $50,000 | Cap per position, initial proposal |
+|---|---|---|---|---|---|
+| MSFTc | 7.4% | 0.31% | 0.52% | 0.81% | $5,000 |
+| GOOGLc | 7.4% | 0.58% | 0.57% | 0.71% | $5,000 |
+| METAc | 7.4% | 0.60% | 0.62% | 0.83% | $5,000 |
+| AMZNc | 7.4% | 0.43% | 0.46% | 0.53% | $5,000 |
+| AAPLc | 7.4% | 0.28% | 0.33% | 0.44% | $5,000 |
+| TSLAc | 12.7% | 0.88% | 1.15% | 1.32% | $2,500 |
+| NVDAc | 12.7% | 0.57% | 0.61% | 0.69% | $2,500 |
+| SPCXc | 12.7% | 0.71% | 0.76% | 0.87% | $1,000 |
+
+The depth would allow far larger caps. They start small because the lending side starts small (D-70) and because a weekend gap adds to the cost a liquidator faces on Sunday evening. Caps go up only with measured depth and vault size.
+
+### Supply caps per market (USDC vault)
+
+$10,000 per long market for MSFTc, GOOGLc, METAc, AMZNc and AAPLc, $5,000 for TSLAc and NVDAc, $2,000 for SPCXc. The vault starts with about $200 of team seed (D-70), so these caps only bind once outside lenders arrive.
+
+### Risks specific to Base
+
+- The issuer, or the single key that runs transfer policy 5, can block or pause every Coinbase stock at once (T-21). Then closing and liquidating fail. No limit here can prevent it; small caps keep the loss small.
+- Over the weekend the token trades while the feed is frozen. Liquidations then use Friday's price, as on Monad.
+
 ## Requirements for adding a new stock
 
 A stock may be added if all of these are met:
