@@ -215,7 +215,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: the result per token is in 05 and Q-36 is answered. Tokens that block our contracts are not listed.
   - Note: done on 19 November 2026 on branch `sc/SC-71-b20-policy` (stacked on SC-73): all 8 stocks use policy 5, a blocklist, for all three transfer scopes, none is paused, and Morpho, the 1inch and Aerodrome routers and fresh addresses are authorized (05, Base). Q-36 answered, all 8 stay listed. The fork test is replaced by `packages/shared/b20-policy.live.test.ts`, because a local fork cannot run B20 precompiles: it reads the live node and moves each token through Morpho and every swap router with `eth_simulateV1` (32 checks pass). Policy 5 has a single key admin, recorded as T-21. Run the check again with our addresses after SC-76.
 
-- [~] **SC-72 · `ChainlinkSessionOracle`**
+- [x] **SC-72 · `ChainlinkSessionOracle`**
   - Needs: SC-70.
   - Do: an adapter behind `ISessionOracle` that reads the Coinbase Chainlink feed (8 decimals) and the registry pause flag, scales to our price units (03 section 1), and reports a frozen or halted market. Fuzz and fork tests. Update 04 and the product rule in CLAUDE.md (D-49) in the same PR.
   - Done when: ABI exported to `packages/shared/abis/`, tests pass on a Base fork, docs updated.
@@ -259,12 +259,13 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
 
-- [ ] **SC-80 · X Layer addresses and facts**
+- [x] **SC-80 · X Layer addresses and facts**
   - Needs: SC-73 for the shared package part.
   - Do: add an "X Layer" section to 05: Morpho core, IRM, vault factories, the xStocks markets (IDs, LLTV, oracle, which USDC they lend), every wrapped xStocks token, USDC native and USDC.e, Permit2, Multicall3, Safe. Add X Layer (196) to `packages/shared` chains, addresses and markets.
   - Done when: every address has code on X Layer, is in 05 with a read date, and the shared package builds.
+  - Note: done on 19 November 2026: 05 has an X Layer infrastructure table (Morpho core, IRM, oracle and Vault V2 factories, adapters, registry, public allocator, bundles, native USDC, a second USDC that may be USDC.e, USDT, WOKB, Permit2, Multicall3, Safe), all with code at block 76329283. `packages/shared` has chain 196 (`xlayer`), `xlayerExternal`, `xlayerTokens` and `xlayerStocks`; `morphoVaultFactory` is no longer a core key, because X Layer has no MetaMorpho factory. All 8 packages typecheck and test. Opened Q-44 (Earn vault on X Layer) and Q-45 (X Layer long markets).
 
-- [~] **SC-81 · xStocks oracle check**
+- [x] **SC-81 · xStocks oracle check**
   - Needs: SC-80.
   - Do: find who runs the `wNVDAx-USD (Calculated)` style feeds (aggregator owner, vendor docs), their heartbeat, deviation and weekend behaviour. Log a week of updates with BE-03's logger if needed. Check token transfer rules of the wrapped xStocks (denylist, pause) for Morpho, the router and the liquidator.
   - Done when: findings in 05 and Q-37 answered. If the feed is not an official one, raise it to the team before SC-82.

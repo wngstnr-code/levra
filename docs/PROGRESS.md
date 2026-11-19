@@ -181,6 +181,7 @@ One line for every change to 03 after the freeze.
 
 | Date | What changed | Who is affected | PR |
 |---|---|---|---|
+| 19 November 2026 | `packages/shared` gains X Layer (196, `xlayer`): `xlayerExternal`, `xlayerTokens`, `xlayerStocks`, `XLAYER_CHAIN_ID` (SC-80). `morphoVaultFactory` is no longer a key every chain has, since X Layer has no MetaMorpho factory; it stays on Monad and Base. Nothing used it through `externalByChain` | Dharu, Nabil | main (per the user) |
 | 19 November 2026 | `packages/shared` keyed by chain ID (D-60, SC-73): `chains.ts`, `externalByChain`, `tokensByChain`, `stocksByChain`, chain aware `listMarkets`. Added only; the Monad exports are unchanged. Merged as PR 84 without a recorded GitHub review from Dharu or Nabil, who agreed in person | Dharu, Nabil | sc/SC-73-chain-keyed-shared |
 | 13 October 2026 | Added section 4 "Signed messages": the terms acceptance text and the SIWE fields for alerts. Proposed, waiting for Dharu | Dharu, Nabil | fe/FE-50-55-m5-hardening |
 | 13 October 2026 | Added the source quote time: `feedUpdatedAt` in `ISessionOracle.snapshot()` and `ILens.MarketView`, `oracleFeedUpdatedAt` in `Market`, `feedUpdatedAt` in the `price` stream event (D-23) | All three | sprint/long-flow |
@@ -247,6 +248,8 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: Q-43 decided as D-77: Base longs use our own Morpho markets. SC-73 merged as PR 84. Per the user, SC-71, SC-72 and the SC-81 tests go straight to `main` instead of separate PRs.
 - Wangsit: the live B20 test broke `main` CI for one commit (viem refused an empty URL while the suite was skipped); fixed in `9842c80`, CI green again. SC-86 written: a full close through the router works with a stale oracle, partial closes and keeper reductions still need a fresh price. Dharu: `PositionReduced.oraclePriceE8` can now be 0 (03). The live Monad router keeps the old behaviour until it is redeployed.
 - Wangsit: D-76 agreed (Base oracle rules). Per the user, SC-86 goes straight to `main` without a second reader; a review is still owed before the Monad router is redeployed.
+- Wangsit: SC-80 done. X Layer (196) is in `packages/shared`; its Morpho, USDC (native, on Circle's list, CCTP domain 37) and infrastructure are in 05. Two findings open questions for all three: X Layer has no MetaMorpho factory, only Vault V2, so our Earn vault cannot be copied there (Q-44); and the existing X Layer long markets are big and incentivized, so D-77 is not automatic there (Q-45). Dharu and Nabil: `chains` now has `xlayer`; `morphoVaultFactory` moved out of the core keys (03).
+- Wangsit: D-78, Base first, X Layer after. Found that the router and liquidator accept one swap target only; D-79 makes it a small fixed set set at deployment, so 1inch and Aerodrome can both be used on Base without an admin allowlist.
 
 ### 12 November 2026
 
