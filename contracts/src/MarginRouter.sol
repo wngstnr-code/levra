@@ -23,7 +23,7 @@ import {SharesMathLib} from "morpho-blue/src/libraries/SharesMathLib.sol";
 import {IMarginRouter} from "./interfaces/IMarginRouter.sol";
 import {IRiskManager} from "./interfaces/IRiskManager.sol";
 import {ISessionOracle} from "./interfaces/ISessionOracle.sol";
-import {Side, Swap} from "./interfaces/Types.sol";
+import {Session, Side, Swap} from "./interfaces/Types.sol";
 
 /// Opens and closes leveraged stock positions in one transaction.
 /// Positions stay in the user's own Morpho account. This contract acts through the Morpho
@@ -381,7 +381,7 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
         c.repayAssets = c.shares.toAssetsUp(market.totalBorrowAssets, market.totalBorrowShares);
         c.withdrawAssets = p.withdrawAssets == type(uint256).max ? position.collateral : p.withdrawAssets;
 
-        uint256 ltvBefore = RISK.positionLtv(p.marketId, user);
+        uint256 ltvBefore = reason == REASON_USER ? _ltvOrMax(p.marketId, user) : RISK.positionLtv(p.marketId, user);
         if (side == Side.Long) {
             c.swapAmountIn = p.swapAmountIn == type(uint256).max ? c.withdrawAssets : p.swapAmountIn;
             if (c.swapAmountIn > c.withdrawAssets) revert InvalidParams();
@@ -415,7 +415,7 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
             c.repayAssets,
             returned,
             execPriceE8,
-            _oraclePriceE8(c.mp.oracle),
+            _oraclePriceE8OrZero(c.mp.oracle),
             fee,
             ltvAfter,
             c.reason,
@@ -443,7 +443,7 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
             c.repayAssets,
             returned,
             execPriceE8,
-            _oraclePriceE8(c.mp.oracle),
+            _oraclePriceE8OrZero(c.mp.oracle),
             fee,
             ltvAfter,
             c.reason,
@@ -535,6 +535,28 @@ contract MarginRouter is IMarginRouter, IMorphoFlashLoanCallback, Ownable2Step, 
 
     function _oraclePriceE8(address oracle) private view returns (uint256 priceE8) {
         (priceE8,,,,,,) = ISessionOracle(oracle).snapshot();
+    }
+
+    /// For the close event only: an oracle that cannot be read must not stop a close.
+    function _oraclePriceE8OrZero(address oracle) private view returns (uint256) {
+        try ISessionOracle(oracle).snapshot() returns (
+            uint256 priceE8, uint256, uint256, Session, uint64, uint64, bool
+        ) {
+            return priceE8;
+        } catch {
+            return 0;
+        }
+    }
+
+    /// A user close reads the LTV before it acts. If the oracle cannot price the position, the LTV
+    /// counts as unknown: a close that ends with no debt needs no price, as in Morpho itself, and a
+    /// close that leaves debt still reads the price afterwards and reverts there.
+    function _ltvOrMax(Id marketId, address user) private view returns (uint256) {
+        try RISK.positionLtv(marketId, user) returns (uint256 ltv) {
+            return ltv;
+        } catch {
+            return type(uint256).max;
+        }
     }
 
     function _checkDeadline(uint256 deadline) private view {
