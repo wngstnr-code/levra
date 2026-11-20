@@ -25,7 +25,7 @@ describe.skipIf(!onFork || !dbUrl)("team monitor on the fork (BE-50)", () => {
     await db
       .insert(keeperHeartbeats)
       .values({ chainId: 143, name: "transfers", lastBeatAt: new Date(Date.now() - 600_000), lastError: null })
-      .onConflictDoUpdate({ target: keeperHeartbeats.name, set: { lastBeatAt: new Date(Date.now() - 600_000), lastError: null } });
+      .onConflictDoUpdate({ target: [keeperHeartbeats.chainId, keeperHeartbeats.name], set: { lastBeatAt: new Date(Date.now() - 600_000), lastError: null } });
   });
   afterAll(async () => {
     await db.delete(keeperHeartbeats).where(eq(keeperHeartbeats.name, "transfers"));
