@@ -162,10 +162,10 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
   - Done when: there are no severe findings left unexplained; Dharu uses the gas numbers for the gas limits.
   - Note: `make slither` is clean with the reviewed settings in `slither.config.json`, and the reasons are in `contracts/README.md`. It led to two fixes: rounding in the `Lens` liquidation price and a reentrancy guard on `Liquidator.liquidate`. `make gas` gives the gas report and the numbers are in `contracts/README.md`. Still to do: run Slither in CI. Slither now runs in CI.
 
-- [ ] **SC-52 · Internal review**
+- [~] **SC-52 · Internal review**
   - Do: read all contracts line by line, using the threat list in 07 as a checklist. Ask Dharu to read as well, as a second pair of eyes.
   - Done when: each threat from T-01 to T-17 is marked "closed, see test X" or "cannot be closed by code, see Y".
-  - Note: on 20 November 2026 an automated high effort review of all of `contracts/src` found 8 issues, all fixed with tests (D-89, D-90; PROGRESS review notes). The threat list gained T-24. Still needed: a human second reader and the line by line pass over T-01 to T-24.
+  - Note: on 20 November 2026 an automated high effort review of all of `contracts/src` found 8 issues, all fixed with tests (D-89, D-90; PROGRESS review notes). The threat list gained T-24. Two more rounds followed (D-91 to D-93). On 20 November 2026 Dharu and Nabil read `contracts/src` as the human second readers and reported no findings (reported by Wangsit; no written notes). Still needed for "Done when": the line by line pass that marks each threat T-01 to T-24 in 07 as closed by a test or not closable by code.
 
 - [ ] **SC-53 · Audit preparation**
   - Needs: SC-50, SC-52, X-13.
