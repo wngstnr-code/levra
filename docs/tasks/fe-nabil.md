@@ -308,3 +308,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: short, calm transitions (sheets, number changes, tab changes) that respect reduced motion.
   - Done when: no animation blocks input or runs longer than 300 ms, and reduced motion turns them off.
   - Note: done on 20 November 2026 (`fe/FE-89-e-motion`): pages ease in (220 ms), money values fade when they change (250 ms), sheets slide in; an end-to-end test checks that reduced motion turns them off.
+
+- [x] **FE-90 · Next.js security upgrade**
+  - Do: move off Next.js 16.4.0, which the build flags for known security issues, and patch vulnerable packages under the web app.
+  - Done when: the build shows no security warning, and typecheck, lint, unit and end-to-end tests pass.
+  - Note: done on 20 November 2026 (`fe/FE-90-next-security`): Next.js and eslint-config-next 16.4.6; root `pnpm.overrides` patch ws 8, follow-redirects 1 and zod 4 within their major. Still open (need a major jump in Privy's dependencies): uuid 9, decode-uri-component 0.2 and zod 3.
