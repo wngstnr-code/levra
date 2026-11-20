@@ -52,6 +52,7 @@ Common infrastructure, confirmed to have code at the usual addresses:
 | Safe 1.4.1 L2 singleton | `0x29fcB43b46531BcA003ddC8FCB67FFE91900C762` |
 | Safe 1.4.1 proxy factory | `0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67` |
 | Safe app and transaction service | Monad mainnet is supported: `safe-config.safe.global` lists chain 143 with the transaction service `api.safe.global/tx-service/monad` (verified 13 October 2026) |
+| Team multisig (`Levra Team`) | `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069`, the same address on Base, X Layer and Monad, created on 20 November 2026 in the Safe app and activated on all three by Wangsit. Verified on chain on 20 November 2026 on all three: `getOwners()` = Wangsit `0x49d8ccbbf1c68f4133b860eA8d1FE76f6AD13488`, Dharu `0x5c4Face99DA96A1C8E10AbAcE75851f32C427A68`, Nabil `0xbf8a9a4F0f1547D109088C229DE55B3216658185`; `getThreshold()` = 2; `VERSION()` = 1.5.0 with singleton `0xEdd160fEBBD92E350D4D398fb636302fccd67C7e`; no modules, no guard, nonce 0. Each signer confirmed their own address. Safe supports all three chains (verified on 20 November 2026: `safe-config.safe.global` lists 8453, 196 and 143 with a transaction service). First multisig transaction on Base, signed by Wangsit and Nabil and executed by Wangsit on 20 November 2026: `0x49ce3befe4d95ff9371fd5d1601984391baa2ffd3c5b87fa7b198edd5c3b6926` (block 59857959, status success, Safe nonce now 1). Dharu's key has not signed a transaction yet |
 
 Flash loan room: Morpho held about 10.5 million idle USDC on 13 October 2026.
 

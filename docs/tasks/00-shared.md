@@ -22,6 +22,7 @@ Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Every task has 
   - Do: one development wallet per person with a little MON and USDC; a team treasury; a multisig on Monad with all three as signers.
   - Done when: each person has sent one real transaction on Monad mainnet, and the multisig address is in 05.
   - Note: Wangsit's deployer wallet has sent real transactions. Safe supports Monad mainnet (verified on 13 October 2026: its configuration service lists chain 143 with a transaction service), so the multisig can be created at app.safe.global. Still to do: wallet addresses from Dharu and Nabil, then a 2 of 3 Safe, then the handover (SC-55).
+  - Note: on 20 November 2026 the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3, Wangsit, Dharu, Nabil) was created and activated with the same address on Base, X Layer and Monad, verified on chain (05). A first transaction signed by Wangsit and Nabil ran on Base (`0x49ce3bef...6926`). Left: one transaction that Dharu signs, then it becomes `FEE_RECIPIENT` for the Base and X Layer deployments and the target of the SC-55 handover.
 
 - [x] **X-04 · Interface freeze** (driver: Dharu)
   - Needs: SC-03, BE-02, FE-04.
