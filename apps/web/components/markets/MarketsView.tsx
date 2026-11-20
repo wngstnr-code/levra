@@ -7,7 +7,7 @@ import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { buildMarketRows, type MarketRow } from "@/lib/marketRows";
 import { chartValues } from "@/lib/priceSeries";
-import { formatEastern, formatLocal } from "@/lib/time";
+import { formatLocal } from "@/lib/time";
 import { stockTone } from "@/lib/tones";
 import { formatBps, formatLeverage, formatUsd, formatWadPercent } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
@@ -23,6 +23,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { StatBox } from "../ui/StatBox";
 import { TokenIcon } from "../ui/TokenIcon";
 import { listedStocks } from "@/lib/chains";
+import { MarketClock } from "./MarketClock";
 import { useChain, useChainHref } from "@/lib/useChain";
 
 const DASH = "—";
@@ -46,8 +47,8 @@ export function MarketsView() {
           <h1 className="text-display text-[40px] leading-tight font-semibold">{m.markets.title}</h1>
           <p className="mt-2 text-[15px] text-fg-2">{m.markets.subtitle}</p>
         </div>
-        {next?.nextCloseAt && <p className="text-right text-[13px] text-fg-2">{m.markets.nextClose(formatEastern(next.nextCloseAt))}</p>}
       </div>
+      <MarketClock session={rows.find((r) => r.session)?.session ?? next?.session ?? null} info={next ?? null} />
 
       {!loading && nothing && oracle.isError ? (
         <Card className="flex items-center gap-4">
@@ -59,7 +60,7 @@ export function MarketsView() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-3">
-            {rows.map((row) => (loading || row.priceE8 === null ? <CardSkeleton key={row.stock.symbol} /> : <MarketCard key={row.stock.symbol} row={row} now={now} />))}
+            {rows.slice(0, 3).map((row) => (loading || row.priceE8 === null ? <CardSkeleton key={row.stock.symbol} /> : <MarketCard key={row.stock.symbol} row={row} now={now} />))}
           </div>
           <MarketsTable rows={rows} now={now} loading={loading} />
         </>

@@ -13,6 +13,11 @@ export const en = {
     balance: (v: string) => `Balance ${v}`,
     ago: (v: string) => `${v} ago`,
   },
+  clock: {
+    closesIn: (t: string) => `Closes in ${t}`,
+    opensIn: (t: string) => `Opens in ${t}`,
+    weekendNote: "Limits are lower until the market opens. Closing always works.",
+  },
   network: {
     title: "Network",
     pick: "Change network",
@@ -116,7 +121,6 @@ export const en = {
     legendCap: "Size limit: kept small while trading is thin.",
     readError: "Can't load prices. Your funds are safe.",
     limitsOffline: "Limits and rates show when Levra is online.",
-    nextClose: (t: string) => `Next close ${t}`,
   },
   trade: {
     title: "Trade",
