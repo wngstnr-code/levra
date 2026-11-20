@@ -61,6 +61,21 @@ test("an unknown page says so", async ({ page }) => {
   await expect(page.getByText("Page not found")).toBeVisible();
 });
 
+test("old links move to the Monad pages and the network picker lists the chains", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/markets");
+  await expect(page).toHaveURL(/\/monad\/markets$/);
+  await page.getByRole("button", { name: /Change network/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Network" });
+  await expect(sheet.getByRole("button", { name: /Monad/ })).toHaveAttribute("aria-current", "true");
+});
+
+test("an unknown network in the URL says the page does not exist", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/nowhere/markets");
+  await expect(page.getByText("Page not found")).toBeVisible();
+});
+
 test("the light theme is kept after a reload", async ({ page }) => {
   await mockService(page);
   await page.goto("/settings");
