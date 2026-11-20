@@ -54,6 +54,19 @@ describe.skipIf(!url)("router sync (needs TEST_DATABASE_URL)", () => {
     expect(await db.select().from(routerEvents)).toEqual(first);
   });
 
+  it("keeps each chain's rows and cursor apart, even for the same transaction hash", async () => {
+    const { source } = fakeSource(2_000n, [1_000n, 1_500n]);
+    await syncRouter(db, source, deployment);
+    const onBase = { ...deployment, chainId: 8453 } as Deployment;
+    const again = await syncRouter(db, fakeSource(2_000n, [1_000n, 1_500n]).source, onBase);
+    expect(again.inserted).toBe(2);
+    const rows = await db.select().from(routerEvents);
+    expect(rows.filter((r) => r.chainId === 143)).toHaveLength(2);
+    expect(rows.filter((r) => r.chainId === 8453)).toHaveLength(2);
+    const cursors = await db.select().from(syncCursors).where(eq(syncCursors.name, ROUTER_CURSOR));
+    expect(cursors.map((c) => c.chainId).sort()).toEqual([143, 8453]);
+  });
+
   it("stops when a source makes no progress instead of looping", async () => {
     const stuck: LogSource = { name: "hypersync", head: async () => 5_000n, logs: async (q) => ({ logs: [], nextBlock: q.fromBlock }) };
     expect(await syncRouter(db, stuck, deployment)).toMatchObject({ lastBlock: 999n, inserted: 0 });
