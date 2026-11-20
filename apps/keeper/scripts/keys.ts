@@ -1,70 +1,72 @@
 import { readDeployment } from "@levra/shared/deployments/node";
-import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { rename, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { ROLES, SET_ROLES_ENV, isRoleName, type RoleName } from "./roles";
 
 /**
- * Creates keeper keys and stores them straight in the keeper service's variables on Railway (BE-55). A private key is
- * never printed, written to a file or passed on a command line: it goes to the Railway CLI through stdin. Only the
- * addresses and the owner calls that grant the roles are printed.
+ * Creates keeper keys and writes each one as a secret file of the keeper on the VPS (BE-55, docs/hosting.md). A private
+ * key is never printed or passed on a command line. Only the addresses and the owner calls that grant the roles are
+ * printed. On the server it runs through deploy/keys.sh, which mounts the keeper's secrets folder at --dir.
  *
- *   tsx scripts/keys.ts ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY [--service keeper] [--replace] [--confirm]
+ *   tsx scripts/keys.ts --dir <secrets folder> ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY [--replace] [--confirm]
  *
  * Without --confirm it only shows what it would do. An existing key is kept unless --replace is given (rotation).
- * Needs DEPLOYMENT_FILE for the contract addresses and a Railway CLI linked to the project.
+ * Needs DEPLOYMENT_FILE for the contract addresses.
  */
 
-const RAILWAY = process.env.RAILWAY_BIN ?? "railway";
+export type KeysArgs = { dir: string; roles: RoleName[]; confirm: boolean; replace: boolean };
 
-function railway(args: string[], stdin?: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // A shell finds the npm shim on Windows; nothing secret is on the command line.
-    const child = spawn(RAILWAY, args, { shell: process.platform === "win32", stdio: ["pipe", "pipe", "pipe"] });
-    let out = "";
-    let err = "";
-    child.stdout.on("data", (d: Buffer) => (out += d.toString()));
-    child.stderr.on("data", (d: Buffer) => (err += d.toString()));
-    child.on("error", reject);
-    child.on("close", (code) => (code === 0 ? resolve(out) : reject(new Error(`railway ${args[0]} ${args[1] ?? ""} failed: ${err.trim()}`))));
-    child.stdin.end(stdin ?? "");
-  });
+export function parseKeysArgs(args: string[]): KeysArgs {
+  const dirAt = args.indexOf("--dir");
+  const dir = dirAt >= 0 ? args[dirAt + 1] : undefined;
+  if (!dir || dir.startsWith("--")) throw new Error("Name the secrets folder with --dir");
+  const names = args.filter((a, i) => !a.startsWith("--") && i !== dirAt + 1);
+  const unknown = names.filter((r) => !isRoleName(r));
+  if (names.length === 0 || unknown.length > 0) throw new Error(`Name one or more roles: ${Object.keys(ROLES).join(", ")}${unknown.length ? ` (unknown: ${unknown.join(", ")})` : ""}`);
+  return { dir, roles: names as RoleName[], confirm: args.includes("--confirm"), replace: args.includes("--replace") };
+}
+
+/** Writes the key readable by its owner only. A rotation writes a new file first, so a crash never leaves a half key. */
+export async function storeKey(dir: string, role: RoleName, key: string, replace: boolean): Promise<void> {
+  const path = join(dir, role);
+  if (!replace) {
+    await writeFile(path, key, { mode: 0o400, flag: "wx" });
+    return;
+  }
+  const next = `${path}.new`;
+  await writeFile(next, key, { mode: 0o400, flag: "wx" });
+  await rename(next, path);
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const confirm = args.includes("--confirm");
-  const replace = args.includes("--replace");
-  const serviceAt = args.indexOf("--service");
-  const service = serviceAt >= 0 ? args[serviceAt + 1]! : "keeper";
-  // The arguments reach a shell on Windows, so only plain names pass.
-  if (!/^[\w-]+$/.test(service)) throw new Error(`Not a service name: ${service}`);
-  const roles = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--service");
-  const unknown = roles.filter((r) => !isRoleName(r));
-  if (roles.length === 0 || unknown.length > 0) throw new Error(`Name one or more roles: ${Object.keys(ROLES).join(", ")}${unknown.length ? ` (unknown: ${unknown.join(", ")})` : ""}`);
+  const { dir, roles, confirm, replace } = parseKeysArgs(process.argv.slice(2));
+  if (!existsSync(dir)) throw new Error(`${dir} does not exist`);
   const deploymentFile = process.env.DEPLOYMENT_FILE;
   if (!deploymentFile) throw new Error("DEPLOYMENT_FILE is not set");
   const deployment = readDeployment(deploymentFile);
 
-  // Only the names are used; the values never leave this process.
-  const existing = new Set(Object.keys(JSON.parse(await railway(["variable", "list", "--service", service, "--json"])) as Record<string, string>).filter((k) => isRoleName(k)));
-
   const lines: string[] = [];
   const handover: string[] = [];
-  for (const role of roles as RoleName[]) {
-    if (existing.has(role) && !replace) {
-      lines.push(`${role}: already set on ${service}, kept (use --replace to rotate)`);
+  for (const role of roles) {
+    if (existsSync(join(dir, role)) && !replace) {
+      lines.push(`${role}: already in ${dir}, kept (use --replace to rotate)`);
       continue;
     }
     const key = generatePrivateKey();
     const address = privateKeyToAddress(key);
-    if (confirm) await railway(["variable", "set", role, "--stdin", "--service", service, "--skip-deploys"], key);
+    if (confirm) await storeKey(dir, role, key, replace);
     lines.push(`${role} (${ROLES[role].label}): ${address}${confirm ? "" : "  [dry run, nothing stored]"}`);
     lines.push(`  grant: ${ROLES[role].grant(deployment, address)}`);
     handover.push(`${SET_ROLES_ENV[role]}=${address}`);
   }
   console.log(lines.join("\n"));
-  if (handover.length > 0) console.log(`\nFor the owner (Wangsit): ${handover.join(" ")} make set-roles-monad CONFIRM=yes`);
-  console.log(confirm ? `\nStored on ${service} without a deploy. Grant the roles on chain (owner or multisig), fund each address with MON, then redeploy ${service}.` : "\nDry run. Add --confirm to create and store the keys.");
+  if (handover.length > 0) {
+    const grant = deployment.chainId === 143 ? "make set-roles-monad CONFIRM=yes" : "the grant calls above";
+    console.log(`\nFor the owner (Wangsit), chain ${deployment.chainId}: ${handover.join(" ")} ${grant}`);
+  }
+  console.log(confirm ? `\nStored in ${dir}. Grant the roles on chain (owner or multisig), fund each address with gas, then restart the keeper.` : "\nDry run. Add --confirm to create and store the keys.");
 }
 
-await main();
+if (process.argv[1]?.endsWith("keys.ts")) await main();
