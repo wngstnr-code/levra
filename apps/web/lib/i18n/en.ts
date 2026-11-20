@@ -13,6 +13,16 @@ export const en = {
     balance: (v: string) => `Balance ${v}`,
     ago: (v: string) => `${v} ago`,
   },
+  notices: {
+    ORACLE_STALE: { title: "Price delayed", body: "Wait for a fresh price to open." },
+    SESSION_CLOSED: { title: "Market closed", body: "New trades wait for the open. Closing always works." },
+    PRE_CLOSE_WINDOW: { title: "Weekend soon", body: "Limits are lower before the weekend." },
+    HIGH_DEVIATION: { title: "Price differs", body: "The exchange price is far from the real price." },
+    HIGH_PRICE_IMPACT: { title: "Big trade", body: "This size moves the price. Try a smaller amount." },
+    NEAR_SOFT_LIMIT: { title: "Near the limit", body: "You're close to the most you can borrow." },
+    POSITION_CAP: { title: "Size limit", body: "This is over the size limit for this stock." },
+    LOW_LIQUIDITY: { title: "Low liquidity", body: "Not much is available to borrow right now." },
+  },
   clock: {
     closesIn: (t: string) => `Closes in ${t}`,
     opensIn: (t: string) => `Opens in ${t}`,
