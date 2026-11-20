@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# First-time setup of a fresh Ubuntu 24.04 VPS for the backend (BE-90, docs/hosting.md). Run once as root:
+# First-time setup of a fresh Debian 13 (the netcup VPS, D-101) or Ubuntu 24.04 VPS for the backend (BE-90,
+# docs/hosting.md). Run once as root:
 #   LEVRA_SSH_KEYS_FROM=/root/.ssh/authorized_keys bash setup-server.sh
 # Keep the current SSH session open until a new login as levra works: this turns off password and root login.
 set -euo pipefail
 
 [ "$(id -u)" -eq 0 ] || { echo "Run as root." >&2; exit 1; }
 . /etc/os-release
-[ "$ID" = "ubuntu" ] || { echo "Written for Ubuntu 24.04, found $PRETTY_NAME." >&2; exit 1; }
+case "$ID ${VERSION_ID:-}" in
+  "debian 13" | "ubuntu 24.04") ;;
+  *) echo "Written for Debian 13 or Ubuntu 24.04, found $PRETTY_NAME." >&2; exit 1 ;;
+esac
+# Docker publishes one apt repository per distribution, named by the os-release ID.
+docker_repo="https://download.docker.com/linux/$ID"
 
 home=/opt/levra
 keys_from="${LEVRA_SSH_KEYS_FROM:-/root/.ssh/authorized_keys}"
@@ -28,9 +34,9 @@ EOF
 echo "== docker"
 if ! command -v docker >/dev/null; then
   install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  curl -fsSL "$docker_repo/gpg" -o /etc/apt/keyrings/docker.asc
   chmod a+r /etc/apt/keyrings/docker.asc
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" >/etc/apt/sources.list.d/docker.list
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $docker_repo ${VERSION_CODENAME} stable" >/etc/apt/sources.list.d/docker.list
   apt-get update
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
@@ -56,6 +62,11 @@ PermitRootLogin no
 EOF
 sshd -t
 systemctl reload ssh
+# The first value sshd reads wins, so a line in the provider's image could still allow passwords. Check what is in effect.
+effective=$(sshd -T)
+for want in "passwordauthentication no" "kbdinteractiveauthentication no" "permitrootlogin no"; do
+  grep -qx "$want" <<<"$effective" || { echo "sshd still does not have '$want'. Check /etc/ssh/sshd_config and sshd_config.d/." >&2; exit 1; }
+done
 
 echo "== firewall: 22, 80 and 443 only"
 # Docker publishes only Caddy's 80 and 443; Postgres has no published port.
