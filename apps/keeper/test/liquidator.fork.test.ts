@@ -1,7 +1,7 @@
 import { createDb, morphoEvents, runMigrations, syncCursors } from "@levra/db";
 import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
 import { external, tokens } from "@levra/shared/addresses";
-import { morphoAbi } from "@levra/shared/abis";
+import { liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
 import { stocks } from "@levra/shared/markets";
 import { eq } from "drizzle-orm";
 import pino from "pino";
@@ -51,16 +51,29 @@ describe.skipIf(!onFork || !dbUrl)("liquidator bot on the fork (BE-32)", () => {
 
   const position = async (who: Hex) => chain.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [market.marketId, who] });
 
-  it("liquidates a position pushed past the hard limit, leaves a healthy one alone, and keeps no tokens", { timeout: 300_000 }, async () => {
-    // About $740 of aQQQ each. 540 USDC is 73% LTV, close to the 77% limit; 300 USDC is far from it.
-    await openOnMorpho(chain, market.marketId, risky, parseUnits("1", 18), parseUnits("540", 6));
-    await openOnMorpho(chain, market.marketId, safe, parseUnits("1", 18), parseUnits("300", 6));
+  it("liquidates a position pushed past the hard limit after interest accrued, with a zero loss budget (BE-89), leaves a healthy one alone, and keeps no tokens", { timeout: 300_000 }, async () => {
+    // One aQQQ each, borrowing 73% of its oracle value (close to the 77% limit) and 40% (far from it). Sized from the
+    // oracle so the test does not depend on where QQQ trades on the day the fork is made.
+    const [priceE8] = await chain.readContract({ address: market.oracle, abi: sessionOracleAbi, functionName: "snapshot" });
+    const shareUsdc = priceE8 / 100n;
+    await openOnMorpho(chain, market.marketId, risky, parseUnits("1", 18), (shareUsdc * 73n) / 100n);
+    await openOnMorpho(chain, market.marketId, safe, parseUnits("1", 18), (shareUsdc * 40n) / 100n);
     await syncStream(db, rpcSource(client), deployment, morphoStream(deployment));
 
     const bot = createLiquidatorBot({ client, wallet, deployment, swap });
     const calm = (await bot.run(ctx)) as { borrowers: number; unhealthy: number };
     expect(calm).toMatchObject({ unhealthy: 0 });
     expect(calm.borrowers >= 2).toBe(true);
+
+    // Ten minutes pass with nobody touching the market, so Morpho's stored totals fall behind the interest owed. The
+    // liquidator has no loss budget, so a sizing from the stored totals that ends a wei short would revert LossTooLarge.
+    // Not longer: the KyberSwap route is built against real time and expires about 20 minutes after it is made.
+    const liquidator = deployment.liquidator!;
+    expect(await chain.readContract({ address: liquidator, abi: liquidatorAbi, functionName: "lossBudgetOf", args: [tokens.USDC.address] })).toBe(0n);
+    await chain.increaseTime({ seconds: 600 });
+    await chain.mine({ blocks: 1 });
+    const stored = await chain.readContract({ address: external.morpho, abi: morphoAbi, functionName: "market", args: [market.marketId] });
+    expect(Number(stored.lastUpdate) < Number((await chain.getBlock()).timestamp) - 500).toBe(true);
 
     // Push the QQQ price down 12% as the oracle operator.
     const oracle = external.anchoredStockOracle;
@@ -97,8 +110,8 @@ describe.skipIf(!onFork || !dbUrl)("liquidator bot on the fork (BE-32)", () => {
     expect(after.borrowShares < before.borrowShares).toBe(true);
     expect(after.collateral < before.collateral).toBe(true);
     expect((await position(safe)).collateral).toBe(parseUnits("1", 18));
+    expect(await chain.readContract({ address: liquidator, abi: liquidatorAbi, functionName: "lossBudgetOf", args: [tokens.USDC.address] })).toBe(0n);
 
-    const liquidator = deployment.liquidator!;
     for (const token of [tokens.USDC.address, tokens.aQQQ.address]) {
       expect(await chain.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [liquidator] })).toBe(0n);
     }
@@ -107,11 +120,12 @@ describe.skipIf(!onFork || !dbUrl)("liquidator bot on the fork (BE-32)", () => {
   it("liquidates a short pushed past the hard limit by buying the stock back", { timeout: 300_000 }, async () => {
     const short = deployment.markets.find((m) => m.symbol === "QQQ" && m.side === "short")!;
     const borrower = randomAddress();
-    // 1,000 USDC against one aQQQ share borrowed; the price was cut 12% above, so the share is about $650 now.
-    await openOnMorpho(chain, short.marketId, borrower, parseUnits("1000", 6), parseUnits("1", 18));
+    // One aQQQ share borrowed against USDC worth it at 70% LTV, sized from the oracle (the first test cut the price).
+    const [priceE8] = await chain.readContract({ address: short.oracle, abi: sessionOracleAbi, functionName: "snapshot" });
+    await openOnMorpho(chain, short.marketId, borrower, (priceE8 / 100n) * 100n / 70n, parseUnits("1", 18));
     await syncStream(db, rpcSource(client), deployment, morphoStream(deployment));
 
-    // Raise the price 25% from where the first test left it, so the debt passes 77% of the collateral.
+    // Raise the price 25%, so the debt goes from 70% to about 87% of the collateral, past the 77% limit.
     const oracle = external.anchoredStockOracle;
     const role = await chain.readContract({ address: oracle, abi: operatorAbi, functionName: "OPERATOR_ROLE" });
     const operator = await chain.readContract({ address: oracle, abi: operatorAbi, functionName: "getRoleMember", args: [role, 0n] });
