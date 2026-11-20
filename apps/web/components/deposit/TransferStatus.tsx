@@ -2,13 +2,12 @@
 
 import type { DepositStatus } from "@levra/shared/api";
 import { useDepositStatus } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
 import { formatToken } from "@/lib/units";
 import { ButtonLink } from "../ui/Button";
-import { useChainHref } from "@/lib/useChain";
+import { useChain, useChainHref } from "@/lib/useChain";
 
 type State = DepositStatus["status"];
 const rank: Record<State, number> = { WAITING: 0, PROCESSING: 1, SUCCESS: 2, REFUNDED: 2, FAILED: 2, EXPIRED: 2 };
@@ -18,6 +17,7 @@ const ARRIVES = { USDC: { decimals: 6, digits: 2 }, MON: { decimals: 18, digits:
 
 /** Follows one transfer: seen, processing, arrived, or how it ended. */
 export function TransferStatus({ id, kind, chainName, arrives = "USDC" }: { id: string; kind: "deposit" | "withdraw"; chainName: string; arrives?: keyof typeof ARRIVES }) {
+  const chain = useChain();
   const href = useChainHref();
   const m = useT();
   const status = useDepositStatus(id);
@@ -50,7 +50,7 @@ export function TransferStatus({ id, kind, chainName, arrives = "USDC" }: { id: 
                 {i === 0 && s?.originTxHash && <p className="text-[13px] break-all text-fg-2">{s.originTxHash}</p>}
                 {i === 1 && now && <p className="text-[13px] text-fg-2">{m.deposit.usually}</p>}
                 {i === 2 && s?.destinationTxHash && kind === "deposit" && (
-                  <a href={`${monad.blockExplorers.default.url}/tx/${s.destinationTxHash}`} target="_blank" rel="noreferrer" className="text-[13px] text-lilac">
+                  <a href={`${chain.explorer}/tx/${s.destinationTxHash}`} target="_blank" rel="noreferrer" className="text-[13px] text-lilac">
                     {s.amountOutRaw ? `${formatToken(s.amountOutRaw, ARRIVES[arrives].decimals, ARRIVES[arrives].digits)} ${arrives} · ` : ""}
                     {m.common.viewTx} ↗
                   </a>

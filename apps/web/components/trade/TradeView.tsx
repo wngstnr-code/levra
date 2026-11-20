@@ -1,16 +1,12 @@
 "use client";
 
 import type { SignatureInput } from "@levra/shared/api";
-import { tokens } from "@levra/shared/addresses";
-import { stocks } from "@levra/shared/markets";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 import { apiConfigured, queryKeys, useMarkets } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { describeError } from "@/lib/contractErrors";
-import { deployedMarket, deployment, stockOf } from "@/lib/deployment";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
@@ -32,22 +28,24 @@ import { OrderPanel, type ActionState } from "./OrderPanel";
 import { PriceCard } from "./PriceCard";
 import { QuoteDetailsSheet } from "./QuoteDetailsSheet";
 import { QuoteSummary } from "./QuoteSummary";
-import { useChainHref } from "@/lib/useChain";
+import { useChain, useChainHref } from "@/lib/useChain";
+import { deployedMarketOn, listedStocks, stockOn } from "@/lib/chains";
 
 
 type Side = "long" | "short";
-const USDC_DECIMALS = tokens.USDC.decimals;
 
 export function TradeView() {
+  const chain = useChain();
+  const USDC_DECIMALS = chain.usdc.decimals;
   const href = useChainHref();
   const m = useT();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const symbol = stockOf(search.get("symbol") ?? "") ? search.get("symbol")! : "QQQ";
-  const shortAvailable = deployedMarket(symbol, "short") !== null;
+  const symbol = stockOn(chain, search.get("symbol") ?? "") ? search.get("symbol")! : "QQQ";
+  const shortAvailable = deployedMarketOn(chain, symbol, "short") !== null;
   const side: Side = search.get("side") === "short" && shortAvailable ? "short" : "long";
-  const stock = stockOf(symbol)!;
+  const stock = stockOn(chain, symbol)!;
 
   const setParams = (next: Record<string, string>) => {
     const q = new URLSearchParams(search.toString());
@@ -79,11 +77,11 @@ export function TradeView() {
   const positionUsd = marginRaw ? (marginRaw * BigInt(leverageE2)) / 100n : 0n;
 
   const balance = useReadContract({
-    address: tokens.USDC.address,
+    address: chain.usdc.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
-    chainId: monad.id,
+    chainId: chain.id,
     query: { enabled: !!address, refetchInterval: 15_000 },
   });
 
@@ -138,7 +136,7 @@ export function TradeView() {
         setSignatures(sigs);
         return quote.refresh(sigs);
       },
-      guard: (tx) => guardRouterTx(tx, { router: deployment.router, action: side === "long" ? "openLong" : "openShort", marketId: market.marketId }),
+      guard: (tx) => guardRouterTx(tx, { router: chain.deployment.router, action: side === "long" ? "openLong" : "openShort", marketId: market.marketId }),
       invalidate: [queryKeys.account(address), queryKeys.history(address), queryKeys.markets],
     });
   };
@@ -160,10 +158,10 @@ export function TradeView() {
           <span className="sr-only">{m.trade.chooseStock}</span>
           <select
             value={symbol}
-            onChange={(e) => setParams({ symbol: e.target.value, ...(deployedMarket(e.target.value, "short") ? {} : { side: "long" }) })}
+            onChange={(e) => setParams({ symbol: e.target.value, ...(deployedMarketOn(chain, e.target.value, "short") ? {} : { side: "long" }) })}
             className="cursor-pointer bg-transparent text-[15px] font-semibold outline-none"
           >
-            {Object.values(stocks).map((s) => (
+            {listedStocks(chain).map((s) => (
               <option key={s.symbol} value={s.symbol} className="bg-surface-2">
                 {s.tokenSymbol} · {s.name}
               </option>

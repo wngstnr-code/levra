@@ -3,14 +3,15 @@
 import { useExportWallet, usePrivy } from "@privy-io/react-auth";
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { monad } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { useChain } from "@/lib/useChain";
 
 /** Only mounted when Privy is configured, because it uses Privy hooks. */
 export function WalletCard() {
+  const chain = useChain();
   const m = useT();
   const { user, logout } = usePrivy();
   const { exportWallet } = useExportWallet();
@@ -24,7 +25,7 @@ export function WalletCard() {
       {[
         [m.settings.signedInWith, method],
         [m.settings.address, address ? shortAddress(address) : "—"],
-        [m.settings.network, monad.name],
+        [m.settings.network, chain.name],
       ].map(([k, v]) => (
         <p key={k} className="flex py-1 text-sm">
           <span className="text-fg-2">{k}</span>

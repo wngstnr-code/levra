@@ -3,13 +3,13 @@
 import { useExportWallet, usePrivy } from "@privy-io/react-auth";
 import { useEffect, useState } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
-import { monad } from "@/lib/chain";
 import { shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { trackStep } from "@/lib/metrics";
 import { privyAppId } from "@/lib/privy";
 import { Balances } from "./Balances";
 import { Button } from "./ui/Button";
+import { useChain } from "@/lib/useChain";
 
 export function WalletButton() {
   const m = useT();
@@ -24,17 +24,18 @@ export function WalletButton() {
 }
 
 function PrivyWalletButton() {
+  const chain = useChain();
   const m = useT();
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { exportWallet } = useExportWallet();
   const { address, chainId, isConnected } = useAccount();
   const { switchChain, isPending: isSwitching, error: switchError } = useSwitchChain();
 
-  const onWrongChain = isConnected && chainId !== monad.id;
+  const onWrongChain = isConnected && chainId !== chain.id;
 
   useEffect(() => {
-    if (onWrongChain) switchChain({ chainId: monad.id });
-  }, [onWrongChain, switchChain]);
+    if (onWrongChain) switchChain({ chainId: chain.id });
+  }, [onWrongChain, switchChain, chain.id]);
 
   if (!ready) {
     return <span className="text-sm text-fg-3">{m.common.loading}</span>;
@@ -60,7 +61,7 @@ function PrivyWalletButton() {
 
   if (onWrongChain) {
     return (
-      <Button size="sm" variant="caution" onClick={() => switchChain({ chainId: monad.id })} disabled={isSwitching} title={switchError?.message}>
+      <Button size="sm" variant="caution" onClick={() => switchChain({ chainId: chain.id })} disabled={isSwitching} title={switchError?.message}>
         {isSwitching ? m.wallet.switching : m.wallet.switchToMonad}
       </Button>
     );

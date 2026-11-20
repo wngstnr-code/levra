@@ -8,7 +8,7 @@ import { WagmiProvider } from "wagmi";
 import { ComplianceProvider } from "@/components/gate/Compliance";
 import { PrivySignInProvider } from "@/components/SignIn";
 import { StreamSync } from "@/lib/api/stream";
-import { monad } from "@/lib/chain";
+import { defaultChain, webChains } from "@/lib/chains";
 import { privyAppId } from "@/lib/privy";
 import { useTheme } from "@/lib/theme";
 import { privyWagmiConfig, readOnlyWagmiConfig } from "@/lib/wagmi";
@@ -38,8 +38,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       config={{
         loginMethods: ["wallet", "email", "passkey"],
         appearance: { theme, walletChainType: "ethereum-only" },
-        defaultChain: monad,
-        supportedChains: [monad],
+        defaultChain: defaultChain.viem,
+        supportedChains: webChains.map((c) => c.viem),
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
       }}
     >

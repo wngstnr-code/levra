@@ -1,11 +1,11 @@
 "use client";
 
-import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
 import type { FlowState } from "@/lib/useTxFlow";
 import { Button } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
+import { useChain } from "@/lib/useChain";
 
 type Props = {
   title: string;
@@ -22,10 +22,11 @@ type Props = {
 };
 
 export function TxSheet({ title, state, sentences, signatures, approvals, confirmLabel, onConfirm, onClose, success }: Props) {
+  const chain = useChain();
   const m = useT();
   const open = state.phase !== "idle";
   const busy = state.phase === "signing" || state.phase === "approving" || state.phase === "wallet" || state.phase === "pending";
-  const explorer = state.hash ? `${monad.blockExplorers.default.url}/tx/${state.hash}` : null;
+  const explorer = state.hash ? `${chain.explorer}/tx/${state.hash}` : null;
 
   return (
     <Sheet open={open} onClose={busy ? () => {} : onClose} title={state.phase === "success" ? m.tx.successTitle : state.phase === "error" ? m.tx.errorTitle : title}>

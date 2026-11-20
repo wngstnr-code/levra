@@ -1,21 +1,21 @@
 "use client";
 
-import { tokens } from "@levra/shared/addresses";
 import { erc20Abi, type Address } from "viem";
 import { useBalance, useReadContract } from "wagmi";
-import { monad } from "@/lib/chain";
 import { formatUnitsFixed } from "@/lib/format";
+import { useChain } from "@/lib/useChain";
 
 const REFRESH_MS = 15_000;
 
 export function Balances({ address }: { address: Address }) {
-  const mon = useBalance({ address, chainId: monad.id, query: { refetchInterval: REFRESH_MS } });
+  const chain = useChain();
+  const mon = useBalance({ address, chainId: chain.id, query: { refetchInterval: REFRESH_MS } });
   const usdc = useReadContract({
-    address: tokens.USDC.address,
+    address: chain.usdc.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [address],
-    chainId: monad.id,
+    chainId: chain.id,
     query: { refetchInterval: REFRESH_MS },
   });
 
@@ -23,11 +23,11 @@ export function Balances({ address }: { address: Address }) {
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
       <dt className="text-fg-2">USDC</dt>
       <dd className="text-right tabular-nums">
-        <BalanceValue value={usdc.data} decimals={tokens.USDC.decimals} isError={usdc.isError} />
+        <BalanceValue value={usdc.data} decimals={chain.usdc.decimals} isError={usdc.isError} />
       </dd>
       <dt className="text-fg-2">MON</dt>
       <dd className="text-right tabular-nums">
-        <BalanceValue value={mon.data?.value} decimals={monad.nativeCurrency.decimals} isError={mon.isError} />
+        <BalanceValue value={mon.data?.value} decimals={chain.viem.nativeCurrency.decimals} isError={mon.isError} />
       </dd>
     </dl>
   );

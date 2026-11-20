@@ -1,16 +1,13 @@
 "use client";
 
-import { tokens } from "@levra/shared/addresses";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useBalance, useReadContract } from "wagmi";
 import { apiConfigured, queryKeys, useAccountData, useMarkets } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
-import { stockOf } from "@/lib/deployment";
 import { formatToken, formatUsd, formatUsdSigned } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
 import { PreCloseCard } from "../protection/PreCloseCard";
@@ -27,9 +24,11 @@ import { StatBox } from "../ui/StatBox";
 import { HistoryList } from "./HistoryList";
 import { ManageSheet } from "./ManageSheet";
 import { PositionCard, type ManageTab } from "./PositionCard";
-import { useChainHref } from "@/lib/useChain";
+import { useChain, useChainHref } from "@/lib/useChain";
+import { stockOn } from "@/lib/chains";
 
 export function PositionsView() {
+  const chain = useChain();
   const href = useChainHref();
   const m = useT();
   const router = useRouter();
@@ -40,8 +39,8 @@ export function PositionsView() {
   const signIn = useSignIn();
   const account = useAccountData(address);
   const [manage, setManage] = useState<{ marketId: string; tab: ManageTab } | null>(null);
-  const usdc = useReadContract({ address: tokens.USDC.address, abi: erc20Abi, functionName: "balanceOf", args: address ? [address] : undefined, chainId: monad.id, query: { enabled: !!address } });
-  const mon = useBalance({ address, chainId: monad.id, query: { enabled: !!address } });
+  const usdc = useReadContract({ address: chain.usdc.address, abi: erc20Abi, functionName: "balanceOf", args: address ? [address] : undefined, chainId: chain.id, query: { enabled: !!address } });
+  const mon = useBalance({ address, chainId: chain.id, query: { enabled: !!address } });
   const managed = account.data?.positions.find((p) => p.marketId === manage?.marketId) ?? null;
   const protection = useProtection(address);
   const markets = useMarkets();
@@ -124,7 +123,7 @@ export function PositionsView() {
             </span>
           }
         >
-          {m.preClose.bannerBody(`${stockOf(p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`)}
+          {m.preClose.bannerBody(`${stockOn(chain, p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`)}
         </Banner>
       ))}
 
@@ -148,7 +147,7 @@ export function PositionsView() {
                 user={address}
                 marketId={p.marketId}
                 on={protection.isOn(p.marketId) ?? p.protection}
-                name={`${stockOf(p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`}
+                name={`${stockOn(chain, p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`}
                 invalidate={[protection.queryKey, queryKeys.account(address)]}
               />
             }

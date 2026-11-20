@@ -2,7 +2,6 @@
 
 import type { Position } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
-import { stockOf } from "@/lib/deployment";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { formatBps, formatToken, formatUsd, formatUsdSigned, formatWadPercent, wadRatio } from "@/lib/units";
@@ -12,12 +11,15 @@ import { Card } from "../ui/Card";
 import { Ring } from "../ui/Ring";
 import { StatBox } from "../ui/StatBox";
 import { TokenIcon } from "../ui/TokenIcon";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 
 export type ManageTab = "add" | "remove" | "repay" | "reduce" | "close";
 
 export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { p: Position; onManage: (tab: ManageTab) => void; protectionControl: React.ReactNode; openSoftWad?: string }) {
+  const chain = useChain();
   const m = useT();
-  const stock = stockOf(p.symbol);
+  const stock = stockOn(chain, p.symbol);
   const long = p.side === "long";
   const ltvShare = wadRatio(p.ltvWad, p.lltvWad);
   const tone = p.overSoftLimit ? (ltvShare > 0.95 ? "down" : "caution") : "up";

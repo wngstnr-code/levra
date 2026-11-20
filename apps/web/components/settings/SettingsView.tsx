@@ -1,11 +1,8 @@
 "use client";
 
 import { morphoAbi } from "@levra/shared/abis";
-import { external } from "@levra/shared/addresses";
 import { useAccount, useReadContract } from "wagmi";
 import { queryKeys, useMarkets } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
-import { deployment, stockOf } from "@/lib/deployment";
 import { useT } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { formatWadPercent } from "@/lib/units";
@@ -21,6 +18,8 @@ import { ThemeSwitch } from "../theme/ThemeSwitch";
 import { TokenIcon } from "../ui/TokenIcon";
 import { AlertsCard } from "./AlertsCard";
 import { WalletCard } from "./WalletCard";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 
 export function SettingsView() {
   const m = useT();
@@ -53,6 +52,7 @@ export function SettingsView() {
 }
 
 function ProtectionCard({ user }: { user: `0x${string}` }) {
+  const chain = useChain();
   const m = useT();
   const protection = useProtection(user);
   const markets = useMarkets();
@@ -80,8 +80,8 @@ function ProtectionCard({ user }: { user: `0x${string}` }) {
           </div>
         ))}
       </div>
-      {deployment.markets.map((mk) => {
-        const stock = stockOf(mk.symbol);
+      {chain.deployment.markets.map((mk) => {
+        const stock = stockOn(chain, mk.symbol);
         const api = markets.data?.markets.find((x) => x.marketId === mk.marketId);
         const name = m.protection.market(stock?.tokenSymbol ?? mk.symbol, mk.side === "long" ? m.trade.long : m.trade.short);
         return (
@@ -100,14 +100,15 @@ function ProtectionCard({ user }: { user: `0x${string}` }) {
 }
 
 function AuthorizationCard({ user }: { user: `0x${string}` }) {
+  const chain = useChain();
   const m = useT();
   const flow = useTxFlow();
-  const auth = useReadContract({ address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router], chainId: monad.id });
+  const auth = useReadContract({ address: chain.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, chain.deployment.router], chainId: chain.id });
   const on = auth.data === true;
   const run = () =>
     void flow.runDirect({
       account: user,
-      call: { address: external.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, !on] },
+      call: { address: chain.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [chain.deployment.router, !on] },
       invalidate: [auth.queryKey, queryKeys.account(user)],
     });
   return (

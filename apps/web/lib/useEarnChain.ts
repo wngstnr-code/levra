@@ -1,12 +1,11 @@
 "use client";
 
 import { morphoAbi } from "@levra/shared/abis";
-import { external, tokens } from "@levra/shared/addresses";
 import { toAssetsDown } from "@levra/shared/math";
 import { erc20Abi, erc4626Abi, zeroAddress, type Address, type Hex } from "viem";
 import { useReadContracts } from "wagmi";
-import { monad } from "./chain";
-import { deployment, stockOf } from "./deployment";
+import { stockOn } from "./chains";
+import { useChain } from "./useChain";
 
 export type MarketParams = { loanToken: Address; collateralToken: Address; oracle: Address; irm: Address; lltv: bigint };
 
@@ -24,36 +23,37 @@ export type EarnChainOption = {
   user: { suppliedRaw: bigint; withdrawableRaw: bigint; shares: bigint; walletRaw: bigint; allowanceRaw: bigint } | null;
 };
 
-/** Stock lending happens in the short markets, where the stock is the loan token. */
-const lendingMarkets = deployment.markets.filter((m) => m.side === "short");
-const vault = deployment.usdcVault ?? null;
 
 /**
  * Totals and the user's own deposits, read straight from the vault and Morpho.
  * This keeps lending and withdrawing possible even when the Levra service is offline (D-07).
  */
 export function useEarnChain(user: Address | undefined) {
+  const chain = useChain();
+  /** Stock lending happens in the short markets, where the stock is the loan token. */
+  const lendingMarkets = chain.deployment.markets.filter((m) => m.side === "short");
+  const vault = chain.deployment.usdcVault ?? null;
   const who = user ?? zeroAddress;
   const vaultCalls = vault
     ? ([
         { address: vault, abi: erc4626Abi, functionName: "totalAssets" },
         { address: vault, abi: erc4626Abi, functionName: "balanceOf", args: [who] },
         { address: vault, abi: erc4626Abi, functionName: "maxWithdraw", args: [who] },
-        { address: tokens.USDC.address, abi: erc20Abi, functionName: "balanceOf", args: [who] },
-        { address: tokens.USDC.address, abi: erc20Abi, functionName: "allowance", args: [who, vault] },
+        { address: chain.usdc.address, abi: erc20Abi, functionName: "balanceOf", args: [who] },
+        { address: chain.usdc.address, abi: erc20Abi, functionName: "allowance", args: [who, vault] },
         { address: vault, abi: erc4626Abi, functionName: "totalSupply" },
       ] as const)
     : [];
   const marketCalls = lendingMarkets.flatMap((mk) => [
-    { address: external.morpho, abi: morphoAbi, functionName: "market", args: [mk.marketId] } as const,
-    { address: external.morpho, abi: morphoAbi, functionName: "position", args: [mk.marketId, who] } as const,
-    { address: external.morpho, abi: morphoAbi, functionName: "idToMarketParams", args: [mk.marketId] } as const,
+    { address: chain.morpho, abi: morphoAbi, functionName: "market", args: [mk.marketId] } as const,
+    { address: chain.morpho, abi: morphoAbi, functionName: "position", args: [mk.marketId, who] } as const,
+    { address: chain.morpho, abi: morphoAbi, functionName: "idToMarketParams", args: [mk.marketId] } as const,
     { address: mk.loanToken, abi: erc20Abi, functionName: "balanceOf", args: [who] } as const,
-    { address: mk.loanToken, abi: erc20Abi, functionName: "allowance", args: [who, external.morpho] } as const,
+    { address: mk.loanToken, abi: erc20Abi, functionName: "allowance", args: [who, chain.morpho] } as const,
   ]);
 
   const query = useReadContracts({
-    contracts: [...vaultCalls, ...marketCalls].map((c) => ({ ...c, chainId: monad.id })),
+    contracts: [...vaultCalls, ...marketCalls].map((c) => ({ ...c, chainId: chain.id })),
     query: { refetchInterval: 20_000 },
   });
 
@@ -70,8 +70,8 @@ export function useEarnChain(user: Address | undefined) {
       id: "vault",
       kind: "vault",
       symbol: "USDC",
-      token: tokens.USDC.address,
-      decimals: tokens.USDC.decimals,
+      token: chain.usdc.address,
+      decimals: chain.usdc.decimals,
       target: vault,
       marketId: null,
       marketParams: null,
@@ -88,7 +88,7 @@ export function useEarnChain(user: Address | undefined) {
     const market = ok<{ totalSupplyAssets: bigint; totalSupplyShares: bigint; totalBorrowAssets: bigint }>(base);
     const position = ok<{ supplyShares: bigint }>(base + 1);
     const params = ok<MarketParams>(base + 2);
-    const stock = stockOf(mk.symbol);
+    const stock = stockOn(chain, mk.symbol);
     if (!market || !stock) return;
     const supplied = position && market.totalSupplyShares > 0n ? toAssetsDown(position.supplyShares, market.totalSupplyAssets, market.totalSupplyShares) : 0n;
     const liquidity = market.totalSupplyAssets - market.totalBorrowAssets;
@@ -98,7 +98,7 @@ export function useEarnChain(user: Address | undefined) {
       symbol: stock.tokenSymbol,
       token: mk.loanToken,
       decimals: stock.decimals,
-      target: external.morpho,
+      target: chain.morpho,
       marketId: mk.marketId,
       marketParams: params,
       totalSuppliedRaw: market.totalSupplyAssets,

@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { apiConfigured, useMarketDetail } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
-import { deployedMarket, stockOf } from "@/lib/deployment";
 import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { stockTone } from "@/lib/tones";
@@ -24,18 +23,20 @@ import { Ring } from "../ui/Ring";
 import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
 import { TokenIcon } from "../ui/TokenIcon";
-import { useChainHref } from "@/lib/useChain";
+import { useChain, useChainHref } from "@/lib/useChain";
+import { deployedMarketOn, stockOn } from "@/lib/chains";
 
 const DASH = "—";
 
 export function MarketDetailView({ symbol }: { symbol: string }) {
+  const chain = useChain();
   const href = useChainHref();
   const m = useT();
-  const stock = stockOf(symbol)!;
+  const stock = stockOn(chain, symbol)!;
   const detail = useMarketDetail(symbol);
   const oracle = useOracleSnapshots();
   const now = useNowSeconds();
-  const hasShort = deployedMarket(symbol, "short") !== null;
+  const hasShort = deployedMarketOn(chain, symbol, "short") !== null;
   const [side, setSide] = useState<"long" | "short">("long");
   const market = detail.data?.markets.find((x) => x.side === side) ?? null;
   const snap = oracle.snapshots[symbol];
@@ -162,8 +163,9 @@ function OracleCard({ market, now, history }: { market: Market; now: number; his
 }
 
 function LendingCard({ market, symbol }: { market: Market; symbol: string }) {
+  const chain = useChain();
   const m = useT();
-  const stock = stockOf(symbol)!;
+  const stock = stockOn(chain, symbol)!;
   const fmt = (raw: string) => (market.side === "long" ? `${formatUsd(raw, 0)} USDC` : `${formatToken(raw, stock.decimals, 2)} ${stock.tokenSymbol}`);
   return (
     <Card className="flex flex-col gap-4">
