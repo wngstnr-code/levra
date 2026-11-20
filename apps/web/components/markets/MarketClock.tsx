@@ -9,7 +9,7 @@ import { useNowSeconds } from "@/lib/useNow";
 import { LevraIcon } from "../icons/LevraIcon";
 import { Card } from "../ui/Card";
 
-const labelColor: Record<SessionName, string> = { REGULAR: "text-up", PRE_MARKET: "text-caution", POST_MARKET: "text-caution", OVERNIGHT: "text-lilac-text", CLOSED: "text-fg-3", UNKNOWN: "text-fg-3" };
+const labelColor: Record<SessionName, string> = { REGULAR: "text-up!", PRE_MARKET: "text-caution!", POST_MARKET: "text-caution!", OVERNIGHT: "text-lilac-text!", CLOSED: "text-fg-3", UNKNOWN: "text-fg-3" };
 const segColor: Record<string, string> = { PRE_MARKET: "bg-butter", REGULAR: "bg-up", POST_MARKET: "bg-butter", OVERNIGHT: "bg-peri" };
 
 /** The US session as a day bar with a countdown to the next weekly close or open. */
@@ -25,7 +25,7 @@ export function MarketClock({ session, info }: { session: SessionName | null; in
   return (
     <Card className="flex flex-col gap-5 md:flex-row md:items-center md:gap-8">
       <div className="min-w-[200px]">
-        <p className={cn("label-caps", session && `!${labelColor[session]}`)}>{session ? m.session[session] : m.common.loading}</p>
+        <p className={cn("label-caps", session && labelColor[session])}>{session ? m.session[session] : m.common.loading}</p>
         <p className="text-display mt-1 text-[26px] font-semibold tabular-nums">{countdown ?? "—"}</p>
       </div>
       {!closed && (
