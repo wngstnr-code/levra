@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`.
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. New folders from the plan below (`deploy/`, `packages/swap`) join this list in the PR that creates them.
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -13,6 +13,119 @@ Three rules for the backend:
 1. The backend never holds user keys and never sends transactions on behalf of a user.
 2. If an outside service is down, answer with a clear error. Never give an approximate number.
 3. The source of truth is the chain. The database is only a copy, to make things faster and to keep history.
+
+---
+
+## Execution plan (20 November to 6 December 2026)
+
+Written on 20 November 2026, after Railway stopped (D-94). It puts every open backend task in one order, so the backend never holds up Wangsit or Nabil and never works in their areas. Dates follow D-58. When a date slips, change this section and write it in the daily log the same day. Hosting design: [`docs/hosting.md`](../hosting.md).
+
+### Team dates and what the backend owes for each
+
+| Date | Team goal (D-58) | Backend ready by then |
+|---|---|---|
+| 21 November | Backend back online without Railway | Monad API, indexer and keeper on the VPS (BE-90, BE-91) |
+| 23 November | Base and X Layer deployments unblocked | BE-92, BE-93, BE-94, and the Base and X Layer keeper addresses (BE-55) |
+| 26 November | Long on Base live | Chain routes (BE-70), Base long quotes (BE-72), indexer and keeper on Base (BE-73), Builder Codes (BE-74), liquidation margin (BE-89) |
+| 27 November | First Base weekly close, 20:00 New York time (Saturday 08:00 WIB) | Base calendar post (BE-30), keeper reduction sizing (BE-88) |
+| 1 December | Short and Earn on Base | Base short quotes and Earn data (BE-72), pause monitor (BE-75), stats (BE-79) |
+| 3 December | X Layer live | X Layer quotes (BE-81), indexer and keeper (BE-80), TapeOut circuits and PnL proofs (BE-82 to BE-86) |
+| 4 December | Base submission (X-34) | Stats, transaction hashes, the list of backend work done since 5 November |
+| 6 December | OKX submission (X-37) | Circuit and proof addresses, the list of backend work done since 16 October |
+
+26 November is Thanksgiving: the US market is closed, and the Base feeds may not write that day (BE-97 checks it). The first public Base trade should not depend on a fresh price that day.
+
+### Day by day
+
+Priority: P0 is on the path to a team date, P1 is needed for a submission, P2 only if time allows. If a day slips, drop P2 first, then move P1. Never move a P0 without telling Wangsit and Nabil.
+
+| Day | Tasks | Priority | Done at the end of the day |
+|---|---|---|---|
+| Fri 20 Nov | This plan and D-94. Order the VPS. BE-91 step 1 (read what Railway still has). Start the `deploy/` files on `be/BE-90-vps` | P0 | Plan in the docs; the Railway export done, or known to be impossible |
+| Sat 21 Nov | BE-90, BE-91, the BE-55 key script for the VPS, first backup on the VPS (BE-53). Answer Q-40 (BE-82) | P0 | `/v1/status` green on the new address; the address sent to Nabil |
+| Sun 22 Nov | BE-92, BE-93. The BE-70 proposal in 03 sent to Nabil. Base and X Layer role keys made on the VPS, addresses sent to Wangsit (BE-55) | P0 | Two blocker rows for Wangsit closed (limits check, gap rows) |
+| Mon 23 Nov | BE-94 (morning), BE-95 | P0 | Review notes with Wangsit; Monad runs with `chain_id` |
+| Tue 24 Nov | BE-97 on Base and X Layer, BE-89, BE-70 build (after Nabil agrees) | P0 | Feeds recording before Thanksgiving; chain routes live with Monad aliases |
+| Wed 25 Nov | BE-96 (interface, KyberSwap, 1inch), BE-72 long, BE-74. BE-52 if the domain exists | P0 | Base long quotes pass a live simulation |
+| Thu 26 Nov | BE-73 with the Base deployment file (SC-76), BE-30 for Chainlink chains. I-B1 with Wangsit and Nabil | P0 | A real long on Base through the web app, hashes in PROGRESS |
+| Fri 27 Nov | BE-88 (before the close), BE-96 (Aero), BE-98 if SC-87 has run | P0 | The protector can act on Base |
+| Sat 28 Nov | BE-72 short and Earn, BE-75 | P0 | Base short quotes and Earn data on the live chain |
+| Sun 29 Nov | BE-79, BE-82, BE-81 | P1 | Stats live for FE-75; TapeOut facts in 05; X Layer quotes on a fork |
+| Mon 30 Nov | BE-80 (with the X Layer deployment file when SC-83 lands), BE-77 | P1 | X Layer in the API; agent routes proposed in 03 |
+| Tue 1 Dec | Base short and Earn live with SC and FE. BE-83, BE-86 | P1 | Circuits tested against `math.ts` and `calendar.ts` |
+| Wed 2 Dec | BE-84, BE-80 live, BE-77 prepared actions for FE-77 | P1 | A PnL proof posted from a real close |
+| Thu 3 Dec | I-X1 with Wangsit and Nabil. Buffer | P1 | X Layer live, hashes in PROGRESS |
+| Fri 4 Dec | Support X-34 (numbers, hashes, work list). BE-78 if time | P1, P2 | Base submission received |
+| Sat 5 Dec | Buffer. Support the OKX video | P1 | |
+| Sun 6 Dec | Support X-37 | P1 | OKX submission received |
+| From 7 Dec | BE-76, BE-85, BE-54, BE-60, the BE-53 and BE-55 drills, and BE-52 if it is not done | P2 now, P0 before launch | |
+
+BE-87 is not planned for this round: its own rule is "only if time allows before 3 December 2026", and the days above have no room.
+
+### What the backend needs from others
+
+| What | From | Needed by | For |
+|---|---|---|---|
+| The domain (Q-25) and access to its DNS | Nabil | 24 November | A stable API address (BE-90) and the US block on Base (BE-52, D-73) |
+| Agreement on the chain routes proposal in 03 | Nabil | 23 November | BE-70 |
+| `NEXT_PUBLIC_API_URL` set to the VPS address | Nabil | Right after BE-90 | The web app has no backend until then |
+| The Base Builder Code added to the Base transactions the web app builds itself (Earn, D-07) | Nabil | 26 November | BE-74 |
+| A read-only deploy key on the repo for the VPS (repo admin) | Wangsit | 21 November (SSH agent forwarding works until then) | BE-90 |
+| Team keys for the 1inch Swap API and the OKX DEX API, put straight into the VPS secret files | Wangsit | 25 November (1inch), 29 November (OKX) | BE-96, BE-81 |
+| Base deployment file, with our keeper addresses in the roles | Wangsit | 26 November (SC-76) | BE-72 final test, BE-73 |
+| X Layer deployment file, the same | Wangsit | 30 November (SC-83) | BE-80 |
+| The new Monad router, and the keeper role for the protector on it | Wangsit | After BE-94 (SC-87) | BE-98 |
+| ETH on Base and OKB on X Layer for the role keys; OKB for TapeOut transistors and proofs | All three (X-31, X-35) | With SC-76 and SC-83; 29 November for TapeOut | BE-73, BE-80, BE-82, BE-84 |
+
+### What the backend gives others
+
+| What | To | By | Task |
+|---|---|---|---|
+| The new API address | Nabil | 21 November | BE-90 |
+| Base and X Layer limits checked against `math.ts` | Wangsit | 22 November | BE-92 |
+| Gap rows for the Base and X Layer stocks | Wangsit | 22 November | BE-93 |
+| Keeper addresses for Base and X Layer, four per chain | Wangsit | 22 November | BE-55 |
+| Chain routes proposal in 03 | Nabil | 22 November | BE-70 |
+| Written review of the router, liquidator and swap target changes | Wangsit | 23 November | BE-94 |
+| Base long quotes | Nabil | 25 November | BE-72 |
+| `nextCloseAt` posts for Base and X Layer | Wangsit | Before the first Friday close after each deployment | BE-30 |
+| Base short quotes and Earn data | Nabil | 28 November | BE-72 |
+| TapeOut facts for the DeWEB mirror | Nabil | 29 November | BE-82 |
+| Stats endpoint | Nabil | 29 November | BE-79 |
+| X Layer quotes | Nabil | 1 December | BE-81, BE-80 |
+| Circuit addresses and IDs, proof format | Nabil, Wangsit (SC-85) | 2 December | BE-83, BE-84, BE-86 |
+| Prepared agent actions for signing in the app | Nabil | 2 December | BE-77 |
+
+### Dharu's items outside the code
+
+| Item | By | Note |
+|---|---|---|
+| Order the VPS | 21 November | Rules in `docs/hosting.md` |
+| Uptime check and off-site backup accounts | 22 November | BE-90, BE-53 |
+| Paid RPC for Monad, Base and X Layer | 24 November | Base must support `eth_simulateV1`. Public endpoints until then |
+| Envio HyperSync token | 24 November | Existing blocker. Check whether HyperSync serves Base and X Layer (not verified) |
+| Builder Code registration for Base | 25 November | BE-74 |
+| Q-40, TapeOut transistors | 21 November | BE-82 |
+| X-32 (partners) and Q-33 | 25 November | |
+| X-36 (TapeOut and X Layer contacts) | 28 November | |
+| KyberSwap API key | Open | Existing blocker. Base quotes start without it |
+
+### Boundaries, so nothing overlaps
+
+- The backend never edits `contracts/`, `apps/web/`, or Wangsit's files in `packages/shared` (`abis/`, `addresses.ts`, `markets.ts`, `chains.ts`, `deployments*.ts`). A needed change there becomes a blocker row for the owner.
+- Wangsit proposes the limits in 04. The backend checks them (BE-92) and keeps `math.ts` and `gaps.ts` in step.
+- The backend builds every router transaction (D-19). The web app builds Earn transactions itself (D-07). Both add the Base Builder Code from one constant in `packages/shared/api` (BE-74).
+- The backend never holds user keys. The agent prepares and the user's wallet signs (BE-77).
+- TapeOut: the backend builds the circuits and the proofs, the web app shows them (FE-81, FE-82, FE-83), Wangsit reviews them (SC-85).
+- 1Click work stops (D-50). The current deposit routes stay up on Monad until BE-76 replaces them.
+- A new backend folder or package (`deploy/`, `packages/swap`, later `packages/bridge`, `packages/tapeout`, `apps/agent`) gets its ownership row in CLAUDE.md, the README, 06 and CODEOWNERS in the PR that creates it.
+
+### When blocked, close these small items
+
+- BE-33: one real Telegram alert through the web app's link flow.
+- BE-50: see each team alert arrive once.
+- BE-53: a restore check on the VPS.
+- BE-61: the status address on our domain once Q-25 is decided.
 
 ---
 
@@ -44,6 +157,7 @@ Three rules for the backend:
   - Do: get an Aurora Intents API key; send $5 from another chain to USDC on Monad; record the time and fee; try a small transfer of MON; read the documentation on running a step when the funds arrive.
   - Done when: the source and destination transaction hashes are recorded in PROGRESS.md; 05 is updated; Q-10 is answered; the material for Q-09 is handed to Wangsit.
   - Note: price-only quotes from Base, Arbitrum and Ethereum to USDC on Monad work without an API key, and so does a small quote into MON. Results in 05. Still to do: a real deposit, the API key, and the run-on-arrival feature.
+  - Note (20 November 2026): superseded by BE-76. D-50 replaces 1Click with CCTP and Across, so no real 1Click deposit is made. Closed together with BE-76.
 
 - [x] **BE-06 · Indexer on Monad (spike)**
   - Do: read one type of Morpho event on chain 143 with the indexer tool of your choice.
@@ -92,6 +206,7 @@ Three rules for the backend:
   - Done when: Nabil uses the staging address from the deployed web app.
   - Note: `GET /v1/status` is written and tested: source quote age and stale flag per stock, health of every keeper from its heartbeat, indexer cursor against the chain head, and `APP_VERSION`. On 13 October 2026 api, indexer and keeper ran on Dharu's machine against the mainnet deployment (`contracts/deployments/monad.json`, public RPC, database `levra_staging`): the indexer picked up Wangsit's first-run transactions (5 opens and closes, seed lending) within seconds; `/v1/markets`, `/v1/session`, `/v1/status` (indexer lag 2 blocks, oracleMonitor and marketDepth healthy) and the account and history of the first-run wallet answered correctly; quotes built KyberSwap calldata for the mainnet router. Still to do: hosting and a paid RPC provider (Dharu and Nabil), so Nabil's deployed web app can point at it.
   - Note: deployed on Railway on 14 October 2026 (D-41): project `levra`, services `api`, `indexer`, `keeper` and `Postgres`, all running from `main`. The API is at `https://api-production-c154.up.railway.app` (`/v1/health` and `/v1/status` answer). The first deploy crashed on placeholder variables pasted from the templates; fixed, and empty variables now count as not set. Running on the public RPC `rpc2.monad.xyz` until a paid provider is chosen. `CORS_ORIGINS` and `AUTH_DOMAIN` allow production, this project's Vercel previews (`levra-*-wangsit-nursyahadas-projects.vercel.app`) and `localhost:3000`; a live preflight from each passed and another origin got no CORS header. Not set yet: keeper role keys, team and user alert channels, and `TERMS_VERSION`. Still to do: a paid RPC endpoint and Nabil pointing the web app at the staging address.
+  - Note (20 November 2026): Railway stopped (the old API answers 404) and the backend moves to a VPS (D-94). The remaining work, hosting and a paid RPC, continues in BE-90. BE-15 is closed together with BE-90.
 
 - [x] **BE-16 · Shared formulas**
   - Needs: SC-13 for comparison tests.
@@ -153,6 +268,7 @@ Three rules for the backend:
   - Note: BE-03 data shows the weekly close at Friday 20:00 ET, with the session flipping between `POST_MARKET` and `CLOSED` until about 20:15. The close time is the first `CLOSED` write, not the last flip.
   - Note: `packages/shared/calendar.ts` (NYSE holidays and early closes from their rules, daylight saving from the time zone, the Anchored schedule as an observed offset with the regular close as fallback) and `observedClosedStretches` in `packages/db` are written with tests.
   - Note: the `calendar` keeper job is written (13 October 2026). Every 10 minutes it takes the schedule from `observedClosedStretches` (the regular close until a weekend is in the data), computes the next close on the chain's clock and posts it with `setNextCloseAt`. A close that just passed stays on chain through the contract's grace hour; a wrong future close is corrected. It runs when `CALENDAR_POSTER_KEY` and `DEPLOYMENT_FILE` are set and checks the key is the poster. Tests: a 10-minute simulation over four weeks around Thanksgiving always holds the right close (including the Wednesday and the 13:00 Friday close); on the fork the same job posts the regular close with no weekend data and moves to the observed close (4 hours later) once a weekend is added. Still to do: posting on mainnet, which needs the calendar poster role and hosting, and the alert when the job stops (BE-50, from its heartbeat).
+  - Note (20 November 2026): Base and X Layer need their own posts to their own `RiskManager`: Friday 20:00 New York time, when the Coinbase and xStocks feeds freeze (04). The observed Anchored schedule stays for Monad only. For a holiday or an early close, post the earliest time a feed could freeze until BE-97 has seen one; Thanksgiving week (26 and 27 November) comes first. Running it on those chains is part of BE-73 and BE-80.
 
 - [x] **BE-31 · Protector keeper**
   - Needs: SC-30, BE-20.
@@ -187,18 +303,21 @@ Three rules for the backend:
   - Do: `GET /v1/deposit/tokens`, `POST /v1/deposit/quote`, `GET /v1/deposit/:id`; store every deposit; watch the status until it is completed, refunded or expired; include a MON transfer when requested.
   - Done when: real deposits from two different chains arrive and their status shows correctly; a failed deposit is refunded and recorded.
   - Note: written on 14 October 2026. 1Click client in the new `packages/intents` (owner: Dharu), shared by the API and the keeper. The API lists the tokens of every other chain, quotes exact-input deposits into USDC on Monad (1% slippage), adds the MON top-up as a second small transfer (D-40), stores every transfer with the whole signed quote in `deposits`, and refreshes a status from the service at most every 10 seconds. The keeper job `transfers` follows open transfers every 15 seconds for 4 days. Tested with a stand-in service and Postgres, plus a live quote and status read from 1Click (no funds). Still to do: real deposits from two chains, a refund, and the partner token (`INTENTS_JWT`), which may remove the service's 0.2% fee.
+  - Note (20 November 2026): superseded by BE-76 (D-50). The routes stay live on Monad until BE-76 replaces them; no new 1Click work.
 
 - [~] **BE-41 · Withdraw to another chain**
   - Needs: BE-40.
   - Do: `POST /v1/withdraw/quote` from USDC on Monad to another chain.
   - Done when: one real withdrawal succeeds and is recorded.
   - Note: written on 14 October 2026 with BE-40: the quote goes from USDC on Monad to the chosen token, a refund goes back to the user's own Monad wallet, and the status is followed like a deposit. Still to do: one real withdrawal.
+  - Note (20 November 2026): superseded by BE-76 (D-50).
 
 - [~] **BE-42 · Notification when funds arrive**
   - Needs: BE-40, BE-33.
   - Do: notify the app (through the stream) and the user (through the alert channels) when a deposit arrives.
   - Done when: the app moves to "funds arrived" without a reload.
   - Note: the app learns of the arrival from `GET /v1/deposit/:id`, which the web app polls every 5 seconds until the status is final and which reads the service at most every 10 seconds, so no stream event is needed; the public stream has no user. The `transfers` keeper keeps the stored status current with the app closed, and the alerts keeper (BE-33) sends "Deposit arrived" from it. Still to do: see it with a real deposit.
+  - Note (20 November 2026): superseded by BE-76 (D-50). The arrival alert carries over to the CCTP and Across transfers.
 
 ---
 
@@ -209,6 +328,7 @@ Three rules for the backend:
   - Done when: each row has been triggered once on purpose and its alert arrived; a normal weekend with no updates raises no alert once the weekend is in the data.
   - Note: the Friday 20:00 to 20:15 ET session flipping seen in BE-03 is normal for this oracle and must not raise a "session outside schedule" alert.
   - Note: written on 14 October 2026. Keeper job `monitor` (every minute) checks every row of the 08 table except web app errors (FE-54): oracle age per stock while the calendar says open, against a limit per session from the BE-03 data (99th percentile of the source quote age plus one heartbeat, as in the `maxOracleAge` rule), or the market's `maxOracleAge` as the strict default while a session has fewer than 500 samples, shown in `/v1/status` as `ageLimitLearning`; session against the BE-30 calendar, only once a weekend is observed and only after 30 minutes, so the Friday flips pass; DEX mid against `maxDeviationBps`; keeper heartbeats and errors; every change of `maxOracleAge` and `nextCloseAt` with old and new value; MON of every role key below 5 MON; positions past the hard limit for 5 minutes; bad debt from liquidations; utilization at 95%; the latest depth run against the 04 cap rule (loss to the oracle at the cap size below the liquidation bonus); indexer lag over 300 blocks; and the public API (`MONITOR_API_URL`) failing or slower than 3 seconds for 2 minutes. Alerts go to a Telegram group (`TEAM_TELEGRAM_CHAT_ID` with the BE-33 bot) and/or a Discord or Slack webhook (`TEAM_WEBHOOK_URL`), once per problem, with a RESOLVED message when it ends; state in `monitor_state`. Limits are initial proposals. Tests trigger every row on purpose, check that a normal weekend raises nothing, and run the monitor once on the fork. Still to do: a real team channel and seeing each alert arrive there. The monitor cannot report its own death; an outside uptime check on `/v1/status` is part of BE-15 hosting.
+  - Note (20 November 2026): the outside uptime check moves to BE-90 (VPS).
 
 - [x] **BE-51 · Rate limits and abuse protection**
   - Done when: limits per IP address and per wallet work; the quote endpoints cannot be used to use up the quota of outside services.
@@ -224,11 +344,13 @@ Three rules for the backend:
   - Note: written on 14 October 2026. The country comes from a header set by the CDN in front of the API (`GEO_COUNTRY_HEADER`, for example `cf-ipcountry`); with a block list (`BLOCKED_COUNTRIES`), a request without a country is refused, since it did not come through the CDN. `POST /v1/terms/accept` rebuilds the 03 text (`termsMessage` in `packages/shared/api/compliance.ts`) and checks the signature, smart wallets included, then stores the address, version, signature and country. Only opening a position (`/v1/quote/open`) and a deposit quote are gated; closing, reducing, collateral and withdrawals never are (product rule 8). Without `TERMS_VERSION` the routes are off and the web app cannot pass its gate, so a deployment without terms takes no new positions. Tests: blocked and missing country, gate on open and deposit, no gate on close and withdraw, a wrong signer or old version refused, acceptance stored. Still to do: the country list and the terms version from X-10 and X-11, and the CDN header once hosted (BE-15).
   - Note: proposed country list (D-42, 14 October 2026): Anchored's prohibited jurisdictions, `AF,DZ,BY,CA,CN,CU,KP,ER,IR,LY,MM,MA,NP,RU,SO,SS,SD,SY,US,VE`, pending counsel. Railway gives no country header, so enforcement needs a CDN in front of the API (for example Cloudflare, `cf-ipcountry`) on our own domain (Q-25). Not set on staging yet: setting `BLOCKED_COUNTRIES` without that header stops the API at start, by design.
   - Note: regions inside a country can be refused too (14 October 2026): `GEO_REGION_HEADER` (Cloudflare's `cf-region-code` from its visitor location headers) and `BLOCKED_REGIONS` in ISO 3166-2, for the sanctioned Ukrainian regions in D-42. Cloudflare documents the region code without the country (`TX`), so the API adds the country; a value with the prefix is taken as it is. Not verified on a live request yet. Without a region the country decides, so the rest of Ukraine stays open.
+  - Note (20 November 2026): on the VPS (D-94), Cloudflare goes in front of the API once the domain exists, and the server takes traffic from Cloudflare only, so the country header cannot be forged (`hosting.md`). Base and X Layer also block the D-73 countries (GB, AU, SG, CH), so `/v1/eligibility` takes the chain. Needed before the Base submission: the Base form puts projects open to US users out of scope.
 
 - [~] **BE-53 · Backups and incident runbook**
   - Do: regular database backups and a restore test; a runbook for the six situations in 07, stored in `docs/`.
   - Done when: a restore from backup has been tried; the runbook has been read by all three of us and practiced once.
   - Note: backup, restore and restore-check scripts in `packages/db/scripts` (`pg_dump` custom format, restore in one transaction, the check compares every table's row count between the counts before and after the dump). The restore test passed on 13 October 2026 on `levra_staging` and `levra` (results in the runbook). Runbook: `docs/runbook.md`, the six situations in 07 plus backup and restore. Still to do: scheduled backups and off-site copies on the hosted database (BE-15), all three reading the runbook, and one drill.
+  - Note (20 November 2026): on the VPS, a daily backup keeps 14 dumps and copies each one off the server, with a weekly restore check (`hosting.md`). The first backup runs on the day of the move (BE-90).
 
 - [~] **BE-54 · Load test**
   - Done when: the quote and account endpoints hold up at the target load without passing the limits of the RPC endpoint and outside services; the result is recorded.
@@ -239,6 +361,7 @@ Three rules for the backend:
   - Do: one key per role (calendar poster, oracle age poster, protector, liquidator); proper secret storage, never in `.env` files on servers or in logs; keepers run apart from the public API; MON top-ups with a limit; a way to rotate keys, where the multisig removes the role from the old address.
   - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
   - Note: written on 14 October 2026. `docs/keys.md` covers the four roles, where keys live (only the keeper service's variables on Railway), making them, MON top-ups and rotation. `pnpm --filter @levra/keeper keys` makes keys and stores them on Railway through stdin, printing only addresses and the line for `make set-roles-monad`; `topup` funds role wallets from a person's funding key within limits (10 MON target, 10 per wallet, 30 per run, initial proposals). The keeper log blanks key fields. Leak drill passed on a fork: one owner call moved the oracle age poster role, the leaked key was refused, the new key posted. On 14 October 2026 the mainnet keys were made with the script, granted by Wangsit and funded (05); all keepers report healthy. Still to do: the drill on mainnet after SC-55.
+  - Note (20 November 2026): Railway is gone (D-94). On the VPS each secret is one file, mounted read only into the one service that needs it (`hosting.md`). The `keys` script writes to that folder instead of the Railway CLI and makes one key per role per chain (Monad, Base, X Layer); `docs/keys.md` is rewritten for the VPS. The script change is needed on 21 November for BE-91, and the Base and X Layer keys on 22 November for Wangsit's deploy configs.
 
 
 - [x] **BE-56 · CORS and sign-in hosts for the web app**
@@ -253,11 +376,13 @@ Three rules for the backend:
   - Needs: the router with `DELEVERAGE_FLOOR` (D-91).
   - Do: in `apps/keeper/src/protector/protector.ts` (`planLong`, `planShort`), size each reduction to end between the soft limit and `currentSoftLtv - DELEVERAGE_FLOOR` (read the constant from the ABI), keep the collateral taken out within the D-92 size bound (`DELEVERAGE_SLACK_BPS`), drop the `type(uint256).max` full close branch, and simulate the call before sending so a `DeleverageTooDeep` or `DeleverageTooLarge` plan is resized instead of retried.
   - Done when: the protector never sends a plan the router refuses with `DeleverageTooDeep` or `DeleverageTooLarge`, with a test for a large reduction and a fill better than the oracle.
+  - Note (20 November 2026): planned for 27 November, before the first Base weekly close (Friday 27 November, 20:00 New York time). Only routers built from the current `main` have `DELEVERAGE_FLOOR`; the live Monad router does not, so the protector acts only through routers that have it (BE-98).
 
 - [ ] **BE-89 · Liquidation bot leaves a margin for accrual**
   - Needs: the liquidator with `lossBudgetOf` (D-91).
   - Do: size the swap `minOut` from accrued Morpho totals (`expectedMarketBalances`) plus a small margin, so a liquidation does not end a few wei short and revert `LossTooLarge` while the loss budget is zero. Alert on `LossBudgetSet` and `LossBudgetSpent`. The keeper must not plan reductions while the session is `Closed` (`MarketClosed`).
   - Done when: a test shows a liquidation after interest accrual passes with a zero loss budget.
+  - Note (20 November 2026): planned for 24 November, before Base goes live. The live Monad `Liquidator` has no loss budget: keep its current sizing until Monad gets a new liquidator, and choose the path by whether `lossBudgetOf` answers.
 
 ## M6. Launch
 
@@ -270,6 +395,58 @@ Three rules for the backend:
   - Done when: the public can see the state of the oracle, keepers, API and indexer.
   - Note: written on 14 October 2026. The API serves `/status`: one plain HTML page with no script or outside files, built from `/v1/status`: each stock's oracle price age and limit, the keepers that run in this deployment, and the indexer lag, with one line saying whether all is normal. It refreshes every 30 seconds and answers 503 with a short notice when the chain cannot be read. Still to do: check it live on the staging API after merge, and give it the public status address once the domain is chosen (Q-25).
   - Note: done on 14 October 2026. Live at `https://api-production-c154.up.railway.app/status`: "All systems normal" with 13 green rows (three stocks, nine keepers, the indexer) and none red, after the keeper roles were granted and funded. Left for later: a status address on our own domain once Q-25 is decided.
+  - Note (20 November 2026): the Railway address is gone. The page moves with the API to the VPS (BE-90) and shows each chain after BE-95.
+
+---
+
+## F. VPS and three-chain foundation
+
+Added on 20 November 2026 with the execution plan at the top. These tasks replace Railway and give Base and X Layer the base they stand on.
+
+- [ ] **BE-90 · Backend on a VPS**
+  - Needs: a VPS ordered by Dharu (rules in `docs/hosting.md`), D-94.
+  - Do: a new `deploy/` folder: one image for the backend apps (`Dockerfile`), `compose.yml` with `postgres`, `migrate`, `api`, `indexer-monad`, `keeper-monad` and `caddy`, an entrypoint that loads one secret per file, an example env file per service, and `deploy.sh` (steps in `hosting.md`). Harden the server: SSH keys only, firewall open on 22, 80 and 443, Postgres without a public port, automatic security updates, Docker log rotation, every service back after a reboot. HTTPS through Caddy, on an interim address until the domain exists (Q-25). Set `APP_VERSION` to the commit, and `MONITOR_API_URL`, `CORS_ORIGINS` and `AUTH_DOMAIN` for the new setup. An outside uptime check on `/v1/health` and `/v1/status` that alerts the team (moved here from BE-15 and BE-50). Add `deploy/` to the ownership tables (CLAUDE.md, README, 06, CODEOWNERS) in the same PR.
+  - Done when: `/v1/health`, `/v1/status` (indexer lag a few blocks, every Monad keeper healthy) and `/status` answer on the new HTTPS address; the deployed web app reads markets from it; a server reboot brings every service back by itself; one uptime alert reached the team on purpose; `hosting.md` says what was verified and when.
+
+- [ ] **BE-91 · Move data and keys off Railway**
+  - Needs: BE-90 for the target. Step 1 does not wait.
+  - Do: follow "Moving off Railway" in `hosting.md`. Step 1, right away: if the Railway project can still be read, dump the database and move the four Monad role keys straight into the VPS secret files, never printed. If not: an empty database, the indexer replays, the oracle recorder backfills to 29 September 2026, new Monad role keys are made on the VPS (BE-55), Wangsit moves the roles (`make set-roles-monad`), and the new wallets are funded. A new `AUTH_SECRET` either way. Check that the five Monad markets have no open borrow positions while the keepers were down.
+  - Done when: the database is restored with matching row counts, or rebuilt with the indexer at the chain head and oracle data back to 29 September 2026; every Monad role job holds its role and reports healthy; the path taken, and any role or top-up transaction hashes, are in PROGRESS.
+
+- [ ] **BE-92 · Check the Base and X Layer limits against `math.ts`**
+  - Needs: 04 "Base limits" (SC-74) and "X Layer limits" (SC-82). Blocker for Wangsit: both deployments wait for it.
+  - Do: a test that recomputes every number in both tables with `math.ts`: maximum leverage from the soft limits (`maxLeverageE2`), the closed check after the worst gap (`ltvAfterGapWad`), and the bonus (`liquidationIncentiveFactorWad`). Check the price scale for 8 decimal stocks (Coinbase) and 18 decimal stocks (xStocks) against `ChainlinkSessionOracle.price()` on a fork, for long and short. An X Layer fork runs everything; on Base the oracle reads only the feed and the registry, which a fork can run, while B20 transfers cannot. Check `cautiousPriceE8` with the bid and ask the adapter reports, and `stockForUsd`, `swapPriceE8` and `liquidationPriceE8` at both decimal sizes.
+  - Done when: the test reproduces both tables, or each difference is sent to Wangsit and 04 is corrected; the blocker row is closed and the `math.ts` check in SC-74 is met.
+
+- [ ] **BE-93 · Gap table rows for the Base and X Layer stocks**
+  - Needs: BE-34 (the `report:gaps` script). Blocker for Wangsit (SC-74).
+  - Do: add MSFT, GOOGL, META, AMZN and SPCX to `gapTable` with `report:gaps`, over five years to 19 November 2026 as in 04. Compare the existing AAPL, TSLA, NVDA, SPY and QQQ rows with 04 (same code, newer window) and agree with Wangsit whether to refresh them. SPCX has only 23 weekend events since June 2026: a comment says so, and 04 uses NVDA's worst drop for its limits. Check that `gapScenarios` finds each stock by the symbol `markets.ts` uses on each chain.
+  - Done when: `gapScenarios` gives rows that match 04 for every listed stock on Base and X Layer; the blocker row is closed.
+
+- [ ] **BE-94 · Second reader for the contract changes**
+  - Needs: nothing. Blocker for Wangsit: 06 asks for a second reader before SC-87, SC-76 and SC-83.
+  - Do: read the `MarginRouter` close without a fresh price (SC-86), the keeper floor and size bound (D-90 to D-93), the `Liquidator` loss budget, and `SwapTargets` with fixed spenders (D-79, D-88), against 03, 04 and the threat list in 07. Look hardest where the backend depends on them: keeper reductions, liquidation sizing, and the swap target and spender the API must use. Nabil can take the user paths of `MarginRouter` if the team splits the read.
+  - Done when: Wangsit has the written notes (in the PR or under "Review notes" in PROGRESS), each finding is fixed or accepted, and the blocker row is closed.
+
+- [ ] **BE-95 · Three chains in one backend: config and database**
+  - Needs: SC-73 and SC-80 (both done). Route contract: D-60.
+  - Do: each indexer and keeper process takes `CHAIN_ID` with that chain's RPC and deployment file; the API loads every chain that has a deployment, with one client and cache per chain. A migration adds `chain_id` to every table with chain data (events, oracle updates, DEX quotes, rates, transfers, cursors, heartbeats, monitor keys); Monad rows get 143; unique keys and indexes include it. Jobs that are not per chain (Telegram chat linking through `getUpdates`, the daily gap check, the public API check, cross-chain transfers) run in one keeper only (`KEEPER_GLOBAL=1`), because Telegram allows one update reader per bot. The monitor checks the gas token of each chain (MON, ETH, OKB; thresholds are initial proposals). `/v1/status` and `/status` show each chain. 03 section 7 gets the real variable names (today it lists `KEEPER_PRIVATE_KEY_*` and `ONECLICK_API_KEY`, which the code does not read) and the new chain variables, through the process in 06.
+  - Done when: Monad on the VPS gives the same answers after the migration (tests); a second chain is switched on with env only; a replay from the start still gives the same rows.
+
+- [ ] **BE-96 · Swap provider interface and the Base providers**
+  - Needs: D-53, D-80, BE-71 (done), a 1inch API key.
+  - Do: a new `packages/swap` (owner Dharu, ownership rows in the same PR) with one interface: quote, calldata for a given sender and recipient, and the target and spender the router expects. KyberSwap moves behind it (`packages/kyber` is folded in) and also serves Base; the 1inch Swap API (plain User-Agent, 05); the Aero SwapRouter called directly and quoted through the Aero MetaQuoter. The API picks the best route among the providers whose router is in the deployment's `swapTargets()`, and falls back to the next one on an error. Each provider keeps its own request budget (BE-51). The DEX mid price (D-36) is measured per chain.
+  - Done when: on Base, each provider returns a quote and calldata for every listed stock with a contract as sender and recipient (our router once SC-76 has deployed it), and the calldata delivers the quote in a live simulation (`eth_simulateV1`, since a fork cannot run B20 tokens, 07); Monad quotes are unchanged (tests).
+
+- [ ] **BE-97 · Chainlink price recorder for Base and X Layer**
+  - Needs: BE-95, SC-72 (done), the feeds in `markets.ts` (done). Does not wait for our deployments.
+  - Do: the oracle recorder learns Chainlink feeds. Read `AnswerUpdated` from the aggregator behind each feed (check per feed whether the `priceFeed` address is a proxy; read `aggregator()` again when the phase changes), and store price, round and `updatedAt` per chain in `oracle_updates`, with bid, ask and session empty. Backfill the last weeks from logs. Run it on the VPS as `keeper-base` and `keeper-xlayer` with no keys, before 26 November. Price history (BE-24) works per chain. After Thanksgiving week and a weekly freeze, generate the BE-03 style report for these feeds.
+  - Done when: both chains record without gaps from before 26 November; the report on the weekly freeze and on Thanksgiving (26 and 27 November) is in 05 and used by BE-30; 1D charts answer for Base and X Layer stocks.
+
+- [ ] **BE-98 · Follow the new Monad router (SC-87)**
+  - Needs: SC-87, BE-95.
+  - Do: the indexer reads `router` and every address in `previousRouters` (03 section 6); history, entry price and PnL merge the events of all routers; quotes target the new router and ask for the Morpho authorization of the new router. The protector acts only through a router that has `DELEVERAGE_FLOOR` and only for opt-ins made on it (users opt in again, 03), since the live router has no keeper floor. Send the protector address to Wangsit for the keeper role on the new router. The liquidator bot keeps working with the old `Liquidator` until Monad gets a new one.
+  - Done when: on a fork with the SC-87 script, a position opened on the old router and closed on the new one shows as one history; the protector ignores opt-ins on the old router; the blocker row is closed.
 
 ---
 
@@ -280,6 +457,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 - [ ] **BE-70 · Chain in every API route**
   - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.
   - Done when: 03 updated and agreed, routes serve Monad under the new shape.
+  - Note (20 November 2026), what the 03 proposal covers: the routes that take the chain (`config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/*`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, later `stats`, `proofs` and the agent routes) and the ones that stay global (`health`, `status`, `/status`, `eligibility`, `terms/accept`, `auth/*`, `alerts*`, `deposit/tokens`); the deposit and withdrawal quotes name their destination or source chain; sign-in accepts chains 143, 8453 and 196 (D-38 names 143 only); new `Market` fields for Base and X Layer: the oracle kind (Anchored or Chainlink), the B20 UI multiplier (WAD), feed frozen and token paused. The short capacity FE-72 needs is the existing `availableLiquidityRaw` of the short market. All are additions, so the current routes keep working as Monad aliases. Serving more than Monad needs BE-95.
 
 - [x] **BE-71 · Swap providers: 1inch and Aerodrome**
   - Owner for this task: Wangsit, agreed with Dharu on 19 November 2026. Results go to 05 and are handed to Dharu for BE-72.
@@ -288,35 +466,42 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: results in 05, router addresses sent to Wangsit (SC-75), and the Monad choice recorded in 09.
 
 - [ ] **BE-72 · Quotes on Base**
-  - Needs: BE-70, BE-71, SC-73.
+  - Needs: BE-70, BE-71, BE-95, BE-96, SC-73; SC-76 for the final test.
   - Do: long, short, close and Earn quotes on Base with the chosen aggregator. B20 amounts stay raw; UI share amounts use the multiplier.
-  - Done when: quotes match a fork execution within the stated tolerance.
+  - Done when: quotes match a live simulation (`eth_simulateV1`) within the stated tolerance. A local fork cannot run B20 tokens (SC-71, 07), so a fork execution is not possible on Base.
+  - Note (20 November 2026): long first (25 November), then short and the Earn data (28 November). Earn on Base is our USDC vault and stock supply to our short markets (D-77); the web app builds the Earn transactions itself (D-07).
 
 - [ ] **BE-73 · Indexer and keeper on Base**
   - Needs: SC-72, SC-76.
   - Do: run indexer and keeper per chain from config. Index `UIMultiplierUpdated`, `UIMultiplierUpdateCancelled`, `Announcement`, `EndAnnouncement` and the oracle adapter events. Liquidator bot and auto-deleverage on Base. Never act on a frozen feed.
-  - Done when: both run on Railway against Base mainnet and a test position shows in the API.
+  - Done when: both run on the VPS against Base mainnet and a test position shows in the API.
+  - Note (20 November 2026): the Chainlink price recorder starts earlier as BE-97; the calendar rule for Chainlink chains is in BE-30; the keeper addresses go to Wangsit before SC-76 (BE-55). BE-88 and BE-89 must be done before the keeper acts on Base.
 
 - [ ] **BE-74 · Builder Codes**
   - Do: attach Levra's Builder Code to every Base transaction the API builds.
   - Done when: a real transaction shows the code in Base's attribution.
+  - Note (20 November 2026): the code goes on every Base transaction the API builds. The constant lives in `packages/shared/api`, so the web app adds the same code to the Base transactions it builds itself (Earn, D-07). First check how Base links a transaction to a Builder Code (not verified). Needed before the first real Base transaction, since traction counts from it.
 
 - [ ] **BE-75 · Policy and pause monitor**
   - Do: watch each listed token's policy and pause state; alert the team and the affected users (Telegram) when it changes; mark the market halted in the API.
   - Done when: a fork test that flips a pause raises the alert.
+  - Note (20 November 2026): covers X Layer too. D-86: on X Layer the keeper catches a token pause or a sanctions list change and alerts, and the guardian pauses opening.
 
 - [ ] **BE-76 · Cross-chain deposits through CCTP and Across**
   - Do: replace Aurora Intents / 1Click (D-50) for deposits and withdrawals on both chains. Gas top-up on Base is not needed if the paymaster covers it (Q-34).
   - Done when: a real deposit from another chain into Base and into Monad, hashes in PROGRESS.
+  - Note (20 November 2026): planned after the submissions, from 7 December. Until then the 1Click routes stay up on Monad (BE-40).
 
 - [ ] **BE-77 · Agent API and MCP server**
   - Do: read and prepare endpoints for the agent (positions, health, quotes, prepared transactions) and an MCP server that wraps them. No keys held. Shape written in 03.
   - Done when: an agent session can read a real position and prepare a close that a wallet signs.
+  - Note (20 November 2026), proposal for 03: `POST /v1/:chainId/agent/prepare` stores a prepared action and returns an id and a link; the web app loads `GET /v1/prepared/:id` and asks the wallet to sign (FE-77). The MCP server is a new `apps/agent` that holds no keys.
 
 - [ ] **BE-78 · Bankr and Telegram agent**
   - Needs: BE-77.
   - Do: ship the Levra agent in Bankr (skill or integration, check with Bankr's Telegram group) and in the BE-33 Telegram bot. Commands: position, quote, open, close, add collateral, alerts.
   - Done when: a real user flow works end to end from chat, recorded for the demo.
+  - Note (20 November 2026): Telegram allows one update reader per bot, so the bot's updates move from the keeper to `apps/agent`, and the keeper only sends messages. P2: only if time allows before 4 December.
 
 - [ ] **BE-79 · Public stats endpoint**
   - Needs: BE-73.
@@ -333,12 +518,14 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 - [ ] **BE-80 · X Layer in the API, indexer and keeper**
   - Needs: BE-70, SC-80, SC-83.
   - Do: serve chain 196 under the chain routes; run the indexer and keeper for X Layer; liquidator bot and auto-deleverage there.
-  - Done when: a test position on X Layer shows in the API and the keeper runs on Railway.
+  - Done when: a test position on X Layer shows in the API and the keeper runs on the VPS.
+  - Note (20 November 2026): needs BE-95 and BE-81 too. The recorder for the xStocks feeds starts earlier (BE-97). Earn on X Layer is direct supply to our markets (`market:<id>` options, D-84), so it needs no vault code.
 
 - [ ] **BE-81 · OKX DEX API spike and swap provider**
   - Do: quote and build swaps for each wrapped xStock with a contract sender and recipient; measure price, depth and rate limits; check 1inch on X Layer too. Put the provider behind the shared aggregator interface (D-53).
   - Done when: results in 05, router address sent to Wangsit (SC-83), long and short quotes work on X Layer.
   - Note from Wangsit (20 November 2026, SC-82 and SC-83): the v6 API works on chain 196 with key, secret and passphrase, no project ID (v5 is retired). Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS; resolve it through 1.1.1.1 or call from a server. Send a plain User-Agent. The swap `tx.to` is the router `0x7c5b...AEaF`, but tokens must be approved to `0x8b77...F000`; our contracts handle that since D-88. Swap costs per size are in 05, and `make xlayer-fork-e2e` runs a long and a short through OKX on a fork.
+  - Note (20 November 2026): split with BE-96. This task adds the OKX DEX API (v6, key, secret and passphrase) and the Uniswap v3 router (D-85) as providers behind the BE-96 interface. Calls go from the VPS, which avoids the ISP DNS block.
 
 - [ ] **BE-82 · TapeOut spike**
   - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits. First answer Q-40: does a tape out need FabX transistors, and can we get them? If not, raise it to the team the same day, since it blocks BE-83 and BE-86.
@@ -354,6 +541,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-82, BE-80.
   - Do: on every closed position on X Layer, post a commitment (market, side, entry, exit, PnL percent, close transaction hash) through TapeSend from a keeper key. Expose `GET /v1/:chainId/proofs/:positionId`. Shape written in 03.
   - Done when: a real close produces a proof that FE-81 can verify.
+  - Note (20 November 2026): D-87 extends the proofs to closes on every chain. They are posted from their own funded key on X Layer (one more key in BE-55), and Levra pays the OKB.
 
 - [ ] **BE-85 · CCTP deposits into X Layer**
   - Needs: BE-76.
@@ -369,3 +557,4 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-83, BE-86, BE-77.
   - Do: before the agent offers a long, short, close or add-collateral action on X Layer, it checks the action against the risk circuit and the clock circuit and shows the result. The user still signs and the contracts check again (D-66). Only if time allows before 3 December 2026.
   - Done when: the agent shows a circuit check on each prepared action on X Layer.
+  - Note (20 November 2026): not planned for this round (execution plan at the top): no room before 3 December.

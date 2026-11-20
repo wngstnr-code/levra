@@ -65,7 +65,7 @@ Rule: infrastructure that exists on both chains is shared. Assets and liquidity 
 | Cross-chain deposit | Circle CCTP and Across | Circle CCTP and Across | Replaces Aurora Intents / 1Click (D-50) |
 | Indexer | Envio | Envio | Keep |
 | Attribution | Builder Codes on every transaction | none | Add |
-| Hosting | Railway and Vercel | Railway and Vercel | Keep |
+| Hosting | One VPS for the backend (D-94) and Vercel for the web app | The same VPS and Vercel | Railway replaced by a VPS on 20 November 2026 |
 
 Verified on 19 November 2026 from official docs: Morpho on Base has Coinbase stock markets; 0x and 1inch support Monad (chain 143) and Base; CCTP supports Monad (domain 15, standard transfer only) and Base; Across lists Monad; Chainlink Data Feeds run on Monad mainnet. Not verified: whether 0x or 1inch route to Anchored tokens on Monad (BE-71).
 
