@@ -26,6 +26,8 @@ const fields = z.object({
   KEEPER_GLOBAL: z.enum(["0", "1"]).default("0").transform((v) => v === "1"),
   /** Blocks to read back on the first start of the oracle recorder. 4,000,000 blocks is about two weeks. */
   ORACLE_BACKFILL_BLOCKS: z.coerce.bigint().positive().default(4_000_000n),
+  /** Days the Chainlink recorder (Base, X Layer) reads back on a feed's first run (BE-97). */
+  CHAINLINK_BACKFILL_DAYS: z.coerce.number().positive().max(365).default(28),
   /** contracts/deployments/<environment>.json. Needed by keepers that act on our contracts. */
   DEPLOYMENT_FILE: optional(),
   /** Key of the oracle age poster role (BE-17). The job runs only when it is set. One key per role (BE-55). */
