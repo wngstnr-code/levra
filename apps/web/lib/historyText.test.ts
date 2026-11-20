@@ -25,11 +25,11 @@ describe("historySentence", () => {
 
   it("explains a liquidation", () => {
     const item = { ...base, type: "liquidation" as const, usdAmountRaw: "100000000", stockAmountRaw: "145000000000000000" };
-    expect(historySentence(item, en)).toBe("The price crossed the liquidation price. A liquidator repaid $100.00 of the debt and took 0.1450 aQQQ, including the liquidation bonus.");
+    expect(historySentence(item, en)).toBe("Price hit the liquidation price. $100.00 of debt was repaid with 0.1450 aQQQ.");
   });
 
   it("explains a close with realized P&L", () => {
     const item = { ...base, type: "close" as const, usdAmountRaw: "49700000", realizedPnlUsdRaw: "420000" };
-    expect(historySentence(item, en)).toBe("Closed the position and received $49.70. Realized P&L +$0.42.");
+    expect(historySentence(item, en)).toBe("Closed. Got $49.70 back, +$0.42.");
   });
 });
