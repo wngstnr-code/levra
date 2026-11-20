@@ -227,20 +227,27 @@ Be careful: if `price()` reverts, Morpho cannot run borrowing, collateral withdr
 
 ## Five-year price gap data
 
-Rebuilt from the same source with `pnpm --filter @levra/keeper report:gaps` (BE-34). A run on 14 October 2026 gave the same worst drop and rise for every stock below; it counts 275 events per stock (single mid-week holidays included) where this table says 261, so the "more than 2%" shares differ by up to 1.3 points. The team monitor alerts when a listed stock has a gap worse than this table.
+Rebuilt from the same source with `pnpm --filter @levra/keeper report:gaps` (BE-34), the numbers in `packages/shared/gaps.ts`. Rebuilt on 20 November 2026 with the Base and X Layer stocks added (BE-93): every worst drop and rise is the same as in the October 2026 table, and the "more than 2%" shares moved by up to 2.3 points with the newer window and the mid-week holidays now counted. The team monitor alerts when a listed stock has a gap worse than this table.
 
-The difference between the closing price and the next opening price, for weekends and holidays only. 261 events per stock, October 2021 to October 2026, from Yahoo Finance.
+The difference between the closing price and the next opening price, for weekends and holidays only. 274 events per stock, November 2021 to November 2026, from Yahoo Finance.
 
 | Stock | Gaps more than 2% | Worst drop | Worst rise |
 |---|---|---|---|
 | BIL | 0.0% | -0.4% | +0.1% |
-| SPY | 1.9% | -4.0% | +3.0% |
-| QQQ | 3.1% | -5.4% | +3.9% |
-| AAPL | 6.1% | -9.4% | +6.7% |
-| TSLA | 33.7% | -10.8% | +12.0% |
+| SPY | 1.8% | -4.0% | +3.0% |
+| QQQ | 2.9% | -5.4% | +3.9% |
+| AAPL | 5.8% | -9.4% | +6.7% |
+| TSLA | 31.4% | -10.8% | +12.0% |
 | NVDA | 23.4% | -14.2% | +4.6% |
-| HOOD | 27.6% | -17.8% | +9.3% |
-| MSTR | 52.9% | -27.4% | +14.8% |
+| HOOD | 28.5% | -17.8% | +9.3% |
+| MSTR | 53.6% | -27.4% | +14.8% |
+| MSFT | 4.0% | -4.7% | +3.2% |
+| GOOGL | 9.5% | -6.7% | +5.3% |
+| META | 10.6% | -7.5% | +6.5% |
+| AMZN | 7.3% | -8.2% | +9.1% |
+| SPCX | 26.1% (23 events) | -4.8% | +6.7% |
+
+SPCX listed in June 2026, so its own numbers are too few to trust. Its gap scenario, like its limits in "Base limits", uses the worse of its own move and NVDA's (`gapStandIns`), which means NVDA's -14.2% for a long.
 
 The past does not guarantee the future. This table is a starting point, not a guarantee.
 
