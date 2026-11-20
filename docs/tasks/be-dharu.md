@@ -380,6 +380,7 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
   - Done when: the protector never sends a plan the router refuses with `DeleverageTooDeep` or `DeleverageTooLarge`, with a test for a large reduction and a fill better than the oracle.
   - Note (20 November 2026): planned for 27 November, before the first Base weekly close (Friday 27 November, 20:00 New York time). Only routers built from the current `main` have `DELEVERAGE_FLOOR`; the live Monad router does not, so the protector acts only through routers that have it (BE-98).
   - Note (20 November 2026): done in BE-89 already: the protector takes each stock's decimals from `packages/shared` (Base stocks have 8) and skips a market whose oracle says `CLOSED`. The floor sizing above is still to do.
+  - Note (20 November 2026, start here): `apps/keeper/test/protector.fork.test.ts` fails on a fresh deploy of `main`. With the QQQ oracle set to the DEX price, the protector sends both reductions but the LTV after does not land at `softLtv - TARGET_BELOW_SOFT_WAD` within 2 points. With the oracle 9% from the DEX it skipped both on "price deviation". The BE-89 changes leave Monad's numbers the same (decimals 6 and 18), so this is most likely the gap this task closes. Not compared on the old keeper code: anvil crashed on the public RPC's rate limit (HTTP 429).
 
 - [x] **BE-89 · Liquidation bot leaves a margin for accrual**
   - Needs: the liquidator with `lossBudgetOf` (D-91).
