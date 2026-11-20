@@ -61,6 +61,15 @@ test("an unknown page says so", async ({ page }) => {
   await expect(page.getByText("Page not found")).toBeVisible();
 });
 
+test("the light theme is kept after a reload", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/settings");
+  await page.getByRole("radio", { name: "Light" }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(245, 245, 242)");
+});
+
 test("phones get the tab bar instead of the top navigation", async ({ page, isMobile }) => {
   test.skip(!isMobile, "phone layout only");
   await mockService(page);
