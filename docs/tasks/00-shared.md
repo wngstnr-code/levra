@@ -13,10 +13,11 @@ Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Every task has 
   - Done when: all three have cloned it, a PR to `main` requires passing CI, and GitHub requests review from the right owner automatically.
   - Note: done so far: private repo `wngstnr-code/levra`, pnpm workspaces, Turborepo, PR template, MIT license, `CODEOWNERS`. Dharu has joined. Still to do: Nabil accepts the invitation, branch protection on `main`, and a required CI check once CI exists.
 
-- [~] **X-02 · Product name and domain** (driver: Nabil)
+- [x] **X-02 · Product name and domain** (driver: Nabil)
   - Do: agree on a name; check the domain and social handles; answer Q-01.
   - Done when: the name is recorded in 09 and the domain is registered.
   - Note: the name is decided, Levra (D-15). A DNS check found `levra.com`, `.io`, `.xyz` and `.app` in use and no name servers for `levra.fi`, `levra.finance` and `levra.markets` (Q-25). Still to do: pick and register a domain, social handles, and the check against Levva.
+  - Note (20 November 2026): `levra.finance` registered at Hostinger (D-95), expires 20 November 2027, transfer lock on. Name servers moved to Cloudflare (`clarissa.ns.cloudflare.com`, `nolan.ns.cloudflare.com`); verified on 20 November 2026 on all six `.finance` registry servers and on 1.1.1.1 and 8.8.8.8. No DNS records yet. Social handles are still open.
 
 - [~] **X-03 · Wallets, funds and multisig** (driver: Wangsit)
   - Do: one development wallet per person with a little MON and USDC; a team treasury; a multisig on Monad with all three as signers.
