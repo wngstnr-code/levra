@@ -274,3 +274,33 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-83.
   - Do: on the position page, show health and liquidation price with a "checked by TapeOut circuit" mark and a link to the circuit.
   - Done when: it shows for a real X Layer position.
+
+---
+
+## R. Redesign (Pencil design, 20 November 2026)
+
+The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and light themes, desktop and mobile screens, a states board and the Levra icon set. Copy is plain language: no protocol terms on screen (LTV is "debt ratio", soft limit is "safe limit", oracle price is "price").
+
+- [~] **FE-84 · Design system v2 and light mode**
+  - Do: color tokens with a dark and a light theme, the `lime-text`, `lilac-text` and `on-signal` tokens, a theme switch (system by default, saved per browser), base components updated to the Pencil design.
+  - Done when: every page renders in both themes with no color outside the tokens, and the switch remembers the choice.
+
+- [~] **FE-85 · Levra icon set**
+  - Do: the twelve Levra icons (long, short, leverage, lend, weekend guard, price paused, Monday gap, safe limit, liquidation, debt ratio, verified, any network) as one React icon component on a 24 px grid. Common actions keep Lucide style icons.
+  - Done when: the product icons on every page come from the set.
+
+- [~] **FE-86 · Plain language copy**
+  - Do: rewrite every UI string in `lib/i18n/en.ts` to short user language, without protocol terms, keeping every fact required in 01 ("What must always be shown").
+  - Done when: no screen shows LTV, oracle, soft limit, router or Morpho as a label, and the required facts still show.
+
+- [~] **FE-87 · Mobile layout**
+  - Do: top bar and bottom tab bar under 768 px, bottom sheets for the network picker and the trade confirmation.
+  - Done when: every flow works at 390 px wide with no horizontal scroll.
+
+- [~] **FE-88 · Every app state**
+  - Do: build the states board: market status pills, position health levels, trade notices from the quote `warnings`, transaction results from the contract and API errors, app errors (region, terms, wrong network, offline, rate limit), empty and loading states.
+  - Done when: each warning code, contract error and API error code in 03 maps to a designed state, with a unit test for the mapping.
+
+- [ ] **FE-89 · Motion**
+  - Do: short, calm transitions (sheets, number changes, tab changes) that respect reduced motion.
+  - Done when: no animation blocks input or runs longer than 300 ms, and reduced motion turns them off.
