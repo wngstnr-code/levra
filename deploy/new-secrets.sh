@@ -31,7 +31,7 @@ fi
 write_secret postgres POSTGRES_PASSWORD "$password"
 
 url="postgres://levra:${password}@postgres:5432/levra"
-for service in migrate api indexer-monad keeper-monad; do
+for service in migrate api indexer-monad keeper-monad keeper-base keeper-xlayer; do
   write_secret "$service" DATABASE_URL "$url"
 done
 
