@@ -72,6 +72,8 @@ export type Snapshot = {
   api: { ok: boolean; ms: number; detail: string } | null;
   /** The gap table against five years of fresh daily prices (BE-34). `fresh` is null when the source could not be read. */
   gaps: { symbol: string; table: GapStats; fresh: GapStats | null }[];
+  /** `Liquidator.lossBudgetOf` per loan token, in its base units (D-91). Empty for a liquidator without a budget. */
+  lossBudgets: { token: string; label: string; budget: bigint }[];
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
@@ -173,6 +175,16 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
   for (const b of s.badDebt) {
     if (s.now - b.at > LIMITS.eventLookbackSeconds) continue;
     out.push({ kind: "event", key: `bad-debt:${b.txHash}:${b.logIndex}`, message: `Bad debt of ${b.badDebtAssets} base units in ${b.label} from ${b.borrower}. Transaction ${b.txHash}.` });
+  }
+
+  for (const b of s.lossBudgets) {
+    out.push({
+      kind: "value",
+      key: `loss-budget:${b.token.toLowerCase()}`,
+      value: String(b.budget),
+      describe: (a, n) =>
+        `Liquidator loss budget for ${b.label} changed from ${a} to ${n} base units. ${BigInt(n) > BigInt(a === "unset" ? "0" : a) ? "The owner added to it (LossBudgetSet)." : "A liquidation lost money (LossBudgetSpent) or the owner cleared it."}`,
+    });
   }
 
   for (const c of s.indexer) {
