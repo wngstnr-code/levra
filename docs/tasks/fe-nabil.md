@@ -210,10 +210,11 @@ Four rules for the frontend:
 
 Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
 
-- [ ] **FE-70 · Chain picker and chain in the URL**
+- [~] **FE-70 · Chain picker and chain in the URL**
   - Needs: SC-73 for the final shape; can start on Monad first.
   - Do: Privy and wagmi with Base and Monad; chain picker in the header; routes `/base/...` and `/monad/...`; balances per chain.
   - Done when: switching chain changes every page with no reload and no wrong-chain transaction is possible.
+  - Note: built on 20 November 2026 (`fe/FE-70-b-multichain`): `/[chain]/...` routes with the old paths redirected to Monad, a chain registry in `apps/web/lib/chains.ts` that offers a chain only when its deployment file exists in `packages/shared`, prices and sessions read from each market's `ISessionOracle.snapshot`, chain scoped API calls as `/v1/:chainId/...` (Monad keeps the alias, D-60), the network picker with USDC per chain. Base and X Layer appear when `deployments.base.ts` and `deployments.xlayer.ts` exist (one import line in `lib/chains.ts`).
 
 - [ ] **FE-71 · Base markets page**
   - Needs: SC-70.
