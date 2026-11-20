@@ -12,6 +12,7 @@ const MARKET = "0xmarket";
 /** Everything fine: open market, fresh price, no lag, money in the wallets. */
 function healthy(): Snapshot {
   return {
+    chainId: 143,
     now: NOW,
     scheduleClosed: false,
     scheduleObserved: true,
@@ -86,6 +87,19 @@ describe("team monitor checks (08, one per row)", () => {
     ]);
   });
 
+  it("judges a keeper wallet against the gas token and limit of its chain", () => {
+    const low = (chainId: 143 | 8453 | 196, balanceWei: bigint) => {
+      const s = healthy();
+      s.chainId = chainId;
+      s.wallets[0]!.balanceWei = balanceWei;
+      return evaluate(s).find((f) => f.key === "balance:liquidator") as Condition;
+    };
+    // 0.01 ETH is plenty on Base, 0.01 OKB is not on X Layer, 0.01 MON is not on Monad.
+    expect(low(8453, 10n ** 16n).active).toBe(false);
+    expect(low(196, 10n ** 16n)).toMatchObject({ active: true, message: "liquidator wallet 0xkeeper has 0.01 OKB, below 0.05 OKB." });
+    expect(low(143, 10n ** 16n)).toMatchObject({ active: true, message: "liquidator wallet 0xkeeper has 0.01 MON, below 5 MON." });
+  });
+
   it("raises nothing over a normal weekend: closed by the calendar, CLOSED on the oracle, no updates", () => {
     const s = healthy();
     s.scheduleClosed = true;
@@ -152,38 +166,45 @@ describe.skipIf(!url)("team alerts sent once and resolved (needs TEST_DATABASE_U
   });
 
   it("alerts a condition once after its wait, and resolves it when it ends", async () => {
-    await reconcile(db, [cond("t-session", true, 1_800)], at(0), send);
-    await reconcile(db, [cond("t-session", true, 1_800)], at(900), send);
+    await reconcile(db, 143, [cond("t-session", true, 1_800)], at(0), send);
+    await reconcile(db, 143, [cond("t-session", true, 1_800)], at(900), send);
     expect(sent).toEqual([]);
-    await reconcile(db, [cond("t-session", true, 1_800)], at(1_800), send);
-    await reconcile(db, [cond("t-session", true, 1_800)], at(1_900), send);
+    await reconcile(db, 143, [cond("t-session", true, 1_800)], at(1_800), send);
+    await reconcile(db, 143, [cond("t-session", true, 1_800)], at(1_900), send);
     expect(sent).toEqual(["ALERT: t-session message"]);
-    await reconcile(db, [cond("t-session", false, 1_800)], at(2_000), send);
+    await reconcile(db, 143, [cond("t-session", false, 1_800)], at(2_000), send);
     expect(sent).toEqual(["ALERT: t-session message", "RESOLVED: t-session message"]);
   });
 
   it("stays quiet when a condition ends before its wait, as the Friday flips do", async () => {
-    await reconcile(db, [cond("t-flip", true, 1_800)], at(0), send);
-    await reconcile(db, [cond("t-flip", false, 1_800)], at(900), send);
-    await reconcile(db, [cond("t-flip", true, 1_800)], at(1_000), send);
-    await reconcile(db, [cond("t-flip", true, 1_800)], at(2_000), send);
+    await reconcile(db, 143, [cond("t-flip", true, 1_800)], at(0), send);
+    await reconcile(db, 143, [cond("t-flip", false, 1_800)], at(900), send);
+    await reconcile(db, 143, [cond("t-flip", true, 1_800)], at(1_000), send);
+    await reconcile(db, 143, [cond("t-flip", true, 1_800)], at(2_000), send);
     expect(sent).toEqual([]);
   });
 
   it("reports a risk value change with the old and new value, but not the first value seen", async () => {
     const value = (v: string): Finding => ({ kind: "value", key: "t-age", value: v, describe: (a, b) => `from ${a} to ${b}` });
-    await reconcile(db, [value("2100")], at(0), send);
-    await reconcile(db, [value("2100")], at(60), send);
-    await reconcile(db, [value("2700")], at(120), send);
+    await reconcile(db, 143, [value("2100")], at(0), send);
+    await reconcile(db, 143, [value("2100")], at(60), send);
+    await reconcile(db, 143, [value("2700")], at(120), send);
     expect(sent).toEqual(["CHANGE: from 2100 to 2700"]);
+  });
+
+  it("keeps each chain's alert state apart", async () => {
+    await reconcile(db, 143, [{ kind: "event", key: "t-chain", message: "on Monad" }], at(0), send);
+    await reconcile(db, 8453, [{ kind: "event", key: "t-chain", message: "on Base" }], at(0), send);
+    await reconcile(db, 8453, [{ kind: "event", key: "t-chain", message: "on Base" }], at(60), send);
+    expect(sent).toEqual(["ALERT: on Monad", "ALERT: on Base"]);
   });
 
   it("retries a notice whose send failed, and sends an event once", async () => {
     failing = true;
-    await reconcile(db, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(0), send);
+    await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(0), send);
     failing = false;
-    await reconcile(db, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(60), send);
-    await reconcile(db, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(120), send);
+    await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(60), send);
+    await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(120), send);
     expect(sent.sort()).toEqual(["ALERT: bad debt", "ALERT: t-api message"]);
   });
 });

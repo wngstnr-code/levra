@@ -110,14 +110,14 @@ export function withLatestPrice(series: PricePoint[], latest: PricePoint | null,
   return [...series, { timestamp: nowSeconds, oraclePriceE8: latest.oraclePriceE8 }];
 }
 
-export function dbMarketHistory(db: Db): MarketHistory {
+export function dbMarketHistory(db: Db, chainId: number): MarketHistory {
   return {
-    depth: (symbol) => latestDepthRun(db, symbol),
-    rates: async (marketIds) => (await rateHistory(db, marketIds, HISTORY_SECONDS, HISTORY_BUCKET_SECONDS)).map((r) => ({ ...r, marketId: r.marketId as `0x${string}` })),
-    deviation: (symbol) => deviationHistory(db, symbol, HISTORY_SECONDS, HISTORY_BUCKET_SECONDS),
+    depth: (symbol) => latestDepthRun(db, chainId, symbol),
+    rates: async (marketIds) => (await rateHistory(db, chainId, marketIds, HISTORY_SECONDS, HISTORY_BUCKET_SECONDS)).map((r) => ({ ...r, marketId: r.marketId as `0x${string}` })),
+    deviation: (symbol) => deviationHistory(db, chainId, symbol, HISTORY_SECONDS, HISTORY_BUCKET_SECONDS),
     prices: async (symbol, range, nowSeconds) => {
       const { from, to, bucketSeconds } = priceBuckets(range, nowSeconds);
-      const [series, latest] = await Promise.all([oraclePriceSeries(db, symbol, from, to, bucketSeconds), latestOraclePrice(db, symbol)]);
+      const [series, latest] = await Promise.all([oraclePriceSeries(db, chainId, symbol, from, to, bucketSeconds), latestOraclePrice(db, chainId, symbol)]);
       return withLatestPrice(series, latest, nowSeconds);
     },
   };

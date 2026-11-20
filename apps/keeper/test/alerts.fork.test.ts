@@ -15,7 +15,7 @@ describe.skipIf(!onFork || !dbUrl)("user alerts on the fork (BE-33)", () => {
   const { db, close } = createDb(dbUrl ?? "postgres://unused", { max: 2 });
   const client = createPublicClient({ transport: http(forkRpcUrl) });
   const chain = createForkClient(forkRpcUrl);
-  const ctx = { db, logger: pino({ level: "silent" }), signal: new AbortController().signal };
+  const ctx = { db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal };
   const long = deployment.markets.find((m) => m.symbol === "QQQ" && m.side === "long")!;
   const risky = randomAddress();
   const calm = randomAddress();
@@ -74,10 +74,10 @@ describe.skipIf(!onFork || !dbUrl)("user alerts on the fork (BE-33)", () => {
 
   it("sends the 24-hour, 4-hour and 1-hour before-close alerts once each, only to the position above the closed limit", { timeout: 120_000 }, async () => {
     expect(await runAt(25 * 3_600)).toEqual([]);
-    expect(await runAt(24 * 3_600 - 60)).toEqual([["risky@example.com", "The market closes in 24 hours"]]);
+    expect(await runAt(24 * 3_600 - 60)).toEqual([["risky@example.com", "The Monad market closes in 24 hours"]]);
     expect(await runAt(20 * 3_600)).toEqual([]);
-    expect(await runAt(4 * 3_600 - 60)).toEqual([["risky@example.com", "The market closes in 4 hours"]]);
-    expect(await runAt(3_600 - 60)).toEqual([["risky@example.com", "The market closes in 1 hour"]]);
+    expect(await runAt(4 * 3_600 - 60)).toEqual([["risky@example.com", "The Monad market closes in 4 hours"]]);
+    expect(await runAt(3_600 - 60)).toEqual([["risky@example.com", "The Monad market closes in 1 hour"]]);
     expect(await runAt(600)).toEqual([]);
   });
 
@@ -95,9 +95,9 @@ describe.skipIf(!onFork || !dbUrl)("user alerts on the fork (BE-33)", () => {
   it("alerts an auto-deleverage and a liquidation from the indexed events once", { timeout: 60_000 }, async () => {
     const a = risky.toLowerCase();
     const at = new Date();
-    await db.insert(routerEvents).values({ name: "PositionReduced", user: a, marketId: long.marketId.toLowerCase(), args: { reason: 1 }, blockNumber: 1n, blockTime: at, txHash: `0xa1e${"1".repeat(61)}`, logIndex: 0 });
-    await db.insert(routerEvents).values({ name: "PositionReduced", user: a, marketId: long.marketId.toLowerCase(), args: { reason: 0 }, blockNumber: 2n, blockTime: at, txHash: `0xa1e${"2".repeat(61)}`, logIndex: 0 });
-    await db.insert(morphoEvents).values({ name: "Liquidate", user: a, marketId: long.marketId.toLowerCase(), args: {}, blockNumber: 3n, blockTime: at, txHash: `0xa1e${"3".repeat(61)}`, logIndex: 0 });
+    await db.insert(routerEvents).values({ chainId: 143, name: "PositionReduced", user: a, marketId: long.marketId.toLowerCase(), args: { reason: 1 }, blockNumber: 1n, blockTime: at, txHash: `0xa1e${"1".repeat(61)}`, logIndex: 0 });
+    await db.insert(routerEvents).values({ chainId: 143, name: "PositionReduced", user: a, marketId: long.marketId.toLowerCase(), args: { reason: 0 }, blockNumber: 2n, blockTime: at, txHash: `0xa1e${"2".repeat(61)}`, logIndex: 0 });
+    await db.insert(morphoEvents).values({ chainId: 143, name: "Liquidate", user: a, marketId: long.marketId.toLowerCase(), args: {}, blockNumber: 3n, blockTime: at, txHash: `0xa1e${"3".repeat(61)}`, logIndex: 0 });
     expect((await runNow()).sort()).toEqual([
       ["risky@example.com", "Position liquidated"],
       ["risky@example.com", "Position reduced by protection"],

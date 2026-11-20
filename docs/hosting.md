@@ -1,6 +1,22 @@
 # Backend hosting on a VPS
 
-How the backend runs after Railway (D-94). Status on 20 November 2026: design only, nothing is deployed yet. Tasks: BE-90 (server and services), BE-91 (moving off Railway), BE-53 (backups), BE-55 (keys), BE-52 (CDN and the country header).
+How the backend runs after Railway (D-94). Tasks: BE-90 (server and services), BE-91 (moving off Railway), BE-53 (backups), BE-55 (keys), BE-52 (CDN and the country header).
+
+Status on 20 November 2026: the files in `deploy/` are written. Verified in a local copy of this setup on Docker Desktop (Windows), against Monad mainnet on the public RPC: the image builds; `migrate` runs before the apps; the API answers `/v1/health` and `/v1/status` through Caddy; the indexer syncs; the keeper jobs that need no key report healthy and the role jobs stay off without keys; secrets reach the apps from files and do not show in `docker inspect`; `deploy/keys.sh`'s script writes key files and prints only addresses. Not verified yet: `setup-server.sh`, `new-secrets.sh`, `deploy.sh` and `backup.sh` on a real Ubuntu server, HTTPS with a real certificate, and recovery after a reboot. The VPS is bought on 21 November 2026.
+
+| File in `deploy/` | Purpose |
+|---|---|
+| `Dockerfile`, `entrypoint.sh` | The one image, and the start step that loads secret files |
+| `compose.yml`, `Caddyfile` | The services below, and HTTPS in front of the API |
+| `env/*.env.example` | The settings each service reads, copied to `/opt/levra/env/` |
+| `secrets.md` | Which secret file each service needs |
+| `setup-server.sh` | First-time hardening of a fresh Ubuntu 24.04 server, run once as root |
+| `new-secrets.sh` | Makes the database password, every `DATABASE_URL` and `AUTH_SECRET` on the server, without showing them |
+| `keys.sh` | Makes role keys on the server (BE-55, `docs/keys.md`) |
+| `deploy.sh` | Builds, migrates, starts and checks a commit |
+| `backup.sh`, `cron/levra-backup` | The daily backup (BE-53) |
+
+Known limit: the image is about 2.5 GB unpacked, because it carries the dev tools (`tsx` runs the TypeScript directly, as on Railway). Fine for one server; to trim later with BE-60.
 
 ## Why a VPS
 
@@ -93,8 +109,15 @@ Later (BE-60): GitHub Actions builds the image for every `main` commit, pushes i
 
 ## Moving off Railway (BE-91)
 
-1. Right away, if the Railway project can still be read: dump its database with `packages/db/scripts/backup.ts`, and move the four Monad role keys from the keeper's variables straight into the secret files on the VPS through a pipe, never printed. Copy the settings that are not secret.
+1. Railway on 20 November 2026: the project still opens, but the services are stopped because the plan's limit was reached, and the Railway CLI on Dharu's laptop is no longer logged in. So:
+   - Keys and other secrets: after `railway login` and `railway link`, once the VPS has run `setup-server.sh`, move them straight into the secret files:
+     `pnpm --filter @levra/keeper exec tsx scripts/move-variables.ts --from keeper --to levra@<server> --service keeper-monad ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY TELEGRAM_BOT_TOKEN RESEND_API_KEY TEAM_WEBHOOK_URL KYBER_API_KEY INTENTS_JWT --confirm`
+     First run it without `--confirm` to see which names Railway has. Then once more with `--from indexer --service indexer-monad ENVIO_API_TOKEN` and once with `--from api --service api KYBER_API_KEY INTENTS_JWT`. `AUTH_SECRET` is not moved: a new one is made (step 3). Whether variables can still be read while the services are stopped is not verified. Copy the settings that are not secret (`CORS_ORIGINS`, `AUTH_DOMAIN`, `TERMS_VERSION`, the geo settings, `TEAM_TELEGRAM_CHAT_ID`, `TELEGRAM_BOT_USERNAME`) by hand into the env files.
+   - Database: a dump needs the Railway Postgres to run, which needs the plan's limit raised. Worth it only for what cannot be rebuilt (alert settings, Telegram links, terms acceptances, transfers, depth runs and rate snapshots, see Backups). If it runs again, dump it with the public database URL from the Railway dashboard, without putting the URL in a file: `docker run --rm -i -v "${PWD}:/out" postgres:17-alpine sh -c 'read -r url; pg_dump "$url" --format=custom --no-owner --no-privileges -f /out/railway.dump'`, then type the URL and press Enter (the file is written by `pg_dump` itself, since a PowerShell redirect would corrupt the binary dump). Before the first `deploy.sh` on the VPS: `docker compose -f deploy/compose.yml up -d postgres`, then `docker compose -f deploy/compose.yml exec -T postgres pg_restore -U levra -d levra --no-owner < railway.dump`, and compare row counts with `packages/db/scripts/restore-check.ts`'s query.
 2. If it cannot be read: start with an empty database. The indexer replays from the deployment block, and the oracle recorder backfills about 15 million blocks to reach 29 September 2026 (4 million blocks is about two weeks). Make new Monad role keys on the VPS, ask Wangsit to move the four roles (`make set-roles-monad`), and fund the new wallets. The MON left on the old role wallets (about 10 each) is then lost.
+   - Either way the transactions themselves are safe: they are on chain, and the database only holds a copy. Use and traction (wallets, positions opened and closed, vault use) are counted from those events, so they come back in full without the dump.
+   - With a dump: restore it before the first `deploy.sh`. `deploy.sh` then runs migration 0008, which marks every restored row as Monad (143, D-95), and the indexer and the recorder go on from their stored cursors. Without one: set `ORACLE_BACKFILL_BLOCKS=15000000` in `keeper-monad.env` for the first start (the example file has it), so the oracle history reaches back before the Monad launch.
+   - Check the data before Nabil switches the web app (step 5). Once the indexer has caught up (`/v1/status`, lag under 300 blocks), run `docker compose -f deploy/compose.yml run --rm --no-deps indexer-monad node_modules/.bin/tsx src/verify-cli.ts`. It reads every router, Morpho and vault event of our deployment from the RPC endpoint again, compares it with the database, compares each position rebuilt from Morpho events with `Morpho.position`, and prints the traction table (events and wallets). It exits 1 on any difference. Paste its output into PROGRESS under the day of the move.
 3. Make a new `AUTH_SECRET` either way, so users sign in again. The Telegram bot token comes from BotFather if it cannot be read.
 4. The Monad keepers are down until the VPS runs. Check that our five Monad markets have no open borrow positions (the team withdrew its liquidity on 12 November 2026), and that the calendar poster posts `nextCloseAt` once the keeper is back.
 5. Nabil points `NEXT_PUBLIC_API_URL` at the new address. The root README and 05 get the new address with the date it was checked.

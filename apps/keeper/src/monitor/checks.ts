@@ -1,5 +1,7 @@
 import { KEEPER_HEARTBEAT_LIMIT_S, type KeeperName } from "@levra/shared/api";
+import { chains, type ChainId } from "@levra/shared/chains";
 import type { GapStats } from "@levra/shared/gaps";
+import { formatEther } from "viem";
 import { BPS, WAD, liquidationIncentiveFactorWad, utilizationWad } from "@levra/shared/math";
 
 /**
@@ -7,8 +9,11 @@ import { BPS, WAD, liquidationIncentiveFactorWad, utilizationWad } from "@levra/
  * are initial proposals unless they come from data or from the chain.
  */
 export const LIMITS = {
-  /** MON a keeper wallet should keep for gas. About 70 transactions at the deployment's measured cost. */
-  minKeeperMonWei: 5n * 10n ** 18n,
+  /**
+   * Gas token a keeper wallet should keep, per chain, in wei. Monad: about 70 transactions at the deployment's measured
+   * cost. Base (ETH) and X Layer (OKB): initial proposals, to be set from measured costs once our keepers act there (BE-73).
+   */
+  minKeeperGasWei: { 143: 5n * 10n ** 18n, 8453: 5n * 10n ** 15n, 196: 5n * 10n ** 16n } satisfies Record<ChainId, bigint>,
   /** Share of a market's supply that is borrowed before lenders may have trouble withdrawing. */
   utilizationWad: (95n * WAD) / 100n,
   /** About two minutes of Monad blocks. */
@@ -37,6 +42,8 @@ export type Finding = Condition | Value | Event;
 export type OracleLimit = { limitSeconds: number; learning: boolean };
 
 export type Snapshot = {
+  /** The chain the monitor watches; names the gas token and its limit. */
+  chainId: ChainId;
   now: number;
   /** Whether the exchange calendar says the market is closed now, and whether that schedule is observed or the fallback. */
   scheduleClosed: boolean;
@@ -68,7 +75,7 @@ export type Snapshot = {
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
-const mon = (wei: bigint) => `${(Number(wei / 10n ** 15n) / 1000).toFixed(3)} MON`;
+const gas = (wei: bigint, chainId: ChainId) => `${formatEther(wei)} ${chains[chainId].nativeSymbol}`;
 const minutes = (s: number) => `${Math.round(s / 60)} min`;
 
 export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
@@ -148,13 +155,14 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
   }
   out.push({ kind: "value", key: "next-close-at", value: String(s.nextCloseAt), describe: (a, b) => `nextCloseAt changed from ${new Date(Number(a) * 1000).toISOString()} to ${new Date(Number(b) * 1000).toISOString()}.` });
 
+  const minGas = LIMITS.minKeeperGasWei[s.chainId];
   for (const w of s.wallets) {
     out.push({
       kind: "condition",
       key: `balance:${w.role}`,
-      active: w.balanceWei < LIMITS.minKeeperMonWei,
+      active: w.balanceWei < minGas,
       forSeconds: 0,
-      message: `${w.role} wallet ${w.address} has ${mon(w.balanceWei)}, below ${mon(LIMITS.minKeeperMonWei)}.`,
+      message: `${w.role} wallet ${w.address} has ${gas(w.balanceWei, s.chainId)}, below ${gas(minGas, s.chainId)}.`,
     });
   }
 

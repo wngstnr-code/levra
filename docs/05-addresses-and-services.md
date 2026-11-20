@@ -582,6 +582,8 @@ The router ended with no USDC, wNVDAx or wQQQx. The user ended with 997.65 USDC 
 
 Each Morpho oracle uses only `BASE_FEED_1` (no second feed, no quote feed, no vault). All four markets lend USDC.
 
+Price scale for 18 decimal stocks: on 20 November 2026 (X Layer block 76387225), each of the four Morpho oracles above answered exactly our long formula, feed answer × 10^16 (`morphoOraclePrice` in `math.ts`, the same `SCALE` as `ChainlinkSessionOracle`), and the short formula gives one USDC = 10^8 / answer whole tokens. The same check on the eight Base oracles in the next section (Base block 59829408) gave feed × 10^26 for 8 decimal stocks. Verified by BE-92 (`packages/shared/limits.test.ts`).
+
 ### Price feeds
 
 | Item | Finding | Status |

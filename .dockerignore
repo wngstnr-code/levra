@@ -1,0 +1,25 @@
+# Build context for deploy/Dockerfile: the backend workspaces only.
+**/node_modules
+**/.turbo
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.agents
+.claude
+docs
+pitch-video
+
+# The web app is not in the image; its manifest stays so the workspace matches the lockfile.
+apps/web/*
+!apps/web/package.json
+
+# Only the deployment files are read from contracts/.
+contracts/*
+!contracts/deployments
+contracts/deployments/*fork*.json
+
+packages/db/backups

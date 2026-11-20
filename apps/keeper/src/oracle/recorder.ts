@@ -1,6 +1,6 @@
 import { oracleUpdates, syncCursors, type Db } from "@levra/db";
 import { external } from "@levra/shared/addresses";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { PublicClient } from "viem";
 import type { Job } from "../runner";
 import { priceUpdatedEvent, toOracleRow, trackedPriceIds } from "./decode";
@@ -16,12 +16,15 @@ export type OracleRecorderOptions = {
   intervalMs?: number;
 };
 
-async function readCursor(db: Db): Promise<bigint | null> {
-  const [row] = await db.select().from(syncCursors).where(eq(syncCursors.name, ORACLE_CURSOR));
+async function readCursor(db: Db, chainId: number): Promise<bigint | null> {
+  const [row] = await db
+    .select()
+    .from(syncCursors)
+    .where(and(eq(syncCursors.chainId, chainId), eq(syncCursors.name, ORACLE_CURSOR)));
   return row?.lastBlock ?? null;
 }
 
-/** Follows every `PriceUpdated` log for our stocks, starting `backfillBlocks` behind the head on first start. */
+/** Follows every Anchored `PriceUpdated` log for our Monad stocks, starting `backfillBlocks` behind the head on first start. */
 export function createOracleRecorder({
   client,
   backfillBlocks,
@@ -31,9 +34,9 @@ export function createOracleRecorder({
   return {
     name: "oracleMonitor",
     intervalMs,
-    async run({ db, logger, signal }) {
+    async run({ db, chainId, logger, signal }) {
       const head = await client.getBlockNumber();
-      const cursor = await readCursor(db);
+      const cursor = await readCursor(db, chainId);
       let from = cursor === null ? (head > backfillBlocks ? head - backfillBlocks : 0n) : cursor + 1n;
       let inserted = 0;
       let ranges = 0;
@@ -48,7 +51,7 @@ export function createOracleRecorder({
           toBlock: to,
           strict: true,
         });
-        const rows = logs.map(toOracleRow);
+        const rows = logs.map((log) => ({ ...toOracleRow(log), chainId }));
         await db.transaction(async (tx) => {
           if (rows.length > 0) {
             const result = await tx.insert(oracleUpdates).values(rows).onConflictDoNothing().returning({ tx: oracleUpdates.txHash });
@@ -57,8 +60,8 @@ export function createOracleRecorder({
           const cursorRow = { lastBlock: to, updatedAt: new Date() };
           await tx
             .insert(syncCursors)
-            .values({ name: ORACLE_CURSOR, ...cursorRow })
-            .onConflictDoUpdate({ target: syncCursors.name, set: cursorRow });
+            .values({ chainId, name: ORACLE_CURSOR, ...cursorRow })
+            .onConflictDoUpdate({ target: [syncCursors.chainId, syncCursors.name], set: cursorRow });
         });
         from = to + 1n;
         ranges += 1;

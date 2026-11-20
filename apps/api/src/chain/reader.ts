@@ -1,4 +1,5 @@
-import { external } from "@levra/shared/addresses";
+import { externalByChain } from "@levra/shared/addresses";
+import { isChainId } from "@levra/shared/chains";
 import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
@@ -90,7 +91,10 @@ const TTL = { markets: 2_000, session: 2_000, positions: 1_000, block: 1_000, fe
 const LOG_RANGE = 10_000n;
 
 /** The only place the API talks to the RPC endpoint. */
+/** One reader and one cache per chain (BE-95). */
 export function createChainReader(client: PublicClient, deployment: Deployment) {
+  if (!isChainId(deployment.chainId)) throw new Error(`Deployment is for chain ${deployment.chainId}, which has no addresses in packages/shared`);
+  const morpho = externalByChain[deployment.chainId].morpho;
   const cached = createCache();
   const marketsById = new Map(listMarkets(deployment).map((m) => [m.marketId.toLowerCase(), m]));
   const sideName = (side: number) => (side === 0 ? "long" : "short") as "long" | "short";
@@ -118,7 +122,7 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
         allowFailure: true,
         contracts: views.flatMap((v, i) => [
           { address: deployment.riskManager, abi: riskManagerAbi, functionName: "config", args: [v.marketId] } as const,
-          { address: external.morpho, abi: morphoAbi, functionName: "market", args: [v.marketId] } as const,
+          { address: morpho, abi: morphoAbi, functionName: "market", args: [v.marketId] } as const,
           { address: infos[i]!.oracle, abi: sessionOracleAbi, functionName: "snapshot" } as const,
         ]),
       });
@@ -233,8 +237,8 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       contracts: [
         { address: token, abi: erc20Abi, functionName: "balanceOf", args: [user] },
         { address: token, abi: erc20Abi, functionName: "allowance", args: [user, deployment.router] },
-        { address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router] },
-        { address: external.morpho, abi: morphoAbi, functionName: "nonce", args: [user] },
+        { address: morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router] },
+        { address: morpho, abi: morphoAbi, functionName: "nonce", args: [user] },
       ],
     });
     // Reading nonces on a token without permit reverts, so only permit tokens are asked.
@@ -243,7 +247,7 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
   }
 
   async function borrowShares(marketId: Hex, user: Address): Promise<bigint> {
-    const position = await client.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [marketId, user] });
+    const position = await client.readContract({ address: morpho, abi: morphoAbi, functionName: "position", args: [marketId, user] });
     return position.borrowShares;
   }
 

@@ -55,7 +55,7 @@ describe.skipIf(!url)("market detail (needs TEST_DATABASE_URL)", () => {
     await runMigrations(url ?? "");
     await db.delete(dexQuotes).where(eq(dexQuotes.symbol, "HOOD"));
     await db.delete(marketRates).where(eq(marketRates.symbol, "HOOD"));
-    const quote = { symbol: "HOOD", sizeUsdRaw: "100000000", amountIn: "100000000", oraclePriceE8: "9000000000" };
+    const quote = { chainId: 143, symbol: "HOOD", sizeUsdRaw: "100000000", amountIn: "100000000", oraclePriceE8: "9000000000" };
     await db.insert(dexQuotes).values([
       // An old depth run that the latest one replaces, and a failed size that is left out.
       { ...quote, runId: "old", kind: "buy", priceImpactBps: 99, deviationBps: 99, measuredAt: ago(3 * 24 * 60) },
@@ -68,7 +68,7 @@ describe.skipIf(!url)("market detail (needs TEST_DATABASE_URL)", () => {
       { ...quote, runId: "m3", kind: "mid", midPriceE8: "9030000000", deviationBps: 33, measuredAt: ago(1) },
       { ...quote, runId: "m0", kind: "mid", midPriceE8: "9040000000", deviationBps: 44, measuredAt: ago(40 * 24 * 60) },
     ]);
-    const rate = { symbol: "HOOD", borrowApyWad: "50000000000000000", supplyApyWad: "12500000000000000", utilizationWad: "250000000000000000", totalSupplyRaw: "1000000000", totalBorrowRaw: "250000000" };
+    const rate = { chainId: 143, symbol: "HOOD", borrowApyWad: "50000000000000000", supplyApyWad: "12500000000000000", utilizationWad: "250000000000000000", totalSupplyRaw: "1000000000", totalBorrowRaw: "250000000" };
     await db.insert(marketRates).values([
       { ...rate, marketId: ids.long, side: "long", measuredAt: ago(125) },
       { ...rate, marketId: ids.long, side: "long", borrowApyWad: "60000000000000000", measuredAt: ago(1) },

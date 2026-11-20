@@ -32,6 +32,8 @@ export type AppDeps = {
   stream?: StreamOptions;
   /** Needed by /v1/status (heartbeats and the indexer cursor). */
   db?: Db;
+  /** Readers of the other chains that have a deployment (BE-95). Only /v1/status uses them until the routes take a chain (BE-70). */
+  otherChains?: ChainReader[];
   version?: string;
   /** Wallet sign-in and alert settings (BE-33). Off without it; needs `db`. */
   auth?: { secret: string; domains: RegExp[]; telegramBot?: string };
@@ -46,12 +48,12 @@ export type AppDeps = {
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
-function dexMidsFromDb(db: Db): DexMids {
+function dexMidsFromDb(db: Db, chainId: number): DexMids {
   const cached = createCache();
-  return () => cached("dexMids", 30_000, () => latestDexMids(db, 1_800));
+  return () => cached("dexMids", 30_000, () => latestDexMids(db, chainId, 1_800));
 }
 
-export function createApp({ logger, reader, swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
+export function createApp({ logger, reader, otherChains = [], swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
   const app = new Hono();
   if (corsOrigins.length > 0) {
     app.use(
@@ -81,14 +83,15 @@ export function createApp({ logger, reader, swap, events, stream, db, version = 
 
   if (reader) {
     const store = events ?? chainEventStore(reader);
-    const mids = db ? dexMidsFromDb(db) : undefined;
-    app.route("/", marketRoutes(reader, mids, db ? dbMarketHistory(db) : undefined));
+    const chainId = reader.deployment.chainId;
+    const mids = db ? dexMidsFromDb(db, chainId) : undefined;
+    app.route("/", marketRoutes(reader, mids, db ? dbMarketHistory(db, chainId) : undefined));
     app.route("/", streamRoutes(reader, logger, stream, mids));
     app.route("/", accountRoutes(reader, store));
     app.route("/", earnRoutes(reader, store));
     if (swap) app.route("/", quoteRoutes(reader, swap, store, compliance));
     if (db && compliance && complianceOpts) app.route("/", complianceRoutes(db, reader.client, compliance, complianceOpts));
-    if (db) app.route("/", statusRoutes(reader, db, version));
+    if (db) app.route("/", statusRoutes([reader, ...otherChains], db, version));
     if (db && auth) {
       app.route("/", authRoutes(reader.client, db, { secret: auth.secret, domains: auth.domains, chainId: reader.deployment.chainId }));
       app.route("/", alertRoutes(db, { secret: auth.secret, telegramBot: auth.telegramBot }));

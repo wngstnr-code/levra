@@ -14,7 +14,7 @@ import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork,
 
 describe.skipIf(!onFork)("short quotes executed on the fork (BE-20)", () => {
   const deployment = forkDeployment();
-  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
+  const reader = createChainReader(createChainClient(143, forkRpcUrl), deployment);
   const app = createApp({ logger: pino({ level: "silent" }), reader, swap: createKyber({ baseUrl: KYBER_MONAD_URL, clientId: "levra" }) });
   const chain = createForkClient(forkRpcUrl);
   const user = privateKeyToAccount(generatePrivateKey());

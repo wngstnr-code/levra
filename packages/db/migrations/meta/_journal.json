@@ -57,6 +57,13 @@
       "when": 1791915400995,
       "tag": "0007_monitor_state",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795159471851,
+      "tag": "0008_chain_id",
+      "breakpoints": true
     }
   ]
 }

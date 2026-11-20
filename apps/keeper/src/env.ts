@@ -1,3 +1,4 @@
+import { chains, isChainId, type ChainId } from "@levra/shared/chains";
 import { z } from "zod";
 
 const optional = () =>
@@ -6,10 +7,23 @@ const optional = () =>
     .optional()
     .transform((v) => v || undefined);
 
-const envSchema = z.object({
+const fields = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.url(),
-  MONAD_RPC_URL: z.url(),
+  /** The chain this keeper serves (BE-95): 143 Monad, 8453 Base, 196 X Layer. One keeper process per chain. */
+  CHAIN_ID: z.coerce
+    .number()
+    .int()
+    .refine(isChainId, { message: `must be one of ${Object.keys(chains).join(", ")}` })
+    .default(143),
+  /** RPC endpoint of CHAIN_ID. MONAD_RPC_URL is still read for chain 143. */
+  RPC_URL: z.url().optional(),
+  MONAD_RPC_URL: z.url().optional(),
+  /**
+   * Set to 1 in exactly one keeper: it also runs the jobs that serve every chain once (Telegram chat linking, the
+   * cross-chain transfer watcher, the public API check and the daily gap check). Telegram allows one update reader per bot.
+   */
+  KEEPER_GLOBAL: z.enum(["0", "1"]).default("0").transform((v) => v === "1"),
   /** Blocks to read back on the first start of the oracle recorder. 4,000,000 blocks is about two weeks. */
   ORACLE_BACKFILL_BLOCKS: z.coerce.bigint().positive().default(4_000_000n),
   /** contracts/deployments/<environment>.json. Needed by keepers that act on our contracts. */
@@ -40,6 +54,16 @@ const envSchema = z.object({
   /** KyberSwap gateway key for a higher rate limit (05), sent as X-Api-Key. Never commit it. */
   KYBER_API_KEY: optional(),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+});
+
+const envSchema = fields.transform((e, ctx) => {
+  const chainId = e.CHAIN_ID as ChainId;
+  const rpcUrl = e.RPC_URL ?? (chainId === 143 ? e.MONAD_RPC_URL : undefined);
+  if (!rpcUrl) {
+    ctx.addIssue({ code: "custom", path: ["RPC_URL"], message: `RPC_URL is needed for chain ${chainId}` });
+    return z.NEVER;
+  }
+  return { ...e, CHAIN_ID: chainId, rpcUrl };
 });
 
 export type Env = z.infer<typeof envSchema>;

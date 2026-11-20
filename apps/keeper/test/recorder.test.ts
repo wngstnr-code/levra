@@ -25,7 +25,7 @@ function fakeClient(head: bigint, logsAt: bigint[]) {
 
 describe.skipIf(!url)("oracle recorder (needs TEST_DATABASE_URL)", () => {
   const { db, close } = createDb(url ?? "", { max: 2 });
-  const ctx = () => ({ db, logger, signal: new AbortController().signal });
+  const ctx = () => ({ db, chainId: 143 as const, logger, signal: new AbortController().signal });
 
   beforeEach(async () => {
     await runMigrations(url ?? "");

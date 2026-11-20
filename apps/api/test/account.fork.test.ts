@@ -21,9 +21,9 @@ const dbUrl = process.env.TEST_DATABASE_URL;
 describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on the fork (BE-13, BE-14)", () => {
   const deployment = forkDeployment();
   const { db, close } = createDb(dbUrl ?? "postgres://unused", { max: 2 });
-  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
+  const reader = createChainReader(createChainClient(143, forkRpcUrl), deployment);
   const swap = createKyber({ baseUrl: "https://aggregator-api.kyberswap.com/monad/api/v1", clientId: "levra" });
-  const app = createApp({ logger: pino({ level: "silent" }), reader, swap, events: dbEventStore(db) });
+  const app = createApp({ logger: pino({ level: "silent" }), reader, swap, events: dbEventStore(db, 143) });
   const chain = createForkClient(forkRpcUrl);
   const source = rpcSource(createPublicClient({ chain: monad, transport: http(forkRpcUrl) }));
   const user = privateKeyToAccount(generatePrivateKey());
@@ -57,7 +57,7 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
     const [onChain] = await Promise.all([
       chain.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [market.marketId, who] }),
     ]);
-    const [indexed] = await morphoPositions(db, { user: who, marketId: market.marketId });
+    const [indexed] = await morphoPositions(db, 143, { user: who, marketId: market.marketId });
     expect(indexed).toMatchObject({ collateral: onChain.collateral, borrowShares: onChain.borrowShares });
   };
 

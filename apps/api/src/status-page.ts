@@ -5,7 +5,7 @@ import { KEEPER_HEARTBEAT_LIMIT_S, type KeeperName, type StatusResponse } from "
  * script, no outside font or stylesheet, so it still loads when other parts of the system are down.
  */
 
-/** About two minutes of Monad blocks, the same limit the team monitor uses (BE-50). */
+/** About two minutes of Monad blocks, the same limit the team monitor uses (BE-50). Initial proposal for Base and X Layer. */
 const INDEXER_LAG_BLOCKS = 300;
 
 const KEEPER_LABELS: Record<KeeperName, string> = {
@@ -30,27 +30,34 @@ function age(seconds: number): string {
 }
 
 type Row = { name: string; ok: boolean; detail: string };
+type ChainRows = { name: string; keepers: Row[]; indexer: Row };
 
-/** Keepers that never sent a heartbeat are not running in this deployment, so they are listed as off, not as down. */
-export function statusRows(s: StatusResponse, now: number): { oracle: Row[]; keepers: Row[]; indexer: Row; ok: boolean } {
+/**
+ * Keepers that never sent a heartbeat are not running in this deployment, so they are listed as off, not as down. One
+ * block of services and data per chain; a response without `chains` is Monad only.
+ */
+export function statusRows(s: StatusResponse, now: number): { oracle: Row[]; chains: ChainRows[]; ok: boolean } {
   const oracle = s.oracle.map((o) => ({
     name: o.symbol,
     ok: !o.stale,
     detail: `${o.stale ? "Price too old" : "Price live"}, updated ${age(o.ageSeconds)} ago${o.ageLimitSeconds ? `, limit ${age(o.ageLimitSeconds)}` : ""}`,
   }));
-  const keepers = s.keepers
-    .filter((k) => k.lastHeartbeatAt !== null)
-    .map((k) => ({
-      name: KEEPER_LABELS[k.name],
-      ok: k.healthy,
-      detail: k.healthy ? `Running, last seen ${age(Math.max(0, now - k.lastHeartbeatAt!))} ago` : `Not healthy, last seen ${age(Math.max(0, now - k.lastHeartbeatAt!))} ago (limit ${age(KEEPER_HEARTBEAT_LIMIT_S[k.name])})`,
-    }));
-  const indexer = {
-    name: "Indexer",
-    ok: s.indexer.lagBlocks <= INDEXER_LAG_BLOCKS,
-    detail: `${s.indexer.lagBlocks} blocks behind the chain (block ${s.indexer.lastBlock})`,
-  };
-  return { oracle, keepers, indexer, ok: [...oracle, ...keepers, indexer].every((r) => r.ok) };
+  const chains = (s.chains ?? [{ chainId: 143, name: "Monad", keepers: s.keepers, indexer: s.indexer }]).map((c) => ({
+    name: c.name,
+    keepers: c.keepers
+      .filter((k) => k.lastHeartbeatAt !== null)
+      .map((k) => ({
+        name: KEEPER_LABELS[k.name],
+        ok: k.healthy,
+        detail: k.healthy ? `Running, last seen ${age(Math.max(0, now - k.lastHeartbeatAt!))} ago` : `Not healthy, last seen ${age(Math.max(0, now - k.lastHeartbeatAt!))} ago (limit ${age(KEEPER_HEARTBEAT_LIMIT_S[k.name])})`,
+      })),
+    indexer: {
+      name: "Indexer",
+      ok: c.indexer.lagBlocks <= INDEXER_LAG_BLOCKS,
+      detail: `${c.indexer.lagBlocks} blocks behind the chain (block ${c.indexer.lastBlock})`,
+    },
+  }));
+  return { oracle, chains, ok: [...oracle, ...chains.flatMap((c) => [...c.keepers, c.indexer])].every((r) => r.ok) };
 }
 
 /** When the status itself cannot be read, which most often means the chain endpoint is down. */
@@ -59,7 +66,8 @@ export function renderStatusUnavailable(): string {
 }
 
 export function renderStatusPage(s: StatusResponse, now: number): string {
-  const { oracle, keepers, indexer, ok } = statusRows(s, now);
+  const { oracle, chains, ok } = statusRows(s, now);
+  const many = chains.length > 1;
   const list = (title: string, rows: Row[]) =>
     rows.length === 0
       ? ""
@@ -96,9 +104,9 @@ footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
 <main>
 <h1>Levra status</h1>
 <p class="summary ${ok ? "ok" : "bad"}">${ok ? "All systems normal" : "Some parts need attention"}</p>
-${list("Stock prices (Anchored oracle)", oracle)}
-${list("Background services", keepers)}
-${list("Data", [indexer])}
+${list(many ? "Monad: stock prices (Anchored oracle)" : "Stock prices (Anchored oracle)", oracle)}
+${chains.map((c) => `${list(many ? `${c.name}: background services` : "Background services", c.keepers)}
+${list(many ? `${c.name}: data` : "Data", [c.indexer])}`).join("\n")}
 <footer>Checked at ${new Date(now * 1000).toISOString().replace("T", " ").slice(0, 19)} UTC. API version ${escape(s.api.version)}. Your positions are held in Morpho and can always be closed there directly. This page refreshes every 30 seconds.</footer>
 </main>
 </body>

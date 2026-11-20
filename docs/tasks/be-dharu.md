@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. New folders from the plan below (`deploy/`, `packages/swap`) join this list in the PR that creates them.
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90). `packages/swap` joins this list in the PR that creates it (BE-96).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -46,7 +46,7 @@ Priority: P0 is on the path to a team date, P1 is needed for a submission, P2 on
 | Sun 22 Nov | BE-92, BE-93. The BE-70 proposal in 03 sent to Nabil. Base and X Layer role keys made on the VPS, addresses sent to Wangsit (BE-55) | P0 | Two blocker rows for Wangsit closed (limits check, gap rows) |
 | Mon 23 Nov | BE-94 (morning), BE-95 | P0 | Review notes with Wangsit; Monad runs with `chain_id` |
 | Tue 24 Nov | BE-97 on Base and X Layer, BE-89, BE-70 build (after Nabil agrees) | P0 | Feeds recording before Thanksgiving; chain routes live with Monad aliases |
-| Wed 25 Nov | BE-96 (interface, KyberSwap, 1inch), BE-72 long, BE-74. BE-52 if the domain exists | P0 | Base long quotes pass a live simulation |
+| Wed 25 Nov | BE-96 (interface, KyberSwap, 1inch), BE-72 long, BE-74, BE-99. BE-52 if the domain exists | P0 | Base long quotes pass a live simulation; a close quote works without an oracle price |
 | Thu 26 Nov | BE-73 with the Base deployment file (SC-76), BE-30 for Chainlink chains. I-B1 with Wangsit and Nabil | P0 | A real long on Base through the web app, hashes in PROGRESS |
 | Fri 27 Nov | BE-88 (before the close), BE-96 (Aero), BE-98 if SC-87 has run | P0 | The protector can act on Base |
 | Sat 28 Nov | BE-72 short and Earn, BE-75 | P0 | Base short quotes and Earn data on the live chain |
@@ -362,6 +362,7 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
   - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
   - Note: written on 14 October 2026. `docs/keys.md` covers the four roles, where keys live (only the keeper service's variables on Railway), making them, MON top-ups and rotation. `pnpm --filter @levra/keeper keys` makes keys and stores them on Railway through stdin, printing only addresses and the line for `make set-roles-monad`; `topup` funds role wallets from a person's funding key within limits (10 MON target, 10 per wallet, 30 per run, initial proposals). The keeper log blanks key fields. Leak drill passed on a fork: one owner call moved the oracle age poster role, the leaked key was refused, the new key posted. On 14 October 2026 the mainnet keys were made with the script, granted by Wangsit and funded (05); all keepers report healthy. Still to do: the drill on mainnet after SC-55.
   - Note (20 November 2026): Railway is gone (D-94). On the VPS each secret is one file, mounted read only into the one service that needs it (`hosting.md`). The `keys` script writes to that folder instead of the Railway CLI and makes one key per role per chain (Monad, Base, X Layer); `docs/keys.md` is rewritten for the VPS. The script change is needed on 21 November for BE-91, and the Base and X Layer keys on 22 November for Wangsit's deploy configs.
+  - Note (20 November 2026, later): done in code on `be/BE-90-vps`. `keys.ts` takes `--dir` and writes each key as a 0400 file (a rotation writes a new file, then renames it); `deploy/keys.sh` runs it on the server inside the keeper's image; `move-variables.ts` moves keys off Railway. `docs/keys.md` rewritten for the VPS. Tested in the local copy of the server setup.
 
 
 - [x] **BE-56 · CORS and sign-in hosts for the web app**
@@ -403,35 +404,42 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
 
 Added on 20 November 2026 with the execution plan at the top. These tasks replace Railway and give Base and X Layer the base they stand on.
 
-- [ ] **BE-90 · Backend on a VPS**
+- [~] **BE-90 · Backend on a VPS**
   - Needs: a VPS ordered by Dharu (rules in `docs/hosting.md`), D-94.
   - Do: a new `deploy/` folder: one image for the backend apps (`Dockerfile`), `compose.yml` with `postgres`, `migrate`, `api`, `indexer-monad`, `keeper-monad` and `caddy`, an entrypoint that loads one secret per file, an example env file per service, and `deploy.sh` (steps in `hosting.md`). Harden the server: SSH keys only, firewall open on 22, 80 and 443, Postgres without a public port, automatic security updates, Docker log rotation, every service back after a reboot. HTTPS through Caddy, on an interim address until the domain exists (Q-25). Set `APP_VERSION` to the commit, and `MONITOR_API_URL`, `CORS_ORIGINS` and `AUTH_DOMAIN` for the new setup. An outside uptime check on `/v1/health` and `/v1/status` that alerts the team (moved here from BE-15 and BE-50). Add `deploy/` to the ownership tables (CLAUDE.md, README, 06, CODEOWNERS) in the same PR.
   - Done when: `/v1/health`, `/v1/status` (indexer lag a few blocks, every Monad keeper healthy) and `/status` answer on the new HTTPS address; the deployed web app reads markets from it; a server reboot brings every service back by itself; one uptime alert reached the team on purpose; `hosting.md` says what was verified and when.
+  - Note (20 November 2026): the `deploy/` files are written on `be/BE-90-vps` and the whole stack ran in a local copy against Monad mainnet (what was verified is in `hosting.md`). Still to do on 21 November: buy the VPS, run `setup-server.sh`, deploy, HTTPS, the reboot test, the uptime check, and send the address to Nabil.
 
-- [ ] **BE-91 · Move data and keys off Railway**
+- [~] **BE-91 · Move data and keys off Railway**
   - Needs: BE-90 for the target. Step 1 does not wait.
   - Do: follow "Moving off Railway" in `hosting.md`. Step 1, right away: if the Railway project can still be read, dump the database and move the four Monad role keys straight into the VPS secret files, never printed. If not: an empty database, the indexer replays, the oracle recorder backfills to 29 September 2026, new Monad role keys are made on the VPS (BE-55), Wangsit moves the roles (`make set-roles-monad`), and the new wallets are funded. A new `AUTH_SECRET` either way. Check that the five Monad markets have no open borrow positions while the keepers were down.
-  - Done when: the database is restored with matching row counts, or rebuilt with the indexer at the chain head and oracle data back to 29 September 2026; every Monad role job holds its role and reports healthy; the path taken, and any role or top-up transaction hashes, are in PROGRESS.
+  - Done when: the database is restored with matching row counts, or rebuilt with the indexer at the chain head and oracle data back to 29 September 2026; `verify:data` on the VPS reports every router, Morpho and vault event of the Monad deployment present and every position equal to Morpho's, with its traction table pasted in PROGRESS; every Monad role job holds its role and reports healthy; the path taken, and any role or top-up transaction hashes, are in PROGRESS.
+  - Note (20 November 2026): Railway still opens but its services are stopped (plan limit reached), and the Railway CLI on Dharu's laptop is logged out. `apps/keeper/scripts/move-variables.ts` moves variables from Railway into the VPS secret files through `ssh`, never printed (`hosting.md` step 1). A database dump needs Railway's Postgres running again, so it is only worth paying for if the data that cannot be rebuilt matters (decision for Dharu).
+  - Note (20 November 2026): Dharu asked that the transactions and traction reach the VPS in full. They are on chain, so they come back with or without the dump. `apps/indexer/src/verify-cli.ts` (`pnpm --filter @levra/indexer verify:data`) proves it after the move: it reads every event of our deployment again through the RPC endpoint, compares it with the database, checks each rebuilt position against `Morpho.position`, and prints events and wallets per type. `keeper-monad.env.example` now backfills 15,000,000 oracle blocks on the first start.
 
-- [ ] **BE-92 · Check the Base and X Layer limits against `math.ts`**
+- [x] **BE-92 · Check the Base and X Layer limits against `math.ts`**
   - Needs: 04 "Base limits" (SC-74) and "X Layer limits" (SC-82). Blocker for Wangsit: both deployments wait for it.
   - Do: a test that recomputes every number in both tables with `math.ts`: maximum leverage from the soft limits (`maxLeverageE2`), the closed check after the worst gap (`ltvAfterGapWad`), and the bonus (`liquidationIncentiveFactorWad`). Check the price scale for 8 decimal stocks (Coinbase) and 18 decimal stocks (xStocks) against `ChainlinkSessionOracle.price()` on a fork, for long and short. An X Layer fork runs everything; on Base the oracle reads only the feed and the registry, which a fork can run, while B20 transfers cannot. Check `cautiousPriceE8` with the bid and ask the adapter reports, and `stockForUsd`, `swapPriceE8` and `liquidationPriceE8` at both decimal sizes.
   - Done when: the test reproduces both tables, or each difference is sent to Wangsit and 04 is corrected; the blocker row is closed and the `math.ts` check in SC-74 is met.
+  - Note: done on 20 November 2026. `packages/shared/limits.test.ts` recomputes both tables with `math.ts` and finds no difference (leverage in 04 is the exact value rounded to one decimal; the API's `maxLeverageE2` gives two). The price scale was read live instead of on a fork of our own oracle, which is not deployed yet: Morpho's oracle for each of the twelve listed markets equals `morphoOraclePrice`, which uses the same `SCALE` as `ChainlinkSessionOracle`, at 8 and 18 decimals (05). `ChainlinkSessionOracle` reports no bid or ask, so `cautiousPriceE8` gives the feed price on both sides, as `price()` does. `stockForUsd`, `swapPriceE8` and `liquidationPriceE8` agree with each other at both decimal sizes.
 
-- [ ] **BE-93 · Gap table rows for the Base and X Layer stocks**
+- [x] **BE-93 · Gap table rows for the Base and X Layer stocks**
   - Needs: BE-34 (the `report:gaps` script). Blocker for Wangsit (SC-74).
   - Do: add MSFT, GOOGL, META, AMZN and SPCX to `gapTable` with `report:gaps`, over five years to 19 November 2026 as in 04. Compare the existing AAPL, TSLA, NVDA, SPY and QQQ rows with 04 (same code, newer window) and agree with Wangsit whether to refresh them. SPCX has only 23 weekend events since June 2026: a comment says so, and 04 uses NVDA's worst drop for its limits. Check that `gapScenarios` finds each stock by the symbol `markets.ts` uses on each chain.
   - Done when: `gapScenarios` gives rows that match 04 for every listed stock on Base and X Layer; the blocker row is closed.
+  - Note: done on 20 November 2026. `report:gaps` takes new symbols on the command line and marks a stock with a short history. The table was rebuilt over November 2021 to November 2026 (274 events per stock): every worst drop and rise equals 04, both for the new rows and the old ones, so the old rows were refreshed too (only the "more than 2%" shares moved). `gapStandIns` gives SPCX NVDA's worst drop for a long, as 04 does for its limits, and the scenario label says so. Tests: a row for every stock on every chain by its `markets.ts` symbol, the closed checks of 04 for Base and X Layer, and SPCX.
 
-- [ ] **BE-94 · Second reader for the contract changes**
+- [~] **BE-94 · Second reader for the contract changes**
   - Needs: nothing. Blocker for Wangsit: 06 asks for a second reader before SC-87, SC-76 and SC-83.
   - Do: read the `MarginRouter` close without a fresh price (SC-86), the keeper floor and size bound (D-90 to D-93), the `Liquidator` loss budget, and `SwapTargets` with fixed spenders (D-79, D-88), against 03, 04 and the threat list in 07. Look hardest where the backend depends on them: keeper reductions, liquidation sizing, and the swap target and spender the API must use. Nabil can take the user paths of `MarginRouter` if the team splits the read.
   - Done when: Wangsit has the written notes (in the PR or under "Review notes" in PROGRESS), each finding is fixed or accepted, and the blocker row is closed.
+  - Note (20 November 2026): read done, notes under "Review notes" in PROGRESS. No fund-safety bug in the contracts. One backend gap became BE-99; two deployment points, (3) a token as swap target and (4) the fixed OKX approve contract, wait for Wangsit's answer. Then the blocker row closes.
 
-- [ ] **BE-95 · Three chains in one backend: config and database**
+- [~] **BE-95 · Three chains in one backend: config and database**
   - Needs: SC-73 and SC-80 (both done). Route contract: D-60.
   - Do: each indexer and keeper process takes `CHAIN_ID` with that chain's RPC and deployment file; the API loads every chain that has a deployment, with one client and cache per chain. A migration adds `chain_id` to every table with chain data (events, oracle updates, DEX quotes, rates, transfers, cursors, heartbeats, monitor keys); Monad rows get 143; unique keys and indexes include it. Jobs that are not per chain (Telegram chat linking through `getUpdates`, the daily gap check, the public API check, cross-chain transfers) run in one keeper only (`KEEPER_GLOBAL=1`), because Telegram allows one update reader per bot. The monitor checks the gas token of each chain (MON, ETH, OKB; thresholds are initial proposals). `/v1/status` and `/status` show each chain. 03 section 7 gets the real variable names (today it lists `KEEPER_PRIVATE_KEY_*` and `ONECLICK_API_KEY`, which the code does not read) and the new chain variables, through the process in 06.
   - Done when: Monad on the VPS gives the same answers after the migration (tests); a second chain is switched on with env only; a replay from the start still gives the same rows.
+  - Note (20 November 2026): code done on branch `be/BE-95-three-chains`, decision D-95. Migration 0008 tested on Postgres 17 with old rows (they become 143, a write without a chain is refused, the same transaction on two chains is two rows). Tests: indexer 14, keeper 57 (fork tests skipped), API 77, shared and db pass; typecheck of every package passes. A Base indexer or keeper starts with `CHAIN_ID=8453`, `RPC_URL` and a Base deployment file; before our Base deployment only the team monitor and alerts have work there. Left: run it on the VPS with the Monad data (BE-90) and check the answers match, then `[x]`.
 
 - [ ] **BE-96 · Swap provider interface and the Base providers**
   - Needs: D-53, D-80, BE-71 (done), a 1inch API key.
@@ -447,6 +455,11 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Needs: SC-87, BE-95.
   - Do: the indexer reads `router` and every address in `previousRouters` (03 section 6); history, entry price and PnL merge the events of all routers; quotes target the new router and ask for the Morpho authorization of the new router. The protector acts only through a router that has `DELEVERAGE_FLOOR` and only for opt-ins made on it (users opt in again, 03), since the live router has no keeper floor. Send the protector address to Wangsit for the keeper role on the new router. The liquidator bot keeps working with the old `Liquidator` until Monad gets a new one.
   - Done when: on a fork with the SC-87 script, a position opened on the old router and closed on the new one shows as one history; the protector ignores opt-ins on the old router; the blocker row is closed.
+
+- [ ] **BE-99 · Close quotes without an oracle price**
+  - Needs: SC-86 in the router being quoted (the Base and X Layer routers, and Monad after SC-87).
+  - Do: when a market's oracle cannot be read (Lens price 0, from a `snapshot()` revert), `quote/close` still returns a full close: repay all debt, withdraw all collateral, the swap sized from the debt and the DEX quote alone, `minOut` from the DEX quote and the user's slippage, no deviation check against the oracle, and a clear flag in the answer that the oracle price is missing. A partial reduce or a collateral withdrawal without a price stays refused, as the router refuses it. The account and market routes show the market as without a price instead of failing. Only for routers with SC-86; on the live Monad router the API keeps refusing, since that router would revert.
+  - Done when: a fork test with an oracle whose `snapshot()` reverts gets a full close quote from the API and the transaction closes the position through the router; a partial reduce is refused with a clear error; every route that reads that market answers. Found in BE-94 (Known issues).
 
 ---
 

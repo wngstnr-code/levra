@@ -19,7 +19,7 @@ function plain(value: unknown): string | number | boolean {
 }
 
 /** `user` is the owner of the vault shares: who deposited for themselves or whose shares were redeemed. */
-export function toVaultRow(log: RawLog): typeof vaultEvents.$inferInsert {
+export function toVaultRow(log: RawLog): Omit<typeof vaultEvents.$inferInsert, "chainId"> {
   const decoded = decodeEventLog({ abi: vaultEventsAbi, data: log.data, topics: log.topics, strict: true });
   const args = decoded.args as Record<string, unknown>;
   return {

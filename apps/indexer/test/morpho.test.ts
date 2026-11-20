@@ -1,5 +1,5 @@
 import { createDb, morphoEvents, morphoPositions, runMigrations, syncCursors } from "@levra/db";
-import { external } from "@levra/shared/addresses";
+import { baseExternal, external } from "@levra/shared/addresses";
 import { morphoAbi } from "@levra/shared/abis";
 import type { Deployment } from "@levra/shared/deployments";
 import { eq } from "drizzle-orm";
@@ -38,8 +38,10 @@ describe("Morpho events", () => {
   });
 
   it("asks only for our markets in topic 1", () => {
-    const deployment = { markets: [{ marketId }], router } as unknown as Deployment;
+    const deployment = { chainId: 143, markets: [{ marketId }], router } as unknown as Deployment;
     expect(morphoStream(deployment)).toMatchObject({ address: external.morpho, topic1: [marketId] });
+    expect(morphoStream({ ...deployment, chainId: 8453 })).toMatchObject({ address: baseExternal.morpho });
+    expect(() => morphoStream({ ...deployment, chainId: 1 })).toThrow(/chain 1/);
   });
 });
 
@@ -69,10 +71,10 @@ describe.skipIf(!url)("positions rebuilt from Morpho events (needs TEST_DATABASE
     await syncStream(db, source, deployment, morphoStream(deployment));
     expect(queries[0]?.topic1).toEqual([marketId]);
     const expected = [{ user, marketId, collateral: 750n, borrowShares: 250_000n }];
-    expect(await morphoPositions(db, { user })).toEqual(expected);
+    expect(await morphoPositions(db, 143, { user })).toEqual(expected);
 
     await db.delete(syncCursors).where(eq(syncCursors.name, MORPHO_CURSOR));
     expect((await syncStream(db, source, deployment, morphoStream(deployment))).inserted).toBe(0);
-    expect(await morphoPositions(db, { marketId: marketId as Hex })).toEqual(expected);
+    expect(await morphoPositions(db, 143, { marketId: marketId as Hex })).toEqual(expected);
   });
 });

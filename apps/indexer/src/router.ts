@@ -15,7 +15,7 @@ function plain(value: unknown): string | number | boolean {
   return String(value).toLowerCase();
 }
 
-export function toRouterRow(log: RawLog): typeof routerEvents.$inferInsert {
+export function toRouterRow(log: RawLog): Omit<typeof routerEvents.$inferInsert, "chainId"> {
   const decoded = decodeEventLog({ abi: marginRouterAbi, data: log.data, topics: log.topics, strict: true });
   const args = decoded.args as Record<string, unknown>;
   const user = args.user;

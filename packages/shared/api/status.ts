@@ -26,6 +26,28 @@ export const KEEPER_HEARTBEAT_LIMIT_S: Record<KeeperName, number> = {
   monitor: 300,
 };
 
+const keeperStatus = z.object({
+  name: keeperName,
+  lastHeartbeatAt: unixSeconds.nullable(),
+  healthy: z.boolean(),
+});
+
+const indexerStatus = z.object({
+  lastBlock: z.number().int().nonnegative(),
+  chainHead: z.number().int().nonnegative(),
+  lagBlocks: z.number().int().nonnegative(),
+});
+
+/** One chain the API has a deployment for (BE-95). `keepers` lists only the jobs that have reported on that chain. */
+export const chainStatus = z.object({
+  chainId: z.number().int().positive(),
+  name: z.string(),
+  keepers: z.array(keeperStatus),
+  indexer: indexerStatus,
+});
+export type ChainStatus = z.infer<typeof chainStatus>;
+
+/** The top-level `oracle`, `keepers` and `indexer` describe Monad, as before; `chains` adds every chain, Monad first. */
 export const statusResponse = z.object({
   oracle: z.array(
     z.object({
@@ -39,18 +61,9 @@ export const statusResponse = z.object({
       ageLimitLearning: z.boolean().optional(),
     }),
   ),
-  keepers: z.array(
-    z.object({
-      name: keeperName,
-      lastHeartbeatAt: unixSeconds.nullable(),
-      healthy: z.boolean(),
-    }),
-  ),
-  indexer: z.object({
-    lastBlock: z.number().int().nonnegative(),
-    chainHead: z.number().int().nonnegative(),
-    lagBlocks: z.number().int().nonnegative(),
-  }),
+  keepers: z.array(keeperStatus),
+  indexer: indexerStatus,
+  chains: z.array(chainStatus).optional(),
   api: z.object({
     version: z.string(),
   }),

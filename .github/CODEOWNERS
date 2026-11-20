@@ -3,6 +3,8 @@
 /apps/indexer/                       @dharumahendra
 /apps/keeper/                        @dharumahendra
 /apps/web/                           @Nabil-Aufa
+/deploy/                             @dharumahendra
+/.dockerignore                       @dharumahendra
 /packages/db/                        @dharumahendra
 /packages/kyber/                     @dharumahendra
 /packages/intents/                   @dharumahendra

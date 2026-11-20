@@ -404,7 +404,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 |---|---|---|---|
 | GET | `/v1/health` | Alive or not | M1 |
 | GET | `/v1/config` | Chain ID and the addresses of our contracts and markets | M1 |
-| GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block | M1 |
+| GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block; per chain in `chains` (BE-95) | M1 |
 | GET | `/status` | Public status page: the same facts as one HTML page that refreshes every 30 seconds (BE-61). Not part of the versioned API | M6 |
 | GET | `/v1/session` | Market session, next close and open time | M1 |
 | GET | `/v1/markets` | All markets, with the current session | M1 |
@@ -832,6 +832,14 @@ type StatusResponse = {
     healthy: boolean;
   }[];
   indexer: { lastBlock: number; chainHead: number; lagBlocks: number };
+  // Added in BE-95: every chain the API has a deployment for, Monad first. The top-level keepers and indexer above stay
+  // Monad's. On the other chains, keepers lists only the jobs that have reported there.
+  chains?: {
+    chainId: number;
+    name: string;
+    keepers: StatusResponse["keepers"];
+    indexer: { lastBlock: number; chainHead: number; lagBlocks: number };
+  }[];
   // ageSeconds is the source quote age at the latest block (D-23 clock). A keeper is healthy when its last heartbeat
   // carries no error and is at most 5 minutes old (2 hours for the hourly oracle age poster). Initial proposal.
   api: { version: string };
@@ -928,11 +936,16 @@ Written by the deployment script to `contracts/deployments/<environment>.json`.
 
 ## 7. Environment variables
 
-Shared names. Each app has its own `.env.example`. Secrets never go into the repo.
+Shared names. Each app has its own `.env.example`, which lists every variable it reads. Secrets never go into the repo. On the VPS, secrets are files under `/opt/levra/secrets/<service>/` (`deploy/secrets.md`).
 
 | Name | Used by | Content |
 |---|---|---|
-| `MONAD_RPC_URL` | SC, BE | Monad RPC endpoint |
+| `MONAD_RPC_URL` | SC, BE | Monad RPC endpoint. The indexer and keeper still read it when `CHAIN_ID` is 143 and `RPC_URL` is not set |
+| `CHAIN_ID` | BE (indexer, keeper) | The chain one process serves: 143 Monad, 8453 Base, 196 X Layer (BE-95). Default 143. The deployment file must be for the same chain, or the process refuses to start |
+| `RPC_URL` | BE (indexer, keeper) | RPC endpoint of `CHAIN_ID` |
+| `DEPLOYMENT_FILE` | BE | `contracts/deployments/<environment>.json` of that chain. For the API, the Monad deployment the routes serve |
+| `BASE_RPC_URL`, `BASE_DEPLOYMENT_FILE`, `XLAYER_RPC_URL`, `XLAYER_DEPLOYMENT_FILE` | BE (API) | Other chains the API loads when both values are set (BE-95). Only `/v1/status` reads them until the routes take a chain (BE-70) |
+| `KEEPER_GLOBAL` | BE (keeper) | `1` in exactly one keeper: it also runs the jobs that serve every chain once (Telegram chat linking, the cross-chain transfer watcher, the public API check, the daily gap check). Telegram allows one update reader per bot |
 | `NEXT_PUBLIC_MONAD_RPC_URL` | FE | RPC endpoint for the browser |
 | `NEXT_PUBLIC_API_URL` | FE | Backend address |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | FE | Privy app ID for sign-in. Public, not a secret |
@@ -940,8 +953,8 @@ Shared names. Each app has its own `.env.example`. Secrets never go into the rep
 | `DATABASE_URL` | BE | Postgres |
 | `KYBER_CLIENT_ID` | BE | Client ID for the KyberSwap API |
 | `ONEINCH_API_KEY` | BE, research scripts | 1inch Business API key for the Swap API on Base (D-80). Secret: only in a local or hosted `.env`, never in the repo |
-| `ONECLICK_API_KEY` | BE | Aurora Intents API key |
-| `KEEPER_PRIVATE_KEY_*` | BE | Keeper keys, one per role |
+| `INTENTS_JWT` | BE | Aurora Intents 1Click partner token. Optional: without it the service adds its own 0.2% fee to every transfer |
+| `ORACLE_AGE_POSTER_KEY`, `CALENDAR_POSTER_KEY`, `PROTECTOR_KEY`, `LIQUIDATOR_KEY` | BE (keeper) | Keeper keys, one per role and chain (BE-55). Each role job runs only when its key is set |
 | `DEPLOYER_PRIVATE_KEY` | SC | Deployer key, for staging only |
 
 ## 8. Who needs what from whom

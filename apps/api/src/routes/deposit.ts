@@ -1,6 +1,6 @@
 import { deposits, type Db } from "@levra/db";
 import { FINAL_STATUSES, IntentsError, refreshTransfer, type IntentsQuote, type IntentsSource, type IntentsToken, type TransferStatus } from "@levra/intents";
-import { tokens as monadTokens } from "@levra/shared/addresses";
+import { MONAD_CHAIN_ID, tokens as monadTokens } from "@levra/shared/addresses";
 import {
   depositQuoteRequest,
   withdrawQuoteRequest,
@@ -105,6 +105,8 @@ export function depositRoutes(db: Db, intents: IntentsSource, compliance?: Compl
     const id = randomUUID();
     const now = new Date();
     await db.insert(deposits).values({
+      // Transfers go into and out of USDC on Monad until the deposit routes name a Levra chain (BE-70).
+      chainId: MONAD_CHAIN_ID,
       id,
       kind,
       user: user.toLowerCase(),
