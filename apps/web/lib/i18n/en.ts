@@ -139,6 +139,8 @@ export const en = {
     dexMid: "Exchange price",
     vsOracle: (v: string) => `${v} vs real price`,
     canBorrow: "Available",
+    shortRoom: "Short room",
+    shortRoomSub: (s: string) => `${s} left to borrow`,
     capLabel: "Size limit",
     perPosition: "per position",
     borrowRate: "Borrow rate",
