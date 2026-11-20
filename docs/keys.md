@@ -46,6 +46,19 @@ For the owner (Wangsit), chain 143: ORACLE_AGE_POSTER=0x... CALENDAR_POSTER=0x..
 
 On Base and X Layer the line lists the grant calls instead, since only Monad has a `make` target.
 
+Before our deployment on Base or X Layer the keeper has no `DEPLOYMENT_FILE`, so the script takes the chain from `CHAIN_ID` (set in `keeper-base.env` and `keeper-xlayer.env`) and prints the four variables for the deploy instead of grant calls. `contracts/script/Deploy.s.sol` reads `KEEPER`, `LIQUIDATOR_KEEPER`, `CALENDAR_POSTER` and `ORACLE_AGE_POSTER` and grants the roles in the deployment itself:
+
+```bash
+deploy/keys.sh keeper-base ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY --confirm
+deploy/keys.sh keeper-xlayer ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY --confirm
+```
+
+```
+For the owner (Wangsit), chain 8453: ORACLE_AGE_POSTER=0x... CALENDAR_POSTER=0x... KEEPER=0x... LIQUIDATOR_KEEPER=0x... set before the deployment of this chain
+```
+
+The addresses of a dry run are thrown away: send only the addresses printed with `--confirm`.
+
 Then:
 
 1. Send that line to the owner. After SC-55 the same calls go through the multisig.
