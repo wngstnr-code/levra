@@ -1,6 +1,6 @@
-import { externalByChain, tokensByChain } from "@levra/shared/addresses";
+import { BASE_CHAIN_ID, baseExternal, externalByChain, tokensByChain } from "@levra/shared/addresses";
 import { isChainId } from "@levra/shared/chains";
-import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
+import { coinbaseOracleRegistryAbi, lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
 import { listMarkets, type MarketInfo } from "@levra/shared/markets";
@@ -54,6 +54,10 @@ export type MarketState = {
   oracleStale: boolean;
   /** SessionOracle's hard check alone. When true, Morpho cannot price the market, so a partial withdrawal fails. */
   oracleHardStale: boolean;
+  /** B20 tokens on Base: the registry multiplier (WAD), equal to the token's `uiMultiplier()` (05). Null elsewhere. */
+  uiMultiplierWad: bigint | null;
+  /** The issuer paused the token in the Coinbase oracle registry (Base). False on chains without that flag. */
+  tokenPaused: boolean;
 };
 
 export type RouterEvent =
@@ -130,6 +134,14 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
         if (r.status !== "success") throw r.error;
         return r.result as T;
       };
+      // Coinbase stocks on Base: the multiplier and the issuer pause live in the oracle registry, keyed by token.
+      const registry = deployment.chainId === BASE_CHAIN_ID ? baseExternal.coinbaseOracleRegistry : null;
+      const params = registry
+        ? await client.multicall({
+            allowFailure: false,
+            contracts: infos.map((info) => ({ address: registry, abi: coinbaseOracleRegistryAbi, functionName: "getOracleParams", args: [info.stock.token] }) as const),
+          })
+        : null;
 
       return views.map((v, i) => {
         const config = ok<{ maxDeviationBps: number; maxOracleAge: number }>(extra[3 * i]!);
@@ -162,6 +174,8 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
           publishedAt: Number(v.publishedAt),
           oracleStale: v.stale || tooOldToOpen,
           oracleHardStale: v.stale,
+          uiMultiplierWad: params ? params[i]![0] : null,
+          tokenPaused: params ? params[i]![1] : false,
         };
       });
     });
