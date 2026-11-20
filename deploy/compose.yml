@@ -82,6 +82,23 @@ services:
     volumes:
       - ${LEVRA_HOME:-/opt/levra}/secrets/keeper-monad:/run/secrets:ro
 
+  # Base and X Layer keepers start without keys, for the Chainlink price recorder only (BE-97).
+  keeper-base:
+    <<: *app
+    working_dir: /app/apps/keeper
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/keeper-base.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/keeper-base:/run/secrets:ro
+
+  keeper-xlayer:
+    <<: *app
+    working_dir: /app/apps/keeper
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/keeper-xlayer.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/keeper-xlayer:/run/secrets:ro
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped

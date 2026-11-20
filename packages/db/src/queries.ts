@@ -125,7 +125,7 @@ export async function oraclePriceSeries(db: Db, chainId: number, symbol: string,
     cross join lateral (
       select price_e8::text as price from oracle_updates
       where chain_id = ${chainId} and symbol = ${symbol} and block_time <= t
-      order by block_time desc, block_number desc, log_index desc
+      order by block_time desc, block_number desc nulls last, log_index desc nulls last, round_id desc
       limit 1
     ) p
     order by t
@@ -138,7 +138,7 @@ export async function latestOraclePrice(db: Db, chainId: number, symbol: string)
   const rows = (await db.execute(sql`
     select extract(epoch from block_time)::bigint as at, price_e8::text as price from oracle_updates
     where chain_id = ${chainId} and symbol = ${symbol}
-    order by block_time desc, block_number desc, log_index desc
+    order by block_time desc, block_number desc nulls last, log_index desc nulls last, round_id desc
     limit 1
   `)) as unknown as { at: string; price: string }[];
   const row = rows[0];

@@ -64,6 +64,13 @@
       "when": 1795159471851,
       "tag": "0008_chain_id",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795163917388,
+      "tag": "0009_chainlink_rounds",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
 import { chains } from "@levra/shared/chains";
 import { readDeployment } from "@levra/shared/deployments/node";
+import { stocksByChain, type ChainlinkStock } from "@levra/shared/markets";
 import { createWalletClient, http, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { createAlerts } from "./alerts/job";
@@ -13,6 +14,7 @@ import { createLiquidatorBot } from "./liquidator/bot";
 import { createMonitor, webhookChannel, type TeamChannel } from "./monitor/job";
 import type { Logger } from "./logger";
 import { createOracleAgePoster } from "./oracle/age-poster";
+import { chainFeedReader, createChainlinkRecorder } from "./oracle/chainlink";
 import { createOracleRecorder } from "./oracle/recorder";
 import { createProtector } from "./protector/protector";
 import { createTransferWatcher } from "./transfers/watcher";
@@ -39,7 +41,14 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
   if (onMonad) {
     jobs.push(createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS }), createMarketDepth({ client, swap, deployment }));
   } else {
-    notHere("oracle recorder", "BE-97");
+    // Base and X Layer price through Chainlink feeds, recorded round by round (BE-97). Needs no key and no deployment.
+    jobs.push(
+      createChainlinkRecorder({
+        reader: chainFeedReader(client),
+        stocks: Object.values(stocksByChain[chainId]) as ChainlinkStock[],
+        backfillSeconds: env.CHAINLINK_BACKFILL_DAYS * 86_400,
+      }),
+    );
     notHere("market depth", "BE-96");
   }
 

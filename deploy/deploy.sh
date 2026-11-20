@@ -14,6 +14,17 @@ fi
 
 git fetch --prune origin
 git checkout --quiet --detach "$ref"
+
+# Every service in compose.yml reads an env file; name the missing ones before compose fails on the first.
+missing=0
+for example in deploy/env/*.env.example; do
+  name=$(basename "$example" .example)
+  if [ ! -f "${LEVRA_HOME:-/opt/levra}/env/$name" ]; then
+    echo "missing ${LEVRA_HOME:-/opt/levra}/env/$name (copy $example and fill it in)" >&2
+    missing=1
+  fi
+done
+[ "$missing" -eq 0 ] || exit 1
 APP_VERSION=$(git rev-parse --short=12 HEAD)
 export APP_VERSION
 echo "deploying $APP_VERSION"
