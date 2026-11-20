@@ -304,6 +304,7 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: build the states board: market status pills, position health levels, trade notices from the quote `warnings`, transaction results from the contract and API errors, app errors (region, terms, wrong network, offline, rate limit), empty and loading states.
   - Done when: each warning code, contract error and API error code in 03 maps to a designed state, with a unit test for the mapping.
 
-- [ ] **FE-89 · Motion**
+- [x] **FE-89 · Motion**
   - Do: short, calm transitions (sheets, number changes, tab changes) that respect reduced motion.
   - Done when: no animation blocks input or runs longer than 300 ms, and reduced motion turns them off.
+  - Note: done on 20 November 2026 (`fe/FE-89-e-motion`): pages ease in (220 ms), money values fade when they change (250 ms), sheets slide in; an end-to-end test checks that reduced motion turns them off.
