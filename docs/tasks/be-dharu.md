@@ -421,10 +421,11 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Do: a test that recomputes every number in both tables with `math.ts`: maximum leverage from the soft limits (`maxLeverageE2`), the closed check after the worst gap (`ltvAfterGapWad`), and the bonus (`liquidationIncentiveFactorWad`). Check the price scale for 8 decimal stocks (Coinbase) and 18 decimal stocks (xStocks) against `ChainlinkSessionOracle.price()` on a fork, for long and short. An X Layer fork runs everything; on Base the oracle reads only the feed and the registry, which a fork can run, while B20 transfers cannot. Check `cautiousPriceE8` with the bid and ask the adapter reports, and `stockForUsd`, `swapPriceE8` and `liquidationPriceE8` at both decimal sizes.
   - Done when: the test reproduces both tables, or each difference is sent to Wangsit and 04 is corrected; the blocker row is closed and the `math.ts` check in SC-74 is met.
 
-- [ ] **BE-93 · Gap table rows for the Base and X Layer stocks**
+- [x] **BE-93 · Gap table rows for the Base and X Layer stocks**
   - Needs: BE-34 (the `report:gaps` script). Blocker for Wangsit (SC-74).
   - Do: add MSFT, GOOGL, META, AMZN and SPCX to `gapTable` with `report:gaps`, over five years to 19 November 2026 as in 04. Compare the existing AAPL, TSLA, NVDA, SPY and QQQ rows with 04 (same code, newer window) and agree with Wangsit whether to refresh them. SPCX has only 23 weekend events since June 2026: a comment says so, and 04 uses NVDA's worst drop for its limits. Check that `gapScenarios` finds each stock by the symbol `markets.ts` uses on each chain.
   - Done when: `gapScenarios` gives rows that match 04 for every listed stock on Base and X Layer; the blocker row is closed.
+  - Note: done on 20 November 2026. `report:gaps` takes new symbols on the command line and marks a stock with a short history. The table was rebuilt over November 2021 to November 2026 (274 events per stock): every worst drop and rise equals 04, both for the new rows and the old ones, so the old rows were refreshed too (only the "more than 2%" shares moved). `gapStandIns` gives SPCX NVDA's worst drop for a long, as 04 does for its limits, and the scenario label says so. Tests: a row for every stock on every chain by its `markets.ts` symbol, the closed checks of 04 for Base and X Layer, and SPCX.
 
 - [ ] **BE-94 · Second reader for the contract changes**
   - Needs: nothing. Blocker for Wangsit: 06 asks for a second reader before SC-87, SC-76 and SC-83.
