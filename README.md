@@ -161,6 +161,7 @@ Database tests need `TEST_DATABASE_URL` (the docker Postgres). Backend tests tha
 | `apps/indexer/` | Follows router, Morpho and vault events into Postgres | Dharu |
 | `apps/keeper/` | Calendar poster, oracle age poster, protector, liquidator bot, alerts, oracle logger, team monitor | Dharu |
 | `apps/web/` | Web app (Next.js) | Nabil |
+| `deploy/` | Backend hosting on one VPS: image, Docker Compose, HTTPS, deploy and backup scripts | Dharu |
 | `packages/shared/` | ABIs, addresses, deployment files, formulas and API schemas, shared by everyone | Shared |
 | `packages/db/`, `packages/kyber/`, `packages/intents/` | Database schema, KyberSwap client, Aurora Intents client | Dharu |
 | `docs/` | Product, architecture, interface agreement, risk rules, tasks and progress | Shared |

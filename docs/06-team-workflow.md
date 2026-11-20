@@ -7,7 +7,7 @@ The goal of this doc: three people can work at the same time without overwriting
 | Folder | Owner | Who may change it |
 |---|---|---|
 | `contracts/` | Wangsit | Wangsit |
-| `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/` | Dharu | Dharu |
+| `apps/api/`, `apps/indexer/`, `apps/keeper/`, `deploy/`, `packages/db/`, `packages/kyber/`, `packages/intents/` | Dharu | Dharu |
 | `apps/web/` | Nabil | Nabil |
 | `packages/shared/abis/`, `addresses.ts`, `markets.ts`, `chains.ts`, `deployments*.ts` | Wangsit | Wangsit; others through a PR Wangsit approves |
 | `packages/shared/api/`, `math.ts`, `gaps.ts` | Dharu | Dharu; others through a PR Dharu approves |
