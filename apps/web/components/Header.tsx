@@ -69,7 +69,7 @@ export function BottomNav() {
   const m = useT();
   const pathname = usePathname();
   return (
-    <nav aria-label={m.a11y.mainNav} className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-bg/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+    <nav aria-label={m.a11y.mainNav} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
       <ul className="mx-auto grid max-w-xl grid-cols-6">
         {routes.map((r) => {
           const active = pathname.startsWith(r.href);

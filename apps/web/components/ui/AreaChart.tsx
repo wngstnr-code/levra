@@ -78,7 +78,7 @@ export function AreaChart({
           <div aria-hidden className={cn("pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2", ink ? "ring-ink/20" : "ring-bg")} style={{ left: `${x}%`, top: `${yPct}%`, background: colors[tone] }} />
           <div
             role="status"
-            className={cn("pointer-events-none absolute top-0 -translate-x-1/2 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap tabular-nums", ink ? "bg-ink text-fg" : "bg-lime text-ink")}
+            className={cn("pointer-events-none absolute top-0 -translate-x-1/2 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap tabular-nums", ink ? "bg-ink text-on-ink" : "bg-lime text-ink")}
             style={{ left: `clamp(64px, ${x}%, calc(100% - 64px))` }}
           >
             {tooltip(i)}
