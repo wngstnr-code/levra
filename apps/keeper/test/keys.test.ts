@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseEther, type Address } from "viem";
-import { parseKeysArgs, storeKey } from "../scripts/keys";
+import { grantLine, handoverLine, keysChain, parseKeysArgs, storeKey } from "../scripts/keys";
 import { parseMoveArgs, remoteWrite } from "../scripts/move-variables";
 import { ROLES, planTopUps } from "../scripts/roles";
 
@@ -25,6 +25,21 @@ describe("keys script arguments", () => {
     expect(() => parseKeysArgs(["--dir", "--confirm", "PROTECTOR_KEY"])).toThrow(/--dir/);
     expect(() => parseKeysArgs(["--dir", "/k", "OWNER_KEY"])).toThrow(/unknown: OWNER_KEY/);
     expect(() => parseKeysArgs(["--dir", "/k"])).toThrow(/Name one or more roles/);
+  });
+
+  it("works before our deployment on a chain, from CHAIN_ID, and prints the deploy variables", () => {
+    expect(keysChain({ CHAIN_ID: "8453" })).toEqual({ chainId: 8453, deployment: null });
+    expect(() => keysChain({})).toThrow(/Set DEPLOYMENT_FILE, or CHAIN_ID/);
+    expect(() => keysChain({ CHAIN_ID: "1" })).toThrow(/CHAIN_ID/);
+    expect(grantLine("LIQUIDATOR_KEY", a(9), null)).toBe(`LIQUIDATOR_KEEPER=${a(9)} in the deploy environment; the deploy grants it`);
+    expect(handoverLine(196, [`KEEPER=${a(9)}`], false)).toBe(`For the owner (Wangsit), chain 196: KEEPER=${a(9)} set before the deployment of this chain`);
+    expect(handoverLine(143, [`KEEPER=${a(9)}`], true)).toBe(`For the owner (Wangsit), chain 143: KEEPER=${a(9)} make set-roles-monad CONFIRM=yes`);
+  });
+
+  it("refuses a deployment file of another chain than CHAIN_ID", () => {
+    const monadFile = new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    expect(keysChain({ DEPLOYMENT_FILE: monadFile }).chainId).toBe(143);
+    expect(() => keysChain({ DEPLOYMENT_FILE: monadFile, CHAIN_ID: "8453" })).toThrow(/is for chain 143, but CHAIN_ID is 8453/);
   });
 
   it("stores a key once, owner read only, and replaces it only on rotation", async () => {
