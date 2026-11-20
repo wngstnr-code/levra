@@ -18,7 +18,7 @@ const ownerAbi = parseAbi(["function owner() view returns (address)"]);
 describe.skipIf(!onFork)("key rotation drill: the oracle age poster key leaked (BE-55)", () => {
   const deployment = onFork ? readDeployment(deploymentFile ?? "") : { chainId: 143, block: 0, router: zeroAddress, riskManager: zeroAddress, lens: zeroAddress, markets: [] };
   const client = createPublicClient({ chain: monad, transport: http(rpcUrl) });
-  const ctx = { db: {} as Db, logger: pino({ level: "silent" }), signal: new AbortController().signal };
+  const ctx = { db: {} as Db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal };
   const walletOf = (key: Hex) => createWalletClient({ account: privateKeyToAccount(key), chain: monad, transport: http(rpcUrl) });
   const freshKey = generatePrivateKey();
   const market = deployment.markets[0];

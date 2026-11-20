@@ -1,5 +1,6 @@
 import { alertDeliveries, alertSettings, deposits, morphoEvents, routerEvents, type Db } from "@levra/db";
 import { lensAbi } from "@levra/shared/abis";
+import { chains } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
 import { WAD } from "@levra/shared/math";
 import { and, eq, gte, inArray } from "drizzle-orm";
@@ -35,6 +36,7 @@ export type AlertsOptions = {
   client: PublicClient;
   deployment: Deployment;
   channels: Channels;
+  /** Only in the keeper with KEEPER_GLOBAL: Telegram allows one update reader per bot. */
   telegram?: TelegramSource;
   nextClose?: CloseSource;
   /** Unix seconds. The chain's clock unless a test sets another. */
@@ -44,8 +46,8 @@ export type AlertsOptions = {
 
 /**
  * User alerts (BE-33): before-close warnings for positions above the closed limit, an LTV over the user's threshold,
- * auto-deleverage, liquidation and arrived deposits. Each alert goes out once per channel (`alert_deliveries`); a
- * failed send is removed again so the next run retries it.
+ * auto-deleverage, liquidation and arrived deposits, for the positions on this keeper's chain. Each alert goes out once
+ * per channel (`alert_deliveries`, keys start with the chain id); a failed send is removed again so the next run retries it.
  */
 export function createAlerts({ client, deployment, channels, telegram, nextClose = closeFromCalendar, clock, intervalMs = 60_000 }: AlertsOptions): Job {
   const chainClock = async () => Number((await client.getBlock({ blockTag: "latest" })).timestamp);
@@ -78,8 +80,9 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
   return {
     name: "alerts",
     intervalMs,
-    async run({ db, logger }) {
-      const linked = telegram ? await linkTelegramChats(db, telegram) : 0;
+    async run({ db, chainId }) {
+      const chainName = chains[chainId].name;
+      const linked = telegram ? await linkTelegramChats(db, chainId, telegram) : 0;
       const now = await (clock ?? chainClock)();
       const users = (await db.select().from(alertSettings)).filter((s) => (s.email && channels.email) || (s.telegramChatId && channels.telegram));
       if (users.length === 0) return { linked, users: 0, sent: 0 };
@@ -88,20 +91,20 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
         marketId: m.marketId.toLowerCase(),
         softLtvClosed: m.softLtvClosed,
       }));
-      const closeAt = await nextClose(db, now);
+      const closeAt = await nextClose(db, now, chainId);
       const stage = preCloseStage(now, closeAt);
       const since = new Date((now - EVENT_LOOKBACK_SECONDS) * 1000);
       const addresses = users.map((u) => u.address);
       const [reduced, liquidated, arrived] = await Promise.all([
-        db.select().from(routerEvents).where(and(eq(routerEvents.name, "PositionReduced"), inArray(routerEvents.user, addresses), gte(routerEvents.blockTime, since))),
-        db.select().from(morphoEvents).where(and(eq(morphoEvents.name, "Liquidate"), inArray(morphoEvents.user, addresses), gte(morphoEvents.blockTime, since))),
-        db.select().from(deposits).where(and(eq(deposits.kind, "deposit"), eq(deposits.status, "SUCCESS"), inArray(deposits.user, addresses), gte(deposits.updatedAt, since))),
+        db.select().from(routerEvents).where(and(eq(routerEvents.chainId, chainId), eq(routerEvents.name, "PositionReduced"), inArray(routerEvents.user, addresses), gte(routerEvents.blockTime, since))),
+        db.select().from(morphoEvents).where(and(eq(morphoEvents.chainId, chainId), eq(morphoEvents.name, "Liquidate"), inArray(morphoEvents.user, addresses), gte(morphoEvents.blockTime, since))),
+        db.select().from(deposits).where(and(eq(deposits.chainId, chainId), eq(deposits.kind, "deposit"), eq(deposits.status, "SUCCESS"), inArray(deposits.user, addresses), gte(deposits.updatedAt, since))),
       ]);
 
       let sent = 0;
       let failed = 0;
       const send = async (s: Settings, alert: Omit<Alert, "address">) => {
-        const r = await deliver(db, s, { ...alert, address: s.address });
+        const r = await deliver(db, s, { ...alert, key: `${chainId}:${alert.key}`, address: s.address });
         sent += r.sent;
         failed += r.failed;
       };
@@ -120,7 +123,7 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
             });
             await send(s, {
               key: `preclose:${closeAt}:${stage}`,
-              subject: `The market closes in ${hours(stage)}`,
+              subject: `The ${chainName} market closes in ${hours(stage)}`,
               text: `These positions are above the limit that applies while the market is closed. Prices can gap at the next open.\n\n${lines.join("\n")}\n\nAdd margin or reduce the position before the close.`,
             });
           }
@@ -134,7 +137,7 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
               await send(s, { key, subject: `LTV above ${pct(threshold)}`, text: `${symbols.get(p.marketId.toLowerCase())}: LTV is ${pct(p.ltv)}, above your alert level of ${pct(threshold)}.` });
             } else {
               // Back under the level: the next crossing alerts again.
-              await db.delete(alertDeliveries).where(and(eq(alertDeliveries.address, s.address), eq(alertDeliveries.key, key)));
+              await db.delete(alertDeliveries).where(and(eq(alertDeliveries.address, s.address), eq(alertDeliveries.key, `${chainId}:${key}`)));
             }
           }
         }
@@ -152,7 +155,7 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
         }
         if (s.depositArrived) {
           for (const d of arrived.filter((r) => r.user === s.address && r.updatedAt.getTime() >= createdAt)) {
-            await send(s, { key: `deposit:${d.id}`, subject: "Deposit arrived", text: `Your deposit arrived on Monad${d.destinationTxHash ? `. Transaction: ${d.destinationTxHash}` : "."}` });
+            await send(s, { key: `deposit:${d.id}`, subject: "Deposit arrived", text: `Your deposit arrived on ${chainName}${d.destinationTxHash ? `. Transaction: ${d.destinationTxHash}` : "."}` });
           }
         }
       }

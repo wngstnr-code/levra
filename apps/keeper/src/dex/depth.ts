@@ -5,7 +5,7 @@ import { anchoredStockOracleAbi } from "@levra/shared/abis";
 import { BPS, signedDeviationBps, stockForUsd, swapPriceE8 } from "@levra/shared/math";
 import type { Deployment } from "@levra/shared/deployments";
 import { stocks, type Stock } from "@levra/shared/markets";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { PublicClient } from "viem";
 import type { Job } from "../runner";
@@ -15,7 +15,8 @@ import { readRates } from "./rates";
 export const DEPTH_SIZES_USD = [100, 300, 1_000, 3_000, 10_000] as const;
 const USDC = tokens.USDC;
 
-export type DexRow = typeof dexQuotes.$inferInsert;
+/** A quote row without its chain; the job adds the chain it runs on. */
+export type DexRow = Omit<typeof dexQuotes.$inferInsert, "chainId">;
 
 type Ctx = { swap: SwapSource; pauseMs: number; runId: string; at: Date; calls: { n: number; limited: number } };
 
@@ -97,12 +98,17 @@ export function createMarketDepth({ client, swap, intervalMs = 600_000, depthEve
   return {
     name: "marketDepth",
     intervalMs,
-    async run({ db, logger }) {
+    async run({ db, chainId, logger }) {
       const at = new Date();
       // Chain reads only, so they go first and do not wait on the aggregator.
       const rates = deployment ? await readRates(client, deployment, at) : [];
-      if (rates.length > 0) await db.insert(marketRates).values(rates);
-      const [lastFull] = await db.select({ at: dexQuotes.measuredAt }).from(dexQuotes).where(eq(dexQuotes.kind, "buy")).orderBy(desc(dexQuotes.measuredAt)).limit(1);
+      if (rates.length > 0) await db.insert(marketRates).values(rates.map((r) => ({ ...r, chainId })));
+      const [lastFull] = await db
+        .select({ at: dexQuotes.measuredAt })
+        .from(dexQuotes)
+        .where(and(eq(dexQuotes.chainId, chainId), eq(dexQuotes.kind, "buy")))
+        .orderBy(desc(dexQuotes.measuredAt))
+        .limit(1);
       const full = !lastFull || at.getTime() - lastFull.at.getTime() >= depthEveryMs;
       const ctx: Ctx = { swap, pauseMs, runId: at.toISOString(), at, calls: { n: 0, limited: 0 } };
       const started = Date.now();
@@ -112,7 +118,7 @@ export function createMarketDepth({ client, swap, intervalMs = 600_000, depthEve
         const p = await client.readContract({ address: external.anchoredStockOracle, abi: anchoredStockOracleAbi, functionName: "latestPrice", args: [stock.priceId] });
         rows.push(...(await measureStock(ctx, stock, BigInt(p.price), full)));
       }
-      await db.insert(dexQuotes).values(rows);
+      await db.insert(dexQuotes).values(rows.map((r) => ({ ...r, chainId })));
 
       const failed = rows.filter((r) => r.error).length;
       if (failed > 0) logger.warn({ failed, limited: ctx.calls.limited }, "some DEX quotes failed");

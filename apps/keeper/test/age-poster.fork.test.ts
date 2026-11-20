@@ -21,7 +21,7 @@ describe.skipIf(!onFork)("oracle age poster on the fork (BE-17)", () => {
     : { chainId: 143, block: 0, router: zeroAddress, riskManager: zeroAddress, lens: zeroAddress, markets: [] };
   const client = createPublicClient({ chain: monad, transport: http(rpcUrl) });
   const walletOf = (key: Hex) => createWalletClient({ account: privateKeyToAccount(key), chain: monad, transport: http(rpcUrl) });
-  const ctx = { db: {} as Db, logger: pino({ level: "silent" }), signal: new AbortController().signal };
+  const ctx = { db: {} as Db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal };
   const fixed = (values: Record<string, number | null>): ProposalSource => async () =>
     new Map(Object.entries(values).map(([s, v]) => [s, v === null ? { value: null, reason: "less than 7 days of data" } : { value: v, reason: null }]));
   const maxAge = async (symbol: string, side: string) => {

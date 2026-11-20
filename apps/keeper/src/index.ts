@@ -6,9 +6,9 @@ import { createLogger } from "./logger";
 import { runJob } from "./runner";
 
 const env = loadEnv();
-const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");
+const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development").child({ chainId: env.CHAIN_ID });
 const { db, close } = createDb(env.DATABASE_URL);
-const jobs = createJobs(env, createChainClient(env.MONAD_RPC_URL), logger);
+const jobs = createJobs(env, createChainClient(env.CHAIN_ID, env.rpcUrl), logger);
 const controller = new AbortController();
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -18,7 +18,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   });
 }
 
-logger.info({ jobs: jobs.map((j) => j.name) }, "keeper starting");
-await Promise.all(jobs.map((job) => runJob(job, { db, logger, signal: controller.signal })));
+logger.info({ jobs: jobs.map((j) => j.name), global: env.KEEPER_GLOBAL }, "keeper starting");
+await Promise.all(jobs.map((job) => runJob(job, { db, chainId: env.CHAIN_ID, logger, signal: controller.signal })));
 await close();
 logger.info("keeper stopped");

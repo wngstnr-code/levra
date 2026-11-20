@@ -10,7 +10,7 @@ const USER = "0x00000000000000000000000000000000007a7c11";
 
 describe.skipIf(!url)("transfer watcher (needs TEST_DATABASE_URL)", () => {
   const { db, close } = createDb(url ?? "", { max: 2 });
-  const ctx = { db, logger: pino({ level: "silent" }), signal: new AbortController().signal };
+  const ctx = { db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal };
   const upstream = new Map<string, string>([["0xa", "PENDING_DEPOSIT"], ["0xb", "PROCESSING"], ["0xc", "SUCCESS"]]);
   const asked: string[] = [];
   const intents: IntentsSource = {
@@ -27,6 +27,7 @@ describe.skipIf(!url)("transfer watcher (needs TEST_DATABASE_URL)", () => {
     },
   };
   const row = (id: string, depositAddress: string, status: string, ageDays = 0) => ({
+    chainId: 143,
     id,
     kind: "deposit",
     user: USER,

@@ -24,7 +24,7 @@ function toDate(unixSeconds: bigint): Date {
   return new Date(Number(unixSeconds) * 1000);
 }
 
-export function toOracleRow(log: PriceUpdatedLog): typeof oracleUpdates.$inferInsert {
+export function toOracleRow(log: PriceUpdatedLog): Omit<typeof oracleUpdates.$inferInsert, "chainId"> {
   const { priceId, price, bestBid, bestAsk, feedUpdateTimestamp, publishedAt, roundId, session } = log.args;
   const symbol = symbolByPriceId.get(priceId.toLowerCase() as Hex);
   if (!symbol) throw new Error(`Log for a price id we do not track: ${priceId}`);

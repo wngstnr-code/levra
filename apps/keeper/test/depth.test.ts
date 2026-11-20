@@ -56,7 +56,7 @@ describe.skipIf(!url)("market depth job (needs TEST_DATABASE_URL)", () => {
   const { db, close } = createDb(url ?? "", { max: 2 });
   const client = { readContract: async () => ({ price: ORACLE }) } as unknown as PublicClient;
   const run = (depthEveryMs: number) =>
-    createMarketDepth({ client, swap: fakeSwap(), pauseMs: 0, depthEveryMs }).run({ db, logger: pino({ level: "silent" }), signal: new AbortController().signal });
+    createMarketDepth({ client, swap: fakeSwap(), pauseMs: 0, depthEveryMs }).run({ db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal });
 
   beforeEach(async () => {
     await runMigrations(url ?? "");
@@ -67,7 +67,7 @@ describe.skipIf(!url)("market depth job (needs TEST_DATABASE_URL)", () => {
   it("runs the full table first, then only mids until a day has passed, and serves the latest mid", async () => {
     expect(await run(86_400_000)).toMatchObject({ full: true, rows: 33, failed: 0 });
     expect(await run(86_400_000)).toMatchObject({ full: false, rows: 3 });
-    const mids = await latestDexMids(db, 600);
+    const mids = await latestDexMids(db, 143, 600);
     expect([...mids.keys()].sort()).toEqual(["BIL", "HOOD", "QQQ"]);
     // 1% cost each way: the average of buy and sell sits 0.005% above $1,000.
     expect(mids.get("QQQ")).toBe(100_005_050_505n);
