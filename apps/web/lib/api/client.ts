@@ -29,7 +29,25 @@ export type EndpointName = keyof Endpoints;
 export type ApiResponse<N extends EndpointName> = Endpoints[N] extends { response: infer R extends z.ZodType } ? z.infer<R> : never;
 export type ApiBody<N extends EndpointName> = Endpoints[N] extends { body: infer B extends z.ZodType } ? z.input<B> : never;
 
+/** Endpoints that do not belong to one chain: health, the status of every chain, compliance and alerts. */
+const GLOBAL_ENDPOINTS = new Set<EndpointName>(["health", "status", "eligibility", "termsAccept", "authNonce", "authSiwe", "alertsGet", "alertsPut", "alertsTelegramLink", "alertsTelegramUnlink"]);
+
+/** The chain whose routes stay at /v1/... as aliases until the web app moves (D-60, BE-70). */
+const ALIAS_CHAIN_ID = 143;
+
+/** /v1/markets on Base becomes /v1/8453/markets (D-60). Monad keeps the alias. */
+export function chainScopedPath(path: string, chainId: number | undefined): string {
+  if (chainId === undefined || chainId === ALIAS_CHAIN_ID) return path;
+  return path.replace(/^\/v1\//, `/v1/${chainId}/`);
+}
+
+export function isChainScoped(name: EndpointName): boolean {
+  return !GLOBAL_ENDPOINTS.has(name);
+}
+
 type Options<N extends EndpointName> = {
+  /** The chain for chain scoped endpoints. Ignored for global ones. */
+  chainId?: number;
   params?: Record<string, string>;
   query?: Record<string, string | number | undefined>;
   body?: ApiBody<N>;
@@ -50,7 +68,8 @@ export function endpointUrl(path: string, params: Record<string, string> = {}, q
 /** Calls one endpoint and validates the answer against its shared schema. */
 export async function api<N extends EndpointName>(name: N, opts: Options<N> = {}): Promise<ApiResponse<N>> {
   const ep = endpoints[name] as { method: string; path: string; response?: z.ZodType };
-  const url = endpointUrl(ep.path, opts.params, opts.query);
+  const path = isChainScoped(name) ? chainScopedPath(ep.path, opts.chainId) : ep.path;
+  const url = endpointUrl(path, opts.params, opts.query);
   let res: Response;
   try {
     res = await fetch(url, {
