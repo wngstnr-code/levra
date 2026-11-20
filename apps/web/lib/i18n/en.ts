@@ -13,6 +13,16 @@ export const en = {
     balance: (v: string) => `Balance ${v}`,
     ago: (v: string) => `${v} ago`,
   },
+  share: {
+    button: "Share",
+    title: "Share this trade",
+    now: "Now",
+    cta: "Trade it on Levra →",
+    note: "Price move since you opened, in your favour. Download the picture and add it to your post.",
+    download: "Download image",
+    postX: "Post on X",
+    post: (stock: string, side: string, move: string) => `${move} on my ${stock} ${side.toLowerCase()} with Levra.`,
+  },
   signIn: {
     title: "Sign in to Levra",
     sub: "One account on every network.",

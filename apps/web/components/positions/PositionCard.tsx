@@ -13,6 +13,9 @@ import { StatBox } from "../ui/StatBox";
 import { TokenIcon } from "../ui/TokenIcon";
 import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
+import { Share2 } from "lucide-react";
+import { useState } from "react";
+import { ShareSheet } from "./ShareSheet";
 
 export type ManageTab = "add" | "remove" | "repay" | "reduce" | "close";
 
@@ -26,10 +29,12 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
   const stockAmt = stock ? `${formatToken(p.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}` : p.stockAmountRaw;
   const pnl = BigInt(p.unrealizedPnlUsdRaw);
   const worst = p.gapScenarios[0];
+  const [sharing, setSharing] = useState(false);
   const lev = BigInt(p.equityUsdRaw) > 0n ? Number((BigInt(p.valueUsdRaw) * 100n) / BigInt(p.equityUsdRaw)) / 100 : null;
 
   return (
     <Card className={cn("flex flex-col gap-6", p.overSoftLimit && "ring-2 ring-caution/60")}>
+      <ShareSheet position={p} open={sharing} onClose={() => setSharing(false)} />
       <div className="flex flex-wrap items-center gap-3.5">
         <TokenIcon symbol={p.symbol} size={44} />
         <div>
@@ -40,7 +45,12 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
           <span className="text-[13px] text-fg-2">{long ? m.positions.size(stockAmt, lev ? `${lev.toFixed(1)}×` : "") : m.positions.borrowed(stockAmt)}</span>
         </div>
         {p.overSoftLimit && <span className="rounded-full bg-caution-soft px-3 py-1.5 text-[13px] font-semibold text-caution">● {m.positions.aboveSoft}</span>}
-        <div className="ml-auto">{protectionControl}</div>
+        <div className="ml-auto flex items-center gap-3">
+          <button onClick={() => setSharing(true)} className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[13px] text-fg-2 transition-colors hover:text-fg">
+            <Share2 size={14} aria-hidden /> {m.share.button}
+          </button>
+          {protectionControl}
+        </div>
       </div>
       {p.overSoftLimit && <p className="-mt-2 text-sm text-fg-2">{m.positions.aboveSoftBody(formatWadPercent(p.ltvWad), formatWadPercent(p.softLtvWad), formatWadPercent(p.lltvWad))}</p>}
 
