@@ -10,7 +10,7 @@ Levra does not run its own exchange or lending pool. Trades go to Uniswap v4 and
 
 | | |
 |---|---|
-| Web app | [app.levra.finance](https://app.levra.finance) (also at [levra-mon.vercel.app](https://levra-mon.vercel.app)) |
+| Web app | [app.levra.finance](https://app.levra.finance) |
 | API | [api-production-c154.up.railway.app](https://api-production-c154.up.railway.app/v1/health) |
 | Live status | [api-production-c154.up.railway.app/status](https://api-production-c154.up.railway.app/status) |
 | Chain | Monad mainnet (chain ID 143) |
