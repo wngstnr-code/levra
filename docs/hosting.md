@@ -2,7 +2,7 @@
 
 How the backend runs after Railway (D-94). Tasks: BE-90 (server and services), BE-91 (moving off Railway), BE-53 (backups), BE-55 (keys), BE-52 (CDN and the country header).
 
-Status on 20 November 2026: the files in `deploy/` are written. Verified in a local copy of this setup on Docker Desktop (Windows), against Monad mainnet on the public RPC: the image builds; `migrate` runs before the apps; the API answers `/v1/health` and `/v1/status` through Caddy; the indexer syncs; the keeper jobs that need no key report healthy and the role jobs stay off without keys; secrets reach the apps from files and do not show in `docker inspect`; `deploy/keys.sh`'s script writes key files and prints only addresses. Not verified yet: `setup-server.sh`, `new-secrets.sh`, `deploy.sh` and `backup.sh` on a real Ubuntu server, HTTPS with a real certificate, and recovery after a reboot. The VPS is bought on 21 November 2026.
+Status on 20 November 2026: the files in `deploy/` are written. Verified in a local copy of this setup on Docker Desktop (Windows), against Monad mainnet on the public RPC: the image builds; `migrate` runs before the apps; the API answers `/v1/health` and `/v1/status` through Caddy; the indexer syncs; the keeper jobs that need no key report healthy and the role jobs stay off without keys; secrets reach the apps from files and do not show in `docker inspect`; `deploy/keys.sh`'s script writes key files and prints only addresses. Not verified yet: `setup-server.sh`, `new-secrets.sh`, `deploy.sh` and `backup.sh` on a real Ubuntu server, HTTPS with a real certificate, and recovery after a reboot. The VPS is bought and running since 20 November 2026 (see "The server"); setup on it has not started.
 
 | File in `deploy/` | Purpose |
 |---|---|
@@ -26,9 +26,10 @@ Railway no longer serves the backend: the old address `https://api-production-c1
 
 | Item | Proposal | Status |
 |---|---|---|
-| OS | Ubuntu 24.04 LTS, x86_64 | Proposal |
-| Size | 4 vCPU, 8 GB RAM, 160 GB SSD for three chains. 2 vCPU, 4 GB RAM and 80 GB is enough for Monad alone | Initial proposal, checked after one week of real load |
-| Region | Outside the countries our providers restrict: not US, CA, GB, AU, SG or CH (1inch, D-73). A data center in the EU fits. Check the OKX and 1inch terms for server traffic from the chosen country | Not verified |
+| Host | netcup VPS 1000 G12.5 ("VPS 1000 G12.5 iv 1M EU"), Nürnberg, Germany. Monthly term, 14.01 EUR a month with one IPv4 address and an IPv6 /64, next bill on 20 December 2026. Account of the team Gmail with 2FA on. Managed in netcup's Server Control Panel | Ordered, paid and listed as a product on 20 November 2026. Its IP addresses stay out of this public repo, so nobody can go around Cloudflare; the team keeps them in its private notes |
+| OS | Ubuntu 24.04 LTS, x86_64 | Proposal. The image netcup installed is not checked yet; Dharu reinstalls Ubuntu 24.04 from the Server Control Panel if needed |
+| Size | 4 vCPU, 8 GB RAM, 160 GB SSD for three chains. 2 vCPU, 4 GB RAM and 80 GB is enough for Monad alone | Initial proposal. Bought: 4 vCore, 8 GB RAM, 128 GB disk. Checked after one week of real load |
+| Region | Outside the countries our providers restrict: not US, CA, GB, AU, SG or CH (1inch, D-73). A data center in the EU fits. Check the OKX and 1inch terms for server traffic from the chosen country | Germany is outside the 1inch list (D-73). The OKX and 1inch terms for server traffic are not verified |
 | Access | SSH keys of the three of us only. No password login, no root login. One `levra` user runs Docker. Being in the `docker` group equals root, so it stays with the three of us | Proposal |
 | Firewall | Incoming 22, 80 and 443 only. Postgres has no public port | Proposal |
 | Updates | Automatic security updates on | Proposal |
