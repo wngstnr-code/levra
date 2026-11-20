@@ -396,18 +396,19 @@ type ApiError = { error: { code: string; message: string; details?: unknown } };
 
 Rate limits (BE-51, initial proposals): 429 `RATE_LIMITED` with a `Retry-After` header and `details.retryAfterSeconds`, per IP address and per wallet; quotes (trade, deposit, withdrawal) have tighter limits, and a quote can also be refused when the shared KyberSwap budget is spent.
 
-Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`, `UNAUTHORIZED`, `RATE_LIMITED`, `NO_ROUTE`, `INSUFFICIENT_LIQUIDITY`, `QUOTE_EXPIRED`, `UPSTREAM_ERROR`, `CHAIN_NOT_LIVE`, `INTERNAL`.
+Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`, `UNAUTHORIZED`, `RATE_LIMITED`, `NO_ROUTE`, `INSUFFICIENT_LIQUIDITY`, `QUOTE_EXPIRED`, `UPSTREAM_ERROR`, `INTERNAL`.
 
 ### The chain in the path (BE-70)
 
-Status: proposed by Dharu on 20 November 2026, waiting for Nabil's approval. Every change below is an addition, so the web app keeps working unchanged.
+Status: proposed by Dharu on 20 November 2026 and built the same day as additions (06 lets additions go first), waiting for Nabil's review. Nothing existing changed shape, so the web app keeps working unchanged. Base and X Layer answer only once their deployment files are loaded (SC-76, SC-83); until then `live` is false.
 
 - Routes that depend on a chain take its ID as the first path part: `/v1/:chainId/...`, with `chainId` one of `143` (Monad), `8453` (Base) and `196` (X Layer), the IDs in `chains.ts` and the ones wagmi reports. The shapes inside are the same on every chain.
-- An ID outside that list answers 404 `NOT_FOUND`. A listed chain that this API does not serve yet (no deployment loaded, for example Base before SC-76) answers 404 `CHAIN_NOT_LIVE` with `details: { chainId }`. `GET /v1/chains` tells the web app which chains are live.
+- An ID outside that list answers 404 `NOT_FOUND`. A listed chain that this API does not serve yet (no deployment loaded, for example Base before SC-76) answers 404 `NOT_FOUND` with `details: { chainId, live: false }`, so the error code list stays the same. `GET /v1/chains` tells the web app which chains are live.
 - The routes without a chain ID stay as they are and serve Monad (143). They are aliases until the web app has moved (FE-70); removing them is a separate change, agreed first.
-- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, `deposit/quote` (the Levra chain the funds go to), `withdraw/quote` (the Levra chain the funds leave), and later `stats`, `proofs` and the agent routes.
-- Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain.
-- Sign-in: the SIWE message may name chain 143, 8453 or 196, the chain the wallet is on. The token is the same for all three.
+- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, and later `stats`, `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
+- Quotes (`quote/*`) on a chain answer only when the API has a swap provider for it: Monad now, Base with BE-72. Before that they answer 404 `NOT_FOUND`. The region and terms gate applies on every chain.
+- Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/quote`, `withdraw/quote`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain. Deposits and withdrawals go to and from Monad only until BE-76 (after the submissions); then the two quotes move under the chain path.
+- Sign-in: the SIWE message may name any chain this API serves (`live` in `/v1/chains`), the chain the wallet is on. The signature is checked on that chain, so a smart wallet deployed only there still signs in. The token is the same for every chain.
 - `Market` gains three fields for the Base and X Layer stocks: `oracleKind`, `uiMultiplierWad` and `tokenPaused` (main data shapes). On Chainlink chains `oracleFeedUpdatedAt` and `oraclePublishedAt` are both the feed round's `updatedAt` (D-97), and `session` comes from our oracle's market clock, so a feed held over the weekend shows as `CLOSED` or `UNKNOWN`, not as a new field.
 - Short capacity on Base (FE-72) is the existing `availableLiquidityRaw` of the short market.
 
@@ -424,8 +425,6 @@ type ChainsResponse = { chains: ChainInfo[]; defaultChainId: number }; // 143 (D
 
 ### Endpoint list
 
-| Method | Path | Content | Milestone |
-|---|---|---|---|
 Every chain route (list above) also exists as `/v1/:chainId/<path>` (BE-70); the path in this table is its Monad alias.
 
 | Method | Path | Content | Milestone |
@@ -506,10 +505,10 @@ type Market = {
   borrowApyWad: string;
   supplyApyWad: string;
 
-  // BE-70
-  oracleKind: "anchored" | "chainlink"; // Anchored on Monad, Chainlink on Base and X Layer
-  uiMultiplierWad: string | null; // B20 stock tokens on Base: the token's uiMultiplier() (1e18 = 1, dividends raise it); share units shown to users = raw amount x this; null where the token has none
-  tokenPaused: boolean;       // the issuer paused the stock token; false where the chain has no pause flag
+  // BE-70: always sent; optional in the zod schema until the web app reads them (FE-70)
+  oracleKind?: "anchored" | "chainlink"; // Anchored on Monad, Chainlink on Base and X Layer
+  uiMultiplierWad?: string | null; // B20 stock tokens on Base: the token's uiMultiplier() (1e18 = 1, dividends raise it); share units shown to users = raw amount x this; null where the token has none
+  tokenPaused?: boolean;      // the issuer paused the stock token; false where the chain has no pause flag
 };
 
 type QuoteOpenRequest = {
@@ -920,7 +919,7 @@ Address: <address, checksummed>
 I confirm that I am not a resident of, or located in, a restricted region, that I read the risk disclosure, and that I accept the terms of use.
 ```
 
-Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, 8453 or 196 (BE-70; 143 only before), `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API accepts the hosts in `AUTH_DOMAIN` (production, this project's Vercel previews and `localhost:3000`, BE-56) and answers CORS for the origins in `CORS_ORIGINS`, with `authorization` and `content-type` allowed. The token is sent as `Authorization: Bearer <token>`.
+Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` one of the live chains (BE-70; 143 only before), `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API accepts the hosts in `AUTH_DOMAIN` (production, this project's Vercel previews and `localhost:3000`, BE-56) and answers CORS for the origins in `CORS_ORIGINS`, with `authorization` and `content-type` allowed. The token is sent as `Authorization: Bearer <token>`.
 
 ## 5. Contents of `packages/shared`
 
