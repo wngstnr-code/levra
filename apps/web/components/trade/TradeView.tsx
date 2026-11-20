@@ -43,7 +43,7 @@ export function TradeView() {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const symbol = stockOn(chain, search.get("symbol") ?? "") ? search.get("symbol")! : "QQQ";
+  const symbol = stockOn(chain, search.get("symbol") ?? "") ? search.get("symbol")! : listedStocks(chain)[0]!.symbol;
   const shortAvailable = deployedMarketOn(chain, symbol, "short") !== null;
   const side: Side = search.get("side") === "short" && shortAvailable ? "short" : "long";
   const stock = stockOn(chain, symbol)!;
