@@ -13,7 +13,7 @@ export const en = {
     balance: (v: string) => `Balance ${v}`,
     ago: (v: string) => `${v} ago`,
   },
-  nav: { markets: "Markets", trade: "Trade", positions: "Positions", earn: "Earn", deposit: "Deposit", settings: "Settings", help: "Help" },
+  nav: { markets: "Markets", trade: "Trade", positions: "Positions", earn: "Earn", deposit: "Deposit", settings: "Settings", account: "Account", help: "Help" },
   session: {
     UNKNOWN: "Unknown",
     PRE_MARKET: "Pre-market",
