@@ -2,7 +2,7 @@
 
 One place to see where the build stands. Task checkboxes live in the task files. This file holds the milestones, blockers, checkpoint results, real transactions and the daily log.
 
-Last updated: 19 November 2026
+Last updated: 20 November 2026
 
 ## How to update
 
@@ -45,7 +45,7 @@ Refresh with the command above.
 | Area | Owner | Total | Done | In progress |
 |---|---|---|---|---|
 | Smart contracts | Wangsit | 30 | 9 | 16 |
-| Backend | Dharu | 36 | 23 | 12 |
+| Backend | Dharu | 65 | 24 | 12 |
 | Frontend | Nabil | 29 | 6 | 20 |
 | Shared tasks | All three | 16 | 1 | 6 |
 | Integration checkpoints | All three | 7 | 0 | 0 |
@@ -64,6 +64,9 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
+| 20 November 2026 | Nabil (the web app has no backend: the Railway API answers 404) | Dharu | The API on the VPS (BE-90, planned for 21 November). Then Nabil sets `NEXT_PUBLIC_API_URL` on Vercel to the new address | BE-90, BE-91 |
+| 20 November 2026 | Dharu | Nabil | The domain (Q-25) by 24 November, with access to its DNS: a stable HTTPS address for the API, and Cloudflare in front of it so the API can refuse US users on Base (D-73, BE-52). Until then the API runs on an interim address | BE-90, BE-52 |
+| 20 November 2026 | Dharu | Wangsit | Team keys for the 1inch Swap API (by 25 November) and the OKX DEX API with its secret and passphrase (by 29 November), put straight into the VPS secret files, never in chat. Optional: a read-only deploy key on the repo for the VPS | BE-96, BE-81, BE-90 |
 | 20 November 2026 | Wangsit (protection on Base and X Layer) | Dharu | The router now refuses a keeper reduction that closes a position in full or ends more than 5 points below the soft limit (`DELEVERAGE_FLOOR`, `DeleverageTooDeep`, D-91). `apps/keeper/src/protector/protector.ts` (`planLong`, `planShort`) still sends `type(uint256).max` full closes and does not check the floor: size each reduction to land between the soft limit and the floor, keep the collateral taken out within `DELEVERAGE_SLACK_BPS` of the D-92 bound, drop the full close branch, and read both constants from the ABI | BE-88 |
 | 20 November 2026 | Wangsit (liquidations) | Dharu | The liquidator now reverts `LossTooLarge` on any loss beyond `lossBudgetOf` (zero by default, D-91). Size `minOut` on accrued Morpho totals plus a small margin, so interest accrual and rounding do not leave a few wei short | BE-89 |
 | 20 November 2026 | Wangsit | Dharu | Check the Base limits (04, Base limits, SC-74) and the X Layer limits (04, X Layer limits, SC-82) against `math.ts`; Coinbase stock tokens have 8 decimals, wrapped xStocks 18. Both deployments wait for this | SC-74, SC-82, SC-76, SC-83 |
@@ -76,13 +79,12 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 20 November 2026 | Wangsit | All three | Funds and signers for the new chains: about 0.005 ETH on Base and some OKB on X Layer for the deployer, the multisig signers on each chain, and the seed of X-31 (Base) and X-35 (X Layer). Hand ownership to the multisig before real funds go in; today one key (`0x7029...1855`) owns every Monad contract | SC-76, SC-83, SC-77, SC-84, SC-55 |
 | 20 November 2026 | Wangsit | All three | The risk disclosure draft (`docs/drafts/risk-disclosure.md`) must name the issuer risks: one key can block or pause every Coinbase stock on Base (T-21), and the xStocks sanctions list reaches the wrapped tokens on X Layer (T-23) | X-11 |
 | 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
-| 13 October 2026 | Dharu | Dharu | KyberSwap API key (client IDs are no longer whitelisted; ask business@kyber.network, then set `KYBER_API_KEY` on api and keeper) and Aurora Intents API key | BE-04, BE-05 |
+| 13 October 2026 | Dharu | Dharu | KyberSwap API key (client IDs are no longer whitelisted; ask business@kyber.network, then set `KYBER_API_KEY` on api and keeper). The Aurora Intents key is no longer needed (D-50) | BE-04, BE-96 |
 | 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
-| 14 October 2026 | Dharu | Dharu | Real cross-chain test transfers: about $5 of USDC from two chains into Monad, one with the MON top-up, one deposit left to be refunded, and one withdrawal out. Optional: a 1Click partner token (`INTENTS_JWT`) to check whether it removes the 0.2% fee | BE-05, BE-40, BE-41, BE-42 |
-| 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexer reads from HyperSync instead of the RPC endpoint | BE-06, BE-13 |
+| 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexers read from HyperSync instead of the RPC endpoint. Whether HyperSync serves Base and X Layer is not verified | BE-06, BE-13, BE-95 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 19 November 2026 | Wangsit, Nabil | Nabil | `next build` in `apps/web` stops with `SecurityFatalError` on Wangsit's machine: the installed Next.js 16.4.0 has a known vulnerability. The Vercel preview build of PR 84 passed, so it may only stop outside Vercel. Nabil: check it and upgrade Next.js in `apps/web` | FE-01 |
-| 13 October 2026 | Dharu | Dharu | Paid Monad RPC provider. Staging runs on the public RPC until then (hosting is done: Railway, D-41) | BE-15 |
+| 13 October 2026 | Dharu | Dharu | Paid RPC for Monad, Base and X Layer; the Base endpoint must support `eth_simulateV1` (07). Railway stopped, so the VPS (D-94) starts on the public endpoints | BE-90 |
 
 ## Open questions that block work soon
 
@@ -249,6 +251,10 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 20 November 2026
 
+- Dharu: Railway no longer serves the backend (the old API answers 404), so the web app has no data and the Monad keepers are down. The backend moves to a VPS (D-94, replaces D-41), planned for 21 November. Design in `docs/hosting.md`; tasks BE-90 (server and services) and BE-91 (data and keys off Railway). Nabil: the new address follows tomorrow.
+- Dharu: backend execution plan to 6 December at the top of `docs/tasks/be-dharu.md`: the order day by day with priorities, what BE needs from SC and FE and gives them, with dates, and the boundaries between areas. New tasks BE-90 to BE-98: the VPS, the move off Railway, the SC-74 and SC-82 check against `math.ts`, gap rows for the Base and X Layer stocks, a second reader for the contract changes, three chains in one backend (config and `chain_id`), the swap provider interface, the Chainlink price recorder, and the new Monad router. 1Click work stops (D-50): BE-05 and BE-40 to BE-42 wait for BE-76, and the 1Click test transfer blocker row is closed. BE-87 is not planned for this round.
+- Dharu: 03 section 7 names keeper variables (`KEEPER_PRIVATE_KEY_*`) and `ONECLICK_API_KEY` that the code does not read; the code reads `ORACLE_AGE_POSTER_KEY` and the other role names, and `INTENTS_JWT`. Fixed together with the chain variables in BE-95, through the process in 06.
+- Dharu: 26 November, the date for longs on Base, is Thanksgiving, and Friday 27 November is the first Base weekly close. The Chainlink recorder (BE-97) must run before then, and the Base calendar post (BE-30) and the protector sizing (BE-88) before that close.
 - Wangsit: SC-87 prepared, not run: `make redeploy-router-monad` puts a new router and lens with the SC-86 and D-79 code over the live Monad risk manager and keeps the old router under `previousRouters` in the deployment file (03, additive). Dharu: the indexer must read every router in `previousRouters`. Nabil: users re-authorize the new router and opt in to protection again. Waiting for a second reader of SC-86 and D-79.
 - Wangsit: `docs/README.md` brought up to date: three chains with their status, ownership per file in `packages/shared` and for `packages/db`, `kyber` and `intents` (now also in `.github/CODEOWNERS`, 06 and CLAUDE.md), dated "Verified" facts, and pointers to 09 and PROGRESS instead of the M0 list.
 - Wangsit: X Layer goes ahead while Base waits (D-82). Decided: our own long markets (D-83), Earn as direct market supply (D-84), OKX DEX plus Uniswap v3 as swap targets once measured (D-85), token pauses handled by keeper and guardian (D-86).
