@@ -1,10 +1,10 @@
 import { morphoPositions } from "@levra/db";
 import type { SwapSource } from "@levra/kyber";
-import { external } from "@levra/shared/addresses";
 import { liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { Deployment } from "@levra/shared/deployments";
 import { BPS, maxSeizable, morphoIsHealthy, morphoRepaidForSeize, mulDiv, type MorphoTotals } from "@levra/shared/math";
 import { getAddress, type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type WalletClient } from "viem";
+import { morphoOn } from "../chain";
 import type { Job } from "../runner";
 
 /** Monad charges the gas limit (02), so the margin over the estimate stays small. */
@@ -42,10 +42,11 @@ type MarketCtx = { market: Deployment["markets"][number]; totals: MorphoTotals; 
 export function createLiquidatorBot({ client, wallet, deployment, swap, slippageBps = 100, intervalMs = 10_000 }: LiquidatorOptions): Job {
   const liquidator = deployment.liquidator;
   const slip = BigInt(slippageBps);
+  const morpho = morphoOn(deployment.chainId);
 
   async function marketCtx(market: Deployment["markets"][number]): Promise<MarketCtx | null> {
     const [m, price, snapshot] = await Promise.all([
-      client.readContract({ address: external.morpho, abi: morphoAbi, functionName: "market", args: [market.marketId] }),
+      client.readContract({ address: morpho, abi: morphoAbi, functionName: "market", args: [market.marketId] }),
       // price() reverts when the oracle is stale; Morpho cannot liquidate then either.
       client.readContract({ address: market.oracle, abi: sessionOracleAbi, functionName: "price" }).catch(() => null),
       client.readContract({ address: market.oracle, abi: sessionOracleAbi, functionName: "snapshot" }).catch(() => null),
@@ -84,13 +85,13 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
   return {
     name: "liquidator",
     intervalMs,
-    async run({ db, logger }) {
+    async run({ db, chainId, logger }) {
       if (!liquidator) throw new Error("The deployment has no Liquidator");
       const keeper = await client.readContract({ address: liquidator, abi: liquidatorAbi, functionName: "isKeeper", args: [wallet.account.address] });
       if (!keeper) throw new Error(`Key ${wallet.account.address} is not a Liquidator keeper`);
 
       const ours = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
-      const borrowers = (await morphoPositions(db)).filter((p) => p.borrowShares > 0n && ours.has(p.marketId));
+      const borrowers = (await morphoPositions(db, chainId)).filter((p) => p.borrowShares > 0n && ours.has(p.marketId));
       const contexts = new Map<string, MarketCtx | null>();
       const results: Record<string, unknown>[] = [];
       let unhealthy = 0;
@@ -103,7 +104,7 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
 
         const borrower = getAddress(candidate.user);
         // The chain decides; the indexed position only says whom to look at.
-        const onChain = await client.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [market.marketId, borrower] });
+        const onChain = await client.readContract({ address: morpho, abi: morphoAbi, functionName: "position", args: [market.marketId, borrower] });
         const position = { collateral: onChain.collateral, borrowShares: onChain.borrowShares };
         if (morphoIsHealthy(position, ctx.totals, ctx.price, BigInt(market.lltv))) continue;
         unhealthy += 1;

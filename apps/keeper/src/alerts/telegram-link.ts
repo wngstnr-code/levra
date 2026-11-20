@@ -10,10 +10,14 @@ export type TelegramSource = { updates: (offset: number) => Promise<TelegramUpda
 
 /**
  * Reads the bot's new messages and links a chat to a wallet when it sends `/start <code>` with a fresh, unused code from
- * `POST /v1/alerts/telegram`. The last update id is kept in `sync_cursors`, so each message is handled once.
+ * `POST /v1/alerts/telegram`. The last update id is kept in `sync_cursors`, so each message is handled once. Telegram
+ * allows one update reader per bot, so only the keeper with KEEPER_GLOBAL runs this; its cursor is under that keeper's chain.
  */
-export async function linkTelegramChats(db: Db, bot: TelegramSource, now = new Date()): Promise<number> {
-  const [cursor] = await db.select().from(syncCursors).where(eq(syncCursors.name, TELEGRAM_CURSOR));
+export async function linkTelegramChats(db: Db, chainId: number, bot: TelegramSource, now = new Date()): Promise<number> {
+  const [cursor] = await db
+    .select()
+    .from(syncCursors)
+    .where(and(eq(syncCursors.chainId, chainId), eq(syncCursors.name, TELEGRAM_CURSOR)));
   const updates = await bot.updates(cursor ? Number(cursor.lastBlock) + 1 : 0);
   let linked = 0;
   for (const u of updates) {
@@ -40,8 +44,8 @@ export async function linkTelegramChats(db: Db, bot: TelegramSource, now = new D
     }
     await db
       .insert(syncCursors)
-      .values({ name: TELEGRAM_CURSOR, lastBlock: BigInt(u.update_id), updatedAt: now })
-      .onConflictDoUpdate({ target: syncCursors.name, set: { lastBlock: BigInt(u.update_id), updatedAt: now } });
+      .values({ chainId, name: TELEGRAM_CURSOR, lastBlock: BigInt(u.update_id), updatedAt: now })
+      .onConflictDoUpdate({ target: [syncCursors.chainId, syncCursors.name], set: { lastBlock: BigInt(u.update_id), updatedAt: now } });
   }
   return linked;
 }

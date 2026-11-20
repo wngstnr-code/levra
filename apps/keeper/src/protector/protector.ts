@@ -1,12 +1,13 @@
 import { protectedPositions, type Db } from "@levra/db";
 import type { SwapSource } from "@levra/kyber";
-import { external, tokens } from "@levra/shared/addresses";
+import { tokens } from "@levra/shared/addresses";
 import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi } from "@levra/shared/abis";
 import { nextCloseAfter } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
 import { BPS, MAX_UINT256, WAD, deleverageSellValue, deviationBps, mulDiv, swapPriceE8 } from "@levra/shared/math";
 import { getAddress, parseAbi, type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type WalletClient } from "viem";
 import { scheduleFromLogger } from "../calendar/poster";
+import { morphoOn } from "../chain";
 import type { Job } from "../runner";
 
 /** `MarginRouter.isKeeper()`. Temporary until the ABI export has it (requested from Wangsit). */
@@ -146,8 +147,8 @@ export function planDeleverage(input: PlanInput): Promise<DeleveragePlan> {
 }
 
 /** The next close by the calendar (BE-30), unix seconds. */
-export type CloseSource = (db: Db, now: number) => Promise<number>;
-export const closeFromCalendar: CloseSource = async (db, now) => nextCloseAfter(now, await scheduleFromLogger(db));
+export type CloseSource = (db: Db, now: number, chainId: number) => Promise<number>;
+export const closeFromCalendar: CloseSource = async (db, now, chainId) => nextCloseAfter(now, await scheduleFromLogger(db, chainId));
 
 export type ProtectorOptions = {
   client: PublicClient;
@@ -171,16 +172,16 @@ export function createProtector({ client, wallet, deployment, swap, nextClose = 
   return {
     name: "protector",
     intervalMs,
-    async run({ db, logger }) {
+    async run({ db, chainId, logger }) {
       const keeper = await client.readContract({ address: router, abi: isKeeperAbi, functionName: "isKeeper", args: [wallet.account.address] });
       if (!keeper) throw new Error(`Key ${wallet.account.address} is not a router keeper`);
       const block = await client.getBlock({ blockTag: "latest" });
       const now = Number(block.timestamp);
-      const closeAt = await nextClose(db, now);
+      const closeAt = await nextClose(db, now, chainId);
       if (!inPreCloseWindow(now, closeAt)) return { active: false, now, closeAt };
 
       const ours = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
-      const candidates = (await protectedPositions(db)).filter((c) => ours.has(c.marketId));
+      const candidates = (await protectedPositions(db, chainId)).filter((c) => ours.has(c.marketId));
       const keeperFeeBps = await client.readContract({ address: router, abi: marginRouterAbi, functionName: "keeperFeeBps" });
       const actions: Record<string, unknown>[] = [];
       const failures: string[] = [];
@@ -194,7 +195,7 @@ export function createProtector({ client, wallet, deployment, swap, nextClose = 
           const [enabled, views, morphoPosition, config, markets] = await Promise.all([
             client.readContract({ address: router, abi: marginRouterAbi, functionName: "protectionEnabled", args: [user, market.marketId] }),
             client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getPositions", args: [user] }),
-            client.readContract({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [market.marketId, user] }),
+            client.readContract({ address: morphoOn(deployment.chainId), abi: morphoAbi, functionName: "position", args: [market.marketId, user] }),
             client.readContract({ address: deployment.riskManager, abi: riskManagerAbi, functionName: "config", args: [market.marketId] }),
             client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" }),
           ]);

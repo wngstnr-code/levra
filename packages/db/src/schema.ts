@@ -1,18 +1,35 @@
 import { bigint, boolean, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const keeperHeartbeats = pgTable("keeper_heartbeats", {
-  name: text("name").primaryKey(),
-  lastBeatAt: timestamp("last_beat_at", { withTimezone: true }).notNull(),
-  lastError: text("last_error"),
-  details: jsonb("details"),
-});
+/**
+ * Every table with chain data carries `chain_id` (BE-95), with no default, so no write can leave the chain out. Rows
+ * from before the column existed were Monad's (143).
+ */
+const chainId = () => integer("chain_id").notNull();
 
-/** Last block fully read by each log follower. */
-export const syncCursors = pgTable("sync_cursors", {
-  name: text("name").primaryKey(),
-  lastBlock: bigint("last_block", { mode: "bigint" }).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
-});
+/** One row per keeper job and chain. */
+export const keeperHeartbeats = pgTable(
+  "keeper_heartbeats",
+  {
+    chainId: chainId(),
+    name: text("name").notNull(),
+    lastBeatAt: timestamp("last_beat_at", { withTimezone: true }).notNull(),
+    lastError: text("last_error"),
+    details: jsonb("details"),
+  },
+  (t) => [primaryKey({ columns: [t.chainId, t.name] })],
+);
+
+/** Last block fully read by each log follower on each chain. */
+export const syncCursors = pgTable(
+  "sync_cursors",
+  {
+    chainId: chainId(),
+    name: text("name").notNull(),
+    lastBlock: bigint("last_block", { mode: "bigint" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.chainId, t.name] })],
+);
 
 /**
  * One row per MarginRouter event. `args` holds the decoded event with every integer as a decimal string.
@@ -21,6 +38,7 @@ export const syncCursors = pgTable("sync_cursors", {
 export const routerEvents = pgTable(
   "router_events",
   {
+    chainId: chainId(),
     name: text("name").notNull(),
     user: text("user").notNull(),
     marketId: text("market_id").notNull(),
@@ -31,8 +49,8 @@ export const routerEvents = pgTable(
     logIndex: integer("log_index").notNull(),
   },
   (t) => [
-    uniqueIndex("router_events_log").on(t.txHash, t.logIndex),
-    index("router_events_user_order").on(t.user, t.blockNumber, t.logIndex),
+    uniqueIndex("router_events_log").on(t.chainId, t.txHash, t.logIndex),
+    index("router_events_user_order").on(t.chainId, t.user, t.blockNumber, t.logIndex),
   ],
 );
 
@@ -43,6 +61,7 @@ export const routerEvents = pgTable(
 export const morphoEvents = pgTable(
   "morpho_events",
   {
+    chainId: chainId(),
     name: text("name").notNull(),
     marketId: text("market_id").notNull(),
     user: text("user").notNull(),
@@ -53,9 +72,9 @@ export const morphoEvents = pgTable(
     logIndex: integer("log_index").notNull(),
   },
   (t) => [
-    uniqueIndex("morpho_events_log").on(t.txHash, t.logIndex),
-    index("morpho_events_user_order").on(t.user, t.blockNumber, t.logIndex),
-    index("morpho_events_market").on(t.marketId),
+    uniqueIndex("morpho_events_log").on(t.chainId, t.txHash, t.logIndex),
+    index("morpho_events_user_order").on(t.chainId, t.user, t.blockNumber, t.logIndex),
+    index("morpho_events_market").on(t.chainId, t.marketId),
   ],
 );
 
@@ -67,6 +86,7 @@ export const morphoEvents = pgTable(
 export const dexQuotes = pgTable(
   "dex_quotes",
   {
+    chainId: chainId(),
     runId: text("run_id").notNull(),
     kind: text("kind").notNull(),
     symbol: text("symbol").notNull(),
@@ -81,7 +101,7 @@ export const dexQuotes = pgTable(
     error: text("error"),
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
   },
-  (t) => [index("dex_quotes_latest").on(t.symbol, t.kind, t.measuredAt)],
+  (t) => [index("dex_quotes_latest").on(t.chainId, t.symbol, t.kind, t.measuredAt)],
 );
 
 /**
@@ -91,6 +111,7 @@ export const dexQuotes = pgTable(
 export const vaultEvents = pgTable(
   "vault_events",
   {
+    chainId: chainId(),
     name: text("name").notNull(),
     vault: text("vault").notNull(),
     user: text("user").notNull(),
@@ -100,13 +121,17 @@ export const vaultEvents = pgTable(
     txHash: text("tx_hash").notNull(),
     logIndex: integer("log_index").notNull(),
   },
-  (t) => [uniqueIndex("vault_events_log").on(t.txHash, t.logIndex), index("vault_events_user_order").on(t.user, t.blockNumber, t.logIndex)],
+  (t) => [
+    uniqueIndex("vault_events_log").on(t.chainId, t.txHash, t.logIndex),
+    index("vault_events_user_order").on(t.chainId, t.user, t.blockNumber, t.logIndex),
+  ],
 );
 
 /** Rate snapshot per market from `Lens`, written by the depth keeper on each run (BE-23). Ratios WAD. */
 export const marketRates = pgTable(
   "market_rates",
   {
+    chainId: chainId(),
     marketId: text("market_id").notNull(),
     symbol: text("symbol").notNull(),
     side: text("side").notNull(),
@@ -117,7 +142,7 @@ export const marketRates = pgTable(
     totalBorrowRaw: numeric("total_borrow_raw", { precision: 78, scale: 0 }).notNull(),
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
   },
-  (t) => [index("market_rates_market_time").on(t.marketId, t.measuredAt)],
+  (t) => [index("market_rates_market_time").on(t.chainId, t.marketId, t.measuredAt)],
 );
 
 /** One row per sign-in nonce (BE-33). A nonce is used once. */
@@ -156,15 +181,20 @@ export const telegramLinks = pgTable("telegram_links", {
  * State of each team monitor check (BE-50). `since` is when the condition last became true, `notified` whether the team
  * has been told, `value` the last value seen for checks that alert on a change (risk values posted by keepers).
  */
-export const monitorState = pgTable("monitor_state", {
-  key: text("key").primaryKey(),
-  active: boolean("active").notNull(),
-  since: timestamp("since", { withTimezone: true }),
-  notified: boolean("notified").notNull(),
-  value: text("value"),
-  message: text("message"),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
-});
+export const monitorState = pgTable(
+  "monitor_state",
+  {
+    chainId: chainId(),
+    key: text("key").notNull(),
+    active: boolean("active").notNull(),
+    since: timestamp("since", { withTimezone: true }),
+    notified: boolean("notified").notNull(),
+    value: text("value"),
+    message: text("message"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.chainId, t.key] })],
+);
 
 /** Alerts already sent, so each one goes out once per channel (BE-33). */
 export const alertDeliveries = pgTable(
@@ -179,12 +209,14 @@ export const alertDeliveries = pgTable(
 );
 
 /**
- * Cross-chain transfers through the 1Click API (BE-40, BE-41): `deposit` into USDC on Monad, or `withdraw` out of it.
+ * Cross-chain transfers through the 1Click API (BE-40, BE-41): `deposit` into USDC on a Levra chain, or `withdraw` out of it.
  * `quote` keeps the whole signed quote, which 1Click asks us to keep for disputes.
  */
 export const deposits = pgTable(
   "deposits",
   {
+    /** The Levra chain the funds go to (`deposit`) or come from (`withdraw`). */
+    chainId: chainId(),
     id: text("id").primaryKey(),
     kind: text("kind").notNull(),
     user: text("user").notNull(),
@@ -227,6 +259,7 @@ export const termsAcceptances = pgTable(
 export const oracleUpdates = pgTable(
   "oracle_updates",
   {
+    chainId: chainId(),
     symbol: text("symbol").notNull(),
     priceId: text("price_id").notNull(),
     roundId: numeric("round_id", { precision: 30, scale: 0 }).notNull(),
@@ -242,7 +275,7 @@ export const oracleUpdates = pgTable(
     logIndex: integer("log_index").notNull(),
   },
   (t) => [
-    uniqueIndex("oracle_updates_log").on(t.txHash, t.logIndex),
-    index("oracle_updates_symbol_time").on(t.symbol, t.blockTime),
+    uniqueIndex("oracle_updates_log").on(t.chainId, t.txHash, t.logIndex),
+    index("oracle_updates_symbol_time").on(t.chainId, t.symbol, t.blockTime),
   ],
 );

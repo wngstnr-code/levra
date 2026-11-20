@@ -16,7 +16,7 @@ function plain(value: unknown): string | number | boolean {
   return String(value).toLowerCase();
 }
 
-export function toMorphoRow(log: RawLog): typeof morphoEvents.$inferInsert {
+export function toMorphoRow(log: RawLog): Omit<typeof morphoEvents.$inferInsert, "chainId"> {
   const decoded = decodeEventLog({ abi: morphoAbi, data: log.data, topics: log.topics, strict: true });
   const args = decoded.args as Record<string, unknown>;
   const owner = decoded.eventName === "Liquidate" ? args.borrower : args.onBehalf;

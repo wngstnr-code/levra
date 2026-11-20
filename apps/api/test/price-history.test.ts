@@ -61,6 +61,7 @@ describe.skipIf(!url)("price history (needs TEST_DATABASE_URL)", () => {
   function write(symbol: string, at: number, priceUsd: bigint, logIndex = 0) {
     block++;
     return {
+      chainId: 143,
       symbol,
       priceId: "0x00",
       roundId: String(block),
@@ -90,7 +91,7 @@ describe.skipIf(!url)("price history (needs TEST_DATABASE_URL)", () => {
     const symbol = "BE24TEST";
     await db.insert(oracleUpdates).values([write(symbol, T0 + 100, 10n), write(symbol, T0 + 700, 11n), write(symbol, T0 + 700, 12n, 1)]);
 
-    const series = await oraclePriceSeries(db, symbol, T0, T0 + 1_500, 300);
+    const series = await oraclePriceSeries(db, 143, symbol, T0, T0 + 1_500, 300);
     expect(series).toEqual([
       { timestamp: T0 + 300, oraclePriceE8: String(10n * E8) },
       { timestamp: T0 + 600, oraclePriceE8: String(10n * E8) },
@@ -98,8 +99,10 @@ describe.skipIf(!url)("price history (needs TEST_DATABASE_URL)", () => {
       { timestamp: T0 + 1_200, oraclePriceE8: String(12n * E8) },
       { timestamp: T0 + 1_500, oraclePriceE8: String(12n * E8) },
     ]);
-    expect(await latestOraclePrice(db, symbol)).toEqual({ timestamp: T0 + 700, oraclePriceE8: String(12n * E8) });
-    expect(await latestOraclePrice(db, "BE24NONE")).toBeNull();
+    expect(await latestOraclePrice(db, 143, symbol)).toEqual({ timestamp: T0 + 700, oraclePriceE8: String(12n * E8) });
+    expect(await latestOraclePrice(db, 143, "BE24NONE")).toBeNull();
+    // The same symbol on another chain has no writes.
+    expect(await latestOraclePrice(db, 8453, symbol)).toBeNull();
   });
 
   it("serves 1D, 1W and 1M charts that end with the latest price", async () => {
@@ -111,7 +114,7 @@ describe.skipIf(!url)("price history (needs TEST_DATABASE_URL)", () => {
       write("QQQ", now - 600, 120n),
       write("QQQ", now - 20, 125n),
     ]);
-    const app = marketRoutes(reader, undefined, dbMarketHistory(db), () => now * 1000);
+    const app = marketRoutes(reader, undefined, dbMarketHistory(db, 143), () => now * 1000);
 
     const lengths: Record<string, number> = {};
     for (const range of ["1D", "1W", "1M"] as const) {

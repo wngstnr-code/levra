@@ -32,7 +32,7 @@ describe.skipIf(!onFork || !dbUrl)("liquidator bot on the fork (BE-32)", () => {
   const chain = createForkClient(forkRpcUrl);
   const wallet = createWalletClient({ account: privateKeyToAccount(KEEPER_KEY), chain: monad, transport: http(forkRpcUrl) });
   const swap = createKyber({ baseUrl: KYBER_MONAD_URL, clientId: "levra" });
-  const ctx = { db, logger: pino({ level: "silent" }), signal: new AbortController().signal };
+  const ctx = { db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal };
   const market = deployment.markets.find((m) => m.symbol === "QQQ" && m.side === "long")!;
   const risky = randomAddress();
   const safe = randomAddress();

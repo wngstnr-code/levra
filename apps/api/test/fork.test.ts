@@ -13,7 +13,7 @@ import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho,
 
 describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
   const deployment = forkDeployment();
-  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
+  const reader = createChainReader(createChainClient(143, forkRpcUrl), deployment);
   const app = createApp({ logger: pino({ level: "silent" }), reader });
   const chain = createForkClient(forkRpcUrl);
 
@@ -59,7 +59,7 @@ describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYM
       expect([detail.depth, detail.rateHistory, detail.deviationHistory]).toEqual([[], [], []]);
     }
 
-    const rates = await readRates(createChainClient(forkRpcUrl), deployment, new Date());
+    const rates = await readRates(createChainClient(143, forkRpcUrl), deployment, new Date());
     expect(rates).toHaveLength(all.length);
     for (const r of rates) {
       const m = all.find((x) => x.marketId.toLowerCase() === r.marketId)!;

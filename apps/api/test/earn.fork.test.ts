@@ -58,7 +58,7 @@ describe.skipIf(!onFork || !forkDeployment().usdcVault)("Earn read from the fork
   };
   /** A new app per check, so no cached read hides the latest block. */
   const get = async (path: string) => {
-    const app = createApp({ logger: pino({ level: "silent" }), reader: createChainReader(createChainClient(forkRpcUrl), deployment), events });
+    const app = createApp({ logger: pino({ level: "silent" }), reader: createChainReader(createChainClient(143, forkRpcUrl), deployment), events });
     const res = await app.request(path);
     const body = await res.json();
     if (res.status !== 200) throw new Error(`${path} failed: ${JSON.stringify(body)}`);

@@ -29,7 +29,7 @@ describe.skipIf(!url)("runner (needs TEST_DATABASE_URL)", () => {
         }
       },
     };
-    await runJob(wrapped, { db, logger, signal: controller.signal });
+    await runJob(wrapped, { db, chainId: 143 as const, logger, signal: controller.signal });
     const [row] = await db.select().from(keeperHeartbeats).where(eq(keeperHeartbeats.name, job.name));
     return row;
   }

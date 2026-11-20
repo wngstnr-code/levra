@@ -14,7 +14,7 @@ import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork,
 
 describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
   const deployment = forkDeployment();
-  const reader = createChainReader(createChainClient(forkRpcUrl), deployment);
+  const reader = createChainReader(createChainClient(143, forkRpcUrl), deployment);
   const swap = createKyber({ baseUrl: "https://aggregator-api.kyberswap.com/monad/api/v1", clientId: "levra" });
   const app = createApp({ logger: pino({ level: "silent" }), reader, swap });
   const chain = createForkClient(forkRpcUrl);

@@ -22,7 +22,7 @@ describe.skipIf(!onFork)("calendar poster on the fork (BE-30)", () => {
     : { chainId: 143, block: 0, router: zeroAddress, riskManager: zeroAddress, lens: zeroAddress, markets: [] };
   const client = createPublicClient({ chain: monad, transport: http(rpcUrl) });
   const walletOf = (key: Hex) => createWalletClient({ account: privateKeyToAccount(key), chain: monad, transport: http(rpcUrl) });
-  const ctx = { db: {} as Db, logger: pino({ level: "silent" }), signal: new AbortController().signal };
+  const ctx = { db: {} as Db, chainId: 143 as const, logger: pino({ level: "silent" }), signal: new AbortController().signal };
   const onChain = async () => Number(await client.readContract({ address: deployment.riskManager, abi: riskManagerAbi, functionName: "nextCloseAt" }));
   const chainNow = async () => Number((await client.getBlock({ blockTag: "latest" })).timestamp);
 

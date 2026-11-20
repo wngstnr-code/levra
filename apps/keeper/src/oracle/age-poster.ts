@@ -25,11 +25,11 @@ export function decideMaxOracleAge(p: { proposal: MaxAgeProposal; current: numbe
   return { action: "post", value, reason: `from ${p.current} to ${value}${clamped}` };
 }
 
-export type ProposalSource = (db: Db) => Promise<Map<string, MaxAgeProposal>>;
+export type ProposalSource = (db: Db, chainId: number) => Promise<Map<string, MaxAgeProposal>>;
 
-/** Proposals per stock symbol from the oracle logger tables, with the rule in 04. */
-export const proposalsFromLogger: ProposalSource = async (db) =>
-  new Map((await loadOracleReport(db)).maxAge.map(({ symbol, proposal }) => [symbol, proposal]));
+/** Proposals per stock symbol from the oracle logger tables of one chain, with the rule in 04. */
+export const proposalsFromLogger: ProposalSource = async (db, chainId) =>
+  new Map((await loadOracleReport(db, chainId)).maxAge.map(({ symbol, proposal }) => [symbol, proposal]));
 
 export type OracleAgePosterOptions = {
   client: PublicClient;
@@ -47,12 +47,12 @@ export function createOracleAgePoster({ client, wallet, deployment, proposals = 
   return {
     name: "oracleAgePoster",
     intervalMs,
-    async run({ db, logger }) {
+    async run({ db, chainId, logger }) {
       const poster = await client.readContract({ address: deployment.riskManager, abi: riskManagerAbi, functionName: "oracleAgePoster" });
       if (poster.toLowerCase() !== wallet.account.address.toLowerCase()) {
         throw new Error(`Key ${wallet.account.address} is not the oracle age poster (${poster})`);
       }
-      const bySymbol = await proposals(db);
+      const bySymbol = await proposals(db, chainId);
       const results: Record<string, unknown>[] = [];
 
       for (const market of deployment.markets) {

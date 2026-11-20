@@ -44,11 +44,13 @@ const percentiles = (col: string) =>
     percentile_cont(0.99) within group (order by ${col})::float as p99,
     max(${col})::float as max`);
 
-export async function loadOracleReport(db: Db): Promise<OracleReport> {
+/** The report of one chain's recorded oracle writes. */
+export async function loadOracleReport(db: Db, chainId: number): Promise<OracleReport> {
+  const ou = sql`(select * from oracle_updates where chain_id = ${chainId})`;
   const coverage = await rows<Coverage>(
     db,
     sql`select symbol, count(*)::int as n, min(block_time) as first, max(block_time) as last
-        from oracle_updates group by symbol order by symbol`,
+        from ${ou} u group by symbol order by symbol`,
   );
 
   const publishIntervals = await rows<Spread>(
@@ -56,13 +58,13 @@ export async function loadOracleReport(db: Db): Promise<OracleReport> {
     sql`select symbol, session, ${percentiles("gap")}
         from (select symbol, session,
                 extract(epoch from published_at - lag(published_at) over (partition by symbol order by block_number, log_index)) as gap
-              from oracle_updates) x
+              from ${ou} u) x
         where gap is not null group by symbol, session order by symbol, session`,
   );
 
   const sourceAge = await rows<Spread>(
     db,
-    sql`with bounds as (select symbol, min(block_time) as lo, max(block_time) as hi from oracle_updates group by symbol),
+    sql`with bounds as (select symbol, min(block_time) as lo, max(block_time) as hi from ${ou} u group by symbol),
         grid as (
           select b.symbol, g as t from bounds b,
           generate_series(date_trunc('minute', b.lo) + interval '1 minute', b.hi, interval '1 minute') g
@@ -70,7 +72,7 @@ export async function loadOracleReport(db: Db): Promise<OracleReport> {
         s as (
           select grid.symbol, u.session, extract(epoch from grid.t - u.feed_updated_at) as age
           from grid cross join lateral (
-            select session, feed_updated_at from oracle_updates o
+            select session, feed_updated_at from ${ou} o
             where o.symbol = grid.symbol and o.block_time <= grid.t
             order by o.block_time desc limit 1
           ) u
@@ -86,7 +88,7 @@ export async function loadOracleReport(db: Db): Promise<OracleReport> {
     sql`select symbol, prev, session, at from (
           select symbol, session, block_time as at,
             lag(session) over (partition by symbol order by block_number, log_index) as prev
-          from oracle_updates) x
+          from ${ou} u) x
         where prev is not null and prev <> session order by at`,
   );
 
@@ -100,7 +102,7 @@ export async function loadOracleReport(db: Db): Promise<OracleReport> {
           count(*) filter (where best_ask_e8 < price_e8)::int as "askBelowPrice",
           percentile_cont(0.99) within group (order by (best_ask_e8 - best_bid_e8) * 10000 / nullif(price_e8, 0))::float as "p99SpreadBps",
           max((best_ask_e8 - best_bid_e8) * 10000 / nullif(price_e8, 0))::float as "maxSpreadBps"
-        from oracle_updates group by symbol order by symbol`,
+        from ${ou} u group by symbol order by symbol`,
   );
 
   const closedStretches = findClosedStretches(transitions);

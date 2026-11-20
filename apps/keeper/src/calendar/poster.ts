@@ -28,10 +28,11 @@ export function decideNextClose(p: { now: number; current: number; next: number 
   return { action: "post", value: p.next, reason: p.current > p.now ? `corrected from ${p.current}` : "the previous close passed" };
 }
 
-export type ScheduleSource = (db: Db) => Promise<SessionSchedule>;
+/** The schedule of one chain, learned from that chain's recorded oracle sessions. */
+export type ScheduleSource = (db: Db, chainId: number) => Promise<SessionSchedule>;
 
 /** The Anchored schedule from the weekends and holidays in the oracle logger data; the regular close until one is seen. */
-export const scheduleFromLogger: ScheduleSource = async (db) => scheduleFromStretches(await observedClosedStretches(db));
+export const scheduleFromLogger: ScheduleSource = async (db, chainId) => scheduleFromStretches(await observedClosedStretches(db, chainId));
 
 export type CalendarPosterOptions = {
   client: PublicClient;
@@ -49,7 +50,7 @@ export function createCalendarPoster({ client, wallet, deployment, schedule = sc
   return {
     name: "calendar",
     intervalMs,
-    async run({ db, logger }) {
+    async run({ db, chainId, logger }) {
       const poster = await client.readContract({ address: deployment.riskManager, abi: calendarPosterAbi, functionName: "calendarPoster" });
       if (poster.toLowerCase() !== wallet.account.address.toLowerCase()) {
         throw new Error(`Key ${wallet.account.address} is not the calendar poster (${poster})`);
@@ -57,7 +58,7 @@ export function createCalendarPoster({ client, wallet, deployment, schedule = sc
       const [block, current, sched] = await Promise.all([
         client.getBlock({ blockTag: "latest" }),
         client.readContract({ address: deployment.riskManager, abi: riskManagerAbi, functionName: "nextCloseAt" }),
-        schedule(db),
+        schedule(db, chainId),
       ]);
       const now = Number(block.timestamp);
       const next = nextCloseAfter(now, sched);

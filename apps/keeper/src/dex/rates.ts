@@ -1,18 +1,18 @@
 import { marketRates } from "@levra/db";
-import { external } from "@levra/shared/addresses";
+import { morphoOn } from "../chain";
 import { lensAbi, morphoAbi } from "@levra/shared/abis";
 import type { Deployment } from "@levra/shared/deployments";
 import { borrowApyWad, supplyApyWad, utilizationWad } from "@levra/shared/math";
 import type { PublicClient } from "viem";
 
-export type RateRow = typeof marketRates.$inferInsert;
+export type RateRow = Omit<typeof marketRates.$inferInsert, "chainId">;
 
 /** One rate snapshot per market from `Lens` and Morpho's market fee, the same numbers `/v1/markets` shows (BE-23). */
 export async function readRates(client: PublicClient, deployment: Deployment, at: Date): Promise<RateRow[]> {
   const views = await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" });
   const fees = await client.multicall({
     allowFailure: false,
-    contracts: views.map((v) => ({ address: external.morpho, abi: morphoAbi, functionName: "market", args: [v.marketId] }) as const),
+    contracts: views.map((v) => ({ address: morphoOn(deployment.chainId), abi: morphoAbi, functionName: "market", args: [v.marketId] }) as const),
   });
   const byId = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
   return views.flatMap((v, i) => {

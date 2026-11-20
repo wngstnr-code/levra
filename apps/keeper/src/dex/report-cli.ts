@@ -1,17 +1,19 @@
 import { createDb, dexQuotes } from "@levra/db";
 import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import pino from "pino";
 import { createPublicClient, http } from "viem";
 import { monad } from "viem/chains";
 import { DEPTH_SIZES_USD, createMarketDepth } from "./depth";
 
 /**
- * Prints the latest full depth run as a markdown table. With `--measure`, runs a full measurement first.
+ * Prints the latest full Monad depth run as a markdown table. With `--measure`, runs a full measurement first.
  * Usage: pnpm --filter @levra/keeper report:depth [--measure]
  */
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
+// The depth job measures Anchored stocks through KyberSwap on Monad only, until BE-96.
+const MONAD = 143;
 const { db, close } = createDb(url, { max: 1 });
 
 try {
@@ -23,10 +25,10 @@ try {
       swap: createKyber({ baseUrl: process.env.KYBER_BASE_URL || KYBER_MONAD_URL, clientId: process.env.KYBER_CLIENT_ID || "levra" }),
       depthEveryMs: 0,
     });
-    console.error(JSON.stringify(await job.run({ db, logger: pino({ level: "warn" }), signal: new AbortController().signal })));
+    console.error(JSON.stringify(await job.run({ db, chainId: MONAD, logger: pino({ level: "warn" }), signal: new AbortController().signal })));
   }
 
-  const [last] = await db.select({ runId: dexQuotes.runId }).from(dexQuotes).where(eq(dexQuotes.kind, "buy")).orderBy(desc(dexQuotes.measuredAt)).limit(1);
+  const [last] = await db.select({ runId: dexQuotes.runId }).from(dexQuotes).where(and(eq(dexQuotes.chainId, MONAD), eq(dexQuotes.kind, "buy"))).orderBy(desc(dexQuotes.measuredAt)).limit(1);
   if (!last) throw new Error("No full depth run yet. Run with --measure.");
   const rows = await db.select().from(dexQuotes).where(eq(dexQuotes.runId, last.runId));
 

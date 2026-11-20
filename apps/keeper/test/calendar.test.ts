@@ -73,6 +73,7 @@ describe.skipIf(!url)("observed closes from the oracle logger (needs TEST_DATABA
   const update = (session: string, time: number) => {
     n += 1;
     return {
+      chainId: 143,
       symbol: SYMBOL,
       priceId: "0x00",
       roundId: String(n),
@@ -108,7 +109,7 @@ describe.skipIf(!url)("observed closes from the oracle logger (needs TEST_DATABA
   });
 
   it("finds the weekend from the first CLOSED write and turns it into the schedule", async () => {
-    const mine = (await observedClosedStretches(db)).filter((s) => s.symbol === SYMBOL);
+    const mine = (await observedClosedStretches(db, 143)).filter((s) => s.symbol === SYMBOL);
     expect(mine).toEqual([{ symbol: SYMBOL, firstClosedAt: at("2026-10-09", 20), reopenedAt: at("2026-10-11", 20) }]);
     const schedule = scheduleFromStretches(mine);
     expect(schedule).toEqual({ closeOffsetSeconds: 4 * 3600, openOffsetSeconds: -4 * 3600, source: "observed" });

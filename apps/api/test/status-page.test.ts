@@ -26,7 +26,8 @@ describe("status page", () => {
     expect(rows.ok).toBe(true);
     expect(rows.oracle.map((r) => r.detail)).toEqual(["Price live, updated 10 min ago, limit 35 min", "Price live, updated 15 min ago"]);
     // A keeper that never ran in this deployment is left out, not shown as down.
-    expect(rows.keepers.map((r) => r.name)).toEqual(["Liquidations", "Market close calendar"]);
+    expect(rows.chains.map((c) => c.name)).toEqual(["Monad"]);
+    expect(rows.chains[0]!.keepers.map((r) => r.name)).toEqual(["Liquidations", "Market close calendar"]);
     expect(renderStatusPage(status(), NOW)).toContain("All systems normal");
   });
 
@@ -36,12 +37,25 @@ describe("status page", () => {
     expect(statusRows(stale, NOW).ok).toBe(false);
     const late = status();
     late.keepers[0]!.healthy = false;
-    expect(statusRows(late, NOW).keepers[0]!.detail).toContain("Not healthy");
+    expect(statusRows(late, NOW).chains[0]!.keepers[0]!.detail).toContain("Not healthy");
     const lag = status();
     lag.indexer.lagBlocks = 301;
     const html = renderStatusPage(lag, NOW);
     expect(html).toContain("Some parts need attention");
     expect(html).toContain("301 blocks behind");
+  });
+
+  it("shows a block per chain when there is more than one, and a lagging chain needs attention", () => {
+    const s = status();
+    s.chains = [
+      { chainId: 143, name: "Monad", keepers: s.keepers, indexer: s.indexer },
+      { chainId: 8453, name: "Base", keepers: [{ name: "monitor", lastHeartbeatAt: NOW - 30, healthy: true }], indexer: { lastBlock: 100, chainHead: 900, lagBlocks: 800 } },
+    ];
+    const html = renderStatusPage(s, NOW);
+    expect(html).toContain("Monad: background services");
+    expect(html).toContain("Base: data");
+    expect(html).toContain("800 blocks behind");
+    expect(html).toContain("Some parts need attention");
   });
 
   it("escapes what it prints", () => {

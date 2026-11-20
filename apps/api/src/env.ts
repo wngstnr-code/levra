@@ -12,8 +12,16 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   DATABASE_URL: z.url(),
   MONAD_RPC_URL: z.url(),
-  /** contracts/deployments/<environment>.json, written by the deployment script. */
+  /** contracts/deployments/<environment>.json, written by the deployment script. The Monad deployment the routes serve. */
   DEPLOYMENT_FILE: z.string().min(1),
+  /**
+   * Other chains (BE-95): a chain is loaded when both its RPC endpoint and its deployment file are set. Until the routes
+   * take a chain (BE-70), only /v1/status reads them.
+   */
+  BASE_RPC_URL: optional().pipe(z.url().optional()),
+  BASE_DEPLOYMENT_FILE: optional(),
+  XLAYER_RPC_URL: optional().pipe(z.url().optional()),
+  XLAYER_DEPLOYMENT_FILE: optional(),
   KYBER_BASE_URL: z.url().default("https://aggregator-api.kyberswap.com/monad/api/v1"),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),

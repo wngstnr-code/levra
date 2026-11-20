@@ -1,8 +1,10 @@
 import { keeperHeartbeats, type Db } from "@levra/db";
 import type { KeeperName } from "@levra/shared/api";
+import type { ChainId } from "@levra/shared/chains";
 import type { Logger } from "./logger";
 
-export type JobContext = { db: Db; logger: Logger; signal: AbortSignal };
+/** `chainId` is the chain this keeper process serves (BE-95); every row a job writes carries it. */
+export type JobContext = { db: Db; chainId: ChainId; logger: Logger; signal: AbortSignal };
 
 export type Job = {
   name: KeeperName;
@@ -11,12 +13,12 @@ export type Job = {
   run(ctx: JobContext): Promise<Record<string, unknown> | void>;
 };
 
-export async function beat(db: Db, name: KeeperName, error: string | null, details?: Record<string, unknown>) {
+export async function beat(db: Db, chainId: ChainId, name: KeeperName, error: string | null, details?: Record<string, unknown>) {
   const row = { lastBeatAt: new Date(), lastError: error, details: details ?? null };
   await db
     .insert(keeperHeartbeats)
-    .values({ name, ...row })
-    .onConflictDoUpdate({ target: keeperHeartbeats.name, set: row });
+    .values({ chainId, name, ...row })
+    .onConflictDoUpdate({ target: [keeperHeartbeats.chainId, keeperHeartbeats.name], set: row });
 }
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -36,10 +38,10 @@ export async function runJob(job: Job, ctx: JobContext): Promise<void> {
   while (!ctx.signal.aborted) {
     try {
       const details = await job.run({ ...ctx, logger: log });
-      await beat(ctx.db, job.name, null, details ?? undefined);
+      await beat(ctx.db, ctx.chainId, job.name, null, details ?? undefined);
     } catch (err) {
       log.error({ err }, "job run failed");
-      await beat(ctx.db, job.name, err instanceof Error ? err.message : String(err)).catch((beatErr) =>
+      await beat(ctx.db, ctx.chainId, job.name, err instanceof Error ? err.message : String(err)).catch((beatErr) =>
         log.error({ err: beatErr }, "heartbeat failed"),
       );
     }

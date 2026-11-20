@@ -52,13 +52,13 @@ describe.skipIf(!url)("Telegram chat linking (needs TEST_DATABASE_URL)", () => {
       { update_id: 11, message: { chat: { id: 222 }, text: "hello" } },
       { update_id: 12, message: { chat: { id: 333 }, text: "/start fresh-code" } },
     ];
-    expect(await linkTelegramChats(db, bot)).toBe(1);
+    expect(await linkTelegramChats(db, 143, bot)).toBe(1);
     const [row] = await db.select().from(alertSettings).where(eq(alertSettings.address, address));
     expect(row).toMatchObject({ telegramChatId: "333", preClose: true, email: null });
     expect(sent.map(([chat]) => chat)).toEqual(["111", "333"]);
 
     pending.push({ update_id: 13, message: { chat: { id: 444 }, text: "/start fresh-code" } });
-    expect(await linkTelegramChats(db, bot)).toBe(0);
+    expect(await linkTelegramChats(db, 143, bot)).toBe(0);
     expect(offsets).toEqual([0, 13]);
     expect((await db.select().from(alertSettings).where(eq(alertSettings.address, address)))[0]?.telegramChatId).toBe("333");
   });
