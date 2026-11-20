@@ -27,8 +27,10 @@ import { StatBox } from "../ui/StatBox";
 import { HistoryList } from "./HistoryList";
 import { ManageSheet } from "./ManageSheet";
 import { PositionCard, type ManageTab } from "./PositionCard";
+import { useChainHref } from "@/lib/useChain";
 
 export function PositionsView() {
+  const href = useChainHref();
   const m = useT();
   const router = useRouter();
   const pathname = usePathname();
@@ -133,7 +135,7 @@ export function PositionsView() {
       ) : account.isError ? (
         <EmptyState glyph="!" tone="down" title={m.common.notAvailable} body={`${describeError(account.error, m)} ${m.positions.loadError}`} action={<Button variant="secondary" onClick={() => account.refetch()}>{m.common.tryAgain}</Button>} />
       ) : positions.length === 0 ? (
-        <EmptyState glyph="+" title={m.positions.noneTitle} body={m.positions.noneBody} action={<ButtonLink href="/markets" variant="secondary">{m.positions.goMarkets}</ButtonLink>} />
+        <EmptyState glyph="+" title={m.positions.noneTitle} body={m.positions.noneBody} action={<ButtonLink href={href("/markets")} variant="secondary">{m.positions.goMarkets}</ButtonLink>} />
       ) : (
         positions.map((p) => (
           <PositionCard

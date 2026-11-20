@@ -22,6 +22,7 @@ import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
 import { StatBox } from "../ui/StatBox";
 import { TokenIcon } from "../ui/TokenIcon";
+import { useChainHref } from "@/lib/useChain";
 
 const DASH = "—";
 
@@ -136,6 +137,7 @@ function CardSkeleton() {
 }
 
 function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; loading: boolean }) {
+  const href = useChainHref();
   const m = useT();
   const head = [m.markets.stock, m.markets.oraclePrice, m.markets.session, m.markets.dexVsOracle, m.markets.softHard, m.markets.maxLeverage, m.markets.borrowApy, m.markets.canBorrow, m.markets.cap];
   return (
@@ -160,7 +162,7 @@ function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; 
             return (
               <tr key={stock.symbol} className="border-t border-line">
                 <td className="py-[18px] pr-4 pl-7">
-                  <Link href={`/markets/${stock.symbol}`} className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-lime">
+                  <Link href={href(`/markets/${stock.symbol}`)} className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-lime">
                     <TokenIcon symbol={stock.symbol} size={36} />
                     <span>
                       <span className="block text-[15px] font-semibold">{stock.tokenSymbol}</span>
@@ -179,10 +181,10 @@ function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; 
                 <td className="py-[18px] pr-7 pl-4">
                   <div className="flex justify-end gap-2">
                     {paused && <span className="self-center text-[13px] text-caution">{m.markets.paused}</span>}
-                    <ButtonLink href={`/markets/${stock.symbol}`} variant="secondary" size="sm" className="hidden lg:inline-flex">
+                    <ButtonLink href={href(`/markets/${stock.symbol}`)} variant="secondary" size="sm" className="hidden lg:inline-flex">
                       {m.markets.detail}
                     </ButtonLink>
-                    <ButtonLink href={`/trade?symbol=${stock.symbol}`} size="sm" disabled={paused || row.stale}>
+                    <ButtonLink href={href(`/trade?symbol=${stock.symbol}`)} size="sm" disabled={paused || row.stale}>
                       {m.markets.trade}
                     </ButtonLink>
                   </div>

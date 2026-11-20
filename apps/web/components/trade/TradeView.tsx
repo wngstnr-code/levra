@@ -32,12 +32,14 @@ import { OrderPanel, type ActionState } from "./OrderPanel";
 import { PriceCard } from "./PriceCard";
 import { QuoteDetailsSheet } from "./QuoteDetailsSheet";
 import { QuoteSummary } from "./QuoteSummary";
+import { useChainHref } from "@/lib/useChain";
 
 
 type Side = "long" | "short";
 const USDC_DECIMALS = tokens.USDC.decimals;
 
 export function TradeView() {
+  const href = useChainHref();
   const m = useT();
   const router = useRouter();
   const pathname = usePathname();
@@ -231,7 +233,7 @@ export function TradeView() {
                   <span className="ml-auto font-medium">{formatUsdE8(BigInt(q.preview.liqPriceE8))}</span>
                 </p>
               </div>
-              <ButtonLink href="/positions" size="lg" className="w-full">
+              <ButtonLink href={href("/positions")} size="lg" className="w-full">
                 {m.trade.viewPosition}
               </ButtonLink>
             </div>

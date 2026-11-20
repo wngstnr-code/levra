@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import { ButtonLink, Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useT } from "@/lib/i18n";
+import { useChainHref } from "@/lib/useChain";
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const href = useChainHref();
   const m = useT();
   useEffect(() => {
     console.error(error);
@@ -21,7 +23,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
           <Button variant="secondary" onClick={reset}>
             {m.errorPage.retry}
           </Button>
-          <ButtonLink href="/markets">{m.errorPage.home}</ButtonLink>
+          <ButtonLink href={href("/markets")}>{m.errorPage.home}</ButtonLink>
         </div>
       }
     />

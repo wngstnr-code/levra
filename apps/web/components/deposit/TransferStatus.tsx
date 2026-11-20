@@ -8,6 +8,7 @@ import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
 import { formatToken } from "@/lib/units";
 import { ButtonLink } from "../ui/Button";
+import { useChainHref } from "@/lib/useChain";
 
 type State = DepositStatus["status"];
 const rank: Record<State, number> = { WAITING: 0, PROCESSING: 1, SUCCESS: 2, REFUNDED: 2, FAILED: 2, EXPIRED: 2 };
@@ -17,6 +18,7 @@ const ARRIVES = { USDC: { decimals: 6, digits: 2 }, MON: { decimals: 18, digits:
 
 /** Follows one transfer: seen, processing, arrived, or how it ended. */
 export function TransferStatus({ id, kind, chainName, arrives = "USDC" }: { id: string; kind: "deposit" | "withdraw"; chainName: string; arrives?: keyof typeof ARRIVES }) {
+  const href = useChainHref();
   const m = useT();
   const status = useDepositStatus(id);
   const s = status.data;
@@ -60,7 +62,7 @@ export function TransferStatus({ id, kind, chainName, arrives = "USDC" }: { id: 
         })}
       </ol>
       {s?.status === "SUCCESS" && kind === "deposit" && (
-        <ButtonLink href="/trade" className="w-full">
+        <ButtonLink href={href("/trade")} className="w-full">
           {m.deposit.goTrade}
         </ButtonLink>
       )}

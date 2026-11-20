@@ -24,10 +24,12 @@ import { Ring } from "../ui/Ring";
 import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
 import { TokenIcon } from "../ui/TokenIcon";
+import { useChainHref } from "@/lib/useChain";
 
 const DASH = "—";
 
 export function MarketDetailView({ symbol }: { symbol: string }) {
+  const href = useChainHref();
   const m = useT();
   const stock = stockOf(symbol)!;
   const detail = useMarketDetail(symbol);
@@ -43,7 +45,7 @@ export function MarketDetailView({ symbol }: { symbol: string }) {
 
   return (
     <div className="space-y-4">
-      <Link href="/markets" className="text-[13px] text-fg-3 hover:text-fg-2">
+      <Link href={href("/markets")} className="text-[13px] text-fg-3 hover:text-fg-2">
         {m.detail.breadcrumb} / {stock.tokenSymbol}
       </Link>
       <div className="flex flex-wrap items-end gap-4 pb-2">
@@ -62,16 +64,16 @@ export function MarketDetailView({ symbol }: { symbol: string }) {
         </div>
         <div className="flex flex-wrap gap-2.5">
           {hasShort && (
-            <ButtonLink href="/earn" variant="secondary">
+            <ButtonLink href={href("/earn")} variant="secondary">
               {m.detail.lend(stock.tokenSymbol)}
             </ButtonLink>
           )}
           {hasShort && (
-            <ButtonLink href={`/trade?symbol=${symbol}&side=short`} className="bg-peach">
+            <ButtonLink href={href(`/trade?symbol=${symbol}&side=short`)} className="bg-peach">
               {m.trade.short}
             </ButtonLink>
           )}
-          <ButtonLink href={`/trade?symbol=${symbol}&side=long`}>{m.trade.long}</ButtonLink>
+          <ButtonLink href={href(`/trade?symbol=${symbol}&side=long`)}>{m.trade.long}</ButtonLink>
         </div>
       </div>
 

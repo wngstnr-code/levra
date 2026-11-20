@@ -6,9 +6,11 @@ import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
 import { Button } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
+import { useChainHref } from "@/lib/useChain";
 
 /** First-visit acceptance of the terms and the risk disclosure, with a wallet signature (FE-50). */
 export function TermsSheet({ open, onClose, version, accept }: { open: boolean; onClose: () => void; version: string; accept: () => Promise<void> }) {
+  const href = useChainHref();
   const m = useT();
   const [checks, setChecks] = useState([false, false, false]);
   const [busy, setBusy] = useState(false);
@@ -35,7 +37,7 @@ export function TermsSheet({ open, onClose, version, accept }: { open: boolean; 
           <span className="text-sm leading-relaxed">{l}</span>
         </label>
       ))}
-      <Link href="/help#risks" className="text-sm font-medium text-lime">
+      <Link href={href("/help#risks")} className="text-sm font-medium text-lime">
         {m.gate.readRisks} ↗
       </Link>
       {error && <p className="text-sm text-down">{error}</p>}
