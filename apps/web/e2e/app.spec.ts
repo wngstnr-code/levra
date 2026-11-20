@@ -61,6 +61,20 @@ test("an unknown page says so", async ({ page }) => {
   await expect(page.getByText("Page not found")).toBeVisible();
 });
 
+test("markets shows the market clock with the session and a countdown", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await expect(page.getByText(/^(Closes|Opens) in /).first()).toBeVisible();
+});
+
+test("animations are off when the system asks for reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mockService(page);
+  await page.goto("/monad/markets");
+  const duration = await page.locator(".animate-page-in").first().evaluate((el) => getComputedStyle(el).animationDuration);
+  expect(parseFloat(duration)).toBeLessThan(0.01);
+});
+
 test("old links move to the Monad pages and the network picker lists the chains", async ({ page }) => {
   await mockService(page);
   await page.goto("/markets");
