@@ -1,5 +1,5 @@
 import { morphoEvents, routerEvents, vaultEvents, type Db } from "@levra/db";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { Address, Hex } from "viem";
 import type { ChainReader, RouterEvent } from "../chain/reader";
 
@@ -37,15 +37,15 @@ const toStored = (source: StoredEvent["source"]) => (r: Row): StoredEvent => ({
 export const byChainOrder = (a: StoredEvent, b: StoredEvent) =>
   a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1;
 
-/** The indexer's copy in Postgres. This is what the API uses in every environment. */
-export function dbEventStore(db: Db): EventStore {
+/** The indexer's copy in Postgres, for one chain. This is what the API uses in every environment. */
+export function dbEventStore(db: Db, chainId: number): EventStore {
   return {
     async forUser(user) {
       const who = user.toLowerCase();
       const [router, morpho, vault] = await Promise.all([
-        db.select().from(routerEvents).where(eq(routerEvents.user, who)).orderBy(asc(routerEvents.blockNumber), asc(routerEvents.logIndex)),
-        db.select().from(morphoEvents).where(eq(morphoEvents.user, who)).orderBy(asc(morphoEvents.blockNumber), asc(morphoEvents.logIndex)),
-        db.select().from(vaultEvents).where(eq(vaultEvents.user, who)).orderBy(asc(vaultEvents.blockNumber), asc(vaultEvents.logIndex)),
+        db.select().from(routerEvents).where(and(eq(routerEvents.chainId, chainId), eq(routerEvents.user, who))).orderBy(asc(routerEvents.blockNumber), asc(routerEvents.logIndex)),
+        db.select().from(morphoEvents).where(and(eq(morphoEvents.chainId, chainId), eq(morphoEvents.user, who))).orderBy(asc(morphoEvents.blockNumber), asc(morphoEvents.logIndex)),
+        db.select().from(vaultEvents).where(and(eq(vaultEvents.chainId, chainId), eq(vaultEvents.user, who))).orderBy(asc(vaultEvents.blockNumber), asc(vaultEvents.logIndex)),
       ]);
       return [
         ...router.map(toStored("router")),

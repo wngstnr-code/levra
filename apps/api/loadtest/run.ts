@@ -60,7 +60,7 @@ const { db, close } = createDb(databaseUrl);
 const reader = createChainReader(client, deployment);
 const swap = budgetedSwap(createKyber({ baseUrl: process.env.KYBER_BASE_URL ?? KYBER_MONAD_URL, clientId: "levra-loadtest", fetchFn: kyber.wrap() }));
 
-const app = createApp({ logger: pino({ level: process.env.LOG_LEVEL ?? "silent" }), reader, swap, events: dbEventStore(db), db, rateLimit: { trustProxyHeader: "x-forwarded-for" } });
+const app = createApp({ logger: pino({ level: process.env.LOG_LEVEL ?? "silent" }), reader, swap, events: dbEventStore(db, 143), db, rateLimit: { trustProxyHeader: "x-forwarded-for" } });
 const server = serve({ fetch: app.fetch, port: 0, hostname: "127.0.0.1" });
 await new Promise<void>((resolve) => server.once("listening", () => resolve()));
 const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
