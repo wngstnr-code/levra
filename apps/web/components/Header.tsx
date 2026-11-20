@@ -10,6 +10,7 @@ import { formatDuration } from "@/lib/units";
 import { useMarketSession } from "@/lib/useMarketSession";
 import { useNowSeconds } from "@/lib/useNow";
 import { Logo } from "./brand/Logo";
+import { ChainPicker } from "./chain/ChainPicker";
 import { SessionBadge } from "./ui/SessionBadge";
 import { WalletButton } from "./WalletButton";
 import { useChainHref } from "@/lib/useChain";
@@ -66,6 +67,7 @@ export function Header() {
             })}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <ChainPicker />
             {session && <SessionBadge className="hidden sm:inline-flex" session={session} warn={closeIn !== null} label={closeIn !== null ? m.session.closesIn(formatDuration(closeIn)) : undefined} />}
             <WalletButton />
           </div>

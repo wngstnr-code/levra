@@ -62,7 +62,7 @@ function PrivyWalletButton() {
   if (onWrongChain) {
     return (
       <Button size="sm" variant="caution" onClick={() => switchChain({ chainId: chain.id })} disabled={isSwitching} title={switchError?.message}>
-        {isSwitching ? m.wallet.switching : m.wallet.switchToMonad}
+        {isSwitching ? m.wallet.switching(chain.name) : m.wallet.switchTo(chain.name)}
       </Button>
     );
   }
