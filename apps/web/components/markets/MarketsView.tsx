@@ -22,7 +22,8 @@ import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
 import { StatBox } from "../ui/StatBox";
 import { TokenIcon } from "../ui/TokenIcon";
-import { useChainHref } from "@/lib/useChain";
+import { listedStocks } from "@/lib/chains";
+import { useChain, useChainHref } from "@/lib/useChain";
 
 const DASH = "—";
 
@@ -32,7 +33,8 @@ export function MarketsView() {
   const session = useApiSession();
   const oracle = useOracleSnapshots();
   const now = useNowSeconds();
-  const rows = buildMarketRows(markets.data?.markets, oracle.snapshots);
+  const chain = useChain();
+  const rows = buildMarketRows(listedStocks(chain), markets.data?.markets, oracle.snapshots);
   const loading = (apiConfigured ? markets.isPending : false) && oracle.isPending;
   const nothing = rows.every((r) => r.priceE8 === null);
   const next = markets.data?.session ?? session.data;

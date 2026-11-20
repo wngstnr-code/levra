@@ -81,6 +81,11 @@ export function stockOn(chain: WebChain, symbol: string): AnyStock | null {
   return Object.hasOwn(chain.stocks, symbol) ? chain.stocks[symbol]! : null;
 }
 
+/** Stocks with at least one deployed market on the chain, in deployment order. */
+export function listedStocks(chain: WebChain): AnyStock[] {
+  return [...new Set(chain.deployment.markets.map((m) => m.symbol))].map((s) => stockOn(chain, s)).filter((s): s is AnyStock => s !== null);
+}
+
 export function deployedMarketOn(chain: WebChain, symbol: string, side: "long" | "short") {
   return chain.deployment.markets.find((m) => m.symbol === symbol && m.side === side) ?? null;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainPath, defaultChain, deployedMarketOn, stockOn, webChainById, webChainBySlug, webChains } from "./chains";
+import { chainPath, defaultChain, deployedMarketOn, listedStocks, stockOn, webChainById, webChainBySlug, webChains } from "./chains";
 
 describe("web chains", () => {
   it("offers only chains with a deployment, Monad first", () => {
@@ -23,6 +23,7 @@ describe("web chains", () => {
     expect(stockOn(monad, "QQQ")?.tokenSymbol).toBe("aQQQ");
     expect(stockOn(monad, "NVDA")).toBeNull();
     expect(deployedMarketOn(monad, "QQQ", "long")).not.toBeNull();
+    expect(listedStocks(monad).map((s) => s.symbol)).toEqual(["QQQ", "HOOD", "BIL"]);
   });
 
   it("puts the chain slug in front of a path", () => {
