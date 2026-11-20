@@ -221,7 +221,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: Coinbase stocks with Chainlink price, session, feed frozen and halted states, share units through the multiplier.
   - Done when: real Base prices show next to Monad ones.
 
-- [ ] **FE-72 · Long, short and close on Base**
+- [~] **FE-72 · Long, short and close on Base**
   - Needs: BE-72, SC-76.
   - Do: reuse the trade flow; Base specific notices (weekend frozen price, issuer can pause a token); the remaining short capacity per stock, since the seed caps it until Earn users add more (D-70); the geo block and risk disclosure before the first trade (D-73).
   - Done when: a real long and short on Base are opened and closed from the web app (checkpoint I-B1).
@@ -231,18 +231,20 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: lend stocks into the short markets and USDC into the long side vault.
   - Done when: a real supply and withdraw from the app.
 
-- [ ] **FE-74 · Base Account and sponsored gas**
+- [~] **FE-74 · Base Account and sponsored gas**
   - Do: Base Account as a sign-in option through Privy, and a Base paymaster for the first actions (budget Q-34).
   - Done when: a new user opens a first position with no ETH.
+  - Note: our own sign-in sheet on top of Privy is built (Base Account first, email with code, passkey, external wallet). Privy 3.48 takes no wallet list in `login()`, so Base Account opens Privy's wallet list with Base Account first; a direct Base Account login is not verified. The paymaster is not started (budget Q-34).
 
 - [ ] **FE-75 · Public stats page**
   - Needs: BE-79.
   - Do: wallets, open interest, volume, Earn supplied, per chain.
   - Done when: live numbers show from the API.
 
-- [ ] **FE-76 · Shareable position card**
+- [~] **FE-76 · Shareable position card**
   - Do: image card for X after open or close (market, side, leverage, PnL in percent), with a link to the app.
   - Done when: a card is generated from a real position.
+  - Note: built on 20 November 2026 (`fe/FE-88-d-flows`): a Share button on every position draws a 1200×630 picture in the browser (stock, side, chain, price move since entry in the trade's favour, entry, now, P&L in dollars) and links to an X post. PnL in percent waits for a shared formula (blocker for Dharu).
 
 - [ ] **FE-77 · Agent entry in the app**
   - Needs: BE-77.
