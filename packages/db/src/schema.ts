@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { bigint, boolean, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 /**
@@ -264,18 +265,22 @@ export const oracleUpdates = pgTable(
     priceId: text("price_id").notNull(),
     roundId: numeric("round_id", { precision: 30, scale: 0 }).notNull(),
     priceE8: numeric("price_e8", { precision: 78, scale: 0 }).notNull(),
-    bestBidE8: numeric("best_bid_e8", { precision: 78, scale: 0 }).notNull(),
-    bestAskE8: numeric("best_ask_e8", { precision: 78, scale: 0 }).notNull(),
-    session: text("session").notNull(),
+    // Anchored only (Monad). Chainlink feeds report no bid, ask or session (BE-97).
+    bestBidE8: numeric("best_bid_e8", { precision: 78, scale: 0 }),
+    bestAskE8: numeric("best_ask_e8", { precision: 78, scale: 0 }),
+    session: text("session"),
     feedUpdatedAt: timestamp("feed_updated_at", { withTimezone: true }).notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
-    blockNumber: bigint("block_number", { mode: "bigint" }).notNull(),
+    // Set for rows read from logs (Anchored). Chainlink rows are read round by round through the proxy, without a log.
+    blockNumber: bigint("block_number", { mode: "bigint" }),
     blockTime: timestamp("block_time", { withTimezone: true }).notNull(),
-    txHash: text("tx_hash").notNull(),
-    logIndex: integer("log_index").notNull(),
+    txHash: text("tx_hash"),
+    logIndex: integer("log_index"),
   },
   (t) => [
     uniqueIndex("oracle_updates_log").on(t.chainId, t.txHash, t.logIndex),
+    // One row per Chainlink round: price_id is the feed proxy, round_id the proxy round id (phase in the top bits).
+    uniqueIndex("oracle_updates_round").on(t.chainId, t.priceId, t.roundId).where(sql`${t.txHash} is null`),
     index("oracle_updates_symbol_time").on(t.chainId, t.symbol, t.blockTime),
   ],
 );
