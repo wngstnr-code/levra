@@ -1,0 +1,9 @@
+# API_HOST comes from env/caddy.env: an interim name until the domain exists (Q-25), then api.<domain>.
+{$API_HOST} {
+	encode zstd gzip
+	# Caddy replaces any X-Forwarded-For sent by the client, so the API can trust it (TRUST_PROXY_HEADER).
+	reverse_proxy api:8787 {
+		# The price stream is server-sent events and must not be buffered.
+		flush_interval -1
+	}
+}

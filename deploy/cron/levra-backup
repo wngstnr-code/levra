@@ -1,0 +1,4 @@
+# Installed to /etc/cron.d/levra-backup by deploy/setup-server.sh. Every day at 03:00 server time, which setup sets to UTC (BE-53).
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 3 * * * levra /opt/levra/app/deploy/backup.sh >>/opt/levra/backups/backup.log 2>&1
