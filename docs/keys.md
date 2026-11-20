@@ -4,6 +4,8 @@ How the backend's hot keys are made, stored, funded, rotated and dropped after a
 
 Status: tools written and the leak drill passed on a local fork on 14 October 2026. Not yet done on mainnet: the role addresses wait for the owner's grant (Wangsit), and after SC-55 the owner is the multisig.
 
+Railway stopped on 20 November 2026 (D-94). The keys move to secret files on the VPS (`docs/hosting.md`, BE-55, BE-91), and each chain gets its own four keys. The Railway steps below stay until BE-55 rewrites this page for the VPS.
+
 ## The four roles
 
 One key per role. Each key can do one thing only, enforced by the contracts.

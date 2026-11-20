@@ -65,6 +65,8 @@ What we do not write but we deploy and configure: the markets on Morpho, and the
 | `apps/indexer` | Reads events from our contracts and from Morpho, then stores them as positions and history |
 | `apps/keeper` | Programs that run all the time: calendar poster for market closes, oracle age poster, protector (auto-deleverage), liquidator bot, alert sender, oracle monitor |
 
+One API serves every chain (D-60). Each chain gets its own indexer and keeper process, from the same code with the chain set in config. All of them run on one VPS with Docker Compose (D-94, [hosting.md](hosting.md)).
+
 ### Frontend (Nabil)
 
 | Page | Contents |
@@ -185,6 +187,7 @@ One repo for everything (monorepo), managed with pnpm and Turborepo.
 ├── packages/
 │   ├── db/               Dharu. Postgres schema and migrations (Drizzle), used by api, indexer and keeper
 │   ├── kyber/            Dharu. KyberSwap client and the DEX mid price (D-36), used by api and keeper
+│   ├── intents/          Dharu. 1Click client for cross-chain transfers, replaced by CCTP and Across (D-50, BE-76)
 │   └── shared/           Shared, each file has an owner
 │       ├── abis/         generated from contracts/, do not edit by hand
 │       ├── addresses.ts  addresses of external services and our contracts
