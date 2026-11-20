@@ -5,6 +5,7 @@ import { useState } from "react";
 import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Sheet } from "../ui/Sheet";
 import { useChainHref } from "@/lib/useChain";
 
@@ -33,7 +34,7 @@ export function TermsSheet({ open, onClose, version, accept }: { open: boolean; 
       <p className="text-[15px] text-fg-2">{m.gate.termsBody}</p>
       {labels.map((l, i) => (
         <label key={i} className="squircle flex cursor-pointer items-start gap-3 rounded-[18px] bg-surface-1 px-4 py-3.5">
-          <input type="checkbox" checked={checks[i]} onChange={(e) => setChecks((c) => c.map((v, j) => (j === i ? e.target.checked : v)))} className="mt-0.5 size-5 shrink-0 accent-lime" />
+          <Checkbox className="mt-0.5" checked={checks[i] ?? false} onChange={(v) => setChecks((c) => c.map((x, j) => (j === i ? v : x)))} />
           <span className="text-sm leading-relaxed">{l}</span>
         </label>
       ))}
