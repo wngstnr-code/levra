@@ -1,7 +1,10 @@
+import { isChainId, type ChainId } from "@levra/shared/chains";
+import type { Deployment } from "@levra/shared/deployments";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { existsSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Address } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { ROLES, SET_ROLES_ENV, isRoleName, type RoleName } from "./roles";
 
@@ -13,7 +16,8 @@ import { ROLES, SET_ROLES_ENV, isRoleName, type RoleName } from "./roles";
  *   tsx scripts/keys.ts --dir <secrets folder> ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY [--replace] [--confirm]
  *
  * Without --confirm it only shows what it would do. An existing key is kept unless --replace is given (rotation).
- * Needs DEPLOYMENT_FILE for the contract addresses.
+ * With DEPLOYMENT_FILE it prints the grant calls; without one (a chain we have not deployed on yet) it needs CHAIN_ID
+ * and prints the addresses the owner sets before the deployment.
  */
 
 export type KeysArgs = { dir: string; roles: RoleName[]; confirm: boolean; replace: boolean };
@@ -40,12 +44,32 @@ export async function storeKey(dir: string, role: RoleName, key: string, replace
   await rename(next, path);
 }
 
+/**
+ * How a new role address gets its role. Without a deployment (Base and X Layer before our deploy) the owner puts the
+ * address in the deploy environment, and the deploy script grants it with the contracts.
+ */
+export function grantLine(role: RoleName, address: Address, deployment: Deployment | null): string {
+  return deployment ? ROLES[role].grant(deployment, address) : `${SET_ROLES_ENV[role]}=${address} in the deploy environment; the deploy grants it`;
+}
+
+export function handoverLine(chainId: number, handover: string[], deployed: boolean): string {
+  const grant = !deployed ? "set before the deployment of this chain" : chainId === 143 ? "make set-roles-monad CONFIRM=yes" : "the grant calls above";
+  return `For the owner (Wangsit), chain ${chainId}: ${handover.join(" ")} ${grant}`;
+}
+
+/** The chain of the keys: the deployment's, or CHAIN_ID when nothing is deployed there yet. */
+export function keysChain(env: NodeJS.ProcessEnv): { chainId: ChainId; deployment: Deployment | null } {
+  const deployment = env.DEPLOYMENT_FILE ? readDeployment(env.DEPLOYMENT_FILE) : null;
+  const chainId = deployment?.chainId ?? Number(env.CHAIN_ID);
+  if (!isChainId(chainId)) throw new Error("Set DEPLOYMENT_FILE, or CHAIN_ID (143, 8453 or 196) when the chain has no deployment yet");
+  if (env.CHAIN_ID && Number(env.CHAIN_ID) !== chainId) throw new Error(`DEPLOYMENT_FILE is for chain ${chainId}, but CHAIN_ID is ${env.CHAIN_ID}`);
+  return { chainId, deployment };
+}
+
 async function main() {
   const { dir, roles, confirm, replace } = parseKeysArgs(process.argv.slice(2));
   if (!existsSync(dir)) throw new Error(`${dir} does not exist`);
-  const deploymentFile = process.env.DEPLOYMENT_FILE;
-  if (!deploymentFile) throw new Error("DEPLOYMENT_FILE is not set");
-  const deployment = readDeployment(deploymentFile);
+  const { chainId, deployment } = keysChain(process.env);
 
   const lines: string[] = [];
   const handover: string[] = [];
@@ -58,14 +82,11 @@ async function main() {
     const address = privateKeyToAddress(key);
     if (confirm) await storeKey(dir, role, key, replace);
     lines.push(`${role} (${ROLES[role].label}): ${address}${confirm ? "" : "  [dry run, nothing stored]"}`);
-    lines.push(`  grant: ${ROLES[role].grant(deployment, address)}`);
+    lines.push(`  grant: ${grantLine(role, address, deployment)}`);
     handover.push(`${SET_ROLES_ENV[role]}=${address}`);
   }
   console.log(lines.join("\n"));
-  if (handover.length > 0) {
-    const grant = deployment.chainId === 143 ? "make set-roles-monad CONFIRM=yes" : "the grant calls above";
-    console.log(`\nFor the owner (Wangsit), chain ${deployment.chainId}: ${handover.join(" ")} ${grant}`);
-  }
+  if (handover.length > 0) console.log(`\n${handoverLine(chainId, handover, deployment !== null)}`);
   console.log(confirm ? `\nStored in ${dir}. Grant the roles on chain (owner or multisig), fund each address with gas, then restart the keeper.` : "\nDry run. Add --confirm to create and store the keys.");
 }
 
