@@ -4,13 +4,13 @@ How the backend's hot keys are made, stored, funded, rotated and dropped after a
 
 Status: tools written and the leak drill passed on a local fork on 14 October 2026. Not yet done on mainnet: the role addresses wait for the owner's grant (Wangsit), and after SC-55 the owner is the multisig.
 
-Railway stopped on 20 November 2026 (D-94). The keys move to secret files on the VPS (`docs/hosting.md`, BE-55, BE-91), and each chain gets its own four keys. The Railway steps below stay until BE-55 rewrites this page for the VPS.
+Railway stopped on 20 November 2026 (D-94). Since then the keys are secret files on the VPS (`docs/hosting.md`), and each chain gets its own four keys in its own keeper service (`keeper-monad`, later `keeper-base` and `keeper-xlayer`). The scripts below were changed for the VPS and tested in a local copy of the server setup on 20 November 2026; not yet run on the VPS.
 
 ## The four roles
 
 One key per role. Each key can do one thing only, enforced by the contracts.
 
-| Variable on the keeper service | Role | What the key can call | Granted by the owner with |
+| Secret file of the keeper service | Role | What the key can call | Granted by the owner with |
 |---|---|---|---|
 | `ORACLE_AGE_POSTER_KEY` | Oracle age poster (BE-17) | `RiskManager.setMaxOracleAge`, only inside the owner's bounds | `setOracleAgePoster(address)` |
 | `CALENDAR_POSTER_KEY` | Calendar poster (BE-30) | `RiskManager.setNextCloseAt`, only up to 8 days ahead | `setCalendarPoster(address)` |
@@ -21,34 +21,38 @@ None of them can move user funds, change a fee, loosen a limit (other than `maxO
 
 ## Where keys live
 
-- Only in the variables of the `keeper` service on Railway (D-41). Never in the `api` or `indexer` services, never in the repo, never in a note, chat or ticket, never in a `.env` file on a server.
+- Only as files in `/opt/levra/secrets/keeper-<chain>/` on the VPS, one file per key, mode 0400, owned by the image's user (uid 1000). Only that keeper service mounts the folder, read only (`deploy/compose.yml`). Never in the `api` or `indexer` services, never in the repo, never in a note, chat or ticket, never in an env file.
 - The keeper runs as its own service, apart from the public API.
 - The keeper's logger blanks fields named `privateKey`, `key` and `env`.
-- Everyone with access to the Railway project can read the variables. Keep the project's members to the three of us.
+- Anyone with root or Docker access on the server can read the files. Keep SSH access to the three of us (`docs/hosting.md`).
 
 ## Making the keys
 
-From a machine with the Railway CLI linked to the project and `DEPLOYMENT_FILE` pointing at `contracts/deployments/monad.json`:
+On the server, as the `levra` user, after `deploy/setup-server.sh`. The keys are made inside the keeper's image and never leave the server:
 
 ```bash
 # Dry run: shows what would be made. Nothing is stored.
-pnpm --filter @levra/keeper keys ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY
+deploy/keys.sh keeper-monad ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY
 
-# Make the keys and store them on the keeper service. A role that already has a key is kept.
-pnpm --filter @levra/keeper keys ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY --confirm
+# Make the keys and write them as secret files. A role that already has a file is kept.
+deploy/keys.sh keeper-monad ORACLE_AGE_POSTER_KEY CALENDAR_POSTER_KEY PROTECTOR_KEY LIQUIDATOR_KEY --confirm
 ```
 
-The script creates each key in memory, sends it to the Railway CLI through stdin, and prints only the addresses, the owner calls, and one line for the owner:
+The script (`apps/keeper/scripts/keys.ts`) uses the `DEPLOYMENT_FILE` of that keeper, creates each key in memory, writes it to its file, and prints only the addresses, the owner calls, and one line for the owner:
 
 ```
-For the owner (Wangsit): ORACLE_AGE_POSTER=0x... CALENDAR_POSTER=0x... KEEPER=0x... LIQUIDATOR_KEEPER=0x... make set-roles-monad CONFIRM=yes
+For the owner (Wangsit), chain 143: ORACLE_AGE_POSTER=0x... CALENDAR_POSTER=0x... KEEPER=0x... LIQUIDATOR_KEEPER=0x... make set-roles-monad CONFIRM=yes
 ```
+
+On Base and X Layer the line lists the grant calls instead, since only Monad has a `make` target.
 
 Then:
 
 1. Send that line to the owner. After SC-55 the same calls go through the multisig.
-2. Fund each address with MON (below).
-3. Redeploy the keeper service. Each job checks on start that its key holds its role, and stops with a clear error if not.
+2. Fund each address with the chain's gas token (below).
+3. Restart the keeper: `docker compose -f deploy/compose.yml restart keeper-monad`. Each job checks on start that its key holds its role, and stops with a clear error if not.
+
+Keys that were on Railway are moved, not remade, when Railway can still be read (BE-91): `apps/keeper/scripts/move-variables.ts` pipes each value from the Railway CLI into the server's file through `ssh`, without printing it or writing it on the laptop.
 
 ## MON for gas
 
@@ -58,7 +62,7 @@ Initial proposals, in `apps/keeper/scripts/roles.ts`:
 - A top-up run sends at most 10 MON to one wallet and 30 MON in total.
 - The team monitor (BE-50) alerts when a role's wallet holds less than 5 MON.
 
-Top-ups are done by a person from the team's funding wallet, never by the hosted keeper, so the funding key never sits on a server. The funding key goes in through stdin:
+Gas targets for ETH on Base and OKB on X Layer are set in BE-95. Top-ups are done by a person from the team's funding wallet, never by the hosted keeper, so the funding key never sits on a server. The funding key goes in through stdin:
 
 ```bash
 # Plan only
@@ -72,12 +76,12 @@ MONAD_RPC_URL=<rpc> pnpm --filter @levra/keeper topup "oracle age poster=0x..." 
 
 For a planned change, or right away after a suspected leak.
 
-1. Make the new key, replacing the old variable:
-   `pnpm --filter @levra/keeper keys <ROLE> --replace --confirm`
+1. Make the new key, replacing the old file:
+   `deploy/keys.sh keeper-<chain> <ROLE> --replace --confirm`
 2. Owner or multisig moves the role:
    - Poster roles: call the setter with the new address. This removes the old address in the same call.
    - Keeper roles: `setKeeper(new, true)`, then `setKeeper(old, false)`.
-3. Fund the new address and redeploy the keeper service.
+3. Fund the new address and restart the keeper service.
 4. Move any MON left on the old address back to the funding wallet, if the old key is still under our control.
 5. Write the date, role, old and new address in PROGRESS.md.
 

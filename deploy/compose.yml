@@ -1,0 +1,104 @@
+# Backend on one VPS (D-94, docs/hosting.md). Run through deploy/deploy.sh, which sets APP_VERSION.
+# Settings that are not secret: ${LEVRA_HOME}/env/<service>.env. Secrets: one file each in ${LEVRA_HOME}/secrets/<service>/.
+name: levra
+
+x-app: &app
+  image: levra-backend:${APP_VERSION:-local}
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+    args:
+      APP_VERSION: ${APP_VERSION:-local}
+  restart: unless-stopped
+  init: true
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: 20m
+      max-file: "5"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    logging: *logging
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: levra
+      POSTGRES_DB: levra
+      POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ${LEVRA_HOME:-/opt/levra}/secrets/postgres:/run/secrets:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U levra -d levra"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /app/packages/db
+    command: ["node_modules/.bin/tsx", "src/migrate.ts"]
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/migrate:/run/secrets:ro
+
+  api:
+    <<: *app
+    working_dir: /app/apps/api
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/api.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/api:/run/secrets:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/v1/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
+
+  indexer-monad:
+    <<: *app
+    working_dir: /app/apps/indexer
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/indexer-monad.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/indexer-monad:/run/secrets:ro
+
+  keeper-monad:
+    <<: *app
+    working_dir: /app/apps/keeper
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/keeper-monad.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/keeper-monad:/run/secrets:ro
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/caddy.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:
