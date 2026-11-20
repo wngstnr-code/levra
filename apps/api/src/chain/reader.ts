@@ -1,4 +1,4 @@
-import { externalByChain } from "@levra/shared/addresses";
+import { externalByChain, tokensByChain } from "@levra/shared/addresses";
 import { isChainId } from "@levra/shared/chains";
 import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
@@ -277,5 +277,7 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       return events.sort((a, b) => (a.block === b.block ? a.logIndex - b.logIndex : a.block < b.block ? -1 : 1));
     });
 
-  return { deployment, markets, session, positions, latestBlock, routerFees, permitDomain, userState, borrowShares, routerEvents, client };
+  /** The chain's own Morpho and USDC (packages/shared), so no route reaches for Monad's by mistake (BE-70). */
+  const usdc = tokensByChain[deployment.chainId].USDC;
+  return { deployment, morpho, usdc, markets, session, positions, latestBlock, routerFees, permitDomain, userState, borrowShares, routerEvents, client };
 }

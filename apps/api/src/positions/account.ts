@@ -2,14 +2,13 @@ import { morphoAbi } from "@levra/shared/abis";
 import type { Account, HistoryItem, HistoryItemType, Position } from "@levra/shared/api";
 import { gapScenarios } from "@levra/shared/gaps";
 import { BPS, ORACLE_PRICE_SCALE, cautiousPriceE8, collateralValue, morphoOraclePrice, mulDiv } from "@levra/shared/math";
-import { external, tokens } from "@levra/shared/addresses";
+import { isChainId } from "@levra/shared/chains";
+import { stocksByChain } from "@levra/shared/markets";
 import { erc20Abi, type Address, type Hex } from "viem";
 import type { ChainReader, MarketState } from "../chain/reader";
 import { costBasis, entryPriceE8, longCostBasis, realizedOnReduce, type CostBasis } from "./cost-basis";
 import { toCostEvents, type StoredEvent } from "./events";
 
-const STOCK_DECIMALS = 18;
-const QUOTE_DECIMALS = tokens.USDC.decimals;
 /**
  * History items need a market id and a symbol. Vault deposits and withdrawals have no market, so they carry the zero id
  * and the symbol `USDC` (BE-22). The frontend tells them apart by `marketId`.
@@ -32,17 +31,17 @@ function liqDistance(oracleE8: bigint, liqE8: bigint, side: "long" | "short"): n
 export async function buildAccount(reader: ChainReader, events: StoredEvent[], user: Address): Promise<Account> {
   const [positions, markets, block] = await Promise.all([reader.positions(user), reader.markets(), reader.latestBlock()]);
   const costEvents = toCostEvents(events);
+  const chainId = reader.deployment.chainId;
+  if (!isChainId(chainId)) throw new Error(`Deployment is for chain ${chainId}, which has no addresses in packages/shared`);
   const walletTokens = [
-    { token: tokens.USDC.address, symbol: "USDC" },
-    { token: tokens.aQQQ.address, symbol: "aQQQ" },
-    { token: tokens.aHOOD.address, symbol: "aHOOD" },
-    { token: tokens.aBIL.address, symbol: "aBIL" },
-  ] as const;
+    { token: reader.usdc.address, symbol: "USDC" },
+    ...Object.values(stocksByChain[chainId]).map((s) => ({ token: s.token, symbol: s.tokenSymbol })),
+  ];
   const reads = await reader.client.multicall({
     allowFailure: false,
     contracts: [
       ...walletTokens.map((t) => ({ address: t.token, abi: erc20Abi, functionName: "balanceOf", args: [user] }) as const),
-      { address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, reader.deployment.router] } as const,
+      { address: reader.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, reader.deployment.router] } as const,
     ],
   });
 
@@ -55,7 +54,7 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
     const m = markets.find((x: MarketState) => x.info.marketId.toLowerCase() === p.marketId.toLowerCase());
     if (!m) continue;
     const side = m.info.side;
-    const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), STOCK_DECIMALS, QUOTE_DECIMALS);
+    const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), m.info.stock.decimals, reader.usdc.decimals);
     const basis: CostBasis = costBasis(side, costEvents, m.info.marketId);
 
     const value = side === "long" ? collateralValue(p.collateralRaw, price) : mulDiv(p.debtRaw, ORACLE_PRICE_SCALE, price);
@@ -75,7 +74,7 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
       debtRaw: p.debtRaw.toString(),
       valueUsdRaw: value.toString(),
       equityUsdRaw: positionEquity.toString(),
-      entryPriceE8: entryPriceE8(basis, QUOTE_DECIMALS, STOCK_DECIMALS).toString(),
+      entryPriceE8: entryPriceE8(basis, reader.usdc.decimals, m.info.stock.decimals).toString(),
       oraclePriceE8: m.oraclePriceE8.toString(),
       unrealizedPnlUsdRaw: pnl.toString(),
       ltvWad: p.ltvWad.toString(),

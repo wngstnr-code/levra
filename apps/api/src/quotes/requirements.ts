@@ -1,4 +1,3 @@
-import { external } from "@levra/shared/addresses";
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { Requirement, SignatureInput } from "@levra/shared/api";
 import { encodeFunctionData, parseSignature, type Address, type Hex } from "viem";
@@ -27,9 +26,9 @@ function permitTypedData(p: { token: Address; name: string; version: string; cha
 }
 
 /** Morpho Blue signs authorizations with a domain of chainId and verifyingContract only. */
-function authorizationTypedData(p: { chainId: number; authorizer: Address; authorized: Address; nonce: bigint; deadline: number }) {
+function authorizationTypedData(p: { chainId: number; morpho: Address; authorizer: Address; authorized: Address; nonce: bigint; deadline: number }) {
   return {
-    domain: { chainId: p.chainId, verifyingContract: external.morpho },
+    domain: { chainId: p.chainId, verifyingContract: p.morpho },
     types: {
       Authorization: [
         { name: "authorizer", type: "address" },
@@ -124,7 +123,7 @@ export async function checkRequirements(reader: ChainReader, p: RequirementInput
       type: "morphoAuthorization",
       satisfied: met,
       spender: router,
-      ...(met ? {} : { typedData: authorizationTypedData({ chainId, authorizer: p.user, authorized: router, nonce: state.morphoNonce, deadline }) }),
+      ...(met ? {} : { typedData: authorizationTypedData({ chainId, morpho: reader.morpho, authorizer: p.user, authorized: router, nonce: state.morphoNonce, deadline }) }),
     });
   }
 

@@ -1,4 +1,3 @@
-import { tokens } from "@levra/shared/addresses";
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { QuoteCollateralRequest, QuoteCollateralResponse } from "@levra/shared/api";
 import { cautiousPriceE8, liquidationPriceE8, morphoOraclePrice, positionLtvWad } from "@levra/shared/math";
@@ -28,7 +27,7 @@ export async function quoteCollateral(reader: ChainReader, req: QuoteCollateralR
   const side = m.info.side;
   const collateralToken = m.info.collateralToken;
   const stock = m.info.stock.token;
-  const [quoteDecimals, stockDecimals] = (await upstream(() => tokenDecimals(reader, [tokens.USDC.address, stock]))) as [number, number];
+  const [quoteDecimals, stockDecimals] = (await upstream(() => tokenDecimals(reader, [reader.usdc.address, stock]))) as [number, number];
 
   const removing = req.action === "remove";
   const repaying = req.action === "repay";
@@ -59,7 +58,7 @@ export async function quoteCollateral(reader: ChainReader, req: QuoteCollateralR
       // Only USDC has permit; the stock tokens need a normal approve (05, Q-18).
       ...(removing
         ? {}
-        : { pull: { token: pulled, amount: repaying ? repaid : amount, permit: pulled.toLowerCase() === tokens.USDC.address.toLowerCase() } }),
+        : { pull: { token: pulled, amount: repaying ? repaid : amount, permit: pulled.toLowerCase() === reader.usdc.address.toLowerCase() } }),
       authorization: removing,
       signatures: req.signatures,
       blockTime: block.time,
