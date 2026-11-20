@@ -55,6 +55,37 @@ These become the invariant tests (SC-50). If any one of them can be broken, it i
 
 Every row must have a test that shows its mitigation works.
 
+### Threat pass (SC-52, 20 November 2026)
+
+Each threat above, marked against the code as it stands after D-89 to D-93. "Closed" means a test in `contracts/test/` shows the mitigation works. "Not closable by code" means the risk sits with an issuer, an operator or off chain, and names where it is handled instead. Done by Wangsit after the human second read (Dharu, Nabil, no findings).
+
+| No | Status | Evidence |
+|---|---|---|
+| T-01 | Closed | `SwapTargets.t.sol` (all 10 tests, including `testFuzz_onlyListedAddressesAreTargets`, `test_refusesMorphoAsASpenderAndMismatchedLists`, `test_failsWhenOnlyTheTargetIsApproved`); `Long.t.sol` `test_revertsOnUnknownSwapTarget`, `test_revertsWhenSwapReturnsLessThanMinimum`; invariants `invariant_routerHoldsNoTokens`, `invariant_nobodyCanTouchAPositionOfSomeoneElse` |
+| T-02 | Closed | `Long.t.sol` `test_flashCallbackCannotBeCalledDirectly`; `Security.t.sol` `test_swapTargetCannotFakeTheFlashCallback`; `Liquidator.t.sol` `test_callbackCannotBeCalledDirectly` |
+| T-03 | Closed | `Security.t.sol` `test_swapTargetCannotReenterAnEntryPoint`, `test_swapTargetCannotReenterThroughMulticall` |
+| T-04 | Closed | `Protection.t.sol` (14 tests: keeper only, user consent, above soft limit only, deviation, no full close, no zero debt end, size bound, closed session, stale price, issuer pause); `Short.t.sol` `test_keeperReducesAProtectedShortInsideTheBounds`, `test_keeperCannotTakeOutMoreUsdcThanTheShortRepays`; `invariant_feesStayWithinTheirCaps` |
+| T-05 | Closed | The hard limit is Morpho's own `price()`; DEX fills only reach the soft layer. `ChainlinkOracle.t.sol` `test_matchesMorphoOwnOracleOnAWeekday`; `OracleFuzz.t.sol` (6 fuzz tests); `Long.t.sol` `test_revertsWhenFillIsFarFromOracle` |
+| T-06 | Closed for the code part | `Risk.t.sol` stale tests (`test_openMarketPriceGoesStaleOnTheSourceQuoteTime`, `test_closedMarketGoesStaleWhenTheHeartbeatStops`, `test_openingNeedsAFresherPriceThanTheHardLimit`); `OracleFuzz.t.sol` `testFuzz_stalenessFollowsTheRightClock`; `Long.t.sol` `test_revertsAbovePositionCap`; `Vault.t.sol` `test_capLimitsWhatOneMarketCanReceive`. The oracle monitor is BE-50 |
+| T-07 | Not closable by code | Anchored controls its oracle. Small supply caps (04), monitoring (BE-50), runbook |
+| T-08 | Not closable by code | Anchored controls the token and its denylist. X-12, small caps, risk disclosure |
+| T-09 | Closed for the code part | `Long.t.sol` `test_revertsWhenSwapReturnsLessThanMinimum`, `test_revertsWhenFillIsFarFromOracle`; `Protection.t.sol` `test_keeperCannotSellFarBelowTheOraclePrice`. Showing the price before confirmation is FE |
+| T-10 | Closed | `Security.t.sol` `test_firstUseSignaturesCannotBeUsedTwice`, `test_revokedAuthorizationCannotBeRestoredWithTheOldSignature`, `test_aSignatureForAnotherSpenderGivesTheRouterNothing`, `test_expiredSignaturesAreRejected`, `test_someoneSubmittingTheSignaturesFirstDoesNotBlockTheUser`; `Risk.t.sol` `test_cannotAuthorizeOnBehalfOfSomeoneElse` |
+| T-11 | Closed | `Governance.t.sol` (7 tests: timelock for loosening, only the multisig uses the timelock, the deployer can change nothing after the handover); `Risk.t.sol` `test_guardianCanOnlyTighten`, `test_guardianCanPauseButNotResume`, `test_strangersCannotChangeAnything`; `Long.t.sol` `test_openingCanBePausedButClosingCannot` |
+| T-12 | Closed | `Long.t.sol` `test_closeLongInFull` (full close by shares leaves 0 debt), `test_repayDebtNeverTakesMoreThanTheDebt`; `Short.t.sol` `test_closeShortInFull`; the invariant campaign closes and reduces with random fractions |
+| T-13 | Closed for the code part | `Liquidator.t.sol` `test_liquidatesALongAfterThePriceFalls`, `test_liquidatesAShortAfterThePriceRises`. Running the bot is BE-32 |
+| T-14 | Not closable by code | Position and supply caps follow market depth (04). `Liquidator.t.sol` `test_refusesALossUnlessToldToCoverIt` shows a bad fill reverts unless a budget covers it |
+| T-15 | Not closable by code | Keeper heartbeat and alerts (BE-50, `/v1/status`) |
+| T-16 | Not closable by code | One domain (`levra.finance`, D-95), addresses published in `docs/public/contracts.md` |
+| T-17 | Not closable by code, partly mitigated | Swap output is measured from balance differences (`_swapOut`). No test with a fee on transfer token: Morpho Blue itself does not support such tokens, so an issuer upgrade that adds a fee breaks the market itself. Watch token upgrades (BE-75, T-21, T-23). Known issue, low |
+| T-18 | Not closable by code | Q-23; a stock with an announced split is not eligible |
+| T-19 | Not closable by code | The app asks for exact approvals (FE) |
+| T-20 | Not closable by code | Anchored session flip before the weekend. Oracle monitor (BE-50). A full close still works without a price: `StaleClose.t.sol` |
+| T-21 | Not closable by code | Coinbase policy admin. Small caps (SC-74), alerts (BE-75), `b20-policy.live.test.ts` |
+| T-22 | Closed for the code part | `StaleClose.t.sol` (5 tests: full close without a price, partial close still needs one); `ChainlinkOracle.t.sol` `test_mondayHolidayStopsThePriceUntilTheFeedWrites`; `Protection.t.sol` `test_keeperCannotReduceOnAStaleOracle`. The holiday stop of partial reduces is a known exception to rule 8 (PROGRESS) |
+| T-23 | Not closable by code | xStocks issuer Safes. `XStocks.t.sol` `test_aSanctionedRouterCannotReceiveTheWrappedStock` shows the effect on a fork. Small caps (SC-82), alerts (BE side) |
+| T-24 | Closed | `Liquidator.t.sol` `test_refusesALossUnlessToldToCoverIt` (budget spent, owner only), `test_refusesAMarketWithTheSameLoanAndCollateralToken`, `test_onlyKeepersAndOnlyTheAllowedSwapTarget`, `test_ownerControlsKeepersTreasuryAndFloat` |
+
 | No | Threat | Impact | Mitigation |
 |---|---|---|---|
 | T-01 | Swap calldata crafted by an attacker makes the router call Morpho or a token | Borrow or take collateral on behalf of all users who gave authorization | Swap target allowlist: one to three targets fixed in the constructor, never changeable, never Morpho or the zero address (D-79), each with a fixed spender that is never Morpho (D-88, `test/SwapTargets.t.sol`); the spender is approved for exactly the swap amount and reset to zero after the call, and the output is measured from balances, so a spender that pulled the tokens elsewhere only fails the `minOut` check; token approval only for the amount used and set back to zero; invariants 2 and 7 |
