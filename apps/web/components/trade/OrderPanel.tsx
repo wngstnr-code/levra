@@ -4,6 +4,8 @@ import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
 import { formatLeverage } from "@/lib/units";
 import { InfoLink } from "../ui/InfoLink";
+import type { Notice } from "@/lib/warnings";
+import { NoticeRow } from "../ui/NoticeRow";
 
 export type ActionState =
   | { kind: "signIn"; onClick: () => void }
@@ -27,7 +29,7 @@ type Props = {
   capShare: number | null;
   capText: string | null;
   firstTimeSignatures: number;
-  notes: string[];
+  notes: Notice[];
   action: ActionState;
 };
 
@@ -160,9 +162,7 @@ export function OrderPanel(p: Props) {
         </button>
       )}
       {p.notes.map((n) => (
-        <p key={n} className="text-xs text-ink/65">
-          {n}
-        </p>
+        <NoticeRow key={n.code} notice={n} onPastel />
       ))}
     </section>
   );

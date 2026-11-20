@@ -30,6 +30,7 @@ import { QuoteDetailsSheet } from "./QuoteDetailsSheet";
 import { QuoteSummary } from "./QuoteSummary";
 import { useChain, useChainHref } from "@/lib/useChain";
 import { deployedMarketOn, listedStocks, stockOn } from "@/lib/chains";
+import { noticeFor } from "@/lib/warnings";
 
 
 type Side = "long" | "short";
@@ -103,7 +104,7 @@ export function TradeView() {
     if (!marginRaw || marginRaw === 0n) return { kind: "disabled", label: m.trade.enterAmount };
     if (balance.data !== undefined && marginRaw > balance.data) return { kind: "disabled", label: m.trade.notEnough };
     if (!q) return { kind: "disabled", label: quoteError ? m.common.notAvailable : m.trade.gettingQuote };
-    if (blocked) return { kind: "disabled", label: blocked.message };
+    if (blocked) return { kind: "disabled", label: noticeFor(blocked, m).title };
     const needsSetup = pending.toSign.length + pending.toApprove.length > 0;
     const label = side === "long" ? (needsSetup ? m.trade.signAndOpenLong : m.trade.openLong) : needsSetup ? m.trade.signAndOpenShort : m.trade.openShort;
     return {
@@ -203,7 +204,7 @@ export function TradeView() {
           capShare={capRaw ? Number((positionUsd * 1000n) / capRaw) / 1000 : null}
           capText={capRaw ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(capRaw, 0)) : null}
           firstTimeSignatures={pending.toSign.length}
-          notes={q?.warnings.filter((w) => w.severity !== "block").map((w) => w.message) ?? []}
+          notes={q?.warnings.map((w) => noticeFor(w, m)) ?? []}
           action={action}
         />
       </div>

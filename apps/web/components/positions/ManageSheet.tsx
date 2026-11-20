@@ -23,6 +23,8 @@ import { Sheet } from "../ui/Sheet";
 import type { ManageTab } from "./PositionCard";
 import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
+import { noticeFor } from "@/lib/warnings";
+import { NoticeRow } from "../ui/NoticeRow";
 
 const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
 const FRACTIONS = [25, 50, 75, 100];
@@ -176,9 +178,7 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
         </div>
 
         {quote?.warnings.map((w) => (
-          <p key={w.code} className={cn("text-[13px]", w.severity === "block" ? "text-down" : "text-caution")}>
-            {w.message}
-          </p>
+          <NoticeRow key={w.code} notice={noticeFor(w, m)} />
         ))}
         <p className="text-xs text-fg-3">{m.positions.neverPaused}</p>
 
