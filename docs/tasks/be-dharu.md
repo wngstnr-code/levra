@@ -46,7 +46,7 @@ Priority: P0 is on the path to a team date, P1 is needed for a submission, P2 on
 | Sun 22 Nov | BE-92, BE-93. The BE-70 proposal in 03 sent to Nabil. Base and X Layer role keys made on the VPS, addresses sent to Wangsit (BE-55) | P0 | Two blocker rows for Wangsit closed (limits check, gap rows) |
 | Mon 23 Nov | BE-94 (morning), BE-95 | P0 | Review notes with Wangsit; Monad runs with `chain_id` |
 | Tue 24 Nov | BE-97 on Base and X Layer, BE-89, BE-70 build (after Nabil agrees) | P0 | Feeds recording before Thanksgiving; chain routes live with Monad aliases |
-| Wed 25 Nov | BE-96 (interface, KyberSwap, 1inch), BE-72 long, BE-74. BE-52 if the domain exists | P0 | Base long quotes pass a live simulation |
+| Wed 25 Nov | BE-96 (interface, KyberSwap, 1inch), BE-72 long, BE-74, BE-99. BE-52 if the domain exists | P0 | Base long quotes pass a live simulation; a close quote works without an oracle price |
 | Thu 26 Nov | BE-73 with the Base deployment file (SC-76), BE-30 for Chainlink chains. I-B1 with Wangsit and Nabil | P0 | A real long on Base through the web app, hashes in PROGRESS |
 | Fri 27 Nov | BE-88 (before the close), BE-96 (Aero), BE-98 if SC-87 has run | P0 | The protector can act on Base |
 | Sat 28 Nov | BE-72 short and Earn, BE-75 | P0 | Base short quotes and Earn data on the live chain |
@@ -428,10 +428,11 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Done when: `gapScenarios` gives rows that match 04 for every listed stock on Base and X Layer; the blocker row is closed.
   - Note: done on 20 November 2026. `report:gaps` takes new symbols on the command line and marks a stock with a short history. The table was rebuilt over November 2021 to November 2026 (274 events per stock): every worst drop and rise equals 04, both for the new rows and the old ones, so the old rows were refreshed too (only the "more than 2%" shares moved). `gapStandIns` gives SPCX NVDA's worst drop for a long, as 04 does for its limits, and the scenario label says so. Tests: a row for every stock on every chain by its `markets.ts` symbol, the closed checks of 04 for Base and X Layer, and SPCX.
 
-- [ ] **BE-94 · Second reader for the contract changes**
+- [~] **BE-94 · Second reader for the contract changes**
   - Needs: nothing. Blocker for Wangsit: 06 asks for a second reader before SC-87, SC-76 and SC-83.
   - Do: read the `MarginRouter` close without a fresh price (SC-86), the keeper floor and size bound (D-90 to D-93), the `Liquidator` loss budget, and `SwapTargets` with fixed spenders (D-79, D-88), against 03, 04 and the threat list in 07. Look hardest where the backend depends on them: keeper reductions, liquidation sizing, and the swap target and spender the API must use. Nabil can take the user paths of `MarginRouter` if the team splits the read.
   - Done when: Wangsit has the written notes (in the PR or under "Review notes" in PROGRESS), each finding is fixed or accepted, and the blocker row is closed.
+  - Note (20 November 2026): read done, notes under "Review notes" in PROGRESS. No fund-safety bug in the contracts. One backend gap became BE-99; two deployment points, (3) a token as swap target and (4) the fixed OKX approve contract, wait for Wangsit's answer. Then the blocker row closes.
 
 - [ ] **BE-95 · Three chains in one backend: config and database**
   - Needs: SC-73 and SC-80 (both done). Route contract: D-60.
@@ -452,6 +453,11 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Needs: SC-87, BE-95.
   - Do: the indexer reads `router` and every address in `previousRouters` (03 section 6); history, entry price and PnL merge the events of all routers; quotes target the new router and ask for the Morpho authorization of the new router. The protector acts only through a router that has `DELEVERAGE_FLOOR` and only for opt-ins made on it (users opt in again, 03), since the live router has no keeper floor. Send the protector address to Wangsit for the keeper role on the new router. The liquidator bot keeps working with the old `Liquidator` until Monad gets a new one.
   - Done when: on a fork with the SC-87 script, a position opened on the old router and closed on the new one shows as one history; the protector ignores opt-ins on the old router; the blocker row is closed.
+
+- [ ] **BE-99 · Close quotes without an oracle price**
+  - Needs: SC-86 in the router being quoted (the Base and X Layer routers, and Monad after SC-87).
+  - Do: when a market's oracle cannot be read (Lens price 0, from a `snapshot()` revert), `quote/close` still returns a full close: repay all debt, withdraw all collateral, the swap sized from the debt and the DEX quote alone, `minOut` from the DEX quote and the user's slippage, no deviation check against the oracle, and a clear flag in the answer that the oracle price is missing. A partial reduce or a collateral withdrawal without a price stays refused, as the router refuses it. The account and market routes show the market as without a price instead of failing. Only for routers with SC-86; on the live Monad router the API keeps refusing, since that router would revert.
+  - Done when: a fork test with an oracle whose `snapshot()` reverts gets a full close quote from the API and the transaction closes the position through the router; a partial reduce is refused with a clear error; every route that reads that market answers. Found in BE-94 (Known issues).
 
 ---
 
