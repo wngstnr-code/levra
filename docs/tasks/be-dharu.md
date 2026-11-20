@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. New folders from the plan below (`deploy/`, `packages/swap`) join this list in the PR that creates them.
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90). `packages/swap` joins this list in the PR that creates it (BE-96).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -362,6 +362,7 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
   - Done when: there are no keys in the repo or in notes; how to rotate keys is written down and has been tried, including a drill where the oracle age poster key is treated as leaked.
   - Note: written on 14 October 2026. `docs/keys.md` covers the four roles, where keys live (only the keeper service's variables on Railway), making them, MON top-ups and rotation. `pnpm --filter @levra/keeper keys` makes keys and stores them on Railway through stdin, printing only addresses and the line for `make set-roles-monad`; `topup` funds role wallets from a person's funding key within limits (10 MON target, 10 per wallet, 30 per run, initial proposals). The keeper log blanks key fields. Leak drill passed on a fork: one owner call moved the oracle age poster role, the leaked key was refused, the new key posted. On 14 October 2026 the mainnet keys were made with the script, granted by Wangsit and funded (05); all keepers report healthy. Still to do: the drill on mainnet after SC-55.
   - Note (20 November 2026): Railway is gone (D-94). On the VPS each secret is one file, mounted read only into the one service that needs it (`hosting.md`). The `keys` script writes to that folder instead of the Railway CLI and makes one key per role per chain (Monad, Base, X Layer); `docs/keys.md` is rewritten for the VPS. The script change is needed on 21 November for BE-91, and the Base and X Layer keys on 22 November for Wangsit's deploy configs.
+  - Note (20 November 2026, later): done in code on `be/BE-90-vps`. `keys.ts` takes `--dir` and writes each key as a 0400 file (a rotation writes a new file, then renames it); `deploy/keys.sh` runs it on the server inside the keeper's image; `move-variables.ts` moves keys off Railway. `docs/keys.md` rewritten for the VPS. Tested in the local copy of the server setup.
 
 
 - [x] **BE-56 · CORS and sign-in hosts for the web app**
@@ -403,15 +404,17 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
 
 Added on 20 November 2026 with the execution plan at the top. These tasks replace Railway and give Base and X Layer the base they stand on.
 
-- [ ] **BE-90 · Backend on a VPS**
+- [~] **BE-90 · Backend on a VPS**
   - Needs: a VPS ordered by Dharu (rules in `docs/hosting.md`), D-94.
   - Do: a new `deploy/` folder: one image for the backend apps (`Dockerfile`), `compose.yml` with `postgres`, `migrate`, `api`, `indexer-monad`, `keeper-monad` and `caddy`, an entrypoint that loads one secret per file, an example env file per service, and `deploy.sh` (steps in `hosting.md`). Harden the server: SSH keys only, firewall open on 22, 80 and 443, Postgres without a public port, automatic security updates, Docker log rotation, every service back after a reboot. HTTPS through Caddy, on an interim address until the domain exists (Q-25). Set `APP_VERSION` to the commit, and `MONITOR_API_URL`, `CORS_ORIGINS` and `AUTH_DOMAIN` for the new setup. An outside uptime check on `/v1/health` and `/v1/status` that alerts the team (moved here from BE-15 and BE-50). Add `deploy/` to the ownership tables (CLAUDE.md, README, 06, CODEOWNERS) in the same PR.
   - Done when: `/v1/health`, `/v1/status` (indexer lag a few blocks, every Monad keeper healthy) and `/status` answer on the new HTTPS address; the deployed web app reads markets from it; a server reboot brings every service back by itself; one uptime alert reached the team on purpose; `hosting.md` says what was verified and when.
+  - Note (20 November 2026): the `deploy/` files are written on `be/BE-90-vps` and the whole stack ran in a local copy against Monad mainnet (what was verified is in `hosting.md`). Still to do on 21 November: buy the VPS, run `setup-server.sh`, deploy, HTTPS, the reboot test, the uptime check, and send the address to Nabil.
 
-- [ ] **BE-91 · Move data and keys off Railway**
+- [~] **BE-91 · Move data and keys off Railway**
   - Needs: BE-90 for the target. Step 1 does not wait.
   - Do: follow "Moving off Railway" in `hosting.md`. Step 1, right away: if the Railway project can still be read, dump the database and move the four Monad role keys straight into the VPS secret files, never printed. If not: an empty database, the indexer replays, the oracle recorder backfills to 29 September 2026, new Monad role keys are made on the VPS (BE-55), Wangsit moves the roles (`make set-roles-monad`), and the new wallets are funded. A new `AUTH_SECRET` either way. Check that the five Monad markets have no open borrow positions while the keepers were down.
   - Done when: the database is restored with matching row counts, or rebuilt with the indexer at the chain head and oracle data back to 29 September 2026; every Monad role job holds its role and reports healthy; the path taken, and any role or top-up transaction hashes, are in PROGRESS.
+  - Note (20 November 2026): Railway still opens but its services are stopped (plan limit reached), and the Railway CLI on Dharu's laptop is logged out. `apps/keeper/scripts/move-variables.ts` moves variables from Railway into the VPS secret files through `ssh`, never printed (`hosting.md` step 1). A database dump needs Railway's Postgres running again, so it is only worth paying for if the data that cannot be rebuilt matters (decision for Dharu).
 
 - [ ] **BE-92 · Check the Base and X Layer limits against `math.ts`**
   - Needs: 04 "Base limits" (SC-74) and "X Layer limits" (SC-82). Blocker for Wangsit: both deployments wait for it.
