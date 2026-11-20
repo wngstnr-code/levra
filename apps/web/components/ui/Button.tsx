@@ -7,7 +7,7 @@ type Size = "md" | "sm" | "lg";
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-lime text-ink hover:brightness-105",
-  secondary: "bg-surface-3 text-fg hover:bg-[#38383e]",
+  secondary: "bg-surface-3 text-fg hover:brightness-110",
   quiet: "text-fg-2 hover:text-fg",
   caution: "bg-caution text-on-signal hover:brightness-105",
   danger: "bg-down-soft text-down hover:brightness-110",
