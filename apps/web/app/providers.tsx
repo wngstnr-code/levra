@@ -10,9 +10,11 @@ import { PrivySignInProvider } from "@/components/SignIn";
 import { StreamSync } from "@/lib/api/stream";
 import { monad } from "@/lib/chain";
 import { privyAppId } from "@/lib/privy";
+import { useTheme } from "@/lib/theme";
 import { privyWagmiConfig, readOnlyWagmiConfig } from "@/lib/wagmi";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } }));
 
   const inner = (
@@ -35,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       appId={privyAppId}
       config={{
         loginMethods: ["wallet", "email", "passkey"],
-        appearance: { theme: "dark", walletChainType: "ethereum-only" },
+        appearance: { theme, walletChainType: "ethereum-only" },
         defaultChain: monad,
         supportedChains: [monad],
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },

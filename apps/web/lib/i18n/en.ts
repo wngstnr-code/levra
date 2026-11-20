@@ -421,6 +421,8 @@ export const en = {
   },
   settings: {
     title: "Settings",
+    appearance: "Appearance",
+    themes: { system: "System", light: "Light", dark: "Dark" },
     alerts: "Alerts",
     alertsSignIn: "Sign in with your wallet to manage alerts. It is a signature, not a transaction.",
     alertsSignInButton: "Sign in",
