@@ -946,6 +946,8 @@ Shared names. Each app has its own `.env.example`, which lists every variable it
 | `DEPLOYMENT_FILE` | BE | `contracts/deployments/<environment>.json` of that chain. For the API, the Monad deployment the routes serve |
 | `BASE_RPC_URL`, `BASE_DEPLOYMENT_FILE`, `XLAYER_RPC_URL`, `XLAYER_DEPLOYMENT_FILE` | BE (API) | Other chains the API loads when both values are set (BE-95). Only `/v1/status` reads them until the routes take a chain (BE-70) |
 | `KEEPER_GLOBAL` | BE (keeper) | `1` in exactly one keeper: it also runs the jobs that serve every chain once (Telegram chat linking, the cross-chain transfer watcher, the public API check, the daily gap check). Telegram allows one update reader per bot |
+| `ORACLE_BACKFILL_BLOCKS` | BE (keeper, Monad) | Blocks of Anchored oracle logs read back on the recorder's first start. Default 4,000,000 |
+| `CHAINLINK_BACKFILL_DAYS` | BE (keeper, Base and X Layer) | Days of Chainlink feed rounds read back on a feed's first run (BE-97). Default 28 |
 | `NEXT_PUBLIC_MONAD_RPC_URL` | FE | RPC endpoint for the browser |
 | `NEXT_PUBLIC_API_URL` | FE | Backend address |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | FE | Privy app ID for sign-in. Public, not a secret |
