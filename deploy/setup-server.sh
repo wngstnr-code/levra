@@ -21,9 +21,11 @@ secret_uid=1000
 echo "== packages"
 timedatectl set-timezone UTC
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get -y upgrade
-apt-get install -y ca-certificates curl git ufw unattended-upgrades rclone cron
+# A fresh image runs its own apt jobs right after the first boot. Wait for their lock instead of failing.
+apt_get() { apt-get -o DPkg::Lock::Timeout=600 "$@"; }
+apt_get update
+apt_get -y upgrade
+apt_get install -y ca-certificates curl git ufw unattended-upgrades rclone cron
 
 echo "== automatic security updates"
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
@@ -37,8 +39,8 @@ if ! command -v docker >/dev/null; then
   curl -fsSL "$docker_repo/gpg" -o /etc/apt/keyrings/docker.asc
   chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $docker_repo ${VERSION_CODENAME} stable" >/etc/apt/sources.list.d/docker.list
-  apt-get update
-  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt_get update
+  apt_get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 systemctl enable --now docker
 
