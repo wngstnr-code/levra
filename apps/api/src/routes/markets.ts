@@ -1,4 +1,4 @@
-import { external, tokens } from "@levra/shared/addresses";
+import { externalByChain, tokensByChain } from "@levra/shared/addresses";
 import { deviationHistory, latestDepthRun, latestOraclePrice, oraclePriceSeries, rateHistory, type Db } from "@levra/db";
 import {
   priceHistoryQuery,
@@ -14,7 +14,8 @@ import {
   type RatePoint,
   type SessionInfo,
 } from "@levra/shared/api";
-import { isStockSymbol, stocks } from "@levra/shared/markets";
+import { isChainId } from "@levra/shared/chains";
+import { findStock } from "@levra/shared/markets";
 import { borrowApyWad, maxLeverageE2, signedDeviationBps, supplyApyWad, utilizationWad } from "@levra/shared/math";
 import { Hono } from "hono";
 import { createCache } from "../chain/cache";
@@ -53,6 +54,9 @@ export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
     utilizationWad: utilization.toString(),
     borrowApyWad: borrowApy.toString(),
     supplyApyWad: supplyApyWad(borrowApy, utilization, m.morphoFeeWad).toString(),
+    oracleKind: "priceFeed" in m.info.stock ? "chainlink" : "anchored",
+    uiMultiplierWad: m.uiMultiplierWad === null ? null : m.uiMultiplierWad.toString(),
+    tokenPaused: m.tokenPaused,
   };
 }
 
@@ -134,12 +138,14 @@ export function marketRoutes(
 ) {
   const app = new Hono();
   const { deployment } = reader;
+  const chainId = deployment.chainId;
+  if (!isChainId(chainId)) throw new Error(`Deployment is for chain ${chainId}, which has no addresses in packages/shared`);
 
   app.get("/v1/config", (c) =>
     c.json({
       chainId: deployment.chainId,
-      morpho: external.morpho,
-      usdc: tokens.USDC.address,
+      morpho: externalByChain[chainId].morpho,
+      usdc: tokensByChain[chainId].USDC.address,
       router: deployment.router,
       riskManager: deployment.riskManager,
       lens: deployment.lens,
@@ -156,7 +162,8 @@ export function marketRoutes(
 
   app.get("/v1/markets/:symbol", async (c) => {
     const symbol = c.req.param("symbol").toUpperCase();
-    if (!isStockSymbol(symbol)) throw new ApiHttpError("NOT_FOUND", `No stock ${symbol}.`);
+    const stock = findStock(chainId, symbol);
+    if (!stock) throw new ApiHttpError("NOT_FOUND", `No stock ${symbol}.`);
     const [session, markets, mids] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids()]);
     const own = markets.filter((m) => m.info.symbol === symbol);
     if (own.length === 0) throw new ApiHttpError("NOT_FOUND", `No market for ${symbol} in this deployment.`);
@@ -165,7 +172,6 @@ export function marketRoutes(
       upstream(() => history.rates(own.map((m) => m.info.marketId))),
       upstream(() => history.deviation(symbol)),
     ]);
-    const stock = stocks[symbol];
     return c.json({
       symbol,
       name: stock.name,
@@ -181,7 +187,7 @@ export function marketRoutes(
   const cachedPrices = createCache(now);
   app.get("/v1/markets/:symbol/prices", async (c) => {
     const symbol = c.req.param("symbol").toUpperCase();
-    if (!isStockSymbol(symbol) || !deployment.markets.some((m) => m.symbol === symbol)) {
+    if (!findStock(chainId, symbol) || !deployment.markets.some((m) => m.symbol === symbol)) {
       throw new ApiHttpError("NOT_FOUND", `No market for ${symbol} in this deployment.`);
     }
     const parsed = priceHistoryQuery.safeParse({ range: c.req.query("range") });

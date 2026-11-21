@@ -475,10 +475,11 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
 
 Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
 
-- [ ] **BE-70 · Chain in every API route**
+- [~] **BE-70 · Chain in every API route**
   - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.
   - Done when: 03 updated and agreed, routes serve Monad under the new shape.
   - Note (20 November 2026), what the 03 proposal covers: the routes that take the chain (`config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/*`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, later `stats`, `proofs` and the agent routes) and the ones that stay global (`health`, `status`, `/status`, `eligibility`, `terms/accept`, `auth/*`, `alerts*`, `deposit/tokens`); the deposit and withdrawal quotes name their destination or source chain; sign-in accepts chains 143, 8453 and 196 (D-38 names 143 only); new `Market` fields for Base and X Layer: the oracle kind (Anchored or Chainlink), the B20 UI multiplier (WAD), feed frozen and token paused. The short capacity FE-72 needs is the existing `availableLiquidityRaw` of the short market. All are additions, so the current routes keep working as Monad aliases. Serving more than Monad needs BE-95.
+  - Note (20 November 2026, later): proposed and built the same day as additions (D-102, 03 section 4). `/v1/:chainId/...` serves every chain whose deployment file is loaded; `GET /v1/chains` lists the live ones; sign-in accepts any live chain and checks the signature there; `Market` carries `oracleKind`, `uiMultiplierWad` and `tokenPaused` (Base reads the last two from the Coinbase registry). While building it, accounts, Earn, collateral quotes and the Morpho authorization typed data were found to use Monad's Morpho, USDC and an 18 decimal stock even for another chain; they now read their own chain's. Deposit and withdrawal quotes stay global for Monad until BE-76. Left: Nabil's review (the "Done when" asks for agreement), then FE-70. Base data through these routes is not verified until SC-76 gives a Base deployment file (the Lens and oracle reads on Base are untested).
 
 - [x] **BE-71 · Swap providers: 1inch and Aerodrome**
   - Owner for this task: Wangsit, agreed with Dharu on 19 November 2026. Results go to 05 and are handed to Dharu for BE-72.

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   account,
   apiError,
+  chainIdParam,
+  chainPath,
+  chainsResponse,
   depositStatus,
   endpoints,
   market,
@@ -63,6 +66,22 @@ const sampleOpenRequest = {
   slippageBps: 50,
 } satisfies QuoteOpenRequest;
 
+describe("chains in the path (BE-70)", () => {
+  it("accepts only the chain IDs in chains.ts", () => {
+    expect(chainIdParam.parse("8453")).toBe(8453);
+    expect(chainIdParam.safeParse("1").success).toBe(false);
+    expect(chainIdParam.safeParse("base").success).toBe(false);
+    expect(chainIdParam.safeParse("143abc").success).toBe(false);
+  });
+
+  it("builds chain paths and parses the chains list", () => {
+    expect(chainPath(196, "markets/:symbol/prices")).toBe("/v1/196/markets/:symbol/prices");
+    const list = { chains: [{ chainId: 143, slug: "monad", name: "Monad", nativeSymbol: "MON", live: true }], defaultChainId: 143 };
+    expect(chainsResponse.parse(list)).toEqual(list);
+    expect(chainsResponse.safeParse({ ...list, chains: [{ ...list.chains[0], slug: "eth" }] }).success).toBe(false);
+  });
+});
+
 describe("primitives", () => {
   it("accepts integer strings and rejects everything else for raw amounts", () => {
     expect(rawAmount.safeParse("100000000").success).toBe(true);
@@ -92,6 +111,14 @@ describe("market", () => {
 
   it("allows a missing DEX price", () => {
     expect(market.safeParse({ ...sampleMarket, dexMidPriceE8: null, dexDeviationBps: null }).success).toBe(true);
+  });
+
+  it("takes the chain fields of BE-70, and still parses a market without them", () => {
+    const base = { ...sampleMarket, oracleKind: "chainlink", uiMultiplierWad: "1000500000000000000", tokenPaused: false } satisfies Market;
+    expect(market.parse(base)).toEqual(base);
+    expect(market.safeParse({ ...base, oracleKind: "pyth" }).success).toBe(false);
+    expect(market.safeParse({ ...base, uiMultiplierWad: "1.0005" }).success).toBe(false);
+    expect(market.safeParse({ ...base, uiMultiplierWad: null }).success).toBe(true);
   });
 
   it("rejects a bad address and a short market id", () => {
@@ -212,6 +239,6 @@ describe("endpoints", () => {
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
-    expect(seen.size).toBe(27);
+    expect(seen.size).toBe(28);
   });
 });
