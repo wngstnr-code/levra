@@ -77,7 +77,7 @@ Each threat above, marked against the code as it stands after D-89 to D-93. "Clo
 | T-14 | Not closable by code | Position and supply caps follow market depth (04). `Liquidator.t.sol` `test_refusesALossUnlessToldToCoverIt` shows a bad fill reverts unless a budget covers it |
 | T-15 | Not closable by code | Keeper heartbeat and alerts (BE-50, `/v1/status`) |
 | T-16 | Not closable by code | One domain (`levra.finance`, D-95), addresses published in `docs/public/contracts.md` |
-| T-17 | Not closable by code, partly mitigated | Swap output is measured from balance differences (`_swapOut`). No test with a fee on transfer token: Morpho Blue itself does not support such tokens, so an issuer upgrade that adds a fee breaks the market itself. Watch token upgrades (BE-75, T-21, T-23). Known issue, low |
+| T-17 | Not closable by code, partly mitigated | Swap output is measured from balance differences (`_swapOut`). `test/FeeOnTransfer.t.sol` (21 November 2026) uses a stock that burns 1% of each transfer: a route that promises more than arrives reverts `InsufficientSwapOutput` with the amount really received, and an open credits only what arrived and leaves the router empty. The same test shows Morpho Blue booking more collateral than it receives, so an issuer upgrade that adds a fee breaks the market itself. Watch token upgrades (BE-75, T-21, T-23) |
 | T-18 | Not closable by code | Q-23; a stock with an announced split is not eligible |
 | T-19 | Not closable by code | The app asks for exact approvals (FE) |
 | T-20 | Not closable by code | Anchored session flip before the weekend. Oracle monitor (BE-50). A full close still works without a price: `StaleClose.t.sol` |
