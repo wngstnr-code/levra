@@ -3,11 +3,12 @@ import { fileURLToPath } from "node:url";
 import { decodeEventLog, isAddress, keccak256, toBytes } from "viem";
 import { describe, expect, it } from "vitest";
 import { erc20PermitAbi, liquidatorAbi, marginRouterAbi, metaMorphoAbi, morphoAbi, riskManagerAbi } from "./abis";
-import { external, tokens } from "./addresses";
+import { BASE_CHAIN_ID, external, tokens, tokensByChain } from "./addresses";
 import { parseDeployment, type Deployment } from "./deployments";
+import { baseDeployment } from "./deployments.base";
 import { monadDeployment } from "./deployments.monad";
 import { readDeployment } from "./deployments.node";
-import { findMarket, isStockSymbol, listMarkets, stocks } from "./markets";
+import { baseStocks, findMarket, isStockSymbol, listMarkets, stocks } from "./markets";
 
 const forkFile = fileURLToPath(new URL("../../contracts/deployments/fork.json", import.meta.url));
 
@@ -99,6 +100,22 @@ describe("deployment", () => {
     expectAllMarketsInScope(monadDeployment);
     expect(monadDeployment.router).toBe("0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6");
     expect(monadDeployment.usdcVault).toBe("0xfB99A7E3f5571baA363d67F7823bb354cfd95447");
+  });
+
+  it("bundles the Base mainnet deployment with a long and a short market for every Base stock", () => {
+    const markets = listMarkets(baseDeployment);
+    expect(baseDeployment.chainId).toBe(BASE_CHAIN_ID);
+    expect(baseDeployment.router).toBe("0xf5585feA7aeDC5e148201052f73139111810aA88");
+    const symbols = Object.keys(baseStocks).sort();
+    for (const side of ["long", "short"] as const) {
+      expect(markets.filter((m) => m.side === side).map((m) => m.symbol).sort()).toEqual(symbols);
+    }
+    for (const market of markets) {
+      const stockSide = market.side === "long" ? market.collateralToken : market.loanToken;
+      const quoteSide = market.side === "long" ? market.loanToken : market.collateralToken;
+      expect(stockSide).toBe(market.stock.token);
+      expect(quoteSide).toBe(tokensByChain[BASE_CHAIN_ID].USDC.address);
+    }
   });
 });
 
