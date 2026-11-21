@@ -28,6 +28,17 @@ If you find a problem in someone else's folder: do not fix it yourself. Write it
 - PR to your own folder: you may merge it yourself after the automatic tests pass. For `contracts/src/`, one other person must read it before merging, because mistakes there involve money.
 - A PR that touches `packages/shared/` or the interface docs: must be approved by the file owner and the people affected.
 - Code changes never go straight to `main`: always a branch and a PR. Docs-only changes (`docs/`, `CLAUDE.md`, READMEs) may be pushed straight to `main`, as in CLAUDE.md section 4.
+- Open every PR from `main`, never on top of another open branch. If a task needs another unmerged one, say so in the PR and merge them in order.
+
+### Avoiding merge conflicts in shared docs
+
+Every open PR used to add its decision row at the end of the table in `09` and its log line at the top of the daily log in `PROGRESS.md`. Two PRs that add a line at the same spot conflict, so each merge made every other open PR conflict (PRs #103 to #106, 22 November 2026). The rules:
+
+1. `docs/PROGRESS.md` and `docs/09-decisions-and-questions.md` change only on `main`, as docs-only commits, never in a work branch.
+2. A decision: pull `main`, take the next free `D-xx`, and push the row to `main` when the decision is made, before the PR. This also keeps two people from taking the same number. Name the branch or PR in the row.
+3. Daily log, blockers, known issues, review notes and the interface change log: push to `main` the same day, naming the branch or PR.
+4. The PR holds the code, its tests and the docs that describe that code (`03`, `04`, `05`, `hosting.md`, your own task file). These rarely collide, since each change edits its own section.
+5. When anything merges into `main`, merge `main` into your other open branches the same day (`git merge origin/main`, never a force-push), so a conflict stays one or two lines.
 
 ## Changing the interface agreements
 
@@ -57,7 +68,7 @@ There are two places, with different jobs:
 | Place | Contents | Who changes it | When |
 |---|---|---|---|
 | `docs/tasks/<part>.md` | Checkbox for each task | Owner of the part | In the PR that finishes the task |
-| `docs/PROGRESS.md` | Milestone status, blockers, integration checkpoints, daily log | Anyone, in their own section | When something changes |
+| `docs/PROGRESS.md` | Milestone status, blockers, integration checkpoints, daily log | Anyone, in their own section, on `main` only ("Avoiding merge conflicts in shared docs") | When something changes |
 
 Usage rules:
 
