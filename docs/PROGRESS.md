@@ -77,7 +77,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | 20 November 2026 | Wangsit | All three | The risk disclosure draft (`docs/drafts/risk-disclosure.md`) must name the issuer risks: one key can block or pause every Coinbase stock on Base (T-21), and the xStocks sanctions list reaches the wrapped tokens on X Layer (T-23) | X-11 |
 | 13 October 2026 | Wangsit | Nabil | One wallet address each for the team multisig (2 of 3 Safe). Needed for the handover of ownership. Dharu's address: `0x3111Aa37b8B4E67909d6c1f47c82a6669dB24124` (14 October 2026) | X-03, SC-55 |
 | 13 October 2026 | Dharu | Dharu | KyberSwap API key (client IDs are no longer whitelisted; ask business@kyber.network, then set `KYBER_API_KEY` on api and keeper). The Aurora Intents key is no longer needed (D-50) | BE-04, BE-96 |
-| 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`. The CDN exists (Cloudflare on `levra.finance`); turning its proxy on for the API follows `hosting.md` "Cloudflare in front" (D-103). Until `TERMS_VERSION` is set the web app cannot pass its gate | BE-52 |
+| 14 October 2026 | Wangsit, Nabil | Dharu | Counsel's answer on the proposed country list (D-42) and on investor checks (Q-31), a published terms version (X-11) for `TERMS_VERSION`, and a CDN on our domain (Q-25) that sends the visitor's country | BE-52 |
 | 13 October 2026 | Dharu | Dharu | Envio HyperSync API token from app.envio.dev, so the indexers read from HyperSync instead of the RPC endpoint. Whether HyperSync serves Base and X Layer is not verified | BE-06, BE-13, BE-95 |
 | 13 October 2026 | Nabil | All three | An error reporting service for the web app (for example Sentry) and who receives the reports | FE-54 |
 | 19 November 2026 | Wangsit, Nabil | Nabil | `next build` in `apps/web` stops with `SecurityFatalError` on Wangsit's machine: the installed Next.js 16.4.0 has a known vulnerability. The Vercel preview build of PR 84 passed, so it may only stop outside Vercel. Nabil: check it and upgrade Next.js in `apps/web` | FE-01 |
@@ -254,7 +254,6 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 | Date | Who | Issue | Severity | Task |
 |---|---|---|---|---|
-| 22 November 2026 | Dharu | With `ORIGIN=cloudflare` the server accepts any connection from Cloudflare's ranges, so another Cloudflare account could point its own record at our IP and reach the API through Cloudflare. Cloudflare still writes the real visitor address and country, so the region check should hold, but that is not verified. Authenticated origin pulls with our own certificate would close it | Low | BE-52 |
 | 20 November 2026 | Dharu | When a market's oracle cannot be read (`snapshot()` reverts), the API cannot quote a close, so the web app cannot close that position through Levra even after SC-86 lets the router close in full without a price. A price that is only stale still quotes. Found in BE-94 | Medium | BE-99 |
 | 20 November 2026 | Wangsit | On a Monday US holiday the Chainlink price stops from Monday 01:00 UTC until the feed writes (fail closed, D-92). For that day a partial reduce, `removeCollateral` and Morpho liquidations wait; a full close and adding collateral work. A known exception to product rule 8, chosen over serving a three day old price | Medium | SC-52 |
 | 19 November 2026 | Wangsit | A close through the router reads `price()` first (`RISK.positionLtv`), so while the oracle is past its hard age a user cannot close through Levra, only straight on Morpho. Applies to Monad and Base; more likely on Base around holidays. Fix written in SC-86, waiting for review and a redeploy of the Monad router | High | SC-86 |
@@ -262,11 +261,6 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
-
-### 22 November 2026
-
-- Dharu: GitHub access back; the finished backend branches are rebased on `main` and open as PRs #100 (BE-91), #101 (BE-90), #102 (BE-89), #103 (BE-70) and #104 (BE-99, after #103). The BE-70 decision is renumbered D-102, since `main` took D-98 for the private repo. Checked the live VPS from outside: only ports 22, 80 and 443 open, SSH keys only, TLS 1.3, CORS refuses other origins.
-- Dharu: the Cloudflare proxy was on for a while on 21 November without the API change, so every visitor shared Cloudflare's address in the rate limit; Wangsit turned it off again (checked: the record answers with the server's IP). BE-52 on `be/BE-52-cloudflare-origin` (D-103): the `ORIGIN` switch in Caddy, the `deploy.sh` guard, per chain country lists for Base and X Layer (D-73), and the steps to turn the proxy on in `hosting.md`.
 
 ### 21 November 2026
 
