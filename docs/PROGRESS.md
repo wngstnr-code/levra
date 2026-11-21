@@ -162,6 +162,10 @@ Every important real transaction goes here. This is also the evidence for the ha
 | 12 November 2026 | Sell 0.0028 aQQQ for 2.01 USDC on KyberSwap | `0xae945ae7d5b19147175fdbe4899d66c52ae5467e8a3a24b995ad1c2c726b6d98` | Wangsit | X-16 |
 | 12 November 2026 | Sell 0.0175 aHOOD for 2.01 USDC on KyberSwap | `0x664803c24e54574b78e8cf1e68dc672a61bb1c5e789fc76e013701d6734a7b79` | Wangsit | X-16 |
 | 12 November 2026 | Send all 10.026590 USDC out of the deployer wallet | `0x16452e302c92d6aa96f42680a87910925570bee697a2733b9dcfb503a5c04834` | Wangsit | X-16 |
+| 21 November 2026 | Move 9.9318 MON from the old oracle age poster wallet `0x33B0...146d` to the new one on the VPS `0xaec3...ed19` | `0x4791f2b00a68d72c974c6ae0fe9382c3cbad9e3078d41ed1571d7d2e0b19cb73` | Dharu | BE-91 |
+| 21 November 2026 | Move 19.9774 MON from the old calendar poster wallet `0x7453...4a5b` to the new one on the VPS `0xd166...74Fb` | `0x1a573079c8b485fa9a79f688bd84a214a88981b1930f6271429861e1cadb035b` | Dharu | BE-91 |
+| 21 November 2026 | Move 9.9974 MON from the old router keeper (protector) wallet `0x3BcB...841e` to the new one on the VPS `0x469a...f474` | `0x59c982f7b2e752c763ff7dafe226a83e5e2dfcdb850bdd19c0aca721bff4862b` | Dharu | BE-91 |
+| 21 November 2026 | Move 9.9974 MON from the old Liquidator keeper wallet `0x22ea...5C18` to the new one on the VPS `0xE36E...4a6A` | `0xe8c7d2df61c5907b9de476390c23367ac64662e2c471eca645decfed6393a02e` | Dharu | BE-91 |
 
 The deployment was 25 transactions in blocks 113046474 to 113046617, all successful. The other 16 are the five `SessionOracle` deployments and the fee and market settings.
 
@@ -258,6 +262,13 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 ## Daily log
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+
+### 21 November 2026
+
+- Dharu: the backend runs on the netcup VPS (Debian 13, D-101) at `https://api.levra.finance`, deployed from `main` (`f233040f335b`): HTTPS from Let's Encrypt, CORS for `app.levra.finance`, the Monad indexer 1 block behind. New Monad role keys made on the VPS with `deploy/keys.sh`: oracle age poster `0xaec389DfC7D6F5CaB30e7D761206D989f7F6ed19`, calendar poster `0xd166D46a4e61daC99e87472B76423A9C379274Fb`, router keeper (protector) `0x469ab4F20dcDcD470b89A829783B5bbd5c64f474`, Liquidator keeper `0xE36EafE2cC96F256B80E7952DFFBe916f0d64a6A`. Wangsit has them for `make set-roles-monad`; the role jobs wait for the grant, then `keeper-monad` restarts.
+- Dharu: BE-91 keys: Railway's `keeper` variables could still be read with the services stopped. All 49.91 MON on the four old role wallets moved to the new ones with the new `apps/keeper/scripts/sweep.ts` (4 transactions in "Real transactions"; the keys stayed in memory, never printed). About 0.0004 MON of fee refund is left on each old wallet. The old keys hold no funds now; Wangsit revokes their roles after the new grant. The Telegram bot token and chat ID are also still on Railway, to move next with `move-variables.ts`.
+- Dharu: Wangsit granted the four new Monad roles and revoked the old protector and Liquidator keeper (checked on chain). `keeper-monad` restarted; the Telegram bot token moved off Railway with `move-variables.ts`, the team chat ID and the bot name set, then `deploy/deploy.sh` (`ecf0f6c889bd`). All nine Monad keeper jobs report healthy in `/v1/status`, `alerts` included. Railway is no longer needed for anything that runs.
+- Dharu: BE-55 Base and X Layer role keys made on the VPS (`deploy/keys.sh ... --confirm`), sent to Wangsit for the deploy environments. Base (8453): oracle age poster `0x2cF63398c3faFBdeCAaeEfE8E8a3C815dD300DAF`, calendar poster `0xf8Fe4cBFc742aeBD5509c7d2275a9538ed9Ea905`, router keeper `0xD30865fcA0C71B3aA3d617a8790C6aC0884B7645`, Liquidator keeper `0x29202644892Ec09885fA97d1Bd428b3b01c8CEcA`. X Layer (196): oracle age poster `0x43A4C2ebc4fb9F8b21A03CC50EB57a62A62622cb`, calendar poster `0x96ddD13205f48d2C975eC383fae579eE54Fbf99A`, router keeper `0x4C180407D6F186DAd38c2258D3283C270403F875`, Liquidator keeper `0x7DDdBE1bc0380451Cc97055C3B21f35219bcf399`. All checksummed, distinct from each other and from the Monad keys, plain wallets with nonce 0. The role jobs stay off until the deployment file exists; fund with ETH and OKB (BE-95) before restarting those keepers.
 
 ### 20 November 2026
 
