@@ -1,6 +1,8 @@
 import { protectedPositions, type Db } from "@levra/db";
 import type { SwapSource } from "@levra/kyber";
-import { tokens } from "@levra/shared/addresses";
+import { tokensByChain } from "@levra/shared/addresses";
+import { isChainId, type ChainId } from "@levra/shared/chains";
+import { findStock } from "@levra/shared/markets";
 import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi } from "@levra/shared/abis";
 import { nextCloseAfter } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
@@ -26,8 +28,8 @@ const REPAY_BUFFER_BPS = 1n;
 const TX_DEADLINE_SECONDS = 120;
 /** Monad charges the gas limit (02), so the margin over the estimate stays small. */
 const GAS_MARGIN_PCT = 15n;
-const QUOTE_DECIMALS = tokens.USDC.decimals;
-const STOCK_DECIMALS = 18;
+/** `CLOSED` in the oracle's `Session` enum (03). */
+const SESSION_CLOSED = 5;
 
 export const inPreCloseWindow = (now: number, closeAt: number) => now >= closeAt - PRE_CLOSE_SECONDS && now < closeAt;
 
@@ -56,6 +58,8 @@ type PlanInput = {
   router: Address;
   keeperFeeBps: bigint;
   slippageBps: bigint;
+  /** USDC and the stock on the market's chain: Base stocks have 8 decimals, the others 18. */
+  decimals: { quote: number; stock: number };
 };
 
 /**
@@ -63,7 +67,7 @@ type PlanInput = {
  * slippage plus price impact. The impact is guessed first and taken from the real route on the second pass. V comes from
  * the LTV `Lens` reports, so it uses the same cautious price as the contract.
  */
-async function planLong({ market, position: p, swap, router, keeperFeeBps, slippageBps }: PlanInput, targetLtv: bigint): Promise<DeleveragePlan> {
+async function planLong({ market, position: p, swap, router, keeperFeeBps, slippageBps, decimals }: PlanInput, targetLtv: bigint): Promise<DeleveragePlan> {
   const value = mulDiv(p.debt, WAD, p.ltv);
   let cost = ((keeperFeeBps + slippageBps + FIRST_IMPACT_GUESS_BPS) * WAD) / BPS;
   for (let pass = 0; ; pass++) {
@@ -95,7 +99,7 @@ async function planLong({ market, position: p, swap, router, keeperFeeBps, slipp
         swap: { target: q.target, data: q.data, minOut },
         minReturn: 0n,
       },
-      execPriceE8: swapPriceE8(q.amountOut, sell, QUOTE_DECIMALS, STOCK_DECIMALS),
+      execPriceE8: swapPriceE8(q.amountOut, sell, decimals.quote, decimals.stock),
       expectedLtvWad: full || valueAfter === 0n ? 0n : mulDiv(debtAfter, WAD, valueAfter),
     };
   }
@@ -105,7 +109,7 @@ async function planLong({ market, position: p, swap, router, keeperFeeBps, slipp
  * Sizes a short reduction with the same formula in dollars: spend X of the USDC collateral to buy back stock, with
  * X = (D·p - t·V) / ((1 - c) - t). The keeper fee is taken from the collateral on top of X.
  */
-async function planShort({ market, position: p, swap, router, keeperFeeBps, slippageBps }: PlanInput, targetLtv: bigint): Promise<DeleveragePlan> {
+async function planShort({ market, position: p, swap, router, keeperFeeBps, slippageBps, decimals }: PlanInput, targetLtv: bigint): Promise<DeleveragePlan> {
   const debtValue = mulDiv(p.ltv, p.collateral, WAD);
   const maxSpend = mulDiv(p.collateral, BPS, BPS + keeperFeeBps);
   let cost = ((keeperFeeBps + slippageBps + FIRST_IMPACT_GUESS_BPS) * WAD) / BPS;
@@ -135,7 +139,7 @@ async function planShort({ market, position: p, swap, router, keeperFeeBps, slip
         swap: { target: q.target, data: q.data, minOut },
         minReturn: 0n,
       },
-      execPriceE8: swapPriceE8(spend, q.amountOut, QUOTE_DECIMALS, STOCK_DECIMALS),
+      execPriceE8: swapPriceE8(spend, q.amountOut, decimals.quote, decimals.stock),
       expectedLtvWad: collateralAfter <= 0n ? 0n : mulDiv(debtValueAfter, WAD, collateralAfter),
     };
   }
@@ -168,6 +172,13 @@ export type ProtectorOptions = {
 export function createProtector({ client, wallet, deployment, swap, nextClose = closeFromCalendar, slippageBps = 100, intervalMs = 60_000 }: ProtectorOptions): Job {
   const router = deployment.router;
   const slip = BigInt(slippageBps);
+  if (!isChainId(deployment.chainId)) throw new Error(`Deployment is for chain ${deployment.chainId}, which has no addresses in packages/shared`);
+  const chain: ChainId = deployment.chainId;
+  const decimalsOf = (market: Deployment["markets"][number]) => {
+    const stock = findStock(chain, market.symbol);
+    if (!stock) throw new Error(`${market.symbol} is not a stock on chain ${chain}`);
+    return { quote: tokensByChain[chain].USDC.decimals, stock: stock.decimals };
+  };
 
   return {
     name: "protector",
@@ -201,9 +212,15 @@ export function createProtector({ client, wallet, deployment, swap, nextClose = 
           ]);
           const view = views.find((v) => v.marketId.toLowerCase() === c.marketId);
           if (!enabled || !view || view.debt === 0n || view.ltv <= view.softLtv) continue;
+          // The router refuses a keeper reduction once the oracle says CLOSED (MarketClosed), which can come before the
+          // calendar's close: an early close, or a Chainlink feed that stops first (BE-89).
+          if (markets.find((m) => m.marketId.toLowerCase() === c.marketId)?.session === SESSION_CLOSED) {
+            actions.push({ ...entry, skipped: "market closed" });
+            continue;
+          }
 
           const position = { collateral: view.collateral, debt: view.debt, ltv: view.ltv, softLtv: view.softLtv, borrowShares: morphoPosition.borrowShares };
-          const plan = await planDeleverage({ market, position, swap, router, keeperFeeBps, slippageBps: slip });
+          const plan = await planDeleverage({ market, position, swap, router, keeperFeeBps, slippageBps: slip, decimals: decimalsOf(market) });
           const oracleE8 = markets.find((m) => m.marketId.toLowerCase() === c.marketId)?.priceE8 ?? 0n;
           // The router rejects a keeper reduction that trades too far from the oracle; checked here to save the gas.
           const deviation = oracleE8 === 0n ? null : deviationBps(plan.execPriceE8, oracleE8);
