@@ -174,6 +174,34 @@ export function morphoRepaidForSeize(seized: bigint, t: MorphoTotals, oraclePric
 }
 
 /**
+ * The most `Morpho.liquidate` can ask back for `seized`, whatever interest accrues before it lands: the seized value over
+ * the incentive (rounded up as Morpho does) plus one share's worth of assets, which covers rounding the shares up and
+ * back. `t` must be at or above the totals at landing, for example `accrueBorrowAssets` with a time margin (BE-89).
+ */
+export function morphoRepaidCeiling(seized: bigint, t: MorphoTotals, oraclePrice: bigint, lltvWad: bigint): bigint {
+  const quoted = mulDiv(seized, oraclePrice, ORACLE_PRICE_SCALE, "ceil");
+  const assets = mulDiv(quoted, WAD, liquidationIncentiveFactorWad(lltvWad), "ceil");
+  return assets + toAssetsUp(1n, t.totalBorrowAssets, t.totalBorrowShares);
+}
+
+/** Morpho MathLib.wTaylorCompounded: e^(rate × seconds) - 1 to the third Taylor term, WAD, each term rounded down. */
+export function wTaylorCompounded(ratePerSecondWad: bigint, seconds: bigint): bigint {
+  const first = ratePerSecondWad * seconds;
+  const second = mulDiv(first, first, 2n * WAD);
+  const third = mulDiv(second, first, 3n * WAD);
+  return first + second + third;
+}
+
+/**
+ * Morpho._accrueInterest on the borrow side: total borrow assets after `seconds` more at `ratePerSecondWad` (the IRM's
+ * `borrowRateView`). Borrow shares do not change. Used to size a liquidation for the block it lands in (BE-89).
+ */
+export function accrueBorrowAssets(totalBorrowAssets: bigint, ratePerSecondWad: bigint, seconds: bigint): bigint {
+  if (seconds <= 0n || ratePerSecondWad === 0n) return totalBorrowAssets;
+  return totalBorrowAssets + mulDiv(totalBorrowAssets, wTaylorCompounded(ratePerSecondWad, seconds), WAD);
+}
+
+/**
  * The largest collateral seizure Morpho accepts for this position: it may not repay more shares than the borrower has,
  * nor take more collateral than there is. `marginBps` leaves room for interest accrued before the transaction lands.
  */
