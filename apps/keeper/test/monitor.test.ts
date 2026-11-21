@@ -42,6 +42,7 @@ function healthy(): Snapshot {
     head: 1_010n,
     api: { ok: true, ms: 200, detail: "status 200" },
     gaps: [{ symbol: "QQQ", table: { over2PctShareBps: 310, worstDropBps: -540, worstRiseBps: 390 }, fresh: { over2PctShareBps: 290, worstDropBps: -540, worstRiseBps: 390 } }],
+    lossBudgets: [{ token: "0xUSDC", label: "USDC", budget: 0n }],
   };
 }
 
@@ -84,7 +85,19 @@ describe("team monitor checks (08, one per row)", () => {
     expect(values).toEqual([
       [`max-oracle-age:${MARKET}`, "2100"],
       ["next-close-at", String(NOW + 86_400)],
+      ["loss-budget:0xusdc", "0"],
     ]);
+  });
+
+  it("tells the team when the liquidator's loss budget is set or spent (BE-89)", () => {
+    const budget = evaluate(healthy()).find((f) => f.key === "loss-budget:0xusdc");
+    expect(budget?.kind).toBe("value");
+    if (budget?.kind !== "value") return;
+    expect(budget.describe("0", "50000000")).toBe("Liquidator loss budget for USDC changed from 0 to 50000000 base units. The owner added to it (LossBudgetSet).");
+    expect(budget.describe("50000000", "49999990")).toContain("A liquidation lost money (LossBudgetSpent) or the owner cleared it.");
+    const none = healthy();
+    none.lossBudgets = [];
+    expect(evaluate(none).some((f) => f.key.startsWith("loss-budget:"))).toBe(false);
   });
 
   it("judges a keeper wallet against the gas token and limit of its chain", () => {
