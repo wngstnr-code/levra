@@ -1,4 +1,4 @@
-# API_HOST comes from env/caddy.env: api.levra.finance (D-95).
+# API_HOST comes from env/caddy.env: api.levra.finance (D-96).
 {$API_HOST} {
 	encode zstd gzip
 	# Caddy replaces any X-Forwarded-For sent by the client, so the API can trust it (TRUST_PROXY_HEADER).

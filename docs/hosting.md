@@ -68,7 +68,7 @@ Rules: a secret is never printed, pasted in chat or committed. The keeper's logg
 
 ## HTTPS and the API address
 
-1. First deploy: `api.levra.finance` (D-95) is an `A` record on Cloudflare pointing at the server's IPv4 address, **DNS only** (grey cloud), and `API_HOST=api.levra.finance` in `caddy.env`. Caddy then gets a Let's Encrypt certificate itself. Not verified: check that the certificate is issued (`curl https://api.levra.finance/v1/health`) before the address goes to Nabil. Until Cloudflare proxies it, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
+1. First deploy: `api.levra.finance` (D-96) is an `A` record on Cloudflare pointing at the server's IPv4 address, **DNS only** (grey cloud), and `API_HOST=api.levra.finance` in `caddy.env`. Caddy then gets a Let's Encrypt certificate itself. Not verified: check that the certificate is issued (`curl https://api.levra.finance/v1/health`) before the address goes to Nabil. Until Cloudflare proxies it, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
 2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52). This is what lets the API refuse US users on Base (D-73).
 
 Every change of address: `MONITOR_API_URL` on the keeper, `NEXT_PUBLIC_API_URL` on Vercel (Nabil), the API links in the root README, and the VPS row in 05.
