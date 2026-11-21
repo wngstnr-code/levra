@@ -228,11 +228,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: API, keeper and web still build and pass tests on Monad with the new shape.
   - Note: written on branch `sc/SC-73-chain-keyed-shared` on 19 November 2026, additive only: `chains.ts` (Monad and Base), `externalByChain`, `tokensByChain`, `stocksByChain` with the 8 Base stocks, and chain aware `listMarkets`. The Monad exports are unchanged. Typecheck and tests pass in all 8 packages (shared 88 tests). `next build` for web compiles and renders every page locally and passes on Vercel. Merged as PR 84 on 19 November 2026.
 
-- [~] **SC-74 · Base risk limits**
+- [x] **SC-74 · Base risk limits**
   - Needs: SC-70, BE-71.
   - Do: initial proposals in 04 for Base: LLTV of the new short markets, position caps from Aerodrome depth, max oracle age per session (24 hour heartbeat), weekend behaviour, issuer block or pause risk.
   - Done when: 04 has a Base table marked "initial proposal" and Dharu has checked it against `math.ts`.
-  - Note: proposed on 19 November 2026 in 04 "Base limits": hard limits 77% (MSFT, GOOGL, META, AMZN, AAPL) and 62.5% (TSLA, NVDA, SPCX), closed soft limits that pass the five-year weekend gap check for long and short, oracle ages (36 hours open, 4 days closed, 26 hours to open), price bounds, deviation limits, position caps ($1,000 to $5,000) and supply caps. Gap data from the BE-34 code for the eight Base stocks; sell costs up to $50,000 from 1inch. SPCX has too little history and borrows NVDA's worst drop. Waiting for Dharu to check it against `math.ts` (8 decimal stock tokens) and to add the Base stocks to `gapTable`.
+  - Note: proposed on 19 November 2026 in 04 "Base limits": hard limits 77% (MSFT, GOOGL, META, AMZN, AAPL) and 62.5% (TSLA, NVDA, SPCX), closed soft limits that pass the five-year weekend gap check for long and short, oracle ages (36 hours open, 4 days closed, 26 hours to open), price bounds, deviation limits, position caps ($1,000 to $5,000) and supply caps. Gap data from the BE-34 code for the eight Base stocks; sell costs up to $50,000 from 1inch. SPCX has too little history and borrows NVDA's worst drop. Done on 20 November 2026: Dharu's BE-92 test (`packages/shared/limits.test.ts`) recomputes the Base and X Layer tables with `math.ts` and finds no difference, and BE-93 added the Base stocks to `gapTable` with rows equal to 04.
 
 - [x] **SC-75 · Swap allowlist for 1inch and Aerodrome**
   - Needs: BE-71.
