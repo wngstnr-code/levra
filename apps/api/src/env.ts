@@ -31,10 +31,10 @@ const envSchema = z.object({
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**
    * Hosts of the web app that a sign-in message may name, comma-separated; `*` stands for one dash-separated part, for
-   * example app.levra.xyz,levra-mon-*-team.vercel.app,localhost:3000.
+   * example app.levra.finance,levra-*-team.vercel.app,localhost:3000.
    */
   AUTH_DOMAIN: optional(),
-  /** Web origins allowed to call the API from a browser, same pattern rules, for example https://levra-mon.vercel.app. */
+  /** Web origins allowed to call the API from a browser, same pattern rules, for example https://app.levra.finance. */
   CORS_ORIGINS: optional(),
   /** Username of the alert bot, without @. The Telegram link route is off without it. */
   TELEGRAM_BOT_USERNAME: optional(),
