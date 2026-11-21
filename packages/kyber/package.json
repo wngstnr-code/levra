@@ -11,9 +11,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@levra/shared": "workspace:*",
-    "viem": "^2.57.5",
-    "zod": "^4.6.7"
+    "@levra/swap": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
