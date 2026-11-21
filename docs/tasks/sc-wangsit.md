@@ -259,6 +259,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 ---
 
+- [ ] **SC-88 · Issuer control ABIs in the shared package**
+  - Needs: request from Dharu (BE-75, BE-30), 22 November 2026.
+  - Do: export to `packages/shared/abis` the Anchored compliance `isDenylisted`, Circle USDC `paused` and `isBlacklisted`, B20 `policyId` and `isPaused`, the B20 policy registry `isAuthorized`, xStock `isPaused` and `asset`, the sanctions list `isSanctioned`, and `RiskManager.calendarPoster`.
+  - Done when: the keeper can import them instead of the inline ABIs in `apps/keeper/src/monitor/gates.ts` and `calendar/poster.ts`, and shared tests pass.
+
 ## X. X Layer (TapeOut Accelerate)
 
 Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
