@@ -13,6 +13,7 @@ import { createKyber } from "@levra/kyber";
 import { createIntents } from "@levra/intents";
 import { parsePatterns } from "./origins";
 import { budgetedSwap } from "./rate-limit/swap-budget";
+import { countryList } from "./routes/compliance";
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === "development");
@@ -36,11 +37,16 @@ const corsOrigins = parsePatterns(env.CORS_ORIGINS);
 if (corsOrigins.length === 0) logger.warn("CORS_ORIGINS is not set: browsers on other origins cannot call the API");
 if (!auth) logger.info("sign-in and alert routes off: AUTH_SECRET or AUTH_DOMAIN is not set");
 const intents = createIntents({ jwt: env.INTENTS_JWT });
-const blockedCountries = new Set((env.BLOCKED_COUNTRIES ?? "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
-if (blockedCountries.size > 0 && !env.GEO_COUNTRY_HEADER) throw new Error("BLOCKED_COUNTRIES needs GEO_COUNTRY_HEADER to know the visitor's country");
+const blockedCountries = countryList("BLOCKED_COUNTRIES", env.BLOCKED_COUNTRIES);
+const blockedCountriesByChain = new Map([
+  [BASE_CHAIN_ID, countryList("BASE_BLOCKED_COUNTRIES", env.BASE_BLOCKED_COUNTRIES)],
+  [XLAYER_CHAIN_ID, countryList("XLAYER_BLOCKED_COUNTRIES", env.XLAYER_BLOCKED_COUNTRIES)],
+]);
+const anyCountries = blockedCountries.size > 0 || [...blockedCountriesByChain.values()].some((s) => s.size > 0);
+if (anyCountries && !env.GEO_COUNTRY_HEADER) throw new Error("A country block list needs GEO_COUNTRY_HEADER to know the visitor's country");
 const blockedRegions = new Set((env.BLOCKED_REGIONS ?? "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
 if (blockedRegions.size > 0 && !(env.GEO_REGION_HEADER && env.GEO_COUNTRY_HEADER)) throw new Error("BLOCKED_REGIONS needs GEO_REGION_HEADER and GEO_COUNTRY_HEADER");
-const compliance = env.TERMS_VERSION ? { termsVersion: env.TERMS_VERSION, countryHeader: env.GEO_COUNTRY_HEADER, blockedCountries, regionHeader: env.GEO_REGION_HEADER, blockedRegions } : undefined;
+const compliance = env.TERMS_VERSION ? { termsVersion: env.TERMS_VERSION, countryHeader: env.GEO_COUNTRY_HEADER, blockedCountries, blockedCountriesByChain, regionHeader: env.GEO_REGION_HEADER, blockedRegions } : undefined;
 if (!compliance) logger.warn("region and terms routes off: TERMS_VERSION is not set; the web app cannot pass its gate");
 const app = createApp({ logger, reader, otherChains, swap, events: dbEventStore(db, deployment.chainId), db, version: env.APP_VERSION, auth, intents, compliance, corsOrigins, rateLimit: { trustProxyHeader: env.TRUST_PROXY_HEADER } });
 

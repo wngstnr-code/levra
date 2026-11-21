@@ -49,6 +49,10 @@ const envSchema = z.object({
   GEO_COUNTRY_HEADER: optional(),
   /** Comma-separated ISO 3166-1 alpha-2 codes to refuse, decided with counsel (X-10). Needs GEO_COUNTRY_HEADER. */
   BLOCKED_COUNTRIES: optional(),
+  /** More codes refused on Base only, on top of BLOCKED_COUNTRIES (D-73). Needs GEO_COUNTRY_HEADER. */
+  BASE_BLOCKED_COUNTRIES: optional(),
+  /** More codes refused on X Layer only, on top of BLOCKED_COUNTRIES (D-73). Needs GEO_COUNTRY_HEADER. */
+  XLAYER_BLOCKED_COUNTRIES: optional(),
   /** Request header with the visitor's region, for example cf-region-code (Cloudflare's visitor location headers). */
   GEO_REGION_HEADER: optional(),
   /** Comma-separated ISO 3166-2 codes to refuse, for example UA-43,UA-40 (D-42). Needs GEO_REGION_HEADER and GEO_COUNTRY_HEADER. */
