@@ -163,7 +163,7 @@ Database tests need `TEST_DATABASE_URL` (the docker Postgres). Backend tests tha
 | `apps/web/` | Web app (Next.js) | Nabil |
 | `deploy/` | Backend hosting on one VPS: image, Docker Compose, HTTPS, deploy and backup scripts | Dharu |
 | `packages/shared/` | ABIs, addresses, deployment files, formulas and API schemas, shared by everyone | Shared |
-| `packages/db/`, `packages/kyber/`, `packages/intents/` | Database schema, KyberSwap client, Aurora Intents client | Dharu |
+| `packages/db/`, `packages/swap/`, `packages/intents/` | Database schema, swap providers (KyberSwap, 1inch, Aero), Aurora Intents client | Dharu |
 | `docs/` | Product, architecture, interface agreement, risk rules, tasks and progress | Shared |
 
 ## Docs
