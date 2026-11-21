@@ -7,7 +7,7 @@ Status on 20 November 2026: the files in `deploy/` are written. Verified in a lo
 | File in `deploy/` | Purpose |
 |---|---|
 | `Dockerfile`, `entrypoint.sh` | The one image, and the start step that loads secret files |
-| `compose.yml`, `Caddyfile` | The services below, and HTTPS in front of the API |
+| `compose.yml`, `caddy/` | The services below, and HTTPS in front of the API (`caddy/Caddyfile`, plus `origin-open.caddy` and `origin-cloudflare.caddy` for who may connect) |
 | `env/*.env.example` | The settings each service reads, copied to `/opt/levra/env/` |
 | `secrets.md` | Which secret file each service needs |
 | `setup-server.sh` | First-time hardening of a fresh Debian 13 (or Ubuntu 24.04) server, run once as root |
@@ -70,6 +70,20 @@ Rules: a secret is never printed, pasted in chat or committed. The keeper's logg
 
 1. First deploy: `api.levra.finance` (D-96) is an `A` record on Cloudflare pointing at the server's IPv4 address, **DNS only** (grey cloud), and `API_HOST=api.levra.finance` in `caddy.env`. Caddy then gets a Let's Encrypt certificate itself. Not verified: check that the certificate is issued (`curl https://api.levra.finance/v1/health`) before the address goes to Nabil. Until Cloudflare proxies it, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
 2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52). This is what lets the API refuse US users on Base (D-73).
+
+### Cloudflare in front (BE-52)
+
+Turning the proxy on changes three things at once, so do it in one go, in this order:
+
+1. Cloudflare, any time before: SSL/TLS mode **Full (strict)** (Flexible would loop with Caddy's redirect to HTTPS) and minimum TLS version 1.2. Neither changes anything while the record is DNS only.
+2. Read Cloudflare's ranges again (`https://www.cloudflare.com/ips-v4` and `ips-v6`) and compare them with `deploy/caddy/origin-cloudflare.caddy`. A change goes through a PR first.
+3. Cloudflare: turn the `api` record to Proxied. The API keeps working, but until step 4 every visitor shares Cloudflare's address in the rate limit.
+4. On the server, right after: in `caddy.env` set `ORIGIN=cloudflare`; in `api.env` set `TRUST_PROXY_HEADER=cf-connecting-ip`, `GEO_COUNTRY_HEADER=cf-ipcountry` and `GEO_REGION_HEADER=cf-region-code`; then `deploy/deploy.sh`. The script refuses Cloudflare headers with `ORIGIN=open` (anyone could forge them) and `ORIGIN=cloudflare` without `cf-connecting-ip` (shared rate limit), and checks the Caddy config before the running Caddy sees it.
+5. Check: `/v1/health` answers through the domain; a request straight to the server's IP is closed; `curl -sI https://api.levra.finance` shows `server: cloudflare`.
+
+With `ORIGIN=cloudflare` Caddy closes every connection that does not come from Cloudflare's ranges (`remote_ip`). Docker publishes ports 80 and 443 past `ufw`, which is why the check is in Caddy and not in the firewall. Turning the proxy off again is the same steps in reverse: `ORIGIN=open` and `TRUST_PROXY_HEADER=x-forwarded-for` with the GEO headers emptied, deployed right after the record goes back to DNS only.
+
+Not verified yet: certificate renewal through the proxy. Caddy answers the ACME HTTP challenge before its routes and Let's Encrypt reaches it through Cloudflare, so it is expected to work; check Caddy's log at the first renewal (about 30 days before the certificate ends in February 2027). Known limit: another Cloudflare account could point its own record at our IP and pass the range check; Cloudflare still writes the real visitor address and country in that case, but this is not verified. Authenticated origin pulls with our own certificate would close it.
 
 Every change of address: `MONITOR_API_URL` on the keeper, `NEXT_PUBLIC_API_URL` on Vercel (Nabil), the API links in the root README, and the VPS row in 05.
 
