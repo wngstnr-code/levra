@@ -262,10 +262,6 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
-### 22 November 2026 (BE-96)
-
-- Dharu: BE-96 part 1 on `be/BE-96-swap-providers` (D-104). New `packages/swap`: KyberSwap (moved from `packages/kyber`), 1inch and Aero behind one interface, plus `bestRoute` (largest output, skips a provider that fails). Live on Base, KyberSwap and Aero quote all 8 stocks within 0.05% of each other. Next, after #103 merges: move the imports, wire the Base quotes with the VPS keys, then the `eth_simulateV1` check of the calldata.
-
 ### 21 November 2026
 
 - Dharu: the backend runs on the netcup VPS (Debian 13, D-101) at `https://api.levra.finance`, deployed from `main` (`f233040f335b`): HTTPS from Let's Encrypt, CORS for `app.levra.finance`, the Monad indexer 1 block behind. New Monad role keys made on the VPS with `deploy/keys.sh`: oracle age poster `0xaec389DfC7D6F5CaB30e7D761206D989f7F6ed19`, calendar poster `0xd166D46a4e61daC99e87472B76423A9C379274Fb`, router keeper (protector) `0x469ab4F20dcDcD470b89A829783B5bbd5c64f474`, Liquidator keeper `0xE36EafE2cC96F256B80E7952DFFBe916f0d64a6A`. Wangsit has them for `make set-roles-monad`; the role jobs wait for the grant, then `keeper-monad` restarts.
