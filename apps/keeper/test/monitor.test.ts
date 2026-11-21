@@ -43,6 +43,7 @@ function healthy(): Snapshot {
     api: { ok: true, ms: 200, detail: "status 200" },
     gaps: [{ symbol: "QQQ", table: { over2PctShareBps: 310, worstDropBps: -540, worstRiseBps: 390 }, fresh: { over2PctShareBps: 290, worstDropBps: -540, worstRiseBps: 390 } }],
     lossBudgets: [{ token: "0xUSDC", label: "USDC", budget: 0n }],
+    gates: [{ key: "gate:anchored-denylist:Morpho", blocked: false, message: "Anchored compliance denylists Morpho" }],
   };
 }
 
@@ -67,6 +68,8 @@ describe("team monitor checks (08, one per row)", () => {
       ["indexer:morpho_events", (s) => (s.head = 1_400n)],
       ["api", (s) => (s.api = { ok: false, ms: 10_000, detail: "timeout" })],
       ["gap-table:QQQ", (s) => (s.gaps[0]!.fresh = { over2PctShareBps: 320, worstDropBps: -610, worstRiseBps: 390 })],
+      ["gate:anchored-denylist:Morpho", (s) => (s.gates[0]!.blocked = true)],
+      ["gate:anchored-denylist:Morpho:unread", (s) => (s.gates[0]!.blocked = null)],
     ];
     for (const [key, change] of cases) {
       const s = healthy();

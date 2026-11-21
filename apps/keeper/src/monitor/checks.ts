@@ -74,6 +74,8 @@ export type Snapshot = {
   gaps: { symbol: string; table: GapStats; fresh: GapStats | null }[];
   /** `Liquidator.lossBudgetOf` per loan token, in its base units (D-91). Empty for a liquidator without a budget. */
   lossBudgets: { token: string; label: string; budget: bigint }[];
+  /** Issuer pauses and blocklists that can block a market (BE-75). `blocked` is null when the control could not be read. */
+  gates: { key: string; blocked: boolean | null; message: string }[];
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
@@ -185,6 +187,12 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
       describe: (a, n) =>
         `Liquidator loss budget for ${b.label} changed from ${a} to ${n} base units. ${BigInt(n) > BigInt(a === "unset" ? "0" : a) ? "The owner added to it (LossBudgetSet)." : "A liquidation lost money (LossBudgetSpent) or the owner cleared it."}`,
     });
+  }
+
+  for (const g of s.gates) {
+    out.push({ kind: "condition", key: g.key, active: g.blocked === true, forSeconds: 0, message: `${g.message}. Closes or liquidations in that market may fail; check it and pause opening if needed.` });
+    // A control we cannot read hides a pause, but one failed call is not worth a page.
+    out.push({ kind: "condition", key: `${g.key}:unread`, active: g.blocked === null, forSeconds: LIMITS.unhealthyForSeconds, message: g.message });
   }
 
   for (const c of s.indexer) {
