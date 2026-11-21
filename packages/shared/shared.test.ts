@@ -106,6 +106,7 @@ describe("deployment", () => {
     const markets = listMarkets(baseDeployment);
     expect(baseDeployment.chainId).toBe(BASE_CHAIN_ID);
     expect(baseDeployment.router).toBe("0xf5585feA7aeDC5e148201052f73139111810aA88");
+    expect(baseDeployment.usdcVault).toBe("0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8");
     const symbols = Object.keys(baseStocks).sort();
     for (const side of ["long", "short"] as const) {
       expect(markets.filter((m) => m.side === side).map((m) => m.symbol).sort()).toEqual(symbols);
