@@ -193,8 +193,12 @@ The binding source is `contracts/deployments/*.json`. This table is a convenienc
 | Monad mainnet, staging | `SessionOracle`, HOOD short | `0xaFe518da5cBa30B198e96F26074f66f85241DE95` | 13 October 2026 |
 
 | Monad mainnet, staging | USDC vault `Levra USDC` (`lvUSDC`), MetaMorpho v1.1 | `0xfB99A7E3f5571baA363d67F7823bb354cfd95447` | 13 October 2026 |
+| Base mainnet | `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` | 22 November 2026 |
+| Base mainnet | `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` | 22 November 2026 |
+| Base mainnet | `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` | 22 November 2026 |
+| Base mainnet | `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | 22 November 2026 |
 
-Market IDs are in `contracts/deployments/monad.json`.
+Market IDs are in `contracts/deployments/monad.json` and `contracts/deployments/base.json` (with the 16 Base oracles).
 
 ## Interface changes
 
@@ -266,6 +270,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 22 November 2026
 
+- Wangsit: SC-76 deployed on Base mainnet. 73 transactions, all successful, blocks 60554987 to 60555427, first `0x0a8a95990430ff3319c7915d5ce8fc9e824a039a6c1df2780c996ce3ef38744f`, last `0x75c79b172f0d3278b525eb2e33021a2059ca0f174dcd47766dee547dfb1c29ff`. Router `0xf5585feA7aeDC5e148201052f73139111810aA88`, risk manager `0x8354ff472d87C942f9186acc83e0600424272594`, liquidator `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`, lens `0xa8d15000992Cd055E7731E884D91b16F2123A327`, 16 markets. Roles on chain match the Base keys; owner is still the deployer until SC-55. SC-71 rerun with the real addresses: 32 of 32, all our contracts authorized under policy 5. All 20 contracts verified on Basescan and Sourcify. Deployment file and `@levra/shared/deployments/base` in PR #112. The first attempt stopped in simulation on a `mainnet.base.org` connection reset and sent nothing. Next: merge #112, handover to the Safe (SC-55), seed (SC-77, SC-78).
 - Wangsit: sign-in on `app.levra.finance` failed ("Could not log in with wallet") because the old Privy app was on a personal account and did not list the new domain. New Privy app in the team account, `NEXT_PUBLIC_PRIVY_APP_ID` replaced in Vercel for every environment (05). The 1inch and OKX keys are on the VPS: `api` (all 4), `keeper-base` (1inch), `keeper-xlayer` (3 OKX), all 0400 `levra:levra`, lengths match the root `.env`. The Base and X Layer role addresses from Dharu are in `contracts/.env`, the active lines point at Base, and `make deploy-base-dry` passes with them (deployer holds 0.0025 ETH on Base, about 0.00037 ETH needed).
 - Dharu: GitHub access back; the finished backend branches are rebased on `main` and open as PRs #100 (BE-91), #101 (BE-90), #102 (BE-89), #103 (BE-70) and #104 (BE-99, after #103). The BE-70 decision is renumbered D-102, since `main` took D-98 for the private repo. Checked the live VPS from outside: only ports 22, 80 and 443 open, SSH keys only, TLS 1.3, CORS refuses other origins.
 - Dharu: the Cloudflare proxy was on for a while on 21 November without the API change, so every visitor shared Cloudflare's address in the rate limit; Wangsit turned it off again (checked: the record answers with the server's IP). BE-52 on `be/BE-52-cloudflare-origin` (D-103): the `ORIGIN` switch in Caddy, the `deploy.sh` guard, per chain country lists for Base and X Layer (D-73), and the steps to turn the proxy on in `hosting.md`.

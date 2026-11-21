@@ -457,6 +457,19 @@ Reserve is the whole pool, not the depth near the price.
 - The API refuses requests whose User-Agent looks like a script library (Cloudflare error 1010). Send a plain client name.
 - Verified by quote and simulation on this date only. Prices and routes change by the minute.
 
+### Levra deployment on Base (SC-76)
+
+Deployed on 22 November 2026 by `make deploy-base` from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0`: 73 transactions, all status 1, blocks 60554987 to 60555427, about 0.000142 ETH in total. The binding list is `contracts/deployments/base.json`, bundled as `@levra/shared/deployments/base`.
+
+| Contract | Address |
+|---|---|
+| `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` |
+| `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` |
+| `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` |
+| `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` |
+
+16 markets (long and short for 8 stocks), one `ChainlinkSessionOracle` each. Verified on chain on 22 November 2026: all four contracts have code; owner of router, risk manager and liquidator is the deployer (handover to the Safe is SC-55); router keeper `0xD30865fcA0C71B3aA3d617a8790C6aC0884B7645`, liquidator keeper `0x29202644892Ec09885fA97d1Bd428b3b01c8CEcA`, calendar poster `0xf8Fe4cBFc742aeBD5509c7d2275a9538ed9Ea905`, oracle age poster `0x2cF63398c3faFBdeCAaeEfE8E8a3C815dD300DAF` (Dharu's keys on the VPS). B20 recheck with these addresses (SC-71): all 8 stocks on policy 5, none paused, and router, liquidator, risk manager, lens and Safe authorized; `b20-policy.live.test.ts` 32 of 32. Source verified on Basescan (router, risk manager, liquidator, lens and the AAPL oracle exact match, the other 15 oracles similar match) and on Sourcify (20 exact). The free Etherscan API plan does not cover Base, so Basescan was done through its web form. The Earn vault on Base is not deployed yet.
+
 ### Full long and short on Base, simulated (SC-75)
 
 `make base-live-e2e` on 19 November 2026 at block 59581480 (NVDA oracle $152.98): our router, risk manager and two `ChainlinkSessionOracle` were deployed inside an `eth_simulateV1` run on the live node, with an NVDAc long and short market and lent liquidity. A user with 1,000 USDC then:
