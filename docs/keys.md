@@ -67,6 +67,8 @@ Then:
 
 Keys that were on Railway are moved, not remade, when Railway can still be read (BE-91): `apps/keeper/scripts/move-variables.ts` pipes each value from the Railway CLI into the server's file through `ssh`, without printing it or writing it on the laptop.
 
+When the keys are remade instead (or rotated), the MON on the old wallets moves to the new ones with `apps/keeper/scripts/sweep.ts`: `MONAD_RPC_URL=... tsx scripts/sweep.ts --from keeper ORACLE_AGE_POSTER_KEY=0x<new address> ...`, first without `--confirm` to see the plan. It reads the old keys from the Railway CLI into memory only, refuses a delegated wallet, one with a transaction in flight or a contract as the target, and sends everything but the fee for 21,000 gas (Monad lets an undelegated wallet go below its 10 MON reserve with such an emptying transaction). Take the new addresses from the keys on the server, not from a chat. Used on 21 November 2026 for the move off Railway (PROGRESS).
+
 ## MON for gas
 
 Initial proposals, in `apps/keeper/scripts/roles.ts`:
