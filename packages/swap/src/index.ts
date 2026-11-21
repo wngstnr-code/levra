@@ -2,4 +2,5 @@
 export * from "./types";
 export { createHttp, type HttpOptions } from "./http";
 export { createKyber, KYBER_BASE_URL, KYBER_MONAD_URL, type KyberOptions } from "./kyber";
+export { createOneInch, ONEINCH_API_URL, type OneInchOptions } from "./oneinch";
 export { dexMidPriceE8, MID_PROBE_USD_RAW } from "./mid";
