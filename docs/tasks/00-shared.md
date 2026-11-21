@@ -144,7 +144,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 - [ ] **X-33 · Public repo** (driver: Wangsit)
   - Do: secrets scan of the whole history, then make the repo public or publish a public mirror (Q-32). Tag `pre-base` on the last `main` commit before this work.
   - Done when: the public link works and the tag exists.
-  - Note (21 November 2026): the repo was public from D-63 and is private again during development (D-98). Make it public again, or publish the mirror, before 5 December; the `pre-base` tag is still to check.
+  - Note (21 November 2026): the repo was public from D-63 and is private again during development (D-98). Make it public again, or publish the mirror, before 5 December; the `pre-base` tag is still to check. Before that, update the root README: it still names the Railway API, Aurora Intents and Monad only.
 
 - [ ] **X-34 · Stocks Maxxing submission** (driver: Nabil)
   - Needs: I-B1.
