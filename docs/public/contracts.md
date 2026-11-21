@@ -65,6 +65,12 @@ Markets, all on Morpho (`0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb`). The stock
 | SPCX short | USDC | the stock | 62.5% | `0x0ae42283dd827b92d084ef5b64a7fe8e145b5216718b17c6addd36fbf5c6e581` | `0x86a124066493dc5d84da4C63Ba06BEF4461bAe7E` |
 | TSLA short | USDC | the stock | 62.5% | `0x8430223a3d5943137fd3924fedbb90d3c2e250270f07bceaebce1a427e792b0d` | `0x0AEE0870183D9c2b27A52b24123022D9AD33E1f4` |
 
+The USDC vault for lenders on Base:
+
+| Contract | Address | What it does |
+|---|---|---|
+| `Levra USDC` (`lvUSDC`) | [`0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8`](https://basescan.org/address/0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8) | Takes USDC deposits and lends them to the eight long markets |
+
 The machine-readable list is [`contracts/deployments/base.json`](../../contracts/deployments/base.json). All 20 contracts are verified on Basescan and on Sourcify (exact match).
 
 ## Where your funds are
