@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  FEED_SCHEDULE,
   REGULAR_SCHEDULE,
   etParts,
   etToUnix,
@@ -110,5 +111,18 @@ describe("exchange calendar (BE-30)", () => {
     expect(isScheduledClosed(at("2026-10-23", 20), OBSERVED)).toBe(true);
     expect(isScheduledClosed(at("2026-10-25", 20, 1), OBSERVED)).toBe(false);
     expect(isScheduledClosed(at("2026-10-21", 3), OBSERVED)).toBe(false);
+  });
+
+  it("follows the Chainlink feeds' weekly freeze on Base and X Layer", () => {
+    // A full Friday freezes at 20:00 and reopens Sunday 20:00, in summer and winter time.
+    expect(clock(nextCloseAfter(at("2026-11-16", 9), FEED_SCHEDULE))).toBe("2026-11-20 20:00");
+    expect(clock(nextCloseAfter(at("2026-07-06", 9), FEED_SCHEDULE))).toBe("2026-07-10 20:00");
+    expect(clock(nextOpenAfter(at("2026-11-21", 12), FEED_SCHEDULE))).toBe("2026-11-22 20:00");
+    expect(isScheduledClosed(at("2026-11-20", 19, 59), FEED_SCHEDULE)).toBe(false);
+    expect(isScheduledClosed(at("2026-11-21", 12), FEED_SCHEDULE)).toBe(true);
+    expect(isScheduledClosed(at("2026-11-22", 20, 1), FEED_SCHEDULE)).toBe(false);
+    // Not observed yet: the exchange close before Thanksgiving, and on the short Friday after it.
+    expect(clock(nextCloseAfter(at("2026-11-23", 9), FEED_SCHEDULE))).toBe("2026-11-25 16:00");
+    expect(clock(nextCloseAfter(at("2026-11-26", 9), FEED_SCHEDULE))).toBe("2026-11-27 13:00");
   });
 });

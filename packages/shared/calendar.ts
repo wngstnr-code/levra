@@ -15,10 +15,23 @@ export type EtDate = string;
  * - `closeOffsetSeconds`: after the regular close (16:00, or 13:00 on an early close) of the last trading day.
  * - `openOffsetSeconds`: after 00:00 of the next trading day (negative when the market reopens the evening before).
  */
-export type SessionSchedule = { closeOffsetSeconds: number; openOffsetSeconds: number; source: "observed" | "regular" };
+export type SessionSchedule = {
+  closeOffsetSeconds: number;
+  openOffsetSeconds: number;
+  /** When set: a full Friday trading day closes at this time of day in New York instead, seconds after 00:00. */
+  fridayCloseSeconds?: number;
+  source: "observed" | "regular" | "feed";
+};
 
 /** Until a weekend is observed: close at the regular close (an early close is safe, a late one is not), open at 09:30. */
 export const REGULAR_SCHEDULE: SessionSchedule = { closeOffsetSeconds: 0, openOffsetSeconds: 9.5 * 3600, source: "regular" };
+
+/**
+ * The Chainlink stock feeds on Base and X Layer (04): they freeze at Friday 20:00 New York time and write again at
+ * Sunday 20:00 (seen on 15 November 2026, 05). A close before a holiday or on an early close day is not observed yet,
+ * so it is the exchange close, the earliest a feed could freeze (BE-30).
+ */
+export const FEED_SCHEDULE: SessionSchedule = { closeOffsetSeconds: 0, openOffsetSeconds: -4 * 3600, fridayCloseSeconds: 20 * 3600, source: "feed" };
 
 const parts = new Intl.DateTimeFormat("en-US", {
   timeZone: NEW_YORK,
@@ -144,6 +157,7 @@ export function regularCloseAt(date: EtDate): number {
 /** A close is the last trading day before a day without trading (a weekend or a holiday). */
 function closeOn(date: EtDate, schedule: SessionSchedule): number | null {
   if (!isTradingDay(date) || isTradingDay(addDays(date, 1))) return null;
+  if (schedule.fridayCloseSeconds !== undefined && weekdayOf(date) === 5 && !isEarlyClose(date)) return etToUnix(date, schedule.fridayCloseSeconds);
   return regularCloseAt(date) + schedule.closeOffsetSeconds;
 }
 
