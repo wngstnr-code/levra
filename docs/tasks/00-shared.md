@@ -17,7 +17,7 @@ Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Every task has 
   - Do: agree on a name; check the domain and social handles; answer Q-01.
   - Done when: the name is recorded in 09 and the domain is registered.
   - Note: the name is decided, Levra (D-15). A DNS check found `levra.com`, `.io`, `.xyz` and `.app` in use and no name servers for `levra.fi`, `levra.finance` and `levra.markets` (Q-25). Still to do: pick and register a domain, social handles, and the check against Levva.
-  - Note (20 November 2026): `levra.finance` registered at Hostinger (D-95), expires 20 November 2027, transfer lock on. Name servers moved to Cloudflare (`clarissa.ns.cloudflare.com`, `nolan.ns.cloudflare.com`); verified on 20 November 2026 on all six `.finance` registry servers and on 1.1.1.1 and 8.8.8.8. No DNS records yet. Social handles are still open.
+  - Note (20 November 2026): `levra.finance` registered at Hostinger (D-96), expires 20 November 2027, transfer lock on. Name servers moved to Cloudflare (`clarissa.ns.cloudflare.com`, `nolan.ns.cloudflare.com`); verified on 20 November 2026 on all six `.finance` registry servers and on 1.1.1.1 and 8.8.8.8. No DNS records yet. Social handles are still open.
 
 - [~] **X-03 · Wallets, funds and multisig** (driver: Wangsit)
   - Do: one development wallet per person with a little MON and USDC; a team treasury; a multisig on Monad with all three as signers.
@@ -144,6 +144,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 - [ ] **X-33 · Public repo** (driver: Wangsit)
   - Do: secrets scan of the whole history, then make the repo public or publish a public mirror (Q-32). Tag `pre-base` on the last `main` commit before this work.
   - Done when: the public link works and the tag exists.
+  - Note (21 November 2026): the repo was public from D-63 and is private again during development (D-98). Make it public again, or publish the mirror, before 5 December; the `pre-base` tag is still to check.
 
 - [ ] **X-34 · Stocks Maxxing submission** (driver: Nabil)
   - Needs: I-B1.
