@@ -35,7 +35,7 @@ The source of all nine contracts is verified on Sourcify with an exact match. Ea
 
 ## Addresses on Base
 
-Base mainnet (chain ID 8453), deployed on 22 November 2026. Not audited. The limits are initial proposals. Ownership is still with the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` and moves to the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` next.
+Base mainnet (chain ID 8453), deployed on 22 November 2026. Not audited. The limits are initial proposals. Ownership is moving from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` to a 2 day timelock [`0xA0089B68a8CFf4d810985DF8503815b3d1344c67`](https://basescan.org/address/0xA0089B68a8CFf4d810985DF8503815b3d1344c67) run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069`; the vault goes to the Safe directly. Until the Safe accepts, the deployer is still the owner.
 
 | Contract | Address | What it does |
 |---|---|---|
