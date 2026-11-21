@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90). `packages/swap` joins this list in the PR that creates it (BE-96).
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/swap/`, `packages/kyber/` (a re-export of `packages/swap` until BE-96 moves the imports), `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -449,10 +449,11 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Done when: Monad on the VPS gives the same answers after the migration (tests); a second chain is switched on with env only; a replay from the start still gives the same rows.
   - Note (20 November 2026): code done on branch `be/BE-95-three-chains`, decision D-95. Migration 0008 tested on Postgres 17 with old rows (they become 143, a write without a chain is refused, the same transaction on two chains is two rows). Tests: indexer 14, keeper 57 (fork tests skipped), API 77, shared and db pass; typecheck of every package passes. A Base indexer or keeper starts with `CHAIN_ID=8453`, `RPC_URL` and a Base deployment file; before our Base deployment only the team monitor and alerts have work there. Left: run it on the VPS with the Monad data (BE-90) and check the answers match, then `[x]`.
 
-- [ ] **BE-96 · Swap provider interface and the Base providers**
+- [~] **BE-96 · Swap provider interface and the Base providers**
   - Needs: D-53, D-80, BE-71 (done), a 1inch API key.
   - Do: a new `packages/swap` (owner Dharu, ownership rows in the same PR) with one interface: quote, calldata for a given sender and recipient, and the target and spender the router expects. KyberSwap moves behind it (`packages/kyber` is folded in) and also serves Base; the 1inch Swap API (plain User-Agent, 05); the Aero SwapRouter called directly and quoted through the Aero MetaQuoter. The API picks the best route among the providers whose router is in the deployment's `swapTargets()`, and falls back to the next one on an error. Each provider keeps its own request budget (BE-51). The DEX mid price (D-36) is measured per chain.
   - Done when: on Base, each provider returns a quote and calldata for every listed stock with a contract as sender and recipient (our router once SC-76 has deployed it), and the calldata delivers the quote in a live simulation (`eth_simulateV1`, since a fork cannot run B20 tokens, 07); Monad quotes are unchanged (tests).
+  - Note (22 November 2026): part 1 on `be/BE-96-swap-providers` (D-104). `packages/swap` holds the `SwapProvider` interface (`quote`, `price`, `target`, `spender`), KyberSwap (moved from `packages/kyber`, which now only re-exports it), 1inch, Aero (pool per tick spacing, quoted by the MetaQuoter), `bestRoute` (asks every provider, keeps the largest output, skips one that fails) and the DEX mid price. Each provider has its own request spacing and 429 retry. Tests: swap 29, API 58 and keeper 46 unchanged (DB tests run in CI). Live on Base: KyberSwap and Aero quote all 8 stocks (05). Left, after #103 (BE-70) merges: (1) move the API and keeper imports to `@levra/swap` and delete `packages/kyber`; (2) build the providers per chain from the deployment's swap targets and wire `bestRoute` into the Base quotes, with the keys from the VPS (`ONEINCH_API_KEY` is there since 22 November); (3) the `eth_simulateV1` check of each provider's calldata; (4) the mid price per chain.
 
 - [~] **BE-97 · Chainlink price recorder for Base and X Layer**
   - Needs: BE-95, SC-72 (done), the feeds in `markets.ts` (done). Does not wait for our deployments.
