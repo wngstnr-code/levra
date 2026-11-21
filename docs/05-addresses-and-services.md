@@ -209,13 +209,13 @@ Also verified on a local fork on 13 October 2026:
 - The build request is refused with "wallets invalid" for some addresses. The well-known first account of a local node is one of them.
 - Verified on 13 October 2026 against the mainnet deployment: the build request accepts the mainnet router (`0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6`) as sender and recipient. Quotes for aQQQ, aHOOD and aBIL from the staging API built calldata for it.
 
-Observed on 13 October 2026 (BE-04): a full depth run sends 33 route requests in 18 seconds, with a 300 ms pause between requests, and got no 429. The client in `packages/kyber` reports a 429 as `RATE_LIMITED`, and the depth keeper counts them in its heartbeat.
+Observed on 13 October 2026 (BE-04): a full depth run sends 33 route requests in 18 seconds, with a 300 ms pause between requests, and got no 429. The client (now in `packages/swap`, BE-96) reports a 429 as `RATE_LIMITED`, and the depth keeper counts them in its heartbeat.
 
 From KyberSwap's documentation (read on 14 October 2026, "Rate Limits & Client ID"): the public aggregator API allows 3 requests per second. Client ID whitelisting is no longer offered for the aggregator; higher limits come with an API key, sent as `X-Api-Key` to the gateway at `https://api.kyberswap.com/swap/` (`GET /routes`, `POST /route/build`), requested from business@kyber.network. Not stated: whether the limit counts per IP or per client ID, the gateway's limits, and the gateway path for Monad. Not verified by us.
 
 Observed on 14 October 2026: from Railway, quotes got 429 most of the time (Nabil, about 2 of 3 tries), while 6 quick route requests from Dharu's machine all passed. One open quote sends a route request and two mid price probes at once, then a build, so a single quote already reaches the 3 per second limit. Since then the client starts requests at least 350 ms apart and retries once, 1 second after a 429; the API budget is 12 calls at once plus 60 a minute (BE-51, initial proposal). `KYBER_API_KEY` sends the key when we have one; the gateway path for Monad is not verified.
 
-How the backend uses it (`packages/kyber`): `price()` asks for a route only; `quote()` also builds the calldata with our router as sender and recipient and the user's slippage; a route whose `routerAddress` is not the allowed swap target is refused. The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price (D-36).
+How the backend uses it (`packages/swap`, before BE-96 `packages/kyber`): `price()` asks for a route only; `quote()` also builds the calldata with our router as sender and recipient and the user's slippage; a route whose `routerAddress` is not the allowed swap target is refused. The DEX mid price is the average of a 10 USDC buy and a sale of the stock worth 10 USDC at the oracle price (D-36).
 
 ### Morpho, data API
 
@@ -397,7 +397,7 @@ Read from the Base RPC (`https://mainnet.base.org`, block 59495063), the Morpho 
 | KyberSwap MetaAggregationRouterV2 | `0x6131B5fae19EA4f9D964eAc0408E4408b66337b5` | Sourcify name `MetaAggregationRouterV2`, the same address as on Monad. Seen routing into the Aero NVDAc pool on 19 November 2026. Swap target on Base (D-80) |
 | Aero Slipstream V3 CL factory | `0x9CB220581b91b0C83223012FE69688b92aD07a76` | Listed as `clFactory` in Dromos Labs' official deployment file (`github.com/Dromos-Labs/metadex-slipstream-public`, `deployment-addresses/cl-base.json`; the org is linked from aero.xyz). Aero is the merger of Aerodrome and Velodrome, live since 21 October 2026 (press). Holds the deepest stock pools, see below |
 | Aero SwapRouter | `0x9Ee35Bf1bd69a03c6F0393582030fCe8Bb93D418` | `swapRouter` in the same file. Verified onchain: `factory()` is the factory above, Sourcify name `SwapRouter`. Swap target on Base (D-80) |
-| Aero MetaQuoter | `0x1dDfeC5058180C207F55BB77D95AcDd0d8227868` | `metaquoter` in the same file. Code present |
+| Aero MetaQuoter | `0x1dDfeC5058180C207F55BB77D95AcDd0d8227868` | `metaquoter` in the same file. Code present. Quotes one pool with `quoteExactInputSingleV3` (BE-96, see "Swap providers in the backend") |
 | Aero Voter | `0x382409fad8503FbCdbB27A4211551fa03e884078` | `voter` in the same file; the factory's `voter()` returns it |
 | Aerodrome (before the merger) | v2 PoolFactory `0x420DD381b31aEf6683db6B902084cB0FFECe40Da` and Router `0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43`; Slipstream factories `0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A` (SwapRouter `0xBE6D8f0d05cC4be24d5167a3eF062215bE6D18a5`) and `0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef` (SwapRouter `0x698Cb2b6dd822994581fEa6eA4Fc755d1363A92F`) | From the aerodrome-finance GitHub READMEs. Their stock pools are empty (v2: AAPLc, NVDAc and SPCXc pools hold under $30) or much smaller than Aero's. Not used |
 
@@ -471,6 +471,16 @@ Reserve is the whole pool, not the depth near the price.
 The router ended with 0 USDC and 0 NVDAc. The user ended with 997.18 USDC and 0.00856 NVDAc (the buy back surplus), so both round trips cost about $1.50 in fees, spread and interest. Verified by simulation only; nothing was sent.
 
 On Monad (chain 143), 1inch quotes aQQQ and aHOOD through the same Uniswap v4 pools KyberSwap uses, and returns `INSUFFICIENT_LIQUIDITY` for aBIL. So Monad keeps KyberSwap (D-81).
+
+### Swap providers in the backend (BE-96)
+
+`packages/swap` holds the three Base providers behind one interface (D-104):
+
+- KyberSwap: `aggregator-api.kyberswap.com/base/api/v1`, the same `/routes` and `/route/build` calls as on Monad.
+- 1inch: Swap API v6.0 `/quote` for prices and `/swap` for calldata, with the bearer key, a plain User-Agent, `disableEstimate=true` and the slippage in percent. One request per 1.1 s by default (initial proposal, our plan's limit is not yet confirmed).
+- Aero: the factory's `getPool(tokenA, tokenB, tickSpacing)` for each enabled tick spacing (1, 10, 50, 100, 150, 200, 250, from the factory's constructor), then the MetaQuoter's `quoteExactInputSingleV3(pool, tokenIn, amountIn, sqrtPriceLimitX96)` per pool through `eth_call` (it simulates the swap and reverts with the result; source `contracts/periphery/lens/Metaquoter.sol` in the Dromos Labs repo). The pool that gives the most is used in `exactInputSingle` on the SwapRouter.
+
+Live check on 22 November 2026 around 17:45 UTC (a Saturday, so the stock markets were closed): 100 USDC into each of the 8 stocks, sender a fixed address. KyberSwap and Aero both answered for all 8, within 0.05% of each other (for example NVDAc 0.76767 and 0.76755). 1inch was not called, its key is on the VPS only. Verified: quotes and calldata build. Not verified yet: that the built calldata delivers the quote (`eth_simulateV1`, part of BE-96's "Done when").
 
 ### Transfer policy and pause (SC-71)
 

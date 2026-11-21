@@ -259,6 +259,10 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
 
+### 22 November 2026 (BE-96)
+
+- Dharu: BE-96 part 1 on `be/BE-96-swap-providers` (D-104). New `packages/swap`: KyberSwap (moved from `packages/kyber`), 1inch and Aero behind one interface, plus `bestRoute` (largest output, skips a provider that fails). Live on Base, KyberSwap and Aero quote all 8 stocks within 0.05% of each other. Next, after #103 merges: move the imports, wire the Base quotes with the VPS keys, then the `eth_simulateV1` check of the calldata.
+
 ### 20 November 2026
 
 - Dharu: BE-97 recorder done on `be/BE-97-chainlink-recorder` (on top of `be/BE-91-data-check`), decision D-97. `keeper-base` and `keeper-xlayer` record every round of the Coinbase and xStocks Chainlink feeds in `oracle_updates` through `getRoundData` (no keys, no deployment needed). Migration 0009 makes bid, ask, session and the log columns empty for these rows. Run live into an empty database: Base 4,177 rounds and X Layer 39,994 rounds from 23 October to 20 November with no gap, then current. Facts in 05: Base feeds are in phase 2 with an old aggregator that kept writing nine days after the switch; Base blocks are 0.2 seconds. Next: start both on the VPS on 21 November (before Thanksgiving), then BE-70.
