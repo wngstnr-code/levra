@@ -4,7 +4,17 @@ import { coinbaseOracleRegistryAbi, lensAbi, marginRouterAbi, morphoAbi, riskMan
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
 import { listMarkets, type MarketInfo } from "@levra/shared/markets";
-import { erc20Abi, getAbiItem, parseAbi, type Address, type Hex, type PublicClient } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  erc20Abi,
+  getAbiItem,
+  parseAbi,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from "viem";
 import { createCache } from "./cache";
 
 /**
@@ -293,5 +303,21 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
 
   /** The chain's own Morpho and USDC (packages/shared), so no route reaches for Monad's by mistake (BE-70). */
   const usdc = tokensByChain[deployment.chainId].USDC;
-  return { deployment, morpho, usdc, markets, session, positions, latestBlock, routerFees, permitDomain, userState, borrowShares, routerEvents, client };
+  /**
+   * Whether a full close through this router works while the oracle cannot be read (SC-86). Routers built with SC-86
+   * also carry DELEVERAGE_FLOOR (it came later); the live Monad router has neither. Router code never changes.
+   */
+  const closesWithoutPrice = () =>
+    cached("closesWithoutPrice", Number.POSITIVE_INFINITY, async () => {
+      try {
+        await client.readContract({ address: deployment.router, abi: marginRouterAbi, functionName: "DELEVERAGE_FLOOR" });
+        return true;
+      } catch (err) {
+        const missing = err instanceof BaseError && err.walk((e) => e instanceof ContractFunctionRevertedError || e instanceof ContractFunctionZeroDataError);
+        if (missing) return false;
+        throw err;
+      }
+    });
+
+  return { deployment, morpho, usdc, markets, session, positions, latestBlock, routerFees, closesWithoutPrice, permitDomain, userState, borrowShares, routerEvents, client };
 }

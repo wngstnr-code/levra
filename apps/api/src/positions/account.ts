@@ -54,17 +54,21 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
     const m = markets.find((x: MarketState) => x.info.marketId.toLowerCase() === p.marketId.toLowerCase());
     if (!m) continue;
     const side = m.info.side;
-    const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), m.info.stock.decimals, reader.usdc.decimals);
     const basis: CostBasis = costBasis(side, costEvents, m.info.marketId);
-
-    const value = side === "long" ? collateralValue(p.collateralRaw, price) : mulDiv(p.debtRaw, ORACLE_PRICE_SCALE, price);
-    const positionDebtUsd = side === "long" ? p.debtRaw : value;
-    const positionEquity = side === "long" ? value - p.debtRaw : p.collateralRaw - value;
-    const pnl = basis.shares > 0n ? positionEquity - basis.invested : 0n;
-
-    equity += positionEquity;
-    debtUsd += positionDebtUsd;
-    unrealized += pnl;
+    // Without an oracle price (BE-99) the position has no value, equity or PnL to show, and the totals leave it out.
+    const priced = m.oraclePriceE8 > 0n;
+    let value = 0n;
+    let positionEquity = 0n;
+    let pnl = 0n;
+    if (priced) {
+      const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), m.info.stock.decimals, reader.usdc.decimals);
+      value = side === "long" ? collateralValue(p.collateralRaw, price) : mulDiv(p.debtRaw, ORACLE_PRICE_SCALE, price);
+      positionEquity = side === "long" ? value - p.debtRaw : p.collateralRaw - value;
+      pnl = basis.shares > 0n ? positionEquity - basis.invested : 0n;
+      equity += positionEquity;
+      debtUsd += side === "long" ? p.debtRaw : value;
+      unrealized += pnl;
+    }
     out.push({
       marketId: m.info.marketId,
       symbol: m.info.symbol,

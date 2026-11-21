@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { encodeFunctionData, type Hex } from "viem";
 import type { ChainReader } from "../chain/reader";
 import { ApiHttpError, upstream } from "../errors";
-import { QUOTE_TTL_SECONDS, liqDistanceBps, tokenDecimals, warningList } from "./common";
+import { QUOTE_TTL_SECONDS, hasNoPrice, liqDistanceBps, tokenDecimals, warningList } from "./common";
 import { checkRequirements } from "./requirements";
 import { simulate } from "./simulate";
 
@@ -38,11 +38,19 @@ export async function quoteCollateral(reader: ChainReader, req: QuoteCollateralR
   const repaid = repaying ? (amount < debt ? amount : debt) : 0n;
   const debtAfter = debt - repaid;
 
-  const price = morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals);
-  const ltvAfter = positionLtvWad(debtAfter, collateralAfter, price);
+  const noPrice = hasNoPrice(m);
+  // Without a price the LTV is unknown and reported as 0, as Lens does. Adding and repaying never read the oracle.
+  const ltvAfter = noPrice
+    ? 0n
+    : positionLtvWad(
+        debtAfter,
+        collateralAfter,
+        morphoOraclePrice(side, cautiousPriceE8(side, { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals),
+      );
   const liqE8 = liquidationPriceE8(side, { collateral: collateralAfter, debt: debtAfter, lltvWad: m.lltvWad, stockDecimals, quoteDecimals });
 
   const { warnings, add, blocked } = warningList();
+  if (noPrice && debtAfter > 0n && !removing) add("ORACLE_STALE", "info", "The oracle has no price right now, so the LTV after this cannot be shown.");
   if (removing && debt > 0n && m.oracleHardStale) add("ORACLE_STALE", "block", "Morpho cannot price this market right now, so collateral cannot be removed.");
   if (removing && ltvAfter > m.currentSoftLtvWad) add("NEAR_SOFT_LIMIT", "block", "Removing this much would put the position above the limit.");
 

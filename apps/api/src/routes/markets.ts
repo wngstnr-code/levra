@@ -41,7 +41,7 @@ export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
     oraclePublishedAt: m.publishedAt,
     oracleStale: m.oracleStale,
     dexMidPriceE8: dexMidE8 === undefined ? null : dexMidE8.toString(),
-    dexDeviationBps: dexMidE8 === undefined ? null : signedDeviationBps(dexMidE8, m.oraclePriceE8),
+    dexDeviationBps: dexMidE8 === undefined || m.oraclePriceE8 === 0n ? null : signedDeviationBps(dexMidE8, m.oraclePriceE8),
     lltvWad: m.lltvWad.toString(),
     softLtvOpenWad: m.softLtvOpenWad.toString(),
     softLtvClosedWad: m.softLtvClosedWad.toString(),

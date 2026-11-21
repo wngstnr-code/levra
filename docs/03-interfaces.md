@@ -689,6 +689,16 @@ type DepositStatus = {
 // service's deadline passed with nothing deposited.
 ```
 
+### A market without an oracle price (BE-99, D-100)
+
+When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `snapshot()` reverts), `oraclePriceE8` is `"0"` everywhere it appears, and that is the flag. Clients never divide by it.
+
+- `markets`, `markets/:symbol`, `stream`, `accounts/:address` and `earn` answer as usual. `Market.oracleStale` is true and `dexDeviationBps` is null.
+- `Position`: `valueUsdRaw`, `equityUsdRaw` and `unrealizedPnlUsdRaw` are `"0"`, and the position is left out of `Account.totals`. `ltvWad` is `"0"` (unknown, as Lens reports it), so `overSoftLimit` is false. The web app shows "no price" instead of these numbers.
+- `quote/close` with `fractionWad` 1e18: a full close priced by the DEX alone. The swap and its `minOut` come from the route and the user's slippage, `preview.deviationBps` is 0, `preview.ltvAfterWad` is `"0"`, and a warning `ORACLE_STALE` with severity `warn` says so. Only through a router with SC-86 (Base, X Layer, and Monad after SC-87); the live Monad router refuses it.
+- `quote/close` with a smaller fraction, and `quote/open`: 400 `BAD_REQUEST` with `details: { oraclePriceE8: "0" }` and a message that says why. The router would revert them.
+- `quote/collateral`: adding collateral and repaying still quote, with `ltvAfterWad` `"0"` and an `info` warning `ORACLE_STALE`. Removing collateral while there is debt stays blocked (`ORACLE_STALE`, `block`), as before.
+
 ### More data shapes
 
 Added while writing the schemas in BE-02. The binding source for every shape is `packages/shared/api/`. `endpoints.ts` there maps each endpoint to its request and response schema.

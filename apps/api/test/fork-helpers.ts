@@ -8,6 +8,7 @@ import {
   erc20Abi,
   http,
   keccak256,
+  parseAbi,
   parseUnits,
   publicActions,
   toHex,
@@ -96,6 +97,31 @@ export async function seedMarket(chain: ForkClient, marketId: Hex, amount: bigin
     await send(chain, lender, external.morpho, morphoAbi, "supply", [params, amount, 0n, lender, "0x"]);
   });
   return params;
+}
+
+/** Test only: the Anchored oracle's operator write, which only a fork lets us call. */
+const anchoredOperatorAbi = parseAbi([
+  "function OPERATOR_ROLE() view returns (bytes32)",
+  "function getRoleMember(bytes32 role, uint256 index) view returns (address)",
+  "function latestPrice(bytes32) view returns ((int128 price, int128 bestBid, int128 bestAsk, uint64 feedUpdateTimestamp, uint64 publishedAt, uint80 roundId, uint8 session))",
+  "function updatePrice((bytes32 priceId, int256 price, int256 bestBid, int256 bestAsk, uint64 feedUpdateTimestamp, uint8 session) p)",
+]);
+
+/**
+ * Posts the latest Anchored price again with the current block time, so a fork made while the feed was quiet can open
+ * positions. Same session as before.
+ */
+export async function refreshAnchoredPrice(chain: ForkClient, priceId: Hex) {
+  const oracle = external.anchoredStockOracle;
+  const role = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "OPERATOR_ROLE" });
+  const operator = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "getRoleMember", args: [role, 0n] });
+  const last = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "latestPrice", args: [priceId] });
+  const block = await chain.getBlock();
+  await as(chain, operator, () =>
+    send(chain, operator, oracle, anchoredOperatorAbi, "updatePrice", [
+      { priceId, price: last.price, bestBid: last.bestBid, bestAsk: last.bestAsk, feedUpdateTimestamp: block.timestamp, session: last.session },
+    ]),
+  );
 }
 
 /** Opens a position straight on Morpho for `user`, without the router. */
