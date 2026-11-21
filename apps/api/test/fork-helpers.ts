@@ -124,6 +124,23 @@ export async function refreshAnchoredPrice(chain: ForkClient, priceId: Hex) {
   );
 }
 
+/** `Regular` in the oracle's `Session` enum (03). */
+export const SESSION_REGULAR = 2;
+
+/**
+ * Posts `priceE8` as the Anchored price, bid and ask, with the current block time and `session`. For tests that need the
+ * oracle near the DEX price (keeper reductions check the deviation) or an open market on a weekend fork.
+ */
+export async function postAnchoredPrice(chain: ForkClient, priceId: Hex, priceE8: bigint, session = SESSION_REGULAR) {
+  const oracle = external.anchoredStockOracle;
+  const role = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "OPERATOR_ROLE" });
+  const operator = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "getRoleMember", args: [role, 0n] });
+  const block = await chain.getBlock();
+  await as(chain, operator, () =>
+    send(chain, operator, oracle, anchoredOperatorAbi, "updatePrice", [{ priceId, price: priceE8, bestBid: priceE8, bestAsk: priceE8, feedUpdateTimestamp: block.timestamp, session }]),
+  );
+}
+
 /** Opens a position straight on Morpho for `user`, without the router. */
 export async function openOnMorpho(chain: ForkClient, marketId: Hex, user: Address, collateral: bigint, borrow: bigint) {
   const params = await seedMarket(chain, marketId, borrow * 4n);
