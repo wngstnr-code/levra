@@ -95,7 +95,8 @@ What TapeOut is (from its proposals repo and posts, not audited):
 
 - Four modules live on X Layer mainnet since 19 September 2026: Processor Factory, Circuit Container, Website Repository (DeWEB) and TapeSend.
 - A processor is an ERC-721 collection made through the factory. Each circuit is a token in it that holds logic which can run onchain. Circuit IDs are local to their processor.
-- TapeKit is the SDK and lists the X Layer and Base addresses. TapeSend carries messages and commitments.
+- TapeKit is the SDK. TapeOut also runs on Base and BNB Smart Chain, not on Monad. X Layer and Base share the same addresses (factory `0x1f09...0761`, container opener `0x536a...0106`, SiteRegistry `0xd6EF...ADB6`, DomainBinding `0x6880...66f9`), and the TapeSend hub proxy `0xe61A...25ee` has code on both. Verified on 21 November 2026: code at every address on both chains, 106 processors on Base and 438 on X Layer (`cpuCount`). TapeKit README (22 October 2026): processors are frozen on all three chains, the factory stays upgradeable, nothing is independently audited. TapeSend is a messaging layer: payloads are encrypted to the recipient and only metadata is public, so whether it fits a public PnL commitment is not verified (BE-82, BE-84).
+- Since TapeOut runs on Base, a circuit on Base could read Base positions directly instead of only checking the arithmetic (D-87). Open for the team, still inside D-55. Monad keeps the "calculation verified" label.
 - Maturity: only TAP-01 (the process) is final. TAP-10 (DeWEB) is a draft. No audit. The Hub and Factory are not sealed, so they can still change.
 
 Rule (D-55): **user funds never pass through TapeOut, and no hard limit depends on it.** TapeOut is used where a wrong or missing answer cannot move money.
