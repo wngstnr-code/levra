@@ -1,8 +1,8 @@
-import { createDb, oracleUpdates, observedClosedStretches, runMigrations } from "@levra/db";
-import { REGULAR_SCHEDULE, etParts, etToUnix, nextCloseAfter, scheduleFromStretches, type SessionSchedule } from "@levra/shared/calendar";
+import { createDb, oracleUpdates, observedClosedStretches, runMigrations, type Db } from "@levra/db";
+import { FEED_SCHEDULE, REGULAR_SCHEDULE, etParts, etToUnix, nextCloseAfter, scheduleFromStretches, type SessionSchedule } from "@levra/shared/calendar";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { decideNextClose } from "../src/calendar/poster";
+import { decideNextClose, scheduleForChain } from "../src/calendar/poster";
 
 const at = (date: string, hour: number, minute = 0) => etToUnix(date, hour * 3600 + minute * 60);
 const clock = (unix: number) => {
@@ -40,8 +40,10 @@ describe("when to post nextCloseAt", () => {
         current = d.value;
         posted.push(d.value);
       }
-      // Outside the grace hour, the chain always holds a close in the future.
-      if (now >= current + 3_600) throw new Error(`no future close on chain at ${clock(now)}`);
+      // Outside the grace hour, the chain holds a close in the future, unless the next close is beyond the contract's
+      // 8-day horizon (after a Thursday close before Good Friday with the feed schedule); no window is due then.
+      const horizonOk = nextCloseAfter(now, schedule) <= now + 8 * 86_400;
+      if (now >= current + 3_600 && horizonOk) throw new Error(`no future close on chain at ${clock(now)}`);
     }
     return posted.map(clock);
   }
@@ -61,6 +63,31 @@ describe("when to post nextCloseAt", () => {
   it("holds the observed close once a weekend is in the data", () => {
     const observed: SessionSchedule = { closeOffsetSeconds: 4 * 3600, openOffsetSeconds: -4 * 3600, source: "observed" };
     expect(simulate(at("2026-11-16", 0), at("2026-11-30", 0), observed)).toEqual(["2026-11-20 20:00", "2026-11-25 20:00", "2026-11-27 17:00", "2026-12-04 20:00"]);
+  });
+
+  it("holds the Chainlink feed close on Base and X Layer: Friday 20:00, the exchange close before a holiday and on a short day", () => {
+    expect(simulate(at("2026-11-16", 0), at("2026-12-14", 0), FEED_SCHEDULE)).toEqual([
+      "2026-11-20 20:00",
+      // Not observed yet for a holiday: the earliest a feed could freeze.
+      "2026-11-25 16:00",
+      "2026-11-27 13:00",
+      "2026-12-04 20:00",
+      "2026-12-11 20:00",
+      "2026-12-18 20:00",
+    ]);
+  });
+
+  it("keeps the feed close at 20:00 New York time across the daylight saving change", () => {
+    // Clocks move forward on Sunday 14 March 2027; Good Friday 2027 is 26 March, so Thursday 25 March closes.
+    expect(simulate(at("2027-03-08", 0), at("2027-03-29", 0), FEED_SCHEDULE)).toEqual(["2027-03-12 20:00", "2027-03-19 20:00", "2027-03-25 16:00", "2027-04-02 20:00"]);
+  });
+});
+
+describe("the schedule of each chain", () => {
+  it("gives Base and X Layer the feed schedule without reading the oracle logger", async () => {
+    const noDb = new Proxy({}, { get: () => { throw new Error("the database was read"); } }) as Db;
+    expect(await scheduleForChain(noDb, 8453)).toBe(FEED_SCHEDULE);
+    expect(await scheduleForChain(noDb, 196)).toBe(FEED_SCHEDULE);
   });
 });
 
