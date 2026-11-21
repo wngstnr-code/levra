@@ -422,7 +422,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | POST | `/v1/deposit/quote` | Cross-chain deposit quote and its deposit address | M4 |
 | GET | `/v1/deposit/:id` | Deposit status | M4 |
 | POST | `/v1/withdraw/quote` | Quote to withdraw to another network | M4 |
-| GET | `/v1/eligibility` | Allowed to use or not, based on region | M5 |
+| GET | `/v1/eligibility` | Allowed to use or not, based on region. Query: `address` (optional, adds `termsAccepted`), `chainId` (optional, adds that chain's own country list, D-73) | M5 |
 | POST | `/v1/terms/accept` | Records acceptance of the terms, with a wallet signature | M5 |
 | GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
 | POST | `/v1/auth/siwe` | Sign in with a wallet signature, for settings | M3 |
@@ -877,7 +877,7 @@ Added by Nabil on 13 October 2026 with FE-50 and FE-31. Approved by Dharu on 14 
 
 Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and checks the signature (smart wallets through ERC-1271 and ERC-6492). The shared source is `termsMessage` in `packages/shared/api/compliance.ts`, used by both the API and the web app.
 
-Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. Regions inside a country (ISO 3166-2, for example `UA-43`) can be blocked too when the CDN sends a region header. The routes are off when no terms version is configured.
+Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. Base and X Layer refuse more countries than Monad (D-73, D-103): an open quote is checked against the list of its chain, a deposit quote against Monad's (deposits arrive on Monad), and `POST /v1/terms/accept` against the list shared by every chain, so a visitor allowed on Monad can accept the terms and is then refused only when opening on Base or X Layer. The web app sends `chainId` to `/v1/eligibility` for the chain it shows; without it the answer covers the shared list only. Regions inside a country (ISO 3166-2, for example `UA-43`) can be blocked too when the CDN sends a region header. The routes are off when no terms version is configured.
 
 ```
 Levra terms of use
