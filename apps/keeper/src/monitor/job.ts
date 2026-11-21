@@ -1,5 +1,5 @@
 import { keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, syncCursors, type Db } from "@levra/db";
-import { lensAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
+import { lensAbi, liquidatorAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { KeeperName } from "@levra/shared/api";
 import { chains, type ChainId } from "@levra/shared/chains";
 import { isScheduledClosed } from "@levra/shared/calendar";
@@ -182,6 +182,18 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
     return out;
   }
 
+  /** USDC for the long markets, the stock for the short ones. A liquidator without `lossBudgetOf` (Monad's live one) gives none. */
+  async function lossBudgets(): Promise<Snapshot["lossBudgets"]> {
+    const liquidator = deployment.liquidator;
+    if (!liquidator) return [];
+    const loans = [...new Map(deployment.markets.map((m) => [m.loanToken.toLowerCase(), { token: m.loanToken, label: m.side === "long" ? "USDC" : `the ${m.symbol} short market's stock` }])).values()];
+    const reads = await client.multicall({
+      allowFailure: true,
+      contracts: loans.map((l) => ({ address: liquidator, abi: liquidatorAbi, functionName: "lossBudgetOf", args: [l.token] }) as const),
+    });
+    return loans.flatMap((l, i) => (reads[i]!.status === "success" ? [{ ...l, budget: reads[i]!.result as bigint }] : []));
+  }
+
   async function collect(db: Db): Promise<{ snapshot: Snapshot; limits: Record<string, OracleLimit> }> {
     const now = clock();
     const [views, nextCloseAt, sched, mids, beats, cursors, block, stats, api] = await Promise.all([
@@ -255,6 +267,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
       head: block.number,
       api,
       gaps: await gapRows(symbols),
+      lossBudgets: await lossBudgets(),
     };
     return { snapshot, limits };
   }
