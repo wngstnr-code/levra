@@ -3,12 +3,13 @@ import { fileURLToPath } from "node:url";
 import { decodeEventLog, isAddress, keccak256, toBytes } from "viem";
 import { describe, expect, it } from "vitest";
 import { erc20PermitAbi, liquidatorAbi, marginRouterAbi, metaMorphoAbi, morphoAbi, riskManagerAbi } from "./abis";
-import { BASE_CHAIN_ID, external, tokens, tokensByChain } from "./addresses";
+import { BASE_CHAIN_ID, XLAYER_CHAIN_ID, external, tokens, tokensByChain } from "./addresses";
 import { parseDeployment, type Deployment } from "./deployments";
 import { baseDeployment } from "./deployments.base";
 import { monadDeployment } from "./deployments.monad";
 import { readDeployment } from "./deployments.node";
-import { baseStocks, findMarket, isStockSymbol, listMarkets, stocks } from "./markets";
+import { xlayerDeployment } from "./deployments.xlayer";
+import { baseStocks, findMarket, isStockSymbol, listMarkets, stocks, stocksByChain } from "./markets";
 
 const forkFile = fileURLToPath(new URL("../../contracts/deployments/fork.json", import.meta.url));
 
@@ -116,6 +117,21 @@ describe("deployment", () => {
       const quoteSide = market.side === "long" ? market.loanToken : market.collateralToken;
       expect(stockSide).toBe(market.stock.token);
       expect(quoteSide).toBe(tokensByChain[BASE_CHAIN_ID].USDC.address);
+    }
+  });
+  it("bundles the X Layer mainnet deployment with a long and a short market for every X Layer stock", () => {
+    const markets = listMarkets(xlayerDeployment);
+    expect(xlayerDeployment.chainId).toBe(XLAYER_CHAIN_ID);
+    expect(xlayerDeployment.router).toBe("0xf5585feA7aeDC5e148201052f73139111810aA88");
+    const symbols = Object.keys(stocksByChain[XLAYER_CHAIN_ID]).sort();
+    for (const side of ["long", "short"] as const) {
+      expect(markets.filter((m) => m.side === side).map((m) => m.symbol).sort()).toEqual(symbols);
+    }
+    for (const market of markets) {
+      const stockSide = market.side === "long" ? market.collateralToken : market.loanToken;
+      const quoteSide = market.side === "long" ? market.loanToken : market.collateralToken;
+      expect(stockSide).toBe(market.stock.token);
+      expect(quoteSide).toBe(tokensByChain[XLAYER_CHAIN_ID].USDC.address);
     }
   });
 });
