@@ -226,9 +226,9 @@ Start with [docs/README.md](docs/README.md). The most useful ones:
 
 ## Use of AI tools
 
-All three team members used Claude Code (Anthropic) while building Levra: to write and refactor code, tests and docs, to review changes, and to investigate problems on staging.
+All three team members used Claude Code (Anthropic) while building Levra on Monad, Base and X Layer: to write and refactor code, tests and docs, to review pull requests, to prepare and simulate deployment and multisig steps, to verify contract source on the explorers, and to investigate problems on staging.
 
-The team made every product and design decision and chose every risk limit, reviewed each change before it was merged, and sent every transaction on Monad itself. Facts in the docs are marked as verified, not verified or initial proposal, and the addresses and transaction hashes in this README were checked against the chain.
+The team made every product and design decision and chose every risk limit, and reviewed each change before it was merged. No mainnet transaction was sent without a team member's explicit go for that step, and every ownership change goes through the team's 2 of 3 multisig, signed by the team. Facts in the docs are marked as verified, not verified or initial proposal, and the addresses and transaction hashes in this README were checked against the chain.
 
 ## License
 
