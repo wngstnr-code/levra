@@ -20,13 +20,14 @@ describe("one keeper per chain (BE-95)", () => {
     expect(() => loadEnv({ ...base, CHAIN_ID: "1", RPC_URL: "https://rpc.example" })).toThrow(/CHAIN_ID/);
   });
 
-  it("runs the Anchored and KyberSwap jobs on Monad only, and the jobs for every chain only in the global keeper", () => {
+  it("runs the Anchored jobs on Monad only, market depth where a swap provider exists, and the jobs for every chain only in the global keeper", () => {
     expect(names({ ...base, MONAD_RPC_URL: "https://rpc.monad.example" })).toEqual(["oracleMonitor", "marketDepth"]);
     expect(names({ ...base, MONAD_RPC_URL: "https://rpc.monad.example", KEEPER_GLOBAL: "1" })).toEqual(["oracleMonitor", "marketDepth", "transfers"]);
-    // Base and X Layer run the Chainlink price recorder (BE-97), with no key and no deployment.
-    expect(names({ ...base, CHAIN_ID: "8453", RPC_URL: "https://rpc.base.example" })).toEqual(["oracleMonitor"]);
+    // Base and X Layer run the Chainlink price recorder (BE-97), with no key and no deployment; Base also measures its
+    // DEX mid price (BE-96), X Layer waits for the OKX provider (BE-81).
+    expect(names({ ...base, CHAIN_ID: "8453", RPC_URL: "https://rpc.base.example" })).toEqual(["oracleMonitor", "marketDepth"]);
     expect(names({ ...base, CHAIN_ID: "196", RPC_URL: "https://rpc.xlayer.example" })).toEqual(["oracleMonitor"]);
-    expect(names({ ...base, CHAIN_ID: "8453", RPC_URL: "https://rpc.base.example", KEEPER_GLOBAL: "1" })).toEqual(["oracleMonitor", "transfers"]);
+    expect(names({ ...base, CHAIN_ID: "8453", RPC_URL: "https://rpc.base.example", KEEPER_GLOBAL: "1" })).toEqual(["oracleMonitor", "marketDepth", "transfers"]);
   });
 
   it("refuses a deployment file of another chain", () => {

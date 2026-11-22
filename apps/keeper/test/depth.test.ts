@@ -1,11 +1,13 @@
 import { createDb, dexQuotes, latestDexMids, runMigrations } from "@levra/db";
 import { SwapError, type SwapSource } from "@levra/swap";
-import { tokens } from "@levra/shared/addresses";
-import { stocks } from "@levra/shared/markets";
+import { baseTokens, tokens } from "@levra/shared/addresses";
+import { baseStocks, stocks } from "@levra/shared/markets";
 import pino from "pino";
 import type { PublicClient } from "viem";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { DEPTH_SIZES_USD, createMarketDepth, measureStock } from "../src/dex/depth";
+import { DEPTH_SIZES_USD, chainlinkPrices, createMarketDepth, measureStock } from "../src/dex/depth";
+import { depthSwap } from "../src/dex/swap";
+import type { FeedReader } from "../src/oracle/chainlink";
 
 const ORACLE = 100_000_000_000n; // $1,000
 
@@ -24,7 +26,7 @@ function fakeSwap(thin = false): SwapSource {
   };
 }
 
-const ctx = (swap: SwapSource) => ({ swap, pauseMs: 0, runId: "r1", at: new Date(), calls: { n: 0, limited: 0 } });
+const ctx = (swap: SwapSource) => ({ swap, usdc: tokens.USDC, pauseMs: 0, runId: "r1", at: new Date(), calls: { n: 0, limited: 0 } });
 
 describe("market depth", () => {
   it("measures the mid and both sides at every size, with impact against the mid", async () => {
@@ -47,6 +49,45 @@ describe("market depth", () => {
 
   it("measures only the mid when a full table is not due", async () => {
     expect(await measureStock(ctx(fakeSwap()), stocks.QQQ, ORACLE, false)).toHaveLength(1);
+  });
+});
+
+describe("market depth on Base and X Layer (BE-96 step 4)", () => {
+  const feeds = (decimals: number[], answers: bigint[]): FeedReader => ({
+    decimals: async () => decimals,
+    latest: async () => answers.map((answer, i) => ({ roundId: BigInt(i + 1), answer, updatedAt: 1n })),
+    rounds: async () => [],
+  });
+
+  it("prices each stock from its Chainlink feed in 8 decimals and leaves out a feed with no positive answer", async () => {
+    const list = [baseStocks.AAPL, baseStocks.NVDA, baseStocks.TSLA];
+    const priced = await chainlinkPrices(feeds([8, 18, 8], [27_000_000_000n, 180n * 10n ** 18n, 0n]), list)();
+    expect(priced.map((p) => [p.stock.symbol, p.oraclePriceE8])).toEqual([
+      ["AAPL", 27_000_000_000n],
+      ["NVDA", 18_000_000_000n],
+    ]);
+  });
+
+  it("measures a Base stock against Base USDC with its own decimals", async () => {
+    // Base USDC has 6 decimals and the stock 8: a pool at $1,000 with a 1% cost each way.
+    const swap: SwapSource = {
+      quote: async () => {
+        throw new Error("not used");
+      },
+      async price({ tokenIn, amountIn }) {
+        if (tokenIn === baseTokens.USDC.address) return (amountIn * 10n ** 2n * 99n) / 100n / 1_000n;
+        return (((amountIn * 1_000n) / 10n ** 2n) * 99n) / 100n;
+      },
+    };
+    const rows = await measureStock({ ...ctx(swap), usdc: baseTokens.USDC }, baseStocks.NVDA, ORACLE, false);
+    expect(rows).toEqual([expect.objectContaining({ symbol: "NVDA", kind: "mid", deviationBps: 0, midPriceE8: "100005050505" })]);
+  });
+
+  it("measures KyberSwap and Aero on Base, KyberSwap on Monad, and nothing on X Layer until BE-81", () => {
+    const keys = { kyberClientId: "levra" };
+    expect(depthSwap(143, {} as PublicClient, keys)).not.toBeNull();
+    expect(depthSwap(8453, {} as PublicClient, keys)).not.toBeNull();
+    expect(depthSwap(196, {} as PublicClient, keys)).toBeNull();
   });
 });
 
