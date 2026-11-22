@@ -1,5 +1,5 @@
 import { createDb, keeperHeartbeats, monitorState, runMigrations } from "@levra/db";
-import { externalByChain } from "@levra/shared/addresses";
+import { externalByChain, tokens } from "@levra/shared/addresses";
 import { REGULAR_SCHEDULE } from "@levra/shared/calendar";
 import { eq, not, like } from "drizzle-orm";
 import pino from "pino";
@@ -18,6 +18,8 @@ const complianceAdminAbi = parseAbi([
   "function addToDenylist(address[] accounts)",
   "function removeFromDenylist(address[] accounts)",
 ]);
+/** Circle's FiatToken blacklister side (test only). */
+const usdcBlacklisterAbi = parseAbi(["function blacklister() view returns (address)", "function blacklist(address account)", "function unBlacklist(address account)"]);
 
 describe.skipIf(!onFork || !dbUrl)("team monitor on the fork (BE-50)", () => {
   const deployment = forkDeployment();
@@ -100,6 +102,36 @@ describe.skipIf(!onFork || !dbUrl)("team monitor on the fork (BE-50)", () => {
       const lifted = (await monitor.run(ctx)) as { firing: string[] };
       expect(lifted.firing).not.toContain("gate:anchored-denylist:Morpho");
       expect(team.some((t) => t.includes("RESOLVED") && t.includes("Anchored compliance denylists Morpho"))).toBe(true);
+    } finally {
+      await chain.revert({ id: snapshot });
+    }
+  });
+
+  it("alerts the team when Circle blacklists our router for USDC (BE-75)", { timeout: 120_000 }, async () => {
+    const chain = createForkClient(forkRpcUrl);
+    const usdc = tokens.USDC.address;
+    const monitor = createMonitor({ client, deployment, channels: [async (text) => void team.push(text)], wallets: [], schedule: async () => REGULAR_SCHEDULE, bars: async () => [] });
+    await monitor.run(ctx);
+
+    const blacklister = await chain.readContract({ address: usdc, abi: usdcBlacklisterAbi, functionName: "blacklister" });
+    const write = async (functionName: "blacklist" | "unBlacklist") =>
+      as(chain, blacklister, async () => {
+        const hash = await chain.writeContract({ account: blacklister, chain: monad, address: usdc, abi: usdcBlacklisterAbi, functionName, args: [deployment.router] });
+        expect((await chain.waitForTransactionReceipt({ hash })).status).toBe("success");
+      });
+    const snapshot = await chain.snapshot();
+    try {
+      await write("blacklist");
+      team.length = 0;
+      const blocked = (await monitor.run(ctx)) as { firing: string[] };
+      expect(blocked.firing).toContain("gate:usdc-blacklist:router");
+      expect(team.some((t) => t.includes("ALERT") && t.includes(`Circle blacklists router (${deployment.router}) for USDC`))).toBe(true);
+
+      await write("unBlacklist");
+      team.length = 0;
+      const lifted = (await monitor.run(ctx)) as { firing: string[] };
+      expect(lifted.firing).not.toContain("gate:usdc-blacklist:router");
+      expect(team.some((t) => t.includes("RESOLVED"))).toBe(true);
     } finally {
       await chain.revert({ id: snapshot });
     }

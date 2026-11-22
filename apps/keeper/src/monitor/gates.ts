@@ -46,21 +46,31 @@ async function run(client: PublicClient, reads: Read[]): Promise<Gate[]> {
 
 const isTrue = (r: unknown) => r === true;
 
+/**
+ * Circle's USDC on every chain (native on Monad, Base and X Layer): a pause, or a blacklist of Morpho or our contracts,
+ * blocks every close and liquidation. The Earn vault holds the lenders' USDC, so a blacklist of it locks their funds.
+ */
+function usdcReads(chainId: ChainId, accounts: { name: string; address: Address }[], deployment?: Deployment): Read[] {
+  const usdc = tokensByChain[chainId].USDC.address;
+  const holders = deployment?.usdcVault ? [...accounts, { name: "USDC vault", address: deployment.usdcVault }] : accounts;
+  return [
+    { key: "gate:usdc-paused", label: "USDC is paused by Circle", call: { address: usdc, abi: circleUsdcAbi, functionName: "paused" }, blockedWhen: isTrue },
+    ...holders.map((a) => ({
+      key: `gate:usdc-blacklist:${a.name}`,
+      label: `Circle blacklists ${a.name} (${a.address}) for USDC`,
+      call: { address: usdc, abi: circleUsdcAbi, functionName: "isBlacklisted", args: [a.address] },
+      blockedWhen: isTrue,
+    })),
+  ];
+}
+
 async function monadGates(client: PublicClient, accounts: { name: string; address: Address }[]): Promise<Gate[]> {
   const ext = externalByChain[143];
-  const usdc = tokensByChain[143].USDC.address;
   return run(client, [
     ...accounts.map((a) => ({
       key: `gate:anchored-denylist:${a.name}`,
       label: `Anchored compliance denylists ${a.name} (${a.address}), so it cannot receive or send aQQQ, aHOOD or aBIL`,
       call: { address: ext.anchoredCompliance, abi: anchoredComplianceAbi, functionName: "isDenylisted", args: [a.address] },
-      blockedWhen: isTrue,
-    })),
-    { key: "gate:usdc-paused", label: "USDC is paused by Circle", call: { address: usdc, abi: circleUsdcAbi, functionName: "paused" }, blockedWhen: isTrue },
-    ...accounts.map((a) => ({
-      key: `gate:usdc-blacklist:${a.name}`,
-      label: `Circle blacklists ${a.name} (${a.address}) for USDC`,
-      call: { address: usdc, abi: circleUsdcAbi, functionName: "isBlacklisted", args: [a.address] },
       blockedWhen: isTrue,
     })),
   ]);
@@ -135,7 +145,9 @@ async function xlayerGates(client: PublicClient, accounts: { name: string; addre
 /** Every issuer control on one chain that could block a close, a liquidation or the price (BE-75, 04, 05). */
 export async function readGates(client: PublicClient, chainId: ChainId, deployment?: Deployment): Promise<Gate[]> {
   const accounts = watchedAccounts(chainId, deployment);
-  if (chainId === 143) return monadGates(client, accounts);
-  if (chainId === 8453) return baseGates(client, accounts);
-  return xlayerGates(client, accounts);
+  const [stock, usdc] = await Promise.all([
+    chainId === 143 ? monadGates(client, accounts) : chainId === 8453 ? baseGates(client, accounts) : xlayerGates(client, accounts),
+    run(client, usdcReads(chainId, accounts, deployment)),
+  ]);
+  return [...stock, ...usdc];
 }
