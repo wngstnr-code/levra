@@ -293,6 +293,7 @@ Newest first.
 
 Newest first.
 
+- 22 November 2026: X Layer contracts on the OKX explorer: 12 of 13 verified through the web form. The router keeps failing with `SERVER_ERROR` 500 on OKX's side; it stays an exact match on Sourcify. Retry later or ask OKX.
 - 22 November 2026: answered BE-94 findings (3) and (4). (3) SC-89: the deploy scripts refuse a token as swap target or spender, tests pass on every chain config (142 Monad tests, 11 Base and X Layer fork tests). (4) accepted as a known issue, low. SC-87 waits for the indexer to read `previousRouters` (BE) and the re-authorize flow in the app (FE), then the team's go.
 - 22 November 2026: SC-88 in PR #120: the issuer control ABIs and the Morpho oracle `price()` exported to `packages/shared/abis` for the keeper (Dharu's request from BE-75 and BE-30).
 - 22 November 2026: SC-55 on X Layer, step 2 of 3 done. The Safe ran the step 1 batch: `0xfa71c192e171d8b51ddbc6bbe7f358ab82b4f46be9e2a78a63e8be9bd339706f`. `acceptOwnership` is scheduled, executable from 24 November 2026, 03:06 UTC (10:06 WIB). Base is executable from 23 November, 23:51 UTC, so both `executeBatch` steps can run on 24 November after 10:06 WIB.
