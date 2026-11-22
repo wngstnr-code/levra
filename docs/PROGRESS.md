@@ -9,7 +9,7 @@ Last updated: 20 November 2026
 - Tick tasks in your own task file, in the same PR as the work.
 - Edit only your own rows and your own log entries here, so three people can edit this file without conflicts.
 - Write a blocker the same day it appears.
-- After each working day, add one to three lines to the daily log.
+- After each working day, add one to three lines at the top of your own section of the daily log, never in someone else's.
 
 Count progress from a terminal:
 
@@ -64,6 +64,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
+| 22 November 2026 | Dharu (keeper ABIs) | Wangsit | Export to `packages/shared/abis`: Anchored compliance `isDenylisted`, Circle USDC `paused` and `isBlacklisted`, B20 `policyId` and `isPaused`, the B20 policy registry `isAuthorized`, xStock `isPaused` and `asset`, the sanctions list `isSanctioned`, and `RiskManager.calendarPoster`. Until then they are inline in `apps/keeper/src/monitor/gates.ts` and `calendar/poster.ts`. Taken up by Wangsit as SC-88 | BE-75, BE-30, SC-88 |
 | 20 November 2026 | Wangsit (landing site on `levra.finance`) | Dharu | `AUTH_DOMAIN=app.levra.finance` and `https://app.levra.finance` are set on the VPS and work (checked 22 November 2026). Left: add `https://levra.finance` to `CORS_ORIGINS` in the VPS `api.env`, as in `deploy/env/api.env.example`; today a call from the landing origin gets no CORS header | BE-90 |
 | 20 November 2026 | Wangsit (web app on `app.levra.finance`) | Nabil | Add `app.levra.finance` to the allowed domains of the WalletConnect (Reown) project if the app uses one, and change any link in `apps/web` that points at `levra-mon.vercel.app`, which now answers 404 | FE |
 | 20 November 2026 | Dharu | Wangsit | Team keys for the 1inch Swap API and the OKX DEX API: made on the team account on 21 November 2026 and tested (a Base quote from 1inch and an X Layer quote from OKX v6 both answer). Left: Wangsit writes them into the VPS secret files (the folders exist, and his SSH key `wangsit-levra-vps` was added on 21 November), never in chat, under the names `ONEINCH_API_KEY`, `OKX_API_KEY`, `OKX_SECRET_KEY` and `OKX_API_PASSPHRASE`. Optional: a read-only deploy key on the repo for the VPS | BE-96, BE-81, BE-90 |
@@ -265,6 +266,7 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 | Date | Who | Issue | Severity | Task |
 |---|---|---|---|---|
+| 22 November 2026 | Dharu | On Base and X Layer, after a Thursday close before Good Friday, the next weekly close (Saturday 00:00 UTC) is just over 8 days away, past the contract's horizon, so `nextCloseAt` stays empty for about 3 hours that Thursday evening. No pre-close window is due then; the closed regime still starts from the oracle. Next in 2027 (25 March) | Low | BE-30 |
 | 22 November 2026 | Dharu | With `ORIGIN=cloudflare` the server accepts any connection from Cloudflare's ranges, so another Cloudflare account could point its own record at our IP and reach the API through Cloudflare. Cloudflare still writes the real visitor address and country, so the region check should hold, but that is not verified. Authenticated origin pulls with our own certificate would close it | Low | BE-52 |
 | 20 November 2026 | Dharu | When a market's oracle cannot be read (`snapshot()` reverts), the API cannot quote a close, so the web app cannot close that position through Levra even after SC-86 lets the router close in full without a price. A price that is only stale still quotes. Found in BE-94 | Medium | BE-99 |
 | 20 November 2026 | Wangsit | On a Monday US holiday the Chainlink price stops from Monday 01:00 UTC until the feed writes (fail closed, D-92). For that day a partial reduce, `removeCollateral` and Morpho liquidations wait; a full close and adding collateral work. A known exception to product rule 8, chosen over serving a three day old price | Medium | SC-52 |
@@ -272,7 +274,25 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 ## Daily log
 
-Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+One section per person. Add your lines only at the top of your own section, each starting with the date, newest first: one to three lines per working day, saying what got done, what is next and any blocker. Two people then never add lines at the same spot, so git merges their changes without a conflict (06, "Avoiding merge conflicts in shared docs"). Entries up to 22 November 2026 stay in the dated log below.
+
+### Dharu
+
+Newest first.
+
+- 22 November 2026: BE-75 team part in PR #111. The monitor alerts at once when an issuer control blocks Morpho, our router or our liquidator (Anchored denylist and USDC on Monad, B20 pause, policy and oracle pause on Base, xStock pause and sanctions on X Layer). Fork test: denylisting Morpho raises the alert. Live read: 17 controls on Base and 9 on X Layer, none blocking. Next: Wangsit's review (Circle USDC on Base and X Layer, the USDC vault), user alerts and the halted flag in the API.
+- 22 November 2026: BE-30 for Base and X Layer in PR #109 (D-106). `FEED_SCHEDULE`: Saturday 00:00 UTC, the oracle's own weekly close (Friday 19:00 New York time in winter, fixed after Wangsit's review), and the exchange close before a holiday; the calendar job now runs on every chain. Next: the poster role and key on Base and X Layer (BE-73, BE-80), and checking the Thanksgiving freeze with the BE-97 recorder.
+- 22 November 2026: BE-88 in PR #108 (D-105). The protector sizes keeper reductions inside the router's floor and size bound and simulates before sending. The keeper fork tests now post a fresh Anchored price first (the weekend fork price is stale and `CLOSED`); every keeper test passes on a fresh fork deploy of `main` (100).
+
+### Wangsit
+
+Newest first.
+
+### Nabil
+
+Newest first.
+
+## Daily log until 22 November 2026
 
 ### 22 November 2026
 
