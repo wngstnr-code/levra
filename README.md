@@ -4,29 +4,31 @@
 
 > 🏆 **Privy Bounty Winner** at **[Monad Metropolis 2026](https://monad.xyz/metropolis)**, Monad's global online hackathon.
 
-A margin account for tokenized stocks on Monad. One account to buy tokenized stocks with leverage (long), profit when prices fall (short), or lend assets for interest, with funds that can arrive from any chain.
+A margin account for tokenized stocks on Monad, Base and X Layer. One account to buy tokenized stocks with leverage (long), profit when prices fall (short), or lend assets for interest, with funds that can arrive from any chain.
 
-Levra does not run its own exchange or lending pool. Trades go to Uniswap v4 and Monday Trade through the KyberSwap aggregator. Lending and borrowing happen on Morpho. Cross-chain deposits use Aurora Intents. Stock prices come from the Anchored oracle. User funds stay in the user's own Morpho position.
+Levra does not run its own exchange or lending pool. Lending and borrowing happen on Morpho on every chain. Trades go through DEX aggregators: KyberSwap on Monad, 1inch, KyberSwap and Aero on Base, the OKX DEX router and Uniswap v3 on X Layer. The hard limit uses the issuer's official price: the Anchored oracle on Monad, Chainlink's Coinbase feeds on Base, and the xStocks price feeds on X Layer. User funds stay in the user's own Morpho position.
 
 | | |
 |---|---|
 | Web app | [app.levra.finance](https://app.levra.finance) |
-| API | [api-production-c154.up.railway.app](https://api-production-c154.up.railway.app/v1/health) |
-| Live status | [api-production-c154.up.railway.app/status](https://api-production-c154.up.railway.app/status) |
-| Chain | Monad mainnet (chain ID 143) |
+| API | [api.levra.finance](https://api.levra.finance/v1/health) |
+| Live status | [api.levra.finance/status](https://api.levra.finance/status) |
+| Chains | Monad (143), Base (8453), X Layer (196), all mainnet |
 
 ## The problem
 
-The stock exchange closes, the token does not. Tokenized stocks trade around the clock on Monad, but their price only moves for real while the US market is open. A leveraged position that looks safe on Friday evening can open far past its liquidation price on Monday morning, with no chance to react over the weekend.
+The stock exchange closes, the token does not. Tokenized stocks trade around the clock onchain, but their price only moves for real while the US market is open. A leveraged position that looks safe on Friday evening can open far past its liquidation price on Monday morning, with no chance to react over the weekend.
 
 Levra is built around that gap:
 
 - **Limits that follow the market session.** Each market has a soft limit for new positions that tightens before the market closes, on top of Morpho's hard liquidation limit.
 - **Opt-in protection.** A user can let a keeper reduce a position before the close when it is above the soft limit. It is off by default, per user and per market.
-- **One price source for liquidation.** The hard limit uses the Anchored oracle only. DEX prices are used only for the soft checks, so a pushed DEX price cannot liquidate anyone.
+- **One price source for liquidation.** The hard limit uses the issuer's official oracle only. DEX prices are used only for the soft checks, so a pushed DEX price cannot liquidate anyone.
 - **Gap scenarios.** Every quote and position shows what the loan-to-value would be after the historical worst weekend and holiday gaps.
 
 ## What works today
+
+### Monad
 
 Everything below runs on Monad mainnet in **staging**: team money, very small position caps, no audit yet.
 
@@ -35,10 +37,18 @@ Everything below runs on Monad mainnet in **staging**: team money, very small po
 - **Positions**: collateral, debt, loan-to-value, liquidation price, entry price, and profit and loss, read live from the chain, with full history from our indexer.
 - **Price charts** for 1 day, 1 week and 1 month from every oracle update since 29 September 2026, and a live price stream.
 - **Keepers** on mainnet: calendar poster (posts the next market close), oracle age poster, protector (auto-deleverage), liquidator bot, user alerts on Telegram, and a team monitor. All four on-chain roles are granted and funded; the first keeper transaction posted the next close on 14 October 2026.
-- **Cross-chain deposits and withdrawals** through Aurora Intents (1Click), with an optional MON top-up for gas. Quotes work; a real transfer with funds is not done yet.
 - **Sign-in** with email, passkey or an external wallet through Privy, with an embedded wallet for new users.
 
-Not done yet, and stated plainly: the external audit, the handover of ownership to the team multisig behind a timelock, a KyberSwap API key for launch traffic, a paid RPC provider, a real cross-chain transfer, and legal review of the region list and the terms. Every risk limit in [docs/04-risk-rules.md](docs/04-risk-rules.md) is an initial proposal, not a tested or safe value.
+### Base and X Layer
+
+Deployed on 22 November 2026 with the same contracts. Not used with real positions yet.
+
+- **Base**: 16 markets (long and short on AAPL, AMZN, GOOGL, META, MSFT, NVDA, SPCX and TSLA) over the Coinbase stock tokens, and a USDC vault for lenders. 20 contracts, verified on Basescan and Sourcify.
+- **X Layer**: 8 markets (long and short on GOOGL, NVDA, QQQ and SPY) over the wrapped xStocks. Lenders supply directly to a market, because Morpho has no vault factory on X Layer. 12 contracts verified on Sourcify.
+- Ownership on both chains is moving from the deployer to the team multisig behind a 2 day timelock; the first step is done and the second can run once the delay ends.
+- The indexer, keepers and web app screens for both chains are being finished.
+
+Not done yet, and stated plainly: the external audit, the multisig accepting ownership on all three chains through the 2 day timelock, the first real positions on Base and X Layer, cross-chain deposits through Circle CCTP and Across, a paid RPC provider, and legal review of the region list and the terms. Every risk limit in [docs/04-risk-rules.md](docs/04-risk-rules.md) is an initial proposal, not a tested or safe value.
 
 Progress, blockers and every transaction hash are tracked in [docs/PROGRESS.md](docs/PROGRESS.md).
 
@@ -50,11 +60,11 @@ flowchart LR
     WEB -->|quotes and data| API[API]
     WEB -->|one signed transaction| ROUTER[MarginRouter]
     ROUTER -->|flash loan, collateral, debt| MORPHO[Morpho]
-    ROUTER -->|swap| KYBER[KyberSwap to Uniswap v4 and Monday Trade]
+    ROUTER -->|swap| DEX[Fixed list of DEX routers per chain]
     ROUTER --> RISK[RiskManager]
-    RISK --> ORACLE[SessionOracle]
+    RISK --> ORACLE[Session oracle]
     MORPHO --> ORACLE
-    ORACLE --> ANCH[Anchored oracle]
+    ORACLE --> ISSUER[Issuer price feed]
     KEEPER[Keepers] --> ROUTER
     KEEPER --> LIQ[Liquidator] --> MORPHO
     KEEPER --> RISK
@@ -62,7 +72,7 @@ flowchart LR
     IDX[Indexer] --> DB
 ```
 
-Opening a long in one transaction: the router borrows USDC from Morpho with a free flash loan, adds the user's margin, buys the stock token through KyberSwap, deposits it as collateral in the user's own Morpho position, borrows USDC against it, checks the result against the soft limit and the position cap, and repays the flash loan. A short works the same way in reverse: it supplies the user's USDC as collateral, borrows the stock and sells it, also in one transaction.
+Opening a long in one transaction: the router borrows USDC from Morpho with a free flash loan, adds the user's margin, buys the stock token through one of the chain's allowed swap routers, deposits it as collateral in the user's own Morpho position, borrows USDC against it, checks the result against the soft limit and the position cap, and repays the flash loan. A short works the same way in reverse: it supplies the user's USDC as collateral, borrows the stock and sells it, also in one transaction.
 
 Where the funds are:
 
@@ -71,15 +81,28 @@ Where the funds are:
 - Closing, reducing, repaying and adding collateral can never be paused. The most the team can do is stop new positions.
 - If our app and backend go down, a position can still be closed directly on Morpho. The steps are in [docs/public/contracts.md](docs/public/contracts.md).
 
-Services on Monad that Levra builds on: Morpho (lending, flash loans, the vault factory), the Anchored oracle and its stock tokens, KyberSwap with Uniswap v4 and Monday Trade, and Aurora Intents for cross-chain transfers. Sign-in uses Privy. The indexer can read logs from Envio HyperSync and falls back to the RPC endpoint; staging uses the RPC endpoint until it has a HyperSync token.
+Services Levra builds on:
 
-## Contracts on Monad mainnet
+| | Monad | Base | X Layer |
+|---|---|---|---|
+| Lending | Morpho | Morpho | Morpho |
+| Stock tokens | Anchored | Coinbase (B20) | xStocks |
+| Hard limit price | Anchored oracle | Chainlink, Coinbase feeds | xStocks price feeds |
+| Swaps | KyberSwap | 1inch, KyberSwap, Aero | OKX DEX, Uniswap v3 |
+| Lender vault | MetaMorpho | MetaMorpho | direct market supply |
+
+Sign-in uses Privy. The backend (API, one indexer and one keeper per chain, Postgres) runs on one server with Docker Compose; the web app runs on Vercel.
+
+## Contracts
+
+### Monad mainnet
 
 | Contract | Address |
 |---|---|
-| `MarginRouter` | [`0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6`](https://monadscan.com/address/0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6) |
+| `MarginRouter` | [`0xf5585feA7aeDC5e148201052f73139111810aA88`](https://monadscan.com/address/0xf5585feA7aeDC5e148201052f73139111810aA88) |
+| Previous `MarginRouter` (13 October 2026, still works) | [`0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6`](https://monadscan.com/address/0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6) |
 | `RiskManager` | [`0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F`](https://monadscan.com/address/0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F) |
-| `Lens` | [`0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8`](https://monadscan.com/address/0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8) |
+| `Lens` | [`0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`](https://monadscan.com/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) |
 | `Liquidator` | [`0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39`](https://monadscan.com/address/0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39) |
 | USDC vault `Levra USDC` (`lvUSDC`) | [`0xfB99A7E3f5571baA363d67F7823bb354cfd95447`](https://monadscan.com/address/0xfB99A7E3f5571baA363d67F7823bb354cfd95447) |
 
@@ -93,7 +116,23 @@ Markets on Morpho, each with its own `SessionOracle`:
 | QQQ | short | 77% |
 | HOOD | short | 62.5% |
 
-The source of all nine contracts is verified on Sourcify. Market IDs and the oracle addresses are in [`contracts/deployments/monad.json`](contracts/deployments/monad.json). Roles, what the team can and cannot change, and how to leave without the app are in [docs/public/contracts.md](docs/public/contracts.md).
+Every contract above is verified on Sourcify. Market IDs and the oracle addresses are in [`contracts/deployments/monad.json`](contracts/deployments/monad.json).
+
+### Base and X Layer mainnet
+
+The core contracts have the same address on both chains.
+
+| Contract | Address | Base | X Layer |
+|---|---|---|---|
+| `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` | [Basescan](https://basescan.org/address/0xf5585feA7aeDC5e148201052f73139111810aA88) | [OKX](https://web3.okx.com/explorer/x-layer/address/0xf5585feA7aeDC5e148201052f73139111810aA88) |
+| `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` | [Basescan](https://basescan.org/address/0x8354ff472d87C942f9186acc83e0600424272594) | [OKX](https://web3.okx.com/explorer/x-layer/address/0x8354ff472d87C942f9186acc83e0600424272594) |
+| `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` | [Basescan](https://basescan.org/address/0xa8d15000992Cd055E7731E884D91b16F2123A327) | [OKX](https://web3.okx.com/explorer/x-layer/address/0xa8d15000992Cd055E7731E884D91b16F2123A327) |
+| `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | [Basescan](https://basescan.org/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) | [OKX](https://web3.okx.com/explorer/x-layer/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) |
+| USDC vault `Levra USDC` (`lvUSDC`) | `0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8` | [Basescan](https://basescan.org/address/0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8) | none (D-84) |
+
+Every market, its Morpho ID and its oracle are in [`contracts/deployments/base.json`](contracts/deployments/base.json) and [`contracts/deployments/xlayer.json`](contracts/deployments/xlayer.json).
+
+Roles, what the team can and cannot change, and how to leave without the app on each chain are in [docs/public/contracts.md](docs/public/contracts.md).
 
 ## Real transactions on Monad
 
@@ -115,7 +154,7 @@ A selection. The full list is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
 Requirements: Node.js 24 or later, pnpm 10, Foundry, and Docker for Postgres.
 
-The protocols Levra uses exist only on Monad mainnet, so there is no testnet. Local development runs against a fork of mainnet on your own machine, with real Morpho, the real Anchored oracle and real tokens, and no real money.
+The protocols Levra uses exist only on mainnet, so there is no testnet. Local development runs against a fork of Monad mainnet on your own machine, with real Morpho, the real Anchored oracle and real tokens, and no real money.
 
 ```bash
 pnpm install
@@ -158,12 +197,12 @@ Database tests need `TEST_DATABASE_URL` (the docker Postgres). Backend tests tha
 |---|---|---|
 | `contracts/` | Smart contracts, deployment and mainnet scripts (Foundry) | Wangsit |
 | `apps/api/` | HTTP API: markets, quotes with ready-to-sign transactions, accounts, Earn, deposits, alerts, status | Dharu |
-| `apps/indexer/` | Follows router, Morpho and vault events into Postgres | Dharu |
+| `apps/indexer/` | Follows router, Morpho and vault events into Postgres, one process per chain | Dharu |
 | `apps/keeper/` | Calendar poster, oracle age poster, protector, liquidator bot, alerts, oracle logger, team monitor | Dharu |
 | `apps/web/` | Web app (Next.js) | Nabil |
 | `deploy/` | Backend hosting on one VPS: image, Docker Compose, HTTPS, deploy and backup scripts | Dharu |
 | `packages/shared/` | ABIs, addresses, deployment files, formulas and API schemas, shared by everyone | Shared |
-| `packages/db/`, `packages/swap/`, `packages/intents/` | Database schema, swap providers (KyberSwap, 1inch, Aero), Aurora Intents client | Dharu |
+| `packages/db/`, `packages/swap/`, `packages/intents/` | Database schema, swap providers (KyberSwap, 1inch, Aero, OKX DEX), cross-chain transfer client | Dharu |
 | `docs/` | Product, architecture, interface agreement, risk rules, tasks and progress | Shared |
 
 ## Docs
