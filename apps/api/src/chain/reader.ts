@@ -285,11 +285,13 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       const events: RouterEvent[] = [];
       const opened = getAbiItem({ abi: marginRouterAbi, name: "PositionOpened" });
       const reduced = getAbiItem({ abi: marginRouterAbi, name: "PositionReduced" });
+      // Every router of the deployment: positions opened on a previous one are part of the history (BE-100).
+      const routers = [deployment.router, ...(deployment.previousRouters ?? [])];
       for (let from = BigInt(deployment.block); from <= head; from += LOG_RANGE) {
         const to = from + LOG_RANGE - 1n < head ? from + LOG_RANGE - 1n : head;
         const [o, r] = await Promise.all([
-          client.getLogs({ address: deployment.router, event: opened, args: { user }, fromBlock: from, toBlock: to, strict: true }),
-          client.getLogs({ address: deployment.router, event: reduced, args: { user }, fromBlock: from, toBlock: to, strict: true }),
+          client.getLogs({ address: routers, event: opened, args: { user }, fromBlock: from, toBlock: to, strict: true }),
+          client.getLogs({ address: routers, event: reduced, args: { user }, fromBlock: from, toBlock: to, strict: true }),
         ]);
         for (const l of o) {
           events.push({ kind: "opened", marketId: l.args.marketId, block: l.blockNumber, logIndex: l.logIndex, margin: l.args.margin, collateralDelta: l.args.collateralDelta, debtDelta: l.args.debtDelta, fee: l.args.fee });
