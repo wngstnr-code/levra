@@ -232,10 +232,12 @@ describe.skipIf(!url)("team alerts sent once and resolved (needs TEST_DATABASE_U
     const snapshot = { ...healthy(), chainId: chain as 196, gates: [gate("gate:xstock-paused:NVDA", true), gate("gate:xstock-paused:QQQx", true), gate("gate:usdc-blacklist:router", true), gate("gate:xstock-paused:SPY", false), gate("gate:xstock-sanctions:Morpho", null)] };
     await reconcile(db, chain, evaluate(snapshot).filter((f) => f.key.startsWith("gate:")), at(0), send);
     const shown = (key: string) => `${key} message. Opening, closing or liquidating may fail while it lasts.`;
+    // `since` is when the block started, in unix seconds: halt alerts key on it.
+    const since = Math.floor(at(0).getTime() / 1000);
     expect(await activeGates(db, chain)).toEqual([
-      { key: "gate:usdc-blacklist:router", symbol: null, message: shown("gate:usdc-blacklist:router") },
-      { key: "gate:xstock-paused:NVDA", symbol: "NVDA", message: shown("gate:xstock-paused:NVDA") },
-      { key: "gate:xstock-paused:QQQx", symbol: "QQQ", message: shown("gate:xstock-paused:QQQx") },
+      { key: "gate:usdc-blacklist:router", symbol: null, message: shown("gate:usdc-blacklist:router"), since },
+      { key: "gate:xstock-paused:NVDA", symbol: "NVDA", message: shown("gate:xstock-paused:NVDA"), since },
+      { key: "gate:xstock-paused:QQQx", symbol: "QQQ", message: shown("gate:xstock-paused:QQQx"), since },
     ]);
     // Lifted: nothing left to show.
     snapshot.gates = snapshot.gates.map((g) => ({ ...g, blocked: false }));
