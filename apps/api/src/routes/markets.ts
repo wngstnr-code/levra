@@ -22,8 +22,11 @@ import { createCache } from "../chain/cache";
 import type { ChainReader, ChainSession, MarketState } from "../chain/reader";
 import { ApiHttpError, upstream } from "../errors";
 
-/** `dexMidE8` comes from the depth keeper (BE-04); without a recent measurement the DEX fields stay null. */
-export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
+/**
+ * `dexMidE8` comes from the depth keeper (BE-04); without a recent measurement the DEX fields stay null. `haltReasons`
+ * come from the team monitor (BE-75).
+ */
+export function toApiMarket(m: MarketState, dexMidE8?: bigint, haltReasons: string[] = []): Market {
   const utilization = utilizationWad(m.totalBorrowRaw, m.totalSupplyRaw);
   const borrowApy = borrowApyWad(m.borrowRatePerSecondWad);
   const available = m.totalSupplyRaw > m.totalBorrowRaw ? m.totalSupplyRaw - m.totalBorrowRaw : 0n;
@@ -57,7 +60,16 @@ export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
     oracleKind: "priceFeed" in m.info.stock ? "chainlink" : "anchored",
     uiMultiplierWad: m.uiMultiplierWad === null ? null : m.uiMultiplierWad.toString(),
     tokenPaused: m.tokenPaused,
+    haltReasons,
   };
+}
+
+/** Active issuer blocks on the chain (BE-75): `symbol` null covers every market. */
+export type Halts = () => Promise<{ symbol: string | null; message: string }[]>;
+export const noHalts: Halts = async () => [];
+
+export function haltReasonsFor(halts: { symbol: string | null; message: string }[], symbol: string): string[] {
+  return halts.filter((h) => h.symbol === null || h.symbol === symbol).map((h) => h.message);
 }
 
 export function toSessionInfo(s: ChainSession): SessionInfo {
@@ -135,6 +147,7 @@ export function marketRoutes(
   dexMids: DexMids = noDexMids,
   history: MarketHistory = noMarketHistory,
   now: () => number = Date.now,
+  halts: Halts = noHalts,
 ) {
   const app = new Hono();
   const { deployment } = reader;
@@ -156,15 +169,18 @@ export function marketRoutes(
   app.get("/v1/session", async (c) => c.json(toSessionInfo(await upstream(reader.session))));
 
   app.get("/v1/markets", async (c) => {
-    const [session, markets, mids] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids()]);
-    return c.json({ session: toSessionInfo(session), markets: markets.map((m) => toApiMarket(m, mids.get(m.info.symbol))) } satisfies MarketsResponse);
+    const [session, markets, mids, blocks] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids(), halts()]);
+    return c.json({
+      session: toSessionInfo(session),
+      markets: markets.map((m) => toApiMarket(m, mids.get(m.info.symbol), haltReasonsFor(blocks, m.info.symbol))),
+    } satisfies MarketsResponse);
   });
 
   app.get("/v1/markets/:symbol", async (c) => {
     const symbol = c.req.param("symbol").toUpperCase();
     const stock = findStock(chainId, symbol);
     if (!stock) throw new ApiHttpError("NOT_FOUND", `No stock ${symbol}.`);
-    const [session, markets, mids] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids()]);
+    const [session, markets, mids, blocks] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids(), halts()]);
     const own = markets.filter((m) => m.info.symbol === symbol);
     if (own.length === 0) throw new ApiHttpError("NOT_FOUND", `No market for ${symbol} in this deployment.`);
     const [depth, rateHistory, deviationHistory] = await Promise.all([
@@ -177,7 +193,7 @@ export function marketRoutes(
       name: stock.name,
       stockToken: stock.token,
       session: toSessionInfo(session),
-      markets: own.map((m) => toApiMarket(m, mids.get(symbol))),
+      markets: own.map((m) => toApiMarket(m, mids.get(symbol), haltReasonsFor(blocks, symbol))),
       depth,
       rateHistory,
       deviationHistory,

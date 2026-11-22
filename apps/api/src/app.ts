@@ -16,8 +16,8 @@ import { complianceRoutes, createCompliance, type ComplianceOptions } from "./ro
 import type { IntentsSource } from "@levra/intents";
 import { authRoutes } from "./routes/auth";
 import { earnRoutes } from "./routes/earn";
-import { dbMarketHistory, marketRoutes, type DexMids } from "./routes/markets";
-import { latestDexMids } from "@levra/db";
+import { dbMarketHistory, marketRoutes, type DexMids, type Halts } from "./routes/markets";
+import { activeGates, latestDexMids } from "@levra/db";
 import { createCache } from "./chain/cache";
 import { quoteRoutes } from "./routes/quotes";
 import { statusRoutes } from "./routes/status";
@@ -52,6 +52,12 @@ export type AppDeps = {
 function dexMidsFromDb(db: Db, chainId: number): DexMids {
   const cached = createCache();
   return () => cached("dexMids", 30_000, () => latestDexMids(db, chainId, 1_800));
+}
+
+/** Issuer blocks the team monitor sees now (BE-75), cached for 30 seconds; the monitor runs every minute. */
+function haltsFromDb(db: Db, chainId: number): Halts {
+  const cached = createCache();
+  return () => cached("halts", 30_000, () => activeGates(db, chainId));
 }
 
 export function createApp({ logger, reader, otherChains = [], swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
@@ -95,7 +101,7 @@ export function createApp({ logger, reader, otherChains = [], swap, events, stre
     const id = r.deployment.chainId;
     const mids = db ? dexMidsFromDb(db, id) : undefined;
     const sub = new Hono();
-    sub.route("/", marketRoutes(r, mids, db ? dbMarketHistory(db, id) : undefined));
+    sub.route("/", marketRoutes(r, mids, db ? dbMarketHistory(db, id) : undefined, undefined, db ? haltsFromDb(db, id) : undefined));
     sub.route("/", streamRoutes(r, logger, stream, mids));
     sub.route("/", accountRoutes(r, store));
     sub.route("/", earnRoutes(r, store));
