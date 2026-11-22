@@ -64,9 +64,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 20 November 2026 | Nabil | Dharu | The stats endpoint shape (BE-79) in `packages/shared/api`, so the public stats page uses the same definitions as the backend | FE-75 |
-| 20 November 2026 | Nabil | Dharu | A shared formula for position PnL in percent in `math.ts` (or a field on `Position`), for the share card | FE-76 |
-| 20 November 2026 | Nabil | Wangsit | Export the Base and X Layer deployments from `packages/shared` like Monad (`@levra/shared/deployments/base`, `@levra/shared/deployments/xlayer`). The web app shows a chain only once its deployment exists (FE-70) | FE-70, FE-71, FE-80 |
 | 20 November 2026 | Nabil (the web app has no backend: the Railway API answers 404) | Dharu | The API on the VPS (BE-90, planned for 21 November). Then Nabil sets `NEXT_PUBLIC_API_URL` on Vercel to the new address | BE-90, BE-91 |
 | 20 November 2026 | Dharu | Nabil | The domain (Q-25) by 24 November, with access to its DNS: a stable HTTPS address for the API, and Cloudflare in front of it so the API can refuse US users on Base (D-73, BE-52). Until then the API runs on an interim address | BE-90, BE-52 |
 | 20 November 2026 | Dharu | Wangsit | Team keys for the 1inch Swap API (by 25 November) and the OKX DEX API with its secret and passphrase (by 29 November), put straight into the VPS secret files, never in chat. Optional: a read-only deploy key on the repo for the VPS | BE-96, BE-81, BE-90 |
@@ -284,10 +281,6 @@ Newest first. One to three lines per person per working day: what got done, what
 - Wangsit: D-88 written: each swap target has a fixed spender, so OKX DEX works through its approve contract. 123 Monad tests and the Base and X Layer forks pass, Slither is clean, and the Base live end-to-end still passes. Constructors of the router and liquidator gain `swapSpenders` (no deployment yet uses it except X Layer later). Dharu: ABIs gain `swapSpender(target)` (additive).
 - Wangsit: SC-82 done. X Layer depth through OKX DEX is far deeper than Base (wQQQx and wSPYx trade $50,000 under 0.3%, wNVDAx at 2.5% to sell). Limits proposed in 04 (77% for SPY, QQQ and GOOGL, 62.5% for NVDA, 30 minute soft oracle age). `config/xlayer.json` deploys 8 markets on a fork, and our oracle matches Morpho's own on wNVDAx. Found the Uniswap SwapRouter02 on X Layer from a real swap. Next: full long and short on an X Layer fork through OKX.
 - Wangsit: SC-83 rehearsed: on an X Layer fork the real deployment script, then an NVDA long through OKX DEX both ways and a QQQ short through Uniswap and OKX DEX, router empty at the end (`make xlayer-fork-e2e`, 05). X Layer is technically ready to deploy; it waits for OKB, the multisig and the SC-82 check, like Base.
-
-### 20 November 2026
-
-- Nabil: the redesign and multi chain web app are built on five stacked branches: `fe/FE-84-a-foundation` (light and dark themes, theme switch, Levra icons, phone tab bar, plain language copy), `fe/FE-70-b-multichain` (`/[chain]/...` routes, chain registry that offers a chain once its deployment exists, `/v1/:chainId` calls with the Monad alias, network picker), `fe/FE-75-c-pages` (market clock, short room in stock units, which fixes short room shown as USDC), `fe/FE-88-d-flows` (a notice for every quote warning, copy for every contract and API error, our sign-in sheet on Privy, share card for X), `fe/FE-89-e-motion` (short motion, reduced motion respected). 84 unit tests and 35 end-to-end tests pass; an independent audit found two minor issues, both fixed, and ended with no revisions. Next: merge the branches in order, then Base and X Layer once their deployment files are exported (blocker for Wangsit). Next.js 16.4.0 reports a known security issue; an upgrade is pending Nabil's go-ahead.
 
 ### 19 November 2026
 
