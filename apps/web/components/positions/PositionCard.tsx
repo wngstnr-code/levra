@@ -16,6 +16,7 @@ import { useChain } from "@/lib/useChain";
 import { Share2 } from "lucide-react";
 import { useState } from "react";
 import { ShareSheet } from "./ShareSheet";
+import { hasNoPrice } from "@/lib/marketState";
 
 export type ManageTab = "add" | "remove" | "repay" | "reduce" | "close";
 
@@ -28,6 +29,7 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
   const tone = p.overSoftLimit ? (ltvShare > 0.95 ? "down" : "caution") : "up";
   const stockAmt = stock ? `${formatToken(p.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}` : p.stockAmountRaw;
   const pnl = BigInt(p.unrealizedPnlUsdRaw);
+  const noPrice = hasNoPrice(p.oraclePriceE8);
   const worst = p.gapScenarios[0];
   const [sharing, setSharing] = useState(false);
   const lev = BigInt(p.equityUsdRaw) > 0n ? Number((BigInt(p.valueUsdRaw) * 100n) / BigInt(p.equityUsdRaw)) / 100 : null;
@@ -46,9 +48,9 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
         </div>
         {p.overSoftLimit && <span className="rounded-full bg-caution-soft px-3 py-1.5 text-[13px] font-semibold text-caution">● {m.positions.aboveSoft}</span>}
         <div className="ml-auto flex items-center gap-3">
-          <button onClick={() => setSharing(true)} className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[13px] text-fg-2 transition-colors hover:text-fg">
+          {!noPrice && <button onClick={() => setSharing(true)} className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[13px] text-fg-2 transition-colors hover:text-fg">
             <Share2 size={14} aria-hidden /> {m.share.button}
-          </button>
+          </button>}
           {protectionControl}
         </div>
       </div>
@@ -56,16 +58,16 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
 
       <div className="flex flex-wrap items-center gap-8">
         <Ring value={ltvShare} mark={wadRatio(p.softLtvWad, p.lltvWad)} faintMark={openSoftWad && BigInt(openSoftWad) > BigInt(p.softLtvWad) ? wadRatio(openSoftWad, p.lltvWad) : undefined} tone={tone} label={`${m.positions.ltv} ${formatWadPercent(p.ltvWad)}`}>
-          <span className="font-rounded text-[28px] font-semibold">{formatWadPercent(p.ltvWad)}</span>
+          <span className="font-rounded text-[28px] font-semibold">{noPrice ? "—" : formatWadPercent(p.ltvWad)}</span>
           <span className="text-xs text-fg-2">{m.positions.ltv}</span>
         </Ring>
         <div className="min-w-0 flex-1 space-y-4">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-            <Stat k={long ? m.positions.value : m.positions.debtValue} v={formatUsd(p.valueUsdRaw)} />
+            <Stat k={long ? m.positions.value : m.positions.debtValue} v={noPrice ? m.noPrice.title : formatUsd(p.valueUsdRaw)} />
             <Stat k={long ? m.positions.debt : m.positions.collateral} v={`${formatToken(long ? p.debtRaw : p.collateralRaw, 6, 2)} USDC`} />
-            <Stat k={m.positions.equity} v={formatUsd(p.equityUsdRaw)} />
+            <Stat k={m.positions.equity} v={noPrice ? m.noPrice.title : formatUsd(p.equityUsdRaw)} />
             <Stat k={m.positions.entry} v={BigInt(p.entryPriceE8) > 0n ? formatUsdE8(BigInt(p.entryPriceE8)) : "—"} />
-            <Stat k={m.positions.pnl} v={formatUsdSigned(pnl)} tone={pnl > 0n ? "text-up" : pnl < 0n ? "text-down" : undefined} />
+            <Stat k={m.positions.pnl} v={noPrice ? m.noPrice.title : formatUsdSigned(pnl)} tone={pnl > 0n ? "text-up" : pnl < 0n ? "text-down" : undefined} />
           </dl>
           <div className="grid gap-3 sm:grid-cols-3">
             <StatBox label={m.positions.liqPrice} value={formatUsdE8(BigInt(p.liqPriceE8))} sub={(long ? m.positions.below : m.positions.above)(formatBps(Math.abs(p.liqDistanceBps), { fractionDigits: 0 }))} />
