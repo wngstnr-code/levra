@@ -508,10 +508,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a real transaction shows the code in Base's attribution.
   - Note (20 November 2026): the code goes on every Base transaction the API builds. The constant lives in `packages/shared/api`, so the web app adds the same code to the Base transactions it builds itself (Earn, D-07). First check how Base links a transaction to a Builder Code (not verified). Needed before the first real Base transaction, since traction counts from it.
 
-- [ ] **BE-75 · Policy and pause monitor**
+- [~] **BE-75 · Policy and pause monitor**
   - Do: watch each listed token's policy and pause state; alert the team and the affected users (Telegram) when it changes; mark the market halted in the API.
   - Done when: a fork test that flips a pause raises the alert.
   - Note (20 November 2026): covers X Layer too. D-86: on X Layer the keeper catches a token pause or a sanctions list change and alerts, and the guardian pauses opening.
+  - Note (22 November 2026): the team part is written in the monitor (`apps/keeper/src/monitor/gates.ts`). Every minute it reads, for Morpho and our router and liquidator when deployed: on Monad Anchored's compliance denylist and Circle's USDC pause and blacklist; on Base each stock's B20 transfer pause, the Coinbase oracle registry pause and whether each transfer policy still authorizes the account; on X Layer the wrapped and underlying xStock pause and the sanctions list. A block alerts at once and resolves when lifted; a control that cannot be read alerts after 5 minutes. Fork test: denylisting Morpho on the Monad fork raises the alert and lifting it resolves it. Live read on 22 November 2026: 17 controls on Base and 9 on X Layer, all readable, none blocking. The ABIs are inline until `packages/shared/abis` has them (requested from Wangsit). Still to do: alert the affected users, mark the market halted in the API, and run it on Base and X Layer once their deployment files exist (SC-76).
 
 - [ ] **BE-76 · Cross-chain deposits through CCTP and Across**
   - Do: replace Aurora Intents / 1Click (D-50) for deposits and withdrawals on both chains. Gas top-up on Base is not needed if the paymaster covers it (Q-34).
