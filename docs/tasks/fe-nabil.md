@@ -285,14 +285,14 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 
 ## R. Redesign (Pencil design, 20 November 2026)
 
-The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and light themes, desktop and mobile screens, a states board and the Levra icon set. Copy is plain language: no protocol terms on screen (LTV is "debt ratio", soft limit is "safe limit", oracle price is "price").
+The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and light themes, desktop and mobile screens, a states board and the Levra icon set. Copy is plain language: no protocol terms on screen (LTV is "debt ratio", soft limit is "borrow limit", oracle price is "price").
 
 - [~] **FE-84 · Design system v2 and light mode**
   - Do: color tokens with a dark and a light theme, the `lime-text`, `lilac-text` and `on-signal` tokens, a theme switch (system by default, saved per browser), base components updated to the Pencil design.
   - Done when: every page renders in both themes with no color outside the tokens, and the switch remembers the choice.
 
 - [~] **FE-85 · Levra icon set**
-  - Do: the twelve Levra icons (long, short, leverage, lend, weekend guard, price paused, Monday gap, safe limit, liquidation, debt ratio, verified, any network) as one React icon component on a 24 px grid. Common actions keep Lucide style icons.
+  - Do: the twelve Levra icons (long, short, leverage, lend, weekend guard, price paused, Monday gap, borrow limit, liquidation, debt ratio, verified, any network) as one React icon component on a 24 px grid. Common actions keep Lucide style icons.
   - Done when: the product icons on every page come from the set.
 
 - [~] **FE-86 · Plain language copy**
