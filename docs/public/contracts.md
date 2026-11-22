@@ -8,9 +8,11 @@ Status on 13 October 2026: staging. The contracts are live with small position c
 
 | Contract | Address | What it does |
 |---|---|---|
-| `MarginRouter` | [`0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6`](https://monadscan.com/address/0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6) | Opens and closes positions in one transaction |
+| `MarginRouter` | [`0xf5585feA7aeDC5e148201052f73139111810aA88`](https://monadscan.com/address/0xf5585feA7aeDC5e148201052f73139111810aA88) | Opens and closes positions in one transaction. Live since 22 November 2026 |
+| Previous `MarginRouter` | [`0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6`](https://monadscan.com/address/0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6) | The router from 13 October 2026. It still works, so positions opened through it can be closed through either router |
 | `RiskManager` | [`0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F`](https://monadscan.com/address/0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F) | Holds the soft limits and checks every new position |
-| `Lens` | [`0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8`](https://monadscan.com/address/0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8) | Read-only view of positions and markets |
+| `Lens` | [`0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`](https://monadscan.com/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) | Read-only view of positions and markets |
+| Timelock | [`0xf1F6C17660Fa513A42565746a73C654886bd14Dd`](https://monadscan.com/address/0xf1F6C17660Fa513A42565746a73C654886bd14Dd) | Becomes the owner after a 2 day delay, controlled by the team multisig |
 | `Liquidator` | [`0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39`](https://monadscan.com/address/0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39) | Liquidates unhealthy positions on Morpho |
 
 Markets, all on Morpho (`0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee`):
@@ -31,7 +33,7 @@ The USDC vault for lenders:
 
 The machine-readable list is [`contracts/deployments/monad.json`](../../contracts/deployments/monad.json).
 
-The source of all nine contracts is verified on Sourcify with an exact match. Each one can be read at `https://repo.sourcify.dev/143/<address>`. The source is in [`contracts/src`](../../contracts/src) under the MIT license.
+The source of every contract above is verified on Sourcify with an exact match. Each one can be read at `https://repo.sourcify.dev/143/<address>`. The source is in [`contracts/src`](../../contracts/src) under the MIT license.
 
 ## Addresses on Base
 
@@ -123,13 +125,13 @@ To do this, the router needs your authorization on Morpho. That authorization le
 
 | Role | Held today by | Can do |
 |---|---|---|
-| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, one team key | Everything in the next table |
-| Guardian | Not set | Tighten soft limits and position caps, and pause new positions. Cannot loosen or resume |
-| Keeper | `0x3BcB6A6c1d21d229bF8d5Ea5524b3d1aEe3b841e` on the router, `0x22ea6605a7D5246b1F05831632DC8172125A5C18` on the liquidator | Reduce a protected position, and call the liquidator |
-| Calendar poster | `0x745356C469FcE1372B4C2259332f5251130d4a5b` | Post the time of the next market close, at most 8 days ahead |
-| Oracle age poster | `0x33B03c6e569e06938D59F1232ef5070646F0146d` | Move the price age allowed for new positions, inside bounds set by the owner |
+| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, one team key, until the timelock `0xf1F6C17660Fa513A42565746a73C654886bd14Dd` accepts ownership (pending since 22 November 2026) | Everything in the next table |
+| Guardian | The team multisig `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3), since 22 November 2026 | Tighten soft limits and position caps, and pause new positions. Cannot loosen or resume |
+| Keeper | `0x469ab4F20dcDcD470b89A829783B5bbd5c64f474` on the router, `0xE36EafE2cC96F256B80E7952DFFBe916f0d64a6A` on the liquidator | Reduce a protected position, and call the liquidator |
+| Calendar poster | `0xd166D46a4e61daC99e87472B76423A9C379274Fb` | Post the time of the next market close, at most 8 days ahead |
+| Oracle age poster | `0xaec389DfC7D6F5CaB30e7D761206D989f7F6ed19` | Move the price age allowed for new positions, inside bounds set by the owner |
 
-The owner is a single key today. The plan is a 2-day timelock controlled by a team multisig, with the multisig as guardian. The script for this handover is written and tested, and waits for the multisig.
+The owner is still a single key. On 22 November 2026 ownership was offered to a 2 day timelock controlled by the team multisig (2 of 3), and the multisig became guardian. The move completes when the multisig accepts through the timelock, which takes at least 2 days.
 
 ### What the owner can do
 
@@ -162,7 +164,7 @@ The vault is a MetaMorpho v1.1 vault created from Morpho's own factory (`0x33f20
 | Supply cap per market | 10,000 USDC for QQQ, 5,000 for HOOD, 20,000 for BIL | The owner. Lowering is immediate. Raising, or adding a market, waits for the timelock |
 | Fee | 10% of the interest earned | The owner, at most 50% by Morpho's rule |
 | Timelock | 1 day | The owner can lengthen it, up to 2 weeks. Morpho's code does not allow less than 1 day |
-| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the same single team key | Moves to the multisig with the other contracts |
+| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the same single team key | Pending to the team multisig `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` since 22 November 2026 |
 | Curator, guardian | Not set | The owner |
 
 The owner cannot withdraw lenders' deposits. The owner does choose which markets the vault lends to, and a bad choice could lose deposits. A new market can be added only after the timelock, so lenders have 1 day to leave if they disagree. No guardian is set yet, so nobody can veto such a change during that day.
@@ -189,11 +191,11 @@ With protection off, nobody but you can touch your position through Levra. Morph
 
 Your position is a normal Morpho position. You do not need Levra to manage or exit it.
 
-**Revoke the router's authorization.** Call Morpho directly:
+**Revoke the router's authorization.** Do this for each router you authorized, the current one and the previous one. Call Morpho directly:
 
 ```bash
 cast send 0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee \
-  "setAuthorization(address,bool)" 0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6 false \
+  "setAuthorization(address,bool)" 0xf5585feA7aeDC5e148201052f73139111810aA88 false \
   --rpc-url https://rpc.monad.xyz --account <your-account>
 ```
 
@@ -201,13 +203,13 @@ Check it:
 
 ```bash
 cast call 0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee \
-  "isAuthorized(address,address)(bool)" <your-address> 0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6 \
+  "isAuthorized(address,address)(bool)" <your-address> 0xf5585feA7aeDC5e148201052f73139111810aA88 \
   --rpc-url https://rpc.monad.xyz
 ```
 
-After revoking, the router can no longer open, close or reduce your positions, and protection stops working. Your positions stay where they are. To use the router again, authorize it again.
+For the previous router, use `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` in both commands. After revoking, the router can no longer open, close or reduce your positions, and protection stops working. Your positions stay where they are. To use the router again, authorize it again.
 
-**Remove a token allowance.** If you approved USDC to the router, set it back to zero with `approve(0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6, 0)` on the USDC token `0x754704Bc059F8C67012fEd69BC8A327a5aafb603`.
+**Remove a token allowance.** If you approved USDC to the router, set it back to zero with `approve(0xf5585feA7aeDC5e148201052f73139111810aA88, 0)` (or the previous router's address) on the USDC token `0x754704Bc059F8C67012fEd69BC8A327a5aafb603`.
 
 **Close a position directly on Morpho.** Repay the debt with `repay`, then take the collateral out with `withdrawCollateral`, using the market parameters of your market. For a long you repay USDC and receive stock tokens. For a short you repay stock tokens and receive USDC.
 

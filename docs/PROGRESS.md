@@ -188,6 +188,9 @@ The binding source is `contracts/deployments/*.json`. This table is a convenienc
 | Monad mainnet, staging | `MarginRouter` | `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` | 13 October 2026 |
 | Monad mainnet, staging | `RiskManager` | `0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F` | 13 October 2026 |
 | Monad mainnet, staging | `Lens` | `0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8` | 13 October 2026 |
+| Monad mainnet, staging | `MarginRouter` (SC-87, current) | `0xf5585feA7aeDC5e148201052f73139111810aA88` | 22 November 2026 |
+| Monad mainnet, staging | `Lens` (SC-87, current) | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | 22 November 2026 |
+| Monad mainnet, staging | `TimelockController` | `0xf1F6C17660Fa513A42565746a73C654886bd14Dd` | 22 November 2026 |
 | Monad mainnet, staging | `Liquidator` | `0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39` | 13 October 2026 |
 | Monad mainnet, staging | `SessionOracle`, QQQ long | `0xbec7D067ad0071AF3B500442537A7E7622C596d3` | 13 October 2026 |
 | Monad mainnet, staging | `SessionOracle`, HOOD long | `0xB8E3ec1BCd1988D5aD35d0A0219F767944737465` | 13 October 2026 |
@@ -300,6 +303,7 @@ Newest first.
 
 Newest first.
 
+- 22 November 2026: SC-87 steps 2 to 8 on Monad. HandOver run by `0x7029...1855`: timelock `0xf1F6C17660Fa513A42565746a73C654886bd14Dd`, Safe as guardian, old router, risk manager and liquidator pending to the timelock, vault pending to the Safe (blocks 124422598 to 124422619, first tx `0x61dfcf6823d03128dabb96a33e28938f0984973258fd5200823956bc732100f7`). New router `0xf5585feA7aeDC5e148201052f73139111810aA88` and lens `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` from the deployer, pending to the same timelock, fees to the Safe (blocks 124423028 to 124423041, first tx `0x14b23c0af57dbde08075978d343eb06da3d7d2852af9804ad04388a529bc4141`). Sourcify exact match for router, lens and timelock. PR #135 updates `monad.json` with `previousRouters`. Safe batch files are ready. Next: the Safe schedules `acceptOwnership` and accepts the vault, executes after 2 days, then one real close through the new router (step 9).
 - 22 November 2026: X Layer contracts on the OKX explorer: 12 of 13 verified through the web form. The router keeps failing with `SERVER_ERROR` 500 on OKX's side; it stays an exact match on Sourcify. Retry later or ask OKX.
 - 22 November 2026: answered BE-94 findings (3) and (4). (3) SC-89: the deploy scripts refuse a token as swap target or spender, tests pass on every chain config (142 Monad tests, 11 Base and X Layer fork tests). (4) accepted as a known issue, low. SC-87 waits for the indexer to read `previousRouters` (BE) and the re-authorize flow in the app (FE), then the team's go.
 - 22 November 2026: SC-88 in PR #120: the issuer control ABIs and the Morpho oracle `price()` exported to `packages/shared/abis` for the keeper (Dharu's request from BE-75 and BE-30).
