@@ -1,9 +1,9 @@
 import { protectedPositions, type Db } from "@levra/db";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { tokensByChain } from "@levra/shared/addresses";
 import { isChainId, type ChainId } from "@levra/shared/chains";
 import { findStock } from "@levra/shared/markets";
-import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi } from "@levra/shared/abis";
+import { lensAbi, marginRouterAbi, morphoAbi, morphoOracleAbi, riskManagerAbi } from "@levra/shared/abis";
 import { nextCloseAfter } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
 import { BPS, WAD, deleverageSellValue, deviationBps, mulDiv, swapPriceE8 } from "@levra/shared/math";
@@ -12,7 +12,6 @@ import {
   ContractFunctionRevertedError,
   ContractFunctionZeroDataError,
   getAddress,
-  parseAbi,
   type Account,
   type Address,
   type Chain,
@@ -24,9 +23,6 @@ import {
 import { scheduleForChain } from "../calendar/poster";
 import { morphoOn } from "../chain";
 import type { Job } from "../runner";
-
-/** `MarginRouter.isKeeper()`. Temporary until the ABI export has it (requested from Wangsit). */
-const isKeeperAbi = parseAbi(["function isKeeper(address) view returns (bool)"]);
 
 /** The protector acts in the last 30 minutes before a close (04, pre-close timeline). */
 export const PRE_CLOSE_SECONDS = 30 * 60;
@@ -218,7 +214,6 @@ export function planDeleverage(input: PlanInput): Promise<PlanResult> {
   return input.market.side === "long" ? planLong(input, target) : planShort(input, target);
 }
 
-const morphoOracleAbi = parseAbi(["function price() view returns (uint256)"]);
 const BOUND_ERRORS = new Set(["DeleverageTooDeep", "DeleverageTooLarge"]);
 
 /** `DELEVERAGE_FLOOR` and `DELEVERAGE_SLACK_BPS`, or null for a router built before them (the live Monad router). */
@@ -284,7 +279,7 @@ export function createProtector({ client, wallet, deployment, swap, nextClose = 
     name: "protector",
     intervalMs,
     async run({ db, chainId, logger }) {
-      const keeper = await client.readContract({ address: router, abi: isKeeperAbi, functionName: "isKeeper", args: [wallet.account.address] });
+      const keeper = await client.readContract({ address: router, abi: marginRouterAbi, functionName: "isKeeper", args: [wallet.account.address] });
       if (!keeper) throw new Error(`Key ${wallet.account.address} is not a router keeper`);
       const block = await client.getBlock({ blockTag: "latest" });
       const now = Number(block.timestamp);

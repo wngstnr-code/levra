@@ -1,4 +1,4 @@
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { chains } from "@levra/shared/chains";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { stocksByChain, type ChainlinkStock } from "@levra/shared/markets";

@@ -1,4 +1,4 @@
-import { SwapError, type SwapQuote } from "@levra/kyber";
+import { SwapError, type SwapQuote } from "@levra/swap";
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { QuoteCloseRequest, QuoteCloseResponse } from "@levra/shared/api";
 import { BPS, MAX_UINT256, WAD, cautiousPriceE8, morphoOraclePrice, positionLtvWad, signedDeviationBps } from "@levra/shared/math";
