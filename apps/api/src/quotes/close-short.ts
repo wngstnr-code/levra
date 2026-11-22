@@ -1,6 +1,6 @@
 import { SwapError, type SwapQuote } from "@levra/swap";
 import { marginRouterAbi } from "@levra/shared/abis";
-import type { QuoteCloseRequest, QuoteCloseResponse } from "@levra/shared/api";
+import { withBuilderCode, type QuoteCloseRequest, type QuoteCloseResponse } from "@levra/shared/api";
 import { BPS, MAX_UINT256, WAD, cautiousPriceE8, morphoOraclePrice, positionLtvWad, signedDeviationBps } from "@levra/shared/math";
 import { randomUUID } from "node:crypto";
 import { encodeFunctionData, type Address } from "viem";
@@ -140,7 +140,7 @@ export async function quoteCloseShort({ reader, swap, events: store }: QuoteDeps
   if (priceImpact > PRICE_IMPACT_WARN_BPS) add("HIGH_PRICE_IMPACT", "warn", "This size moves the DEX price noticeably.");
   if (!full && ltvAfter > pos.ltvWad && ltvAfter > m.currentSoftLtvWad) add("NEAR_SOFT_LIMIT", "block", "This reduction would leave the position above the limit.");
 
-  const data = encodeFunctionData({
+  const closeData = encodeFunctionData({
     abi: marginRouterAbi,
     functionName: "closeShort",
     args: [
@@ -156,6 +156,7 @@ export async function quoteCloseShort({ reader, swap, events: store }: QuoteDeps
       },
     ],
   });
+  const data = withBuilderCode(reader.deployment.chainId, closeData);
 
   const check = await upstream(() => checkRequirements(reader, { user: req.user, authorization: true, blockTime: block.time }));
 

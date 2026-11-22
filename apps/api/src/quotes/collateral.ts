@@ -1,5 +1,5 @@
 import { marginRouterAbi } from "@levra/shared/abis";
-import type { QuoteCollateralRequest, QuoteCollateralResponse } from "@levra/shared/api";
+import { withBuilderCode, type QuoteCollateralRequest, type QuoteCollateralResponse } from "@levra/shared/api";
 import { cautiousPriceE8, liquidationPriceE8, morphoOraclePrice, positionLtvWad } from "@levra/shared/math";
 import { randomUUID } from "node:crypto";
 import { encodeFunctionData, type Hex } from "viem";
@@ -72,9 +72,10 @@ export async function quoteCollateral(reader: ChainReader, req: QuoteCollateralR
       blockTime: block.time,
     }),
   );
-  const data: Hex = check.preCalls.length
-    ? encodeFunctionData({ abi: marginRouterAbi, functionName: "multicall", args: [[...check.preCalls, actionData]] })
-    : actionData;
+  const data: Hex = withBuilderCode(
+    reader.deployment.chainId,
+    check.preCalls.length ? encodeFunctionData({ abi: marginRouterAbi, functionName: "multicall", args: [[...check.preCalls, actionData]] }) : actionData,
+  );
 
   let gasLimit = 0n;
   if (!blocked() && check.ready && check.funded) {
