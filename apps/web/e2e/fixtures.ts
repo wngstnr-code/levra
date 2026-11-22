@@ -68,7 +68,7 @@ export const detail = () => ({
   deviationHistory: [0, 1, 2].map((i) => ({ timestamp: now() - (2 - i) * 3600, oraclePriceE8: "74145000000", dexMidPriceE8: "72217000000", deviationBps: -200 - i * 30 })),
 });
 
-type Answers = { eligible?: boolean; stale?: boolean; gateOff?: boolean };
+type Answers = { eligible?: boolean; stale?: boolean; gateOff?: boolean; haltReasons?: string[]; noPrice?: boolean };
 
 /** Answers the fake service address and keeps chain calls out, so each test only sees its own data. */
 export async function mockService(page: Page, a: Answers = {}) {
@@ -76,10 +76,11 @@ export async function mockService(page: Page, a: Answers = {}) {
   await page.route("http://api.levra.test/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     const json = (body: unknown) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-    if (path === "/v1/markets") return json({ session: session(), markets });
+    const shape = <T extends { oraclePriceE8: string }>(list: T[]) => list.map((x) => ({ ...x, haltReasons: a.haltReasons ?? [], ...(a.noPrice ? { oraclePriceE8: "0" } : {}) }));
+    if (path === "/v1/markets") return json({ session: session(), markets: shape(markets) });
     if (path === "/v1/session") return json(session());
     if (path === "/v1/status") return json(status(a.stale));
-    if (path === "/v1/markets/QQQ") return json(detail());
+    if (path === "/v1/markets/QQQ") return json({ ...detail(), markets: shape(detail().markets) });
     if (path === "/v1/eligibility" && !a.gateOff) return json({ eligible: a.eligible ?? true, reason: a.eligible === false ? "REGION_BLOCKED" : null, termsVersion: "2026-10-13", termsAccepted: null });
     if (path === "/v1/earn") return json({ options: [] });
     if (path === "/v1/stream") return route.fulfill({ status: 204 });

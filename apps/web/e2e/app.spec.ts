@@ -26,6 +26,20 @@ test("market detail explains the limits", async ({ page }) => {
   await expect(page.getByText("Price impact by size")).toBeVisible();
 });
 
+test("an issuer halt shows on the market page", async ({ page }) => {
+  await mockService(page, { haltReasons: ["The issuer paused QQQ."] });
+  await page.goto("/markets/QQQ");
+  await expect(page.getByText("Trading stopped by the issuer")).toBeVisible();
+  await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
+});
+
+test("a market without a price says so", async ({ page }) => {
+  await mockService(page, { noPrice: true });
+  await page.goto("/markets/QQQ");
+  await expect(page.getByText("No price").first()).toBeVisible();
+  await expect(page.getByText("$0.00")).toHaveCount(0);
+});
+
 test("trade asks to sign in before anything else", async ({ page }) => {
   await mockService(page);
   await page.goto("/trade?symbol=QQQ");
