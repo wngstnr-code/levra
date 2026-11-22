@@ -64,6 +64,7 @@ export const en = {
     stocks: (n: number) => `${n} stock${n === 1 ? "" : "s"}`,
     balance: (v: string) => `${v} USDC`,
     note: "The whole app follows this network.",
+    noData: "Prices and positions from our service come soon",
   },
   nav: { markets: "Markets", trade: "Trade", positions: "Positions", earn: "Earn", deposit: "Deposit", settings: "Settings", account: "Account", help: "Help" },
   session: {
