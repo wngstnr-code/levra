@@ -1,4 +1,4 @@
-import { keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, syncCursors, type Db } from "@levra/db";
+import { keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, routerCursor, syncCursors, type Db } from "@levra/db";
 import { lensAbi, liquidatorAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { KeeperName } from "@levra/shared/api";
 import { chains, type ChainId } from "@levra/shared/chains";
@@ -238,7 +238,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
 
     const lookback = new Date((now - 86_400) * 1000);
     const liquidations = await db.select().from(morphoEvents).where(and(eq(morphoEvents.chainId, chainId), eq(morphoEvents.name, "Liquidate"), gte(morphoEvents.blockTime, lookback)));
-    const watchedCursors = ["router_events", "morpho_events", ...(deployment.usdcVault ? ["vault_events"] : [])];
+    const watchedCursors = [routerCursor(deployment), "morpho_events", ...(deployment.usdcVault ? ["vault_events"] : [])];
 
     const snapshot: Snapshot = {
       chainId,

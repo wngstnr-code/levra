@@ -292,7 +292,9 @@ export function createProtector({ client, wallet, deployment, swap, nextClose = 
       if (!inPreCloseWindow(now, closeAt)) return { active: false, now, closeAt };
 
       const ours = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
-      const candidates = (await protectedPositions(db, chainId)).filter((c) => ours.has(c.marketId));
+      // Opt-in made on a previous router does not carry over (03 section 6, BE-100).
+      const current = { address: router, hasPrevious: (deployment.previousRouters?.length ?? 0) > 0 };
+      const candidates = (await protectedPositions(db, chainId, current)).filter((c) => ours.has(c.marketId));
       const keeperFeeBps = await client.readContract({ address: router, abi: marginRouterAbi, functionName: "keeperFeeBps" });
       const limits = await keeperLimits(client, router);
       const actions: Record<string, unknown>[] = [];

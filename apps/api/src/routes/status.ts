@@ -1,4 +1,4 @@
-import { keeperHeartbeats, syncCursors, type Db } from "@levra/db";
+import { keeperHeartbeats, routerCursor, syncCursors, type Db } from "@levra/db";
 import { chains } from "@levra/shared/chains";
 import { KEEPER_HEARTBEAT_LIMIT_S, keeperName, type ChainStatus, type KeeperName, type StatusResponse } from "@levra/shared/api";
 import { and, eq } from "drizzle-orm";
@@ -6,9 +6,6 @@ import { Hono } from "hono";
 import type { ChainReader } from "../chain/reader";
 import { upstream } from "../errors";
 import { renderStatusPage, renderStatusUnavailable } from "../status-page";
-
-/** The indexer's cursor name, kept in step with apps/indexer. */
-const ROUTER_CURSOR = "router_events";
 
 /** What the team monitor stores with its heartbeat about the oracle limits (BE-50). */
 type MonitorDetails = { oracleLimits?: Record<string, { limitSeconds: number; learning: boolean }> };
@@ -20,7 +17,7 @@ async function chainParts(reader: ChainReader, db: Db) {
   const [block, beats, cursors] = await Promise.all([
     upstream(reader.latestBlock),
     db.select().from(keeperHeartbeats).where(eq(keeperHeartbeats.chainId, chainId)),
-    db.select().from(syncCursors).where(and(eq(syncCursors.chainId, chainId), eq(syncCursors.name, ROUTER_CURSOR))),
+    db.select().from(syncCursors).where(and(eq(syncCursors.chainId, chainId), eq(syncCursors.name, routerCursor(reader.deployment)))),
   ]);
   const byName = new Map(beats.map((b) => [b.name, b]));
   const keeper = (name: KeeperName, beat: Beat | undefined) => {
