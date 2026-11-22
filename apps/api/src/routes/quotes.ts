@@ -9,7 +9,7 @@ import { quoteCollateral } from "../quotes/collateral";
 import { quoteOpenLong } from "../quotes/open-long";
 import { quoteOpenShort } from "../quotes/open-short";
 import type { EventStore } from "../positions/events";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import type { Compliance } from "./compliance";
 
 export async function body<T extends z.ZodType>(schema: T, raw: Promise<unknown>): Promise<z.infer<T>> {

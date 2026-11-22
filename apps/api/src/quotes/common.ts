@@ -5,7 +5,7 @@ import { createCache, type Cached } from "../chain/cache";
 import type { ChainReader, MarketState } from "../chain/reader";
 import { ApiHttpError, upstream } from "../errors";
 import type { EventStore } from "../positions/events";
-import { SwapError, dexMidPriceE8, type SwapSource } from "@levra/kyber";
+import { SwapError, dexMidPriceE8, type SwapSource } from "@levra/swap";
 
 /** Initial proposals (04 and 03). */
 export const QUOTE_TTL_SECONDS = 20;

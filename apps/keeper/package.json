@@ -17,8 +17,8 @@
   "dependencies": {
     "@levra/db": "workspace:*",
     "@levra/intents": "workspace:*",
-    "@levra/kyber": "workspace:*",
     "@levra/shared": "workspace:*",
+    "@levra/swap": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "pino": "^10.4.0",
     "viem": "^2.57.5",

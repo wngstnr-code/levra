@@ -1,6 +1,6 @@
 import { createDb, runMigrations, termsAcceptances } from "@levra/db";
 import type { IntentsSource } from "@levra/intents";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { eligibilityResponse, termsAcceptResponse, termsMessage } from "@levra/shared/api";
 import { eq } from "drizzle-orm";
 import pino from "pino";

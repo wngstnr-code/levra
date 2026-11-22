@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net";
 import { serve } from "@hono/node-server";
-import { SwapError, type SwapSource } from "@levra/kyber";
+import { SwapError, type SwapSource } from "@levra/swap";
 import { apiError } from "@levra/shared/api";
 import { Hono } from "hono";
 import pino from "pino";
