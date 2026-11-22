@@ -477,6 +477,14 @@ export const en = {
     bannerTitle: "At risk this weekend",
     bannerBody: (s: string) => `${s} is above the weekend limit. Add funds or reduce it.`,
   },
+  halt: {
+    title: "Trading stopped by the issuer",
+    tokenPaused: "The issuer paused this stock token. Opening waits until they lift it. Closing may also fail until then.",
+  },
+  noPrice: {
+    title: "No price",
+    body: "We can't read this stock's price right now. You can add funds, repay or close in full.",
+  },
   upgrade: {
     protectionTitle: "Turn protection on again",
     protectionBody: (stocks: string) => `Levra moved to a new contract. Protection for ${stocks} is off until you turn it on again.`,
