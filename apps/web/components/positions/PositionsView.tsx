@@ -107,8 +107,8 @@ export function PositionsView() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatBox label={m.positions.debt} value={totals ? formatUsd(totals.debtUsdRaw) : "—"} />
             <StatBox label={m.positions.unrealized} value={totals ? formatUsdSigned(pnl) : "—"} />
-            <StatBox label={m.positions.wallet} value={usdc.data !== undefined ? `${formatToken(usdc.data, 6, 2)} USDC` : "—"} />
-            <StatBox label={m.positions.gas} value={mon.data ? `${formatToken(mon.data.value, 18, 2)} MON` : "—"} />
+            <StatBox label={m.positions.wallet} value={usdc.data !== undefined ? `${formatToken(usdc.data, chain.usdc.decimals, 2)} USDC` : "—"} />
+            <StatBox label={m.positions.gas} value={mon.data ? `${formatToken(mon.data.value, mon.data.decimals, 2)} ${chain.nativeSymbol}` : "—"} />
           </div>
         </Card>
         <PreCloseCard overCount={over.length} onReview={over[0] ? () => setManage({ marketId: over[0]!.marketId, tab: "add" }) : null} />
