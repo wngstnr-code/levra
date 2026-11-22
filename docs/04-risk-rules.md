@@ -283,7 +283,7 @@ The contracts do not know the calendar. A keeper, the "calendar poster", writes 
 
 - Only times in the future, at most 8 days ahead.
 - If the calendar poster is down, the limit still drops once the oracle reports `CLOSED`. Only the pre-close window is lost.
-- Calendar source: the US exchange holiday schedule plus the schedule of the chain's oracle. On Monad that is the Anchored session schedule, measured from the BE-03 data. On Base and X Layer it is the Chainlink feeds' weekly freeze: Friday 20:00 New York time. Before a holiday or on an early close day the feeds have not been observed yet, so the poster posts the exchange close (16:00, or 13:00), the earliest a feed could freeze.
+- Calendar source: the US exchange holiday schedule plus the schedule of the chain's oracle. On Monad that is the Anchored session schedule, measured from the BE-03 data. On Base and X Layer it is the weekly close of `ChainlinkSessionOracle`: Saturday 00:00 UTC, which is Friday 20:00 New York time in summer and 19:00 in winter, so never after the feeds freeze (D-106). Before a holiday or on an early close day the feeds have not been observed yet, so the poster posts the exchange close (16:00, or 13:00), the earliest a feed could freeze.
 
 ### Pre-close timeline
 
