@@ -64,9 +64,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 20 November 2026 | Nabil | Dharu | The stats endpoint shape (BE-79) in `packages/shared/api`, so the public stats page uses the same definitions as the backend | FE-75 |
-| 20 November 2026 | Nabil | Dharu | A shared formula for position PnL in percent in `math.ts` (or a field on `Position`), for the share card | FE-76 |
-| 20 November 2026 | Nabil | Wangsit | Export the Base and X Layer deployments from `packages/shared` like Monad (`@levra/shared/deployments/base`, `@levra/shared/deployments/xlayer`). The web app shows a chain only once its deployment exists (FE-70) | FE-70, FE-71, FE-80 |
 | 20 November 2026 | Nabil (the web app has no backend: the Railway API answers 404) | Dharu | The API on the VPS (BE-90, planned for 21 November). Then Nabil sets `NEXT_PUBLIC_API_URL` on Vercel to the new address | BE-90, BE-91 |
 | 20 November 2026 | Dharu | Nabil | The domain (Q-25) by 24 November, with access to its DNS: a stable HTTPS address for the API, and Cloudflare in front of it so the API can refuse US users on Base (D-73, BE-52). Until then the API runs on an interim address | BE-90, BE-52 |
 | 20 November 2026 | Dharu | Wangsit | Team keys for the 1inch Swap API (by 25 November) and the OKX DEX API with its secret and passphrase (by 29 November), put straight into the VPS secret files, never in chat. Optional: a read-only deploy key on the repo for the VPS | BE-96, BE-81, BE-90 |
