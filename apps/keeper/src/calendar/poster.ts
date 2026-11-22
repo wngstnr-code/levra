@@ -1,6 +1,7 @@
 import { observedClosedStretches, type Db } from "@levra/db";
 import { riskManagerAbi } from "@levra/shared/abis";
-import { nextCloseAfter, scheduleFromStretches, type SessionSchedule } from "@levra/shared/calendar";
+import { MONAD_CHAIN_ID } from "@levra/shared/addresses";
+import { FEED_SCHEDULE, nextCloseAfter, scheduleFromStretches, type SessionSchedule } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
 import { parseAbi, type Account, type Chain, type PublicClient, type Transport, type WalletClient } from "viem";
 import type { Job } from "../runner";
@@ -34,6 +35,12 @@ export type ScheduleSource = (db: Db, chainId: number) => Promise<SessionSchedul
 /** The Anchored schedule from the weekends and holidays in the oracle logger data; the regular close until one is seen. */
 export const scheduleFromLogger: ScheduleSource = async (db, chainId) => scheduleFromStretches(await observedClosedStretches(db, chainId));
 
+/**
+ * The schedule each chain's oracle follows: Anchored on Monad, learned from its sessions; the Chainlink feeds on Base and
+ * X Layer, which have no session field, so their fixed weekly freeze (04, BE-30).
+ */
+export const scheduleForChain: ScheduleSource = async (db, chainId) => (chainId === MONAD_CHAIN_ID ? scheduleFromLogger(db, chainId) : FEED_SCHEDULE);
+
 export type CalendarPosterOptions = {
   client: PublicClient;
   wallet: WalletClient<Transport, Chain, Account>;
@@ -43,10 +50,10 @@ export type CalendarPosterOptions = {
 };
 
 /**
- * Keeps `nextCloseAt` on `RiskManager` at the next close of the Anchored session (BE-30). The time comes from the
- * exchange calendar and the observed schedule, never from a table in the code. Uses the chain's clock.
+ * Keeps `nextCloseAt` on `RiskManager` at the next close of the chain's oracle (BE-30). The time comes from the exchange
+ * calendar and the chain's schedule, never from a table of dates in the code. Uses the chain's clock.
  */
-export function createCalendarPoster({ client, wallet, deployment, schedule = scheduleFromLogger, intervalMs = 600_000 }: CalendarPosterOptions): Job {
+export function createCalendarPoster({ client, wallet, deployment, schedule = scheduleForChain, intervalMs = 600_000 }: CalendarPosterOptions): Job {
   return {
     name: "calendar",
     intervalMs,

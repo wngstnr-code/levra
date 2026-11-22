@@ -1,0 +1,4 @@
+# ORIGIN=open: every address may connect, as needed while api.levra.finance is DNS only.
+# The matcher covers every IPv4 and IPv6 address, so nothing is refused; it keeps the same shape as origin-cloudflare.caddy.
+@notAllowed not remote_ip 0.0.0.0/0 ::/0
+abort @notAllowed

@@ -120,7 +120,7 @@ For long, where V is collateral value, D is debt, t is the target LTV, and c is 
 value of stock to sell = (D - t × V) / ((1 - c) - t)
 ```
 
-Auto-deleverage target: the current soft limit minus 1 percentage point (initial proposal). The router enforces three bounds on a keeper reduction (D-91, D-92): it ends at most 5 points below the soft limit (`DELEVERAGE_FLOOR`) and always leaves debt; the collateral it takes out is worth at most the debt it repays divided by (1 minus the deviation bound, the keeper fee and 1% slack, `DELEVERAGE_SLACK_BPS`), so it cannot turn into a near full close; and the swap price is within the deviation bound. The collateral is valued at the Morpho price, the cautious side on Monad. `maxDeviationBps` is capped at 50% (`MAX_DEVIATION_BPS`) so this bound stays finite. A hard stale price stops a reduction (the LTV cannot be read); an issuer pause does not.
+Auto-deleverage target: the current soft limit minus 1 percentage point (initial proposal). The router enforces three bounds on a keeper reduction (D-91, D-92): it ends at most 5 points below the soft limit (`DELEVERAGE_FLOOR`) and always leaves debt; the collateral it takes out is worth at most the debt it repays divided by (1 minus the deviation bound, the keeper fee and 1% slack, `DELEVERAGE_SLACK_BPS`), so it cannot turn into a near full close; and the swap price is within the deviation bound. The collateral is valued at the Morpho price, the cautious side on Monad. `maxDeviationBps` is capped at 50% (`MAX_DEVIATION_BPS`) so this bound stays finite. A hard stale price stops a reduction (the LTV cannot be read); an issuer pause does not. The protector sizes each reduction inside these bounds, tightening the swap's minimum out when the slippage alone would break the size bound, and skips a position it cannot reduce inside them (a target only a full close reaches, or a route that loses too much); the next run sizes it again (BE-88).
 
 ## Why only the Anchored oracle sets the hard limit
 
@@ -283,7 +283,7 @@ The contracts do not know the calendar. A keeper, the "calendar poster", writes 
 
 - Only times in the future, at most 8 days ahead.
 - If the calendar poster is down, the limit still drops once the oracle reports `CLOSED`. Only the pre-close window is lost.
-- Calendar source: the US exchange holiday schedule plus the Anchored session schedule. The exact Anchored session schedule is measured in BE-03.
+- Calendar source: the US exchange holiday schedule plus the schedule of the chain's oracle. On Monad that is the Anchored session schedule, measured from the BE-03 data. On Base and X Layer it is the weekly close of `ChainlinkSessionOracle`: Saturday 00:00 UTC, which is Friday 20:00 New York time in summer and 19:00 in winter, so never after the feeds freeze (D-106). Before a holiday or on an early close day the feeds have not been observed yet, so the poster posts the exchange close (16:00, or 13:00), the earliest a feed could freeze.
 
 ### Pre-close timeline
 

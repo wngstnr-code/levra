@@ -9,7 +9,8 @@ import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { readRates } from "../../keeper/src/dex/rates";
-import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, send } from "./fork-helpers";
+import { stocks, type StockSymbol } from "@levra/shared/markets";
+import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, refreshAnchoredPrice, send } from "./fork-helpers";
 
 describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYMENT_FILE)", () => {
   const deployment = forkDeployment();
@@ -89,19 +90,26 @@ describe.skipIf(!onFork)("on the local fork (needs FORK_RPC_URL and FORK_DEPLOYM
       return body.markets.find((m) => m.marketId === market.marketId)!;
     };
 
-    // Two values far apart, so the result does not depend on how old the fork is: one day never trips the open check,
-    // one second always does. Only the hard check in SessionOracle could still mark it stale on a fork older than its limit.
-    const setAge = (maxOracleAge: number) =>
-      as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, { ...config, maxOracleAge }]));
+    // RiskManager keeps maxOracleAge inside the market's bounds and the oracle's MAX_FEED_AGE. The test widens the lower
+    // bound to one second, then uses the two ends: one second always trips the open check, the longest allowed age does
+    // not right after the price is posted again with the current block time.
+    const [minAge, capAge] = await chain.readContract({ address: deployment.riskManager, abi: riskManagerAbi, functionName: "oracleAgeBounds", args: [market.marketId] });
+    const maxFeedAge = await chain.readContract({ address: market.oracle, abi: sessionOracleAbi, functionName: "MAX_FEED_AGE" });
+    const longest = Number(capAge !== 0 ? capAge : maxFeedAge);
+    const asOwner = (fn: string, args: unknown[]) => as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, fn, args));
+    const setAge = (maxOracleAge: number) => asOwner("setMarketConfig", [market.marketId, { ...config, maxOracleAge }]);
     try {
-      await setAge(86_400);
-      if ((await staleOf()).oracleStale) throw new Error("SessionOracle reports the price stale; restart the fork at a fresher block");
+      if (capAge !== 0) await asOwner("setOracleAgeBounds", [market.marketId, 1, capAge]);
+      await refreshAnchoredPrice(chain, stocks[market.symbol as StockSymbol].priceId);
+      await setAge(longest);
+      expect((await staleOf()).oracleStale).toBe(false);
       await setAge(1);
       expect((await staleOf()).oracleStale).toBe(true);
-      await setAge(86_400);
+      await setAge(longest);
       expect((await staleOf()).oracleStale).toBe(false);
     } finally {
-      await as(chain, owner, () => send(chain, owner, deployment.riskManager, riskManagerAbi, "setMarketConfig", [market.marketId, config]));
+      await asOwner("setMarketConfig", [market.marketId, config]);
+      if (capAge !== 0) await asOwner("setOracleAgeBounds", [market.marketId, minAge, capAge]);
     }
   });
 

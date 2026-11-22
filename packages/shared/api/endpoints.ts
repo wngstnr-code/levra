@@ -1,6 +1,7 @@
 import { account, historyQuery, historyResponse } from "./accounts";
 import { alertSettings, alertSettingsUpdate, telegramLinkResponse } from "./alerts";
 import { authNonceResponse, siweRequest, siweResponse } from "./auth";
+import { chainsResponse } from "./chains";
 import { configResponse } from "./config";
 import { eligibilityQuery, eligibilityResponse, termsAcceptRequest, termsAcceptResponse } from "./compliance";
 import {
@@ -29,6 +30,7 @@ export const API_PREFIX = "/v1";
 export const endpoints = {
   health: { method: "GET", path: "/v1/health", response: healthResponse },
   status: { method: "GET", path: "/v1/status", response: statusResponse },
+  chains: { method: "GET", path: "/v1/chains", response: chainsResponse },
   config: { method: "GET", path: "/v1/config", response: configResponse },
   session: { method: "GET", path: "/v1/session", response: sessionInfo },
   markets: { method: "GET", path: "/v1/markets", response: marketsResponse },

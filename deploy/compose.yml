@@ -111,7 +111,8 @@ services:
       - "443:443/udp"
     env_file: ${LEVRA_HOME:-/opt/levra}/env/caddy.env
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The folder, not single files: a git checkout replaces files, and a single-file mount would keep the old one.
+      - ./caddy:/etc/caddy:ro
       - caddy-data:/data
       - caddy-config:/config
 

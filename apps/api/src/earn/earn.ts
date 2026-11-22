@@ -1,4 +1,3 @@
-import { external, tokens } from "@levra/shared/addresses";
 import { morphoAbi } from "@levra/shared/abis";
 import type { EarnAccount, EarnOption, EarnPosition } from "@levra/shared/api";
 import {
@@ -54,7 +53,7 @@ export function createEarn(reader: ChainReader) {
   async function supplySides(states: MarketState[]): Promise<Map<string, SupplySide>> {
     const raw = await client.multicall({
       allowFailure: false,
-      contracts: states.map((m) => ({ address: external.morpho, abi: morphoAbi, functionName: "market", args: [m.info.marketId] }) as const),
+      contracts: states.map((m) => ({ address: reader.morpho, abi: morphoAbi, functionName: "market", args: [m.info.marketId] }) as const),
     });
     return new Map(
       states.map((state, i) => {
@@ -74,7 +73,7 @@ export function createEarn(reader: ChainReader) {
         { address, abi: metaMorphoAbi, functionName: "totalAssets" },
         { address, abi: metaMorphoAbi, functionName: "fee" },
         { address, abi: metaMorphoAbi, functionName: "withdrawQueueLength" },
-        { address: tokens.USDC.address, abi: erc20Abi, functionName: "balanceOf", args: [address] },
+        { address: reader.usdc.address, abi: erc20Abi, functionName: "balanceOf", args: [address] },
       ],
     });
     const queue = await client.multicall({
@@ -83,7 +82,7 @@ export function createEarn(reader: ChainReader) {
     });
     const positions = await client.multicall({
       allowFailure: false,
-      contracts: queue.map((id) => ({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [id, address] }) as const),
+      contracts: queue.map((id) => ({ address: reader.morpho, abi: morphoAbi, functionName: "position", args: [id, address] }) as const),
     });
     const markets = await reader.markets();
     const sides = await supplySides(markets.filter((m) => queue.some((id) => id.toLowerCase() === m.info.marketId.toLowerCase())));
@@ -104,7 +103,7 @@ export function createEarn(reader: ChainReader) {
     return {
       id: vaultOptionId(address),
       kind: "vault",
-      asset: tokens.USDC.address,
+      asset: reader.usdc.address,
       assetSymbol: "USDC",
       target: address,
       marketId: null,
@@ -121,7 +120,7 @@ export function createEarn(reader: ChainReader) {
     kind: "market",
     asset: s.state.info.loanToken,
     assetSymbol: s.state.info.stock.tokenSymbol,
-    target: external.morpho,
+    target: reader.morpho,
     marketId: s.state.info.marketId,
     supplyApyWad: s.supplyApyWad.toString(),
     totalSuppliedRaw: s.supplyAssets.toString(),
@@ -152,7 +151,7 @@ export function createEarn(reader: ChainReader) {
         : null,
       client.multicall({
         allowFailure: false,
-        contracts: list.map((s) => ({ address: external.morpho, abi: morphoAbi, functionName: "position", args: [s.state.info.marketId, user] }) as const),
+        contracts: list.map((s) => ({ address: reader.morpho, abi: morphoAbi, functionName: "position", args: [s.state.info.marketId, user] }) as const),
       }),
     ]);
 

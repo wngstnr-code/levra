@@ -151,14 +151,14 @@ describe("rate limit inside the app", () => {
   it("answers 429 with the CORS headers, so the browser can read it", async () => {
     const app = createApp({
       logger: pino({ level: "silent" }),
-      corsOrigins: parsePatterns("https://levra-mon.vercel.app"),
+      corsOrigins: parsePatterns("https://app.levra.finance"),
       rateLimit: { rules: { ...rules, ip: { capacity: 1, perMinute: 1 } }, trustProxyHeader: "x-forwarded-for" },
     });
-    const call = () => app.request("/v1/config", { headers: { origin: "https://levra-mon.vercel.app", "x-forwarded-for": "10.0.0.9" } });
+    const call = () => app.request("/v1/config", { headers: { origin: "https://app.levra.finance", "x-forwarded-for": "10.0.0.9" } });
     await call();
     const limited = await call();
     expect(limited.status).toBe(429);
-    expect(limited.headers.get("access-control-allow-origin")).toBe("https://levra-mon.vercel.app");
+    expect(limited.headers.get("access-control-allow-origin")).toBe("https://app.levra.finance");
   });
 });
 

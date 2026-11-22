@@ -28,7 +28,7 @@ export function quoteRoutes(reader: ChainReader, swap: SwapSource, events: Event
 
   app.post("/v1/quote/open", async (c) => {
     const req = await body(quoteOpenRequest, c.req.json());
-    if (compliance) await compliance.require(c, req.user);
+    if (compliance) await compliance.require(c, req.user, reader.deployment.chainId);
     return c.json(req.side === "short" ? await quoteOpenShort(deps, req) : await quoteOpenLong(deps, req));
   });
 

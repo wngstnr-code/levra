@@ -17,7 +17,7 @@ Ownership as in [06-team-workflow.md](06-team-workflow.md) and `.github/CODEOWNE
 | Person | Part | Owns | Task list |
 |---|---|---|---|
 | Wangsit | Smart contracts (SC) | `contracts/`; in `packages/shared`: `abis/`, `addresses.ts`, `markets.ts`, `chains.ts`, `deployments*.ts` | [tasks/sc-wangsit.md](tasks/sc-wangsit.md) |
-| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/kyber/`, `packages/intents/`; in `packages/shared`: `api/`, `math.ts`, `gaps.ts` | [tasks/be-dharu.md](tasks/be-dharu.md) |
+| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/swap/`, `packages/kyber/`, `packages/intents/`; in `packages/shared`: `api/`, `math.ts`, `gaps.ts` | [tasks/be-dharu.md](tasks/be-dharu.md) |
 | Nabil | Frontend (FE) | `apps/web/` | [tasks/fe-nabil.md](tasks/fe-nabil.md) |
 | All three | Shared things | `docs/`, repo setup, non-engineering work | [tasks/00-shared.md](tasks/00-shared.md) |
 
