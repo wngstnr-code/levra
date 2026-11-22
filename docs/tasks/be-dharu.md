@@ -503,11 +503,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: the provider choice is made (D-72): 1inch Swap API primary and the Aerodrome router as fallback on Base, 0x dropped. Prove it: on Base, quote and build a 1inch swap and an Aerodrome swap for each stock with our router as sender and recipient; measure price and rate limits. On Monad, check whether 1inch routes Anchored tokens; until it does, KyberSwap stays.
   - Done when: results in 05, router addresses sent to Wangsit (SC-75), and the Monad choice recorded in 09.
 
-- [ ] **BE-72 · Quotes on Base**
+- [~] **BE-72 · Quotes on Base**
   - Needs: BE-70, BE-71, BE-95, BE-96, SC-73; SC-76 for the final test.
   - Do: long, short, close and Earn quotes on Base with the chosen aggregator. B20 amounts stay raw; UI share amounts use the multiplier.
   - Done when: quotes match a live simulation (`eth_simulateV1`) within the stated tolerance. A local fork cannot run B20 tokens (SC-71, 07), so a fork execution is not possible on Base.
   - Note (20 November 2026): long first (25 November), then short and the Earn data (28 November). Earn on Base is our USDC vault and stock supply to our short markets (D-77); the web app builds the Earn transactions itself (D-07).
+  - Note (23 November 2026): `apps/api/test/base-quotes.live.test.ts` (`BASE_LIVE=1`) runs the API on a virtual Base: its reads and gas estimates run in `eth_simulateV1` after setup calls, pinned to one block. Long, short and full close quotes for SPCX execute with the quoted calldata and gas limit and match the preview within 1 bp; the router ends empty; Earn shows a market supply and a vault deposit exactly. No API change was needed. Results in 05. Left: the final run after SC-76 against the finished Base deployment, the other stocks on a weekday (`BASE_LIVE_STOCK`), and 1inch with `ONEINCH_API_KEY`.
 
 - [ ] **BE-73 · Indexer and keeper on Base**
   - Needs: SC-72, SC-76.
