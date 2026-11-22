@@ -398,11 +398,40 @@ Rate limits (BE-51, initial proposals): 429 `RATE_LIMITED` with a `Retry-After` 
 
 Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`, `UNAUTHORIZED`, `RATE_LIMITED`, `NO_ROUTE`, `INSUFFICIENT_LIQUIDITY`, `QUOTE_EXPIRED`, `UPSTREAM_ERROR`, `INTERNAL`.
 
+### The chain in the path (BE-70)
+
+Status: proposed by Dharu on 20 November 2026 and built the same day as additions (06 lets additions go first), waiting for Nabil's review. Nothing existing changed shape, so the web app keeps working unchanged. Base and X Layer answer only once their deployment files are loaded (SC-76, SC-83); until then `live` is false.
+
+- Routes that depend on a chain take its ID as the first path part: `/v1/:chainId/...`, with `chainId` one of `143` (Monad), `8453` (Base) and `196` (X Layer), the IDs in `chains.ts` and the ones wagmi reports. The shapes inside are the same on every chain.
+- An ID outside that list answers 404 `NOT_FOUND`. A listed chain that this API does not serve yet (no deployment loaded, for example Base before SC-76) answers 404 `NOT_FOUND` with `details: { chainId, live: false }`, so the error code list stays the same. `GET /v1/chains` tells the web app which chains are live.
+- The routes without a chain ID stay as they are and serve Monad (143). They are aliases until the web app has moved (FE-70); removing them is a separate change, agreed first.
+- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, and later `stats`, `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
+- Quotes (`quote/*`) on a chain answer only when the API has a swap provider for it: Monad now, Base with BE-72. Before that they answer 404 `NOT_FOUND`. The region and terms gate applies on every chain.
+- Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/quote`, `withdraw/quote`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain. Deposits and withdrawals go to and from Monad only until BE-76 (after the submissions); then the two quotes move under the chain path.
+- Sign-in: the SIWE message may name any chain this API serves (`live` in `/v1/chains`), the chain the wallet is on. The signature is checked on that chain, so a smart wallet deployed only there still signs in. The token is the same for every chain.
+- `Market` gains three fields for the Base and X Layer stocks: `oracleKind`, `uiMultiplierWad` and `tokenPaused` (main data shapes). On Chainlink chains `oracleFeedUpdatedAt` and `oraclePublishedAt` are both the feed round's `updatedAt` (D-97), and `session` comes from our oracle's market clock, so a feed held over the weekend shows as `CLOSED` or `UNKNOWN`, not as a new field.
+- Short capacity on Base (FE-72) is the existing `availableLiquidityRaw` of the short market.
+- `Market.haltReasons` (BE-75) comes from the team monitor's issuer checks, which run every minute; it is as current as the monitor's heartbeat in `/v1/status`. `tokenPaused` stays the direct chain read of the token's own pause flag.
+
+```ts
+type ChainInfo = {
+  chainId: number;            // 143, 8453, 196
+  slug: "monad" | "base" | "xlayer";
+  name: string;               // "Monad"
+  nativeSymbol: string;       // gas token: "MON", "ETH", "OKB"
+  live: boolean;              // this API serves its chain routes
+};
+type ChainsResponse = { chains: ChainInfo[]; defaultChainId: number }; // 143 (D-75)
+```
+
 ### Endpoint list
+
+Every chain route (list above) also exists as `/v1/:chainId/<path>` (BE-70); the path in this table is its Monad alias.
 
 | Method | Path | Content | Milestone |
 |---|---|---|---|
 | GET | `/v1/health` | Alive or not | M1 |
+| GET | `/v1/chains` | The chains this API knows and which are live (BE-70) | M7 |
 | GET | `/v1/config` | Chain ID and the addresses of our contracts and markets | M1 |
 | GET | `/v1/status` | Oracle age, keeper heartbeat, last indexer block; per chain in `chains` (BE-95) | M1 |
 | GET | `/status` | Public status page: the same facts as one HTML page that refreshes every 30 seconds (BE-61). Not part of the versioned API | M6 |
@@ -422,7 +451,7 @@ Error codes: `BAD_REQUEST`, `NOT_FOUND`, `REGION_BLOCKED`, `TERMS_NOT_ACCEPTED`,
 | POST | `/v1/deposit/quote` | Cross-chain deposit quote and its deposit address | M4 |
 | GET | `/v1/deposit/:id` | Deposit status | M4 |
 | POST | `/v1/withdraw/quote` | Quote to withdraw to another network | M4 |
-| GET | `/v1/eligibility` | Allowed to use or not, based on region | M5 |
+| GET | `/v1/eligibility` | Allowed to use or not, based on region. Query: `address` (optional, adds `termsAccepted`), `chainId` (optional, adds that chain's own country list, D-73) | M5 |
 | POST | `/v1/terms/accept` | Records acceptance of the terms, with a wallet signature | M5 |
 | GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
 | POST | `/v1/auth/siwe` | Sign in with a wallet signature, for settings | M3 |
@@ -476,6 +505,13 @@ type Market = {
   utilizationWad: string;
   borrowApyWad: string;
   supplyApyWad: string;
+
+  // BE-70: always sent; optional in the zod schema until the web app reads them (FE-70)
+  oracleKind?: "anchored" | "chainlink"; // Anchored on Monad, Chainlink on Base and X Layer
+  uiMultiplierWad?: string | null; // B20 stock tokens on Base: the token's uiMultiplier() (1e18 = 1, dividends raise it); share units shown to users = raw amount x this; null where the token has none
+  tokenPaused?: boolean;      // the issuer paused the stock token; false where the chain has no pause flag
+  // BE-75: always sent (empty without a database); optional in the zod schema until the web app reads it
+  haltReasons?: string[];     // issuer controls the team monitor sees blocking this market now, one plain sentence each: a pause of this stock, or a pause or blocklist covering the chain (USDC, Morpho, our router, liquidator or vault); opening, closing or liquidating may fail while not empty
 };
 
 type QuoteOpenRequest = {
@@ -656,6 +692,16 @@ type DepositStatus = {
 // service's deadline passed with nothing deposited.
 ```
 
+### A market without an oracle price (BE-99, D-100)
+
+When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `snapshot()` reverts), `oraclePriceE8` is `"0"` everywhere it appears, and that is the flag. Clients never divide by it.
+
+- `markets`, `markets/:symbol`, `stream`, `accounts/:address` and `earn` answer as usual. `Market.oracleStale` is true and `dexDeviationBps` is null.
+- `Position`: `valueUsdRaw`, `equityUsdRaw` and `unrealizedPnlUsdRaw` are `"0"`, and the position is left out of `Account.totals`. `ltvWad` is `"0"` (unknown, as Lens reports it), so `overSoftLimit` is false. The web app shows "no price" instead of these numbers.
+- `quote/close` with `fractionWad` 1e18: a full close priced by the DEX alone. The swap and its `minOut` come from the route and the user's slippage, `preview.deviationBps` is 0, `preview.ltvAfterWad` is `"0"`, and a warning `ORACLE_STALE` with severity `warn` says so. Only through a router with SC-86 (Base, X Layer, and Monad after SC-87); the live Monad router refuses it.
+- `quote/close` with a smaller fraction, and `quote/open`: 400 `BAD_REQUEST` with `details: { oraclePriceE8: "0" }` and a message that says why. The router would revert them.
+- `quote/collateral`: adding collateral and repaying still quote, with `ltvAfterWad` `"0"` and an `info` warning `ORACLE_STALE`. Removing collateral while there is debt stays blocked (`ORACLE_STALE`, `block`), as before.
+
 ### More data shapes
 
 Added while writing the schemas in BE-02. The binding source for every shape is `packages/shared/api/`. `endpoints.ts` there maps each endpoint to its request and response schema.
@@ -797,6 +843,9 @@ type AlertSettings = {
 // When alerts go out (alerts keeper): 24 hours, 4 hours and 1 hour before a close, for positions above the closed-market
 // limit; once when a position's LTV passes the threshold, again only after it went back under; on auto-deleverage,
 // liquidation and an arrived deposit, for events less than a day old.
+// Halts (BE-75) go to every wallet with a channel, with no event switch: when an issuer control blocks a stock the user
+// holds (or the whole chain, which also covers USDC lent in Earn), once per block, and once more when it is lifted. The
+// text is the market's `haltReasons` sentence.
 
 type ConfigResponse = {
   chainId: number;
@@ -848,7 +897,7 @@ type StatusResponse = {
 
 ### The `/v1/stream` stream
 
-Server-Sent Events. Three event types:
+Server-Sent Events, one stream per chain (`/v1/:chainId/stream`, BE-70; `/v1/stream` is Monad's). Three event types:
 
 | Event | Content | When |
 |---|---|---|
@@ -877,7 +926,7 @@ Added by Nabil on 13 October 2026 with FE-50 and FE-31. Approved by Dharu on 14 
 
 Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and checks the signature (smart wallets through ERC-1271 and ERC-6492). The shared source is `termsMessage` in `packages/shared/api/compliance.ts`, used by both the API and the web app.
 
-Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. Regions inside a country (ISO 3166-2, for example `UA-43`) can be blocked too when the CDN sends a region header. The routes are off when no terms version is configured.
+Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. Base and X Layer refuse more countries than Monad (D-73, D-103): an open quote is checked against the list of its chain, a deposit quote against Monad's (deposits arrive on Monad), and `POST /v1/terms/accept` against the list shared by every chain, so a visitor allowed on Monad can accept the terms and is then refused only when opening on Base or X Layer. The web app sends `chainId` to `/v1/eligibility` for the chain it shows; without it the answer covers the shared list only. Regions inside a country (ISO 3166-2, for example `UA-43`) can be blocked too when the CDN sends a region header. The routes are off when no terms version is configured.
 
 ```
 Levra terms of use
@@ -886,7 +935,7 @@ Address: <address, checksummed>
 I confirm that I am not a resident of, or located in, a restricted region, that I read the risk disclosure, and that I accept the terms of use.
 ```
 
-Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` 143, `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API accepts the hosts in `AUTH_DOMAIN` (production, this project's Vercel previews and `localhost:3000`, BE-56) and answers CORS for the origins in `CORS_ORIGINS`, with `authorization` and `content-type` allowed. The token is sent as `Authorization: Bearer <token>`.
+Sign-in for alerts (`/v1/auth/siwe`): a standard EIP-4361 message built with viem's `createSiweMessage`: `domain` is the host of the page, `uri` its origin, `chainId` one of the live chains (BE-70; 143 only before), `version` "1", the nonce from `/v1/auth/nonce`, and the statement "Sign in to Levra to manage your alerts." The API accepts the hosts in `AUTH_DOMAIN` (production, this project's Vercel previews and `localhost:3000`, BE-56) and answers CORS for the origins in `CORS_ORIGINS`, with `authorization` and `content-type` allowed. The token is sent as `Authorization: Bearer <token>`.
 
 ## 5. Contents of `packages/shared`
 

@@ -10,20 +10,34 @@ export type ComplianceOptions = {
   termsVersion: string;
   /** Request header with the visitor's ISO country code, set by the CDN in front of the API, for example `cf-ipcountry`. */
   countryHeader?: string;
-  /** ISO 3166-1 alpha-2 codes, upper case. Decided with counsel (X-10). */
+  /** ISO 3166-1 alpha-2 codes, upper case, refused on every chain. Decided with counsel (X-10). */
   blockedCountries: Set<string>;
+  /** More codes refused on one chain only, keyed by chain ID, for example the D-73 list on Base and X Layer. */
+  blockedCountriesByChain?: Map<number, Set<string>>;
   /** Request header with the visitor's region inside the country, for example Cloudflare's `cf-region-code`. */
   regionHeader?: string;
   /** ISO 3166-2 codes, upper case, for example `UA-43` for Crimea (D-42). */
   blockedRegions?: Set<string>;
 };
 
+/** Reads a comma-separated list of ISO 3166-1 alpha-2 codes. A typo stops the API at start rather than letting a country in. */
+export function countryList(name: string, value: string | undefined): Set<string> {
+  const codes = (value ?? "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean);
+  const bad = codes.filter((c) => !/^[A-Z]{2}$/.test(c));
+  if (bad.length > 0) throw new Error(`${name} must list two-letter country codes, not: ${bad.join(", ")}`);
+  return new Set(codes);
+}
+
 export type Compliance = {
-  regionBlocked(c: Context): boolean;
+  /** Without a chain, only the list shared by every chain applies. */
+  regionBlocked(c: Context, chainId?: number): boolean;
   country(c: Context): string | null;
   accepted(address: Address): Promise<boolean>;
-  /** Throws REGION_BLOCKED or TERMS_NOT_ACCEPTED. Used before opening a position or depositing, never before closing. */
-  require(c: Context, address: Address): Promise<void>;
+  /**
+   * Throws REGION_BLOCKED or TERMS_NOT_ACCEPTED for the chain the position or deposit is on. Used before opening a
+   * position or depositing, never before closing.
+   */
+  require(c: Context, address: Address, chainId: number): Promise<void>;
 };
 
 export function createCompliance(db: Db, opts: ComplianceOptions): Compliance {
@@ -45,11 +59,13 @@ export function createCompliance(db: Db, opts: ComplianceOptions): Compliance {
     const cc = country(c);
     return cc ? `${cc}-${v}` : null;
   };
-  const regionBlocked = (c: Context) => {
+  const regionBlocked = (c: Context, chainId?: number) => {
     const blockedRegions = opts.blockedRegions ?? new Set<string>();
-    if (opts.blockedCountries.size === 0 && blockedRegions.size === 0) return false;
+    const chainCountries = chainId === undefined ? undefined : opts.blockedCountriesByChain?.get(chainId);
+    const anyCountries = opts.blockedCountries.size > 0 || (chainCountries?.size ?? 0) > 0;
+    if (!anyCountries && blockedRegions.size === 0) return false;
     const cc = country(c);
-    if (opts.blockedCountries.size > 0 && (cc === null || opts.blockedCountries.has(cc))) return true;
+    if (anyCountries && (cc === null || opts.blockedCountries.has(cc) || chainCountries?.has(cc) === true)) return true;
     const rc = region(c);
     // Without a region the country decides: a region list narrows a country, it cannot refuse every visitor of it.
     return rc !== null && blockedRegions.has(rc);
@@ -66,8 +82,8 @@ export function createCompliance(db: Db, opts: ComplianceOptions): Compliance {
     regionBlocked,
     country,
     accepted,
-    async require(c, address) {
-      if (regionBlocked(c)) throw new ApiHttpError("REGION_BLOCKED", "Levra is not available in your region.");
+    async require(c, address, chainId) {
+      if (regionBlocked(c, chainId)) throw new ApiHttpError("REGION_BLOCKED", "Levra is not available in your region.");
       if (!(await upstream(() => accepted(address)))) throw new ApiHttpError("TERMS_NOT_ACCEPTED", `Accept the terms of use (version ${opts.termsVersion}) first.`);
     },
   };
@@ -80,7 +96,9 @@ export function complianceRoutes(db: Db, client: PublicClient, compliance: Compl
   app.get("/v1/eligibility", async (c) => {
     const raw = c.req.query("address");
     if (raw !== undefined && !isAddress(raw, { strict: false })) throw new ApiHttpError("BAD_REQUEST", "Not an address.");
-    const blocked = compliance.regionBlocked(c);
+    const chain = c.req.query("chainId");
+    if (chain !== undefined && !/^[1-9][0-9]{0,9}$/.test(chain)) throw new ApiHttpError("BAD_REQUEST", "Not a chain ID.");
+    const blocked = compliance.regionBlocked(c, chain === undefined ? undefined : Number(chain));
     return c.json({
       eligible: !blocked,
       reason: blocked ? "REGION_BLOCKED" : null,

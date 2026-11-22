@@ -1,4 +1,4 @@
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { describe, expect, it } from "vitest";
 import { midPriceE8 } from "../src/quotes/common";
 

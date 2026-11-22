@@ -1,15 +1,13 @@
 "use client";
 
 import { morphoAbi } from "@levra/shared/abis";
-import { external } from "@levra/shared/addresses";
 import { useAccount, useReadContract } from "wagmi";
 import { queryKeys, useMarkets } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
-import { deployment, stockOf } from "@/lib/deployment";
 import { useT } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { formatWadPercent } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
+import { useRouterUpgrade } from "@/lib/useRouterUpgrade";
 import { useTxFlow } from "@/lib/useTxFlow";
 import { ProtectionToggle } from "../protection/ProtectionToggle";
 import { useSignIn } from "../SignIn";
@@ -21,6 +19,8 @@ import { ThemeSwitch } from "../theme/ThemeSwitch";
 import { TokenIcon } from "../ui/TokenIcon";
 import { AlertsCard } from "./AlertsCard";
 import { WalletCard } from "./WalletCard";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 
 export function SettingsView() {
   const m = useT();
@@ -44,6 +44,7 @@ export function SettingsView() {
           </div>
           <div className="flex flex-col gap-4 [&>*:last-child]:flex-1">
             <AuthorizationCard user={address} />
+            <OldAccessCard user={address} />
             {privyAppId && <WalletCard />}
           </div>
         </div>
@@ -53,6 +54,7 @@ export function SettingsView() {
 }
 
 function ProtectionCard({ user }: { user: `0x${string}` }) {
+  const chain = useChain();
   const m = useT();
   const protection = useProtection(user);
   const markets = useMarkets();
@@ -80,8 +82,8 @@ function ProtectionCard({ user }: { user: `0x${string}` }) {
           </div>
         ))}
       </div>
-      {deployment.markets.map((mk) => {
-        const stock = stockOf(mk.symbol);
+      {chain.deployment.markets.map((mk) => {
+        const stock = stockOn(chain, mk.symbol);
         const api = markets.data?.markets.find((x) => x.marketId === mk.marketId);
         const name = m.protection.market(stock?.tokenSymbol ?? mk.symbol, mk.side === "long" ? m.trade.long : m.trade.short);
         return (
@@ -100,14 +102,15 @@ function ProtectionCard({ user }: { user: `0x${string}` }) {
 }
 
 function AuthorizationCard({ user }: { user: `0x${string}` }) {
+  const chain = useChain();
   const m = useT();
   const flow = useTxFlow();
-  const auth = useReadContract({ address: external.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, deployment.router], chainId: monad.id });
+  const auth = useReadContract({ address: chain.morpho, abi: morphoAbi, functionName: "isAuthorized", args: [user, chain.deployment.router], chainId: chain.id });
   const on = auth.data === true;
   const run = () =>
     void flow.runDirect({
       account: user,
-      call: { address: external.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, !on] },
+      call: { address: chain.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [chain.deployment.router, !on] },
       invalidate: [auth.queryKey, queryKeys.account(user)],
     });
   return (
@@ -125,6 +128,38 @@ function AuthorizationCard({ user }: { user: `0x${string}` }) {
         signatures={0}
         approvals={0}
         confirmLabel={on ? m.settings.revoke : m.settings.allow}
+        onConfirm={run}
+        onClose={flow.reset}
+      />
+    </Card>
+  );
+}
+
+function OldAccessCard({ user }: { user: `0x${string}` }) {
+  const chain = useChain();
+  const m = useT();
+  const flow = useTxFlow();
+  const { oldAccess, queryKey } = useRouterUpgrade(user);
+  const old = oldAccess[0];
+  if (!old) return null;
+  const run = () =>
+    void flow.runDirect({
+      account: user,
+      call: { address: chain.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [old, false] },
+      invalidate: [queryKey, queryKeys.account(user)],
+    });
+  return (
+    <Card className="flex flex-col gap-3">
+      <p className="label-caps">{m.upgrade.oldAccess}</p>
+      <p className="text-[13px] leading-relaxed text-fg-2">{m.upgrade.oldAccessBody}</p>
+      <Button variant="secondary" onClick={flow.review}>{m.upgrade.removeOld}</Button>
+      <TxSheet
+        title={m.upgrade.removeOld}
+        state={flow.state}
+        sentences={[...m.upgrade.removeSentences, m.earn.contract("Morpho")]}
+        signatures={0}
+        approvals={0}
+        confirmLabel={m.upgrade.removeOld}
         onConfirm={run}
         onClose={flow.reset}
       />

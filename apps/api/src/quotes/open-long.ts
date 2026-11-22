@@ -25,6 +25,7 @@ import {
   liqDistanceBps,
   maxLtvWithAccrual,
   midPriceE8,
+  requirePrice,
   tokenDecimals,
   warningList,
   type QuoteDeps,
@@ -46,6 +47,7 @@ export async function quoteOpenLong({ reader, swap }: QuoteDeps, req: QuoteOpenR
   ]);
   const m = markets.find((x) => x.info.symbol === req.symbol && x.info.side === "long");
   if (!m) throw new ApiHttpError("NOT_FOUND", `No long market for ${req.symbol}.`);
+  requirePrice(m);
 
   const quote = m.info.loanToken;
   const stock = m.info.collateralToken;

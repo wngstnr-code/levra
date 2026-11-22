@@ -1,8 +1,8 @@
 "use client";
 
-import { external, tokens } from "@levra/shared/addresses";
-import { monad } from "@/lib/chain";
-import { deployment, stockOf } from "@/lib/deployment";
+import { externalByChain } from "@levra/shared/addresses";
+import { listedStocks, stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 import { useT } from "@/lib/i18n";
 import { Card } from "../ui/Card";
 
@@ -11,20 +11,23 @@ const tones = ["lime", "peri", "butter"] as const;
 export function HelpView() {
   const m = useT();
   const h = m.help;
-  const explorer = monad.blockExplorers.default.url;
+  const chain = useChain();
+  const deployment = chain.deployment;
+  const explorer = chain.explorer;
+  const intro = h.byChain[chain.slug];
+  const anchored = chain.id === 143 ? externalByChain[143].anchoredStockOracle : null;
   const contracts: [string, string][] = [
     [h.names.router, deployment.router],
     [h.names.riskManager, deployment.riskManager],
     [h.names.lens, deployment.lens],
     ...(deployment.liquidator ? ([[h.names.liquidator, deployment.liquidator]] as [string, string][]) : []),
     ...(deployment.usdcVault ? ([[h.names.vault, deployment.usdcVault]] as [string, string][]) : []),
-    ...deployment.markets.map((mk) => [h.sessionOracle(stockOf(mk.symbol)?.tokenSymbol ?? mk.symbol, mk.side === "long" ? m.trade.long : m.trade.short), mk.oracle] as [string, string]),
-    [h.names.morpho, external.morpho],
-    [h.names.oracle, external.anchoredStockOracle],
-    [h.names.usdc, tokens.USDC.address],
-    ["aQQQ", tokens.aQQQ.address],
-    ["aHOOD", tokens.aHOOD.address],
-    ["aBIL", tokens.aBIL.address],
+    ...deployment.markets.map((mk) => [h.sessionOracle(stockOn(chain, mk.symbol)?.tokenSymbol ?? mk.symbol, mk.side === "long" ? m.trade.long : m.trade.short), mk.oracle] as [string, string]),
+    [h.names.morpho, chain.morpho],
+    ...(anchored ? ([[h.names.oracle, anchored]] as [string, string][]) : []),
+    ...listedStocks(chain).flatMap((st) => ("priceFeed" in st ? ([[h.names.feed(st.tokenSymbol), st.priceFeed]] as [string, string][]) : [])),
+    [h.names.usdc, chain.usdc.address],
+    ...listedStocks(chain).map((st) => [st.tokenSymbol, st.token] as [string, string]),
   ];
   const sections = Object.entries(h.nav) as [keyof typeof h.nav, string][];
   const anchor: Record<keyof typeof h.nav, string> = { how: "how", risks: "risks", glossary: "glossary", faq: "faq", revoke: "revoke", contracts: "contracts" };
@@ -46,7 +49,7 @@ export function HelpView() {
         <div className="min-w-0 space-y-4">
           <section id="how" className="scroll-mt-28 space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
-              {h.pillars.map((p, i) => (
+              {intro.pillars.map((p, i) => (
                 <Card key={p.k} tone={tones[i]} className="flex flex-col gap-1.5 p-6">
                   <p className="text-xs font-semibold tracking-wide text-ink/60 uppercase">{p.k}</p>
                   <p className="text-display text-[22px] font-semibold">{p.t}</p>
@@ -56,7 +59,7 @@ export function HelpView() {
             </div>
             <Card>
               <h2 className="text-xl font-semibold">{h.how}</h2>
-              <p className="mt-2 text-[15px] leading-relaxed text-fg-2">{h.howBody}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-fg-2">{intro.howBody}</p>
             </Card>
           </section>
           <Card id="risks" className="scroll-mt-28 space-y-3">
@@ -98,7 +101,7 @@ export function HelpView() {
             <h2 className="text-xl font-semibold">{h.revoke}</h2>
             <p className="text-[15px] text-fg-2">{h.revokeBody}</p>
             <p className="text-sm">
-              {h.names.morpho}: <a className="break-all text-lime" href={`${explorer}/address/${external.morpho}`} target="_blank" rel="noreferrer">{external.morpho}</a>
+              {h.names.morpho}: <a className="break-all text-lime" href={`${explorer}/address/${chain.morpho}`} target="_blank" rel="noreferrer">{chain.morpho}</a>
             </p>
             <p className="text-sm">
               {h.names.router}: <a className="break-all text-lime" href={`${explorer}/address/${deployment.router}`} target="_blank" rel="noreferrer">{deployment.router}</a>

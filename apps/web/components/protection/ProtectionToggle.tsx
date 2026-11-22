@@ -2,22 +2,23 @@
 
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { Address, Hex } from "viem";
-import { deployment } from "@/lib/deployment";
 import { useT } from "@/lib/i18n";
 import { useTxFlow } from "@/lib/useTxFlow";
 import { TxSheet } from "../tx/TxSheet";
 import { InfoLink } from "../ui/InfoLink";
 import { Switch } from "../ui/Switch";
+import { useChain } from "@/lib/useChain";
 
 /** Turns protection on or off for one market with a direct router call. The sheet says what it means before the wallet opens. */
 export function ProtectionToggle({ user, marketId, on, name, invalidate, showLabel = true }: { user: Address; marketId: Hex; on: boolean | undefined; name: string; invalidate: readonly (readonly unknown[])[]; showLabel?: boolean }) {
+  const chain = useChain();
   const m = useT();
   const flow = useTxFlow();
   const next = !on;
   const run = () =>
     void flow.runDirect({
       account: user,
-      call: { address: deployment.router, abi: marginRouterAbi, functionName: "setProtection", args: [marketId, next] },
+      call: { address: chain.deployment.router, abi: marginRouterAbi, functionName: "setProtection", args: [marketId, next] },
       invalidate,
     });
   return (

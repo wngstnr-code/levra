@@ -1,22 +1,22 @@
 "use client";
 
-import { anchoredStockOracleAbi } from "@levra/shared/abis";
-import { external } from "@levra/shared/addresses";
+import { sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
-import { stocks } from "@levra/shared/markets";
 import { useReadContract } from "wagmi";
-import { monad } from "./chain";
 import { sessionFromIndex } from "./session";
+import { useChain } from "./useChain";
+import { oraclesBySymbol } from "./useOracleSnapshots";
 
 /** The US market session. Every listed stock reports the same session, so one oracle read is enough. */
 export function useMarketSession(): SessionName | null {
+  const chain = useChain();
+  const first = oraclesBySymbol(chain)[0];
   const { data } = useReadContract({
-    address: external.anchoredStockOracle,
-    abi: anchoredStockOracleAbi,
-    functionName: "latestPrice",
-    args: [stocks.QQQ.priceId],
-    chainId: monad.id,
-    query: { refetchInterval: 30_000 },
+    address: first?.oracle,
+    abi: sessionOracleAbi,
+    functionName: "snapshot",
+    chainId: chain.id,
+    query: { enabled: !!first, refetchInterval: 30_000 },
   });
-  return data ? sessionFromIndex(data.session) : null;
+  return data ? sessionFromIndex(data[3]) : null;
 }

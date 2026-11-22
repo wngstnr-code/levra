@@ -1,17 +1,14 @@
 "use client";
 
 import { morphoAbi } from "@levra/shared/abis";
-import { external, tokens } from "@levra/shared/addresses";
 import type { Position, SignatureInput } from "@levra/shared/api";
 import { WAD } from "@levra/shared/math";
 import { useState } from "react";
 import { erc20Abi, type Address } from "viem";
 import { useReadContract } from "wagmi";
 import { queryKeys } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
-import { deployment, stockOf } from "@/lib/deployment";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
@@ -24,17 +21,25 @@ import { TxSheet } from "../tx/TxSheet";
 import { Button } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
 import type { ManageTab } from "./PositionCard";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
+import { noticeFor } from "@/lib/warnings";
+import { NoticeRow } from "../ui/NoticeRow";
+import { hasNoPrice, manageTabs, noPriceNotice } from "@/lib/marketState";
 
 const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
 const FRACTIONS = [25, 50, 75, 100];
 const SLIPPAGE_BPS = 50;
 
-export function ManageSheet({ position, tab, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
+export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
+  const noPrice = hasNoPrice(position.oraclePriceE8);
+  const { tabs, tab } = manageTabs(TABS, noPrice, asked);
+  const chain = useChain();
   const m = useT();
   const flow = useTxFlow();
-  const stock = stockOf(position.symbol)!;
+  const stock = stockOn(chain, position.symbol)!;
   const long = position.side === "long";
-  const usdc = { address: tokens.USDC.address, decimals: tokens.USDC.decimals, symbol: "USDC" };
+  const usdc = { address: chain.usdc.address, decimals: chain.usdc.decimals, symbol: "USDC" };
   const stk = { address: stock.token, decimals: stock.decimals, symbol: stock.tokenSymbol };
   const collateralToken = long ? stk : usdc;
   const loanToken = long ? usdc : stk;
@@ -46,7 +51,7 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
   const pct = tab === "close" ? 100 : fraction;
   const amountRaw = parseAmount(amountText, amountToken.decimals);
 
-  const balance = useReadContract({ address: amountToken.address, abi: erc20Abi, functionName: "balanceOf", args: [user], chainId: monad.id, query: { enabled: isAmount } });
+  const balance = useReadContract({ address: amountToken.address, abi: erc20Abi, functionName: "balanceOf", args: [user], chainId: chain.id, query: { enabled: isAmount } });
   const available = tab === "remove" ? BigInt(position.collateralRaw) : tab === "repay" ? BigInt(position.debtRaw) : (balance.data ?? null);
 
   const collKey = useDebounced(isAmount && amountRaw && amountRaw > 0n ? JSON.stringify({ marketId: position.marketId, action: tab, amountRaw: amountRaw.toString() }) : null);
@@ -87,7 +92,7 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
         setSignatures(sigs);
         return isAmount ? coll.refresh(sigs) : close.refresh([]);
       },
-      guard: (tx) => guardRouterTx(tx, { router: deployment.router, action, marketId: position.marketId }),
+      guard: (tx) => guardRouterTx(tx, { router: chain.deployment.router, action, marketId: position.marketId }),
       invalidate: [queryKeys.account(user), queryKeys.history(user)],
     });
   };
@@ -95,7 +100,7 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
   const authorize = () =>
     void flow.runDirect({
       account: user,
-      call: { address: external.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [deployment.router, true] },
+      call: { address: chain.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [chain.deployment.router, true] },
       invalidate: [queryKeys.account(user)],
     });
 
@@ -109,12 +114,13 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
     <>
       <Sheet open={flow.state.phase === "idle"} onClose={onClose} title={m.positions.manageTitle(stock.tokenSymbol, long ? m.trade.long : m.trade.short)}>
         <div role="tablist" className="flex gap-1 rounded-full bg-surface-1 p-1">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => onTab(t)} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", tab === t ? "bg-surface-3 font-semibold" : "text-fg-2 hover:text-fg")}>
               {m.positions.tabs[t]}
             </button>
           ))}
         </div>
+        {noPrice && <NoticeRow notice={noPriceNotice(m)} />}
 
         {isAmount ? (
           <label className="squircle block rounded-panel bg-surface-1 p-5">
@@ -176,9 +182,7 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
         </div>
 
         {quote?.warnings.map((w) => (
-          <p key={w.code} className={cn("text-[13px]", w.severity === "block" ? "text-down" : "text-caution")}>
-            {w.message}
-          </p>
+          <NoticeRow key={w.code} notice={noticeFor(w, m)} />
         ))}
         <p className="text-xs text-fg-3">{m.positions.neverPaused}</p>
 

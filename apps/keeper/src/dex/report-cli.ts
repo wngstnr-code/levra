@@ -1,5 +1,5 @@
 import { createDb, dexQuotes } from "@levra/db";
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { and, desc, eq } from "drizzle-orm";
 import pino from "pino";
 import { createPublicClient, http } from "viem";

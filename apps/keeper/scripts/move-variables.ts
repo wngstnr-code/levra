@@ -61,10 +61,23 @@ function run(file: string, args: string[], stdin = "", shell = false): Promise<s
   });
 }
 
+/** All variables of a Railway service, held in memory only. `service` must be a plain name. */
+export async function railwayVariables(service: string): Promise<Record<string, string>> {
+  if (!PLAIN.test(service)) throw new Error(`Not a plain service name: ${service}`);
+  // A shell finds the npm shim on Windows; nothing secret is on the command line.
+  const out = await run(RAILWAY, ["variable", "list", "--service", service, "--json"], "", process.platform === "win32");
+  try {
+    // PowerShell's npm shim can put a byte order mark in front.
+    return JSON.parse(out.replace(/^﻿/, "")) as Record<string, string>;
+  } catch {
+    // The output holds secret values, so none of it goes into the error.
+    throw new Error(`Railway did not return JSON for service ${service}`);
+  }
+}
+
 async function main() {
   const { from, to, service, names, confirm } = parseMoveArgs(process.argv.slice(2));
-  // A shell finds the npm shim on Windows; nothing secret is on the command line.
-  const variables = JSON.parse(await run(RAILWAY, ["variable", "list", "--service", from, "--json"], "", process.platform === "win32")) as Record<string, string>;
+  const variables = await railwayVariables(from);
   for (const name of names) {
     const value = variables[name];
     if (!value) {

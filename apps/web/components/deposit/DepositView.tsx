@@ -1,6 +1,5 @@
 "use client";
 
-import { tokens as monadTokens } from "@levra/shared/addresses";
 import type { DepositQuoteResponse, DepositToken, WithdrawQuoteResponse } from "@levra/shared/api";
 import { useMutation } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -9,7 +8,6 @@ import { erc20Abi, type Address } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 import { api } from "@/lib/api/client";
 import { apiConfigured, useDepositTokens } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { formatAge } from "@/lib/format";
@@ -30,6 +28,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { Switch } from "../ui/Switch";
 import { QrCode } from "./QrCode";
 import { TransferStatus } from "./TransferStatus";
+import { useChain } from "@/lib/useChain";
 
 type Tab = "deposit" | "withdraw";
 
@@ -143,6 +142,7 @@ function usePicked(tokens: DepositToken[]) {
 }
 
 function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: DepositToken[]; onQuoted: (q: DepositQuoteResponse, label: string) => void }) {
+  const web = useChain();
   const m = useT();
   const now = useNowSeconds();
   const { chain, onChain, tokenId, setTokenId, picked } = usePicked(tokens);
@@ -154,7 +154,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
   const belowMin = !!picked?.minAmountRaw && amount !== null && amount < BigInt(picked.minAmountRaw);
   const gated = useGatedAction();
   const quote = useMutation({
-    mutationFn: () => api("depositQuote", { body: { recipient: user, originChain: chain, originToken: tokenId, amountRaw: amount!.toString(), refundAddress: refund.trim(), includeGas } }),
+    mutationFn: () => api("depositQuote", { chainId: web.id, body: { recipient: user, originChain: chain, originToken: tokenId, amountRaw: amount!.toString(), refundAddress: refund.trim(), includeGas } }),
     onSuccess: (q) => {
       trackStep("deposit_address_shown", { chain: picked?.chainName ?? "" });
       onQuoted(q, `${amountText} ${picked?.symbol} · ${picked?.chainName}`);
@@ -276,6 +276,7 @@ function DepositForm({ user, tokens, onQuoted }: { user: Address; tokens: Deposi
 }
 
 function WithdrawForm({ user, tokens, onSent }: { user: Address; tokens: DepositToken[]; onSent: (id: string, label: string) => void }) {
+  const web = useChain();
   const m = useT();
   const now = useNowSeconds();
   const flow = useTxFlow();
@@ -283,10 +284,10 @@ function WithdrawForm({ user, tokens, onSent }: { user: Address; tokens: Deposit
   const [amountText, setAmountText] = useState("");
   const [recipient, setRecipient] = useState("");
   const [sentId, setSentId] = useState<string | null>(null);
-  const balance = useReadContract({ address: monadTokens.USDC.address, abi: erc20Abi, functionName: "balanceOf", args: [user], chainId: monad.id });
-  const amount = parseAmount(amountText, monadTokens.USDC.decimals);
+  const balance = useReadContract({ address: web.usdc.address, abi: erc20Abi, functionName: "balanceOf", args: [user], chainId: web.id });
+  const amount = parseAmount(amountText, web.usdc.decimals);
   const tooMuch = amount !== null && balance.data !== undefined && amount > balance.data;
-  const quote = useMutation({ mutationFn: () => api("withdrawQuote", { body: { user, destinationChain: chain, destinationToken: tokenId, amountRaw: amount!.toString(), recipient: recipient.trim() } }) });
+  const quote = useMutation({ mutationFn: () => api("withdrawQuote", { chainId: web.id, body: { user, destinationChain: chain, destinationToken: tokenId, amountRaw: amount!.toString(), recipient: recipient.trim() } }) });
   const q: WithdrawQuoteResponse | undefined = quote.data;
   const label = amount ? `${formatToken(amount, 6, 2)} USDC` : "";
   const expired = q ? q.expiresAt <= now : false;
@@ -295,7 +296,7 @@ function WithdrawForm({ user, tokens, onSent }: { user: Address; tokens: Deposit
     if (!q || !amount) return;
     void flow.runDirect({
       account: user,
-      call: { address: monadTokens.USDC.address, abi: erc20Abi, functionName: "transfer", args: [q.depositAddress, amount] },
+      call: { address: web.usdc.address, abi: erc20Abi, functionName: "transfer", args: [q.depositAddress, amount] },
       invalidate: [balance.queryKey],
     });
   };

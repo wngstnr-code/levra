@@ -5,6 +5,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { orderDepositTokens } from "../depositTokens";
 import { api, apiBaseUrl, ApiRequestError } from "./client";
+import { useChain } from "../useChain";
 
 export const queryKeys = {
   markets: ["markets"] as const,
@@ -18,7 +19,8 @@ export const queryKeys = {
   earnAccount: (address: string) => ["earnAccount", address.toLowerCase()] as const,
   depositTokens: ["depositTokens"] as const,
   depositStatus: (id: string) => ["depositStatus", id] as const,
-  eligibility: (address: string | undefined) => ["eligibility", address?.toLowerCase() ?? null] as const,
+  eligibility: (address: string | undefined, chainId?: number) => ["eligibility", address?.toLowerCase() ?? null, chainId ?? null] as const,
+  chains: ["chains"] as const,
 };
 
 export const apiConfigured = apiBaseUrl !== null;
@@ -29,10 +31,23 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < 2;
 }
 
+/** Which chains the API serves now (BE-70). Null while unknown or when the API predates the list. */
+export function useLiveChains(): Set<number> | null {
+  const q = useQuery({
+    queryKey: queryKeys.chains,
+    queryFn: ({ signal }) => api("chains", { signal }),
+    enabled: apiConfigured,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  return q.data ? new Set(q.data.chains.filter((c) => c.live).map((c) => c.chainId)) : null;
+}
+
 export function useMarkets() {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.markets,
-    queryFn: ({ signal }) => api("markets", { signal }),
+    queryKey: [...queryKeys.markets, chain.id],
+    queryFn: ({ signal }) => api("markets", { chainId: chain.id, signal }),
     enabled: apiConfigured,
     refetchInterval: 60_000,
     retry: shouldRetry,
@@ -41,9 +56,10 @@ export function useMarkets() {
 
 /** Oracle price history for charts (BE-24). The service caches it for 10 s; a minute is enough for a chart. */
 export function usePriceHistory(symbol: string, range: PriceRange) {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.prices(symbol, range),
-    queryFn: ({ signal }) => api("marketPrices", { params: { symbol }, query: { range }, signal }),
+    queryKey: [...queryKeys.prices(symbol, range), chain.id],
+    queryFn: ({ signal }) => api("marketPrices", { chainId: chain.id, params: { symbol }, query: { range }, signal }),
     enabled: apiConfigured,
     refetchInterval: 60_000,
     placeholderData: (prev) => prev,
@@ -52,9 +68,10 @@ export function usePriceHistory(symbol: string, range: PriceRange) {
 }
 
 export function useMarketDetail(symbol: string) {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.marketDetail(symbol),
-    queryFn: ({ signal }) => api("marketDetail", { params: { symbol }, signal }),
+    queryKey: [...queryKeys.marketDetail(symbol), chain.id],
+    queryFn: ({ signal }) => api("marketDetail", { chainId: chain.id, params: { symbol }, signal }),
     enabled: apiConfigured,
     refetchInterval: 60_000,
     retry: shouldRetry,
@@ -62,9 +79,10 @@ export function useMarketDetail(symbol: string) {
 }
 
 export function useApiSession() {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.session,
-    queryFn: ({ signal }) => api("session", { signal }),
+    queryKey: [...queryKeys.session, chain.id],
+    queryFn: ({ signal }) => api("session", { chainId: chain.id, signal }),
     enabled: apiConfigured,
     refetchInterval: 60_000,
     retry: shouldRetry,
@@ -72,9 +90,10 @@ export function useApiSession() {
 }
 
 export function useAccountData(address: Address | undefined) {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.account(address ?? "none"),
-    queryFn: ({ signal }) => api("account", { params: { address: address! }, signal }),
+    queryKey: [...queryKeys.account(address ?? "none"), chain.id],
+    queryFn: ({ signal }) => api("account", { chainId: chain.id, params: { address: address! }, signal }),
     enabled: apiConfigured && !!address,
     refetchInterval: 15_000,
     retry: shouldRetry,
@@ -82,10 +101,11 @@ export function useAccountData(address: Address | undefined) {
 }
 
 export function useHistory(address: Address | undefined) {
+  const chain = useChain();
   return useInfiniteQuery({
-    queryKey: queryKeys.history(address ?? "none"),
+    queryKey: [...queryKeys.history(address ?? "none"), chain.id],
     queryFn: ({ pageParam, signal }) =>
-      api("accountHistory", { params: { address: address! }, query: { limit: 20, cursor: pageParam ?? undefined }, signal }),
+      api("accountHistory", { chainId: chain.id, params: { address: address! }, query: { limit: 20, cursor: pageParam ?? undefined }, signal }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     enabled: apiConfigured && !!address,
@@ -94,8 +114,9 @@ export function useHistory(address: Address | undefined) {
 }
 
 export function useServiceStatus() {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.status,
+    queryKey: [...queryKeys.status, chain.id],
     queryFn: ({ signal }) => api("status", { signal }),
     enabled: apiConfigured,
     refetchInterval: 30_000,
@@ -104,13 +125,15 @@ export function useServiceStatus() {
 }
 
 export function useEarnOptions() {
-  return useQuery({ queryKey: queryKeys.earn, queryFn: ({ signal }) => api("earn", { signal }), enabled: apiConfigured, refetchInterval: 60_000, retry: shouldRetry });
+  const chain = useChain();
+  return useQuery({ queryKey: [...queryKeys.earn, chain.id], queryFn: ({ signal }) => api("earn", { chainId: chain.id, signal }), enabled: apiConfigured, refetchInterval: 60_000, retry: shouldRetry });
 }
 
 export function useEarnAccount(address: Address | undefined) {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.earnAccount(address ?? "none"),
-    queryFn: ({ signal }) => api("earnAccount", { params: { address: address! }, signal }),
+    queryKey: [...queryKeys.earnAccount(address ?? "none"), chain.id],
+    queryFn: ({ signal }) => api("earnAccount", { chainId: chain.id, params: { address: address! }, signal }),
     enabled: apiConfigured && !!address,
     refetchInterval: 30_000,
     retry: shouldRetry,
@@ -118,9 +141,10 @@ export function useEarnAccount(address: Address | undefined) {
 }
 
 export function useDepositTokens() {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.depositTokens,
-    queryFn: ({ signal }) => api("depositTokens", { signal }),
+    queryKey: [...queryKeys.depositTokens, chain.id],
+    queryFn: ({ signal }) => api("depositTokens", { chainId: chain.id, signal }),
     select: (d) => ({ ...d, tokens: orderDepositTokens(d.tokens) }),
     enabled: apiConfigured,
     staleTime: 10 * 60_000,
@@ -132,9 +156,10 @@ const TERMINAL = new Set(["SUCCESS", "REFUNDED", "FAILED", "EXPIRED"]);
 
 /** Follows one cross-chain transfer until it ends. */
 export function useDepositStatus(id: string | null) {
+  const chain = useChain();
   return useQuery({
-    queryKey: queryKeys.depositStatus(id ?? "none"),
-    queryFn: ({ signal }) => api("depositStatus", { params: { id: id! }, signal }),
+    queryKey: [...queryKeys.depositStatus(id ?? "none"), chain.id],
+    queryFn: ({ signal }) => api("depositStatus", { chainId: chain.id, params: { id: id! }, signal }),
     enabled: apiConfigured && !!id,
     refetchInterval: (q) => (q.state.data && TERMINAL.has(q.state.data.status) ? false : 5_000),
     retry: shouldRetry,

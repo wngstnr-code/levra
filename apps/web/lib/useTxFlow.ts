@@ -6,10 +6,10 @@ import { useCallback, useState } from "react";
 import { erc20Abi, type Abi, type Address, type Hex } from "viem";
 import { useConfig } from "wagmi";
 import { getPublicClient, sendTransaction, signTypedData, waitForTransactionReceipt, writeContract } from "wagmi/actions";
-import { monad } from "./chain";
 import { describeError } from "./contractErrors";
 import { useT } from "./i18n";
 import { splitRequirements, toSignatureInput, toTypedData } from "./typedData";
+import { useChain } from "./useChain";
 
 export type FlowPhase = "idle" | "review" | "signing" | "approving" | "wallet" | "pending" | "success" | "error";
 
@@ -30,6 +30,7 @@ const MAX_UINT = 2n ** 256n - 1n;
  * The caller gives `refresh` to get a new quote with the signatures included, and a `guard` that checks the transaction.
  */
 export function useTxFlow() {
+  const chain = useChain();
   const m = useT();
   const config = useConfig();
   const queryClient = useQueryClient();
@@ -41,12 +42,12 @@ export function useTxFlow() {
   const finish = useCallback(
     async (hash: Hex, invalidate: readonly (readonly unknown[])[]) => {
       setState({ phase: "pending", step: 0, hash });
-      const receipt = await waitForTransactionReceipt(config, { hash, chainId: monad.id });
+      const receipt = await waitForTransactionReceipt(config, { hash, chainId: chain.id });
       if (receipt.status !== "success") throw new Error("reverted");
       await Promise.all(invalidate.map((k) => queryClient.invalidateQueries({ queryKey: k })));
       setState({ phase: "success", step: 0, hash });
     },
-    [config, queryClient],
+    [config, queryClient, chain.id],
   );
 
   const fail = useCallback((err: unknown, hash?: Hex) => setState({ phase: "error", step: 0, hash, error: err instanceof Error && err.message === "reverted" ? m.errors.generic : describeError(err, m) }), [m]);
@@ -72,23 +73,23 @@ export function useTxFlow() {
         }
         for (const [i, req] of toApprove.entries()) {
           setState({ phase: "approving", step: i + 1 });
-          const approveHash = await writeContract(config, { address: req.token!, abi: erc20Abi, functionName: "approve", args: [req.spender!, BigInt(req.amountRaw ?? MAX_UINT)], chainId: monad.id });
-          await waitForTransactionReceipt(config, { hash: approveHash, chainId: monad.id });
+          const approveHash = await writeContract(config, { address: req.token!, abi: erc20Abi, functionName: "approve", args: [req.spender!, BigInt(req.amountRaw ?? MAX_UINT)], chainId: chain.id });
+          await waitForTransactionReceipt(config, { hash: approveHash, chainId: chain.id });
         }
         const fresh = toSign.length || toApprove.length ? await p.refresh(signatures) : null;
         const tx = fresh?.tx ?? (await p.refresh(signatures)).tx;
         p.guard(tx);
-        const client = getPublicClient(config, { chainId: monad.id })!;
+        const client = getPublicClient(config, { chainId: chain.id })!;
         await client.call({ account: p.account, to: tx.to, data: tx.data, value: BigInt(tx.value) });
         setState({ phase: "wallet", step: 0 });
         const gas = BigInt(tx.gasLimit);
-        hash = await sendTransaction(config, { account: p.account, to: tx.to, data: tx.data, value: BigInt(tx.value), ...(gas > 0n ? { gas } : {}), chainId: monad.id });
+        hash = await sendTransaction(config, { account: p.account, to: tx.to, data: tx.data, value: BigInt(tx.value), ...(gas > 0n ? { gas } : {}), chainId: chain.id });
         await finish(hash, p.invalidate);
       } catch (err) {
         fail(err, hash);
       }
     },
-    [config, finish, fail],
+    [config, finish, fail, chain.id],
   );
 
   /** For direct contract calls the app builds itself, such as lending or switching protection. */
@@ -98,19 +99,19 @@ export function useTxFlow() {
       try {
         if (p.approve && p.approve.allowance < p.approve.amount) {
           setState({ phase: "approving", step: 1 });
-          const approveHash = await writeContract(config, { address: p.approve.token, abi: erc20Abi, functionName: "approve", args: [p.approve.spender, p.approve.amount], chainId: monad.id });
-          await waitForTransactionReceipt(config, { hash: approveHash, chainId: monad.id });
+          const approveHash = await writeContract(config, { address: p.approve.token, abi: erc20Abi, functionName: "approve", args: [p.approve.spender, p.approve.amount], chainId: chain.id });
+          await waitForTransactionReceipt(config, { hash: approveHash, chainId: chain.id });
         }
-        const client = getPublicClient(config, { chainId: monad.id })!;
+        const client = getPublicClient(config, { chainId: chain.id })!;
         await client.simulateContract({ account: p.account, ...p.call } as Parameters<typeof client.simulateContract>[0]);
         setState({ phase: "wallet", step: 0 });
-        hash = await writeContract(config, { ...p.call, chainId: monad.id } as Parameters<typeof writeContract>[1]);
+        hash = await writeContract(config, { ...p.call, chainId: chain.id } as Parameters<typeof writeContract>[1]);
         await finish(hash, p.invalidate);
       } catch (err) {
         fail(err, hash);
       }
     },
-    [config, finish, fail],
+    [config, finish, fail, chain.id],
   );
 
   return { state, reset, review, runQuoted, runDirect };

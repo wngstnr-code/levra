@@ -36,7 +36,7 @@ export function Sheet({ open, onClose, title, children, className }: { open: boo
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "squircle animate-sheet-in flex max-h-[92vh] w-full max-w-[620px] flex-col gap-4 overflow-y-auto rounded-t-[32px] border border-white/10 bg-surface-2/85 px-6 pt-3 pb-7 backdrop-blur-2xl outline-none sm:rounded-[32px] sm:px-7",
+          "squircle animate-sheet-in flex max-h-[92vh] w-full max-w-[620px] flex-col gap-4 overflow-y-auto rounded-t-[32px] border border-line bg-surface-2/90 px-6 pt-3 pb-7 backdrop-blur-2xl outline-none sm:rounded-[32px] sm:px-7",
           className,
         )}
       >
@@ -45,7 +45,7 @@ export function Sheet({ open, onClose, title, children, className }: { open: boo
           <h2 id={titleId} className="text-display flex-1 text-2xl font-semibold">
             {title}
           </h2>
-          <button onClick={onClose} className="rounded-full bg-surface-3 px-3.5 py-2 text-sm font-semibold transition-colors hover:bg-[#38383e]">
+          <button onClick={onClose} className="rounded-full bg-surface-3 px-3.5 py-2 text-sm font-semibold transition-colors hover:brightness-110">
             {m.common.done}
           </button>
         </div>

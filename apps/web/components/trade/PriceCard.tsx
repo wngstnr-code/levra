@@ -6,7 +6,9 @@ import { apiConfigured, usePriceHistory } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
-import { formatBps, formatUsd, formatWadPercent } from "@/lib/units";
+import { formatBps, formatToken, formatUsd, formatWadPercent } from "@/lib/units";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 import { changeBps, chartValues } from "@/lib/priceSeries";
 import { formatLocal } from "@/lib/time";
 import { useNowSeconds } from "@/lib/useNow";
@@ -37,6 +39,8 @@ export function PriceCard({
   children?: React.ReactNode;
 }) {
   const m = useT();
+  const chain = useChain();
+  const stock = stockOn(chain, symbol);
   const now = useNowSeconds();
   const [range, setRange] = useState<PriceRange>("1D");
   const history = usePriceHistory(symbol, range);
@@ -80,7 +84,11 @@ export function PriceCard({
           value={market?.dexMidPriceE8 ? formatUsdE8(BigInt(market.dexMidPriceE8)) : DASH}
           sub={market?.dexDeviationBps != null ? m.trade.vsOracle(formatBps(market.dexDeviationBps, { signed: true, fractionDigits: 1 })) : undefined}
         />
-        <StatBox label={m.trade.canBorrow} value={market ? formatUsd(market.availableLiquidityRaw, 0) : DASH} sub="USDC" />
+        {market?.side === "short" && stock ? (
+          <StatBox label={m.trade.shortRoom} value={formatToken(market.availableLiquidityRaw, stock.decimals)} sub={m.trade.shortRoomSub(stock.tokenSymbol)} />
+        ) : (
+          <StatBox label={m.trade.canBorrow} value={market ? formatUsd(market.availableLiquidityRaw, 0) : DASH} sub="USDC" />
+        )}
         <StatBox label={m.trade.capLabel} value={capRaw !== null ? formatUsd(capRaw, 0) : DASH} sub={m.trade.perPosition} />
         <StatBox label={m.trade.borrowRate} value={market ? formatWadPercent(market.borrowApyWad) : DASH} sub={m.trade.variable} />
       </div>

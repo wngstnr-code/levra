@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import type { Address } from "viem";
 import { api, ApiRequestError, type ApiBody, type ApiResponse } from "./api/client";
 import { apiConfigured, shouldRetry } from "./api/hooks";
+import { useChain } from "./useChain";
 
 type QuoteName = "quoteOpen" | "quoteClose" | "quoteCollateral";
 
@@ -20,7 +21,8 @@ type Params<N extends QuoteName> = Omit<ApiBody<N>, "user" | "signatures">;
  */
 export function useQuote<N extends QuoteName>(name: N, user: Address | undefined, params: Params<N> | null, signatures: SignatureInput[] = []) {
   const queryClient = useQueryClient();
-  const keyFor = useCallback((sigs: SignatureInput[]) => [name, user, params, sigs.map((s) => s.type)] as const, [name, user, params]);
+  const chain = useChain();
+  const keyFor = useCallback((sigs: SignatureInput[]) => [name, chain.id, user, params, sigs.map((s) => s.type)] as const, [name, chain.id, user, params]);
   const bodyFor = useCallback(
     (sigs: SignatureInput[]) => ({ ...(params as object), user: user!, ...(sigs.length && name !== "quoteClose" ? { signatures: sigs } : {}) }) as ApiBody<N>,
     [name, user, params],
@@ -28,7 +30,7 @@ export function useQuote<N extends QuoteName>(name: N, user: Address | undefined
 
   const query = useQuery({
     queryKey: keyFor(signatures),
-    queryFn: ({ signal }) => api(name, { body: bodyFor(signatures), signal }),
+    queryFn: ({ signal }) => api(name, { chainId: chain.id, body: bodyFor(signatures), signal }),
     enabled: apiConfigured && !!user && !!params,
     refetchInterval: (q) => nextRefresh(q.state.error),
     placeholderData: (prev) => prev,
@@ -36,8 +38,8 @@ export function useQuote<N extends QuoteName>(name: N, user: Address | undefined
   });
 
   const refresh = useCallback(
-    async (sigs: SignatureInput[]): Promise<ApiResponse<N>> => queryClient.fetchQuery({ queryKey: keyFor(sigs), queryFn: () => api(name, { body: bodyFor(sigs) }), staleTime: 0 }),
-    [queryClient, keyFor, bodyFor, name],
+    async (sigs: SignatureInput[]): Promise<ApiResponse<N>> => queryClient.fetchQuery({ queryKey: keyFor(sigs), queryFn: () => api(name, { chainId: chain.id, body: bodyFor(sigs) }), staleTime: 0 }),
+    [queryClient, keyFor, bodyFor, name, chain.id],
   );
 
   return { ...query, refresh };

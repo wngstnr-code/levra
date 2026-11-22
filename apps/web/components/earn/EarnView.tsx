@@ -18,6 +18,7 @@ import { useSignIn } from "../SignIn";
 import { TxSheet } from "../tx/TxSheet";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { Checkbox } from "../ui/Checkbox";
 import { EmptyState } from "../ui/EmptyState";
 import { Money } from "../ui/Money";
 import { Skeleton } from "../ui/Skeleton";
@@ -223,7 +224,7 @@ function EarnPanel({ o, mode, onMode, user, signIn, invalidate }: { o: EarnChain
           <p className="text-sm font-semibold">{m.earn.riskTitle}</p>
           <p className="text-[13px] leading-relaxed text-ink/75">{m.earn.riskBody}</p>
           <label className="flex cursor-pointer items-center gap-2.5 text-[13px] font-medium">
-            <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="size-5 accent-ink" />
+            <Checkbox tone="ink" checked={accepted} onChange={setAccepted} />
             {m.earn.riskAccept}
           </label>
         </div>

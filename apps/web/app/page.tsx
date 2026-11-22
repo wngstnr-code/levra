@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
+import { chainPath, defaultChain } from "@/lib/chains";
 
 export default function HomePage() {
-  redirect("/markets");
+  redirect(chainPath(defaultChain, "/markets"));
 }
