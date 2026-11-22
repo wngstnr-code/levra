@@ -12,6 +12,7 @@
     "./deployments/node": "./deployments.node.ts",
     "./deployments/monad": "./deployments.monad.ts",
     "./deployments/base": "./deployments.base.ts",
+    "./deployments/xlayer": "./deployments.xlayer.ts",
     "./markets": "./markets.ts",
     "./math": "./math.ts",
     "./gaps": "./gaps.ts",
