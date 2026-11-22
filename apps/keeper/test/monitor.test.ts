@@ -1,6 +1,6 @@
-import { createDb, monitorState, runMigrations } from "@levra/db";
+import { activeGates, createDb, gateSymbol, monitorState, runMigrations } from "@levra/db";
 import { WAD } from "@levra/shared/math";
-import { like } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { evaluate, oracleLimit, type Condition, type Finding, type Snapshot } from "../src/monitor/checks";
 import { reconcile, type Notice } from "../src/monitor/job";
@@ -222,5 +222,34 @@ describe.skipIf(!url)("team alerts sent once and resolved (needs TEST_DATABASE_U
     await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(60), send);
     await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(120), send);
     expect(sent.sort()).toEqual(["ALERT: bad debt", "ALERT: t-api message"]);
+  });
+
+  it("leaves the blocking gates for the API to read, each mapped to its stock or to the whole chain (BE-75)", async () => {
+    // X Layer keys in a test database; the fork tests use Monad.
+    const chain = 196;
+    await db.delete(monitorState).where(and(eq(monitorState.chainId, chain), like(monitorState.key, "gate:%")));
+    const gate = (key: string, blocked: boolean | null) => ({ key, blocked, message: `${key} message` });
+    const snapshot = { ...healthy(), chainId: chain as 196, gates: [gate("gate:xstock-paused:NVDA", true), gate("gate:xstock-paused:QQQx", true), gate("gate:usdc-blacklist:router", true), gate("gate:xstock-paused:SPY", false), gate("gate:xstock-sanctions:Morpho", null)] };
+    await reconcile(db, chain, evaluate(snapshot).filter((f) => f.key.startsWith("gate:")), at(0), send);
+    const shown = (key: string) => `${key} message. Opening, closing or liquidating may fail while it lasts.`;
+    expect(await activeGates(db, chain)).toEqual([
+      { key: "gate:usdc-blacklist:router", symbol: null, message: shown("gate:usdc-blacklist:router") },
+      { key: "gate:xstock-paused:NVDA", symbol: "NVDA", message: shown("gate:xstock-paused:NVDA") },
+      { key: "gate:xstock-paused:QQQx", symbol: "QQQ", message: shown("gate:xstock-paused:QQQx") },
+    ]);
+    // Lifted: nothing left to show.
+    snapshot.gates = snapshot.gates.map((g) => ({ ...g, blocked: false }));
+    await reconcile(db, chain, evaluate(snapshot).filter((f) => f.key.startsWith("gate:")), at(60), send);
+    expect(await activeGates(db, chain)).toEqual([]);
+    await db.delete(monitorState).where(and(eq(monitorState.chainId, chain), like(monitorState.key, "gate:%")));
+  });
+
+  it("maps every gate key the keeper writes", () => {
+    expect(gateSymbol("gate:b20-paused:NVDA")).toBe("NVDA");
+    expect(gateSymbol("gate:oracle-paused:GOOGL")).toBe("GOOGL");
+    expect(gateSymbol("gate:xstock-paused:SPYx")).toBe("SPY");
+    expect(gateSymbol("gate:anchored-denylist:Morpho")).toBeNull();
+    expect(gateSymbol("gate:b20-policy:5:router")).toBeNull();
+    expect(gateSymbol("gate:usdc-paused")).toBeNull();
   });
 });

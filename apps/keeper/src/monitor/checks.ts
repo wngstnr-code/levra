@@ -190,7 +190,8 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
   }
 
   for (const g of s.gates) {
-    out.push({ kind: "condition", key: g.key, active: g.blocked === true, forSeconds: 0, message: `${g.message}. Closes or liquidations in that market may fail; check it and pause opening if needed.` });
+    out.push({ kind: "condition", key: g.key, active: g.blocked === true, forSeconds: 0, message: `${g.message}. Opening, closing or liquidating may fail while it lasts.` });
+    // The text above is also what the API shows users as a market's halt reason (BE-75), so it holds no team advice.
     // A control we cannot read hides a pause, but one failed call is not worth a page.
     out.push({ kind: "condition", key: `${g.key}:unread`, active: g.blocked === null, forSeconds: LIMITS.unhealthyForSeconds, message: g.message });
   }
