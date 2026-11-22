@@ -259,10 +259,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 ---
 
-- [ ] **SC-88 · Issuer control ABIs in the shared package**
+- [~] **SC-88 · Issuer control ABIs in the shared package**
   - Needs: request from Dharu (BE-75, BE-30), 22 November 2026.
   - Do: export to `packages/shared/abis` the Anchored compliance `isDenylisted`, Circle USDC `paused` and `isBlacklisted`, B20 `policyId` and `isPaused`, the B20 policy registry `isAuthorized`, xStock `isPaused` and `asset`, the sanctions list `isSanctioned`, and `RiskManager.calendarPoster`.
   - Done when: the keeper can import them instead of the inline ABIs in `apps/keeper/src/monitor/gates.ts` and `calendar/poster.ts`, and shared tests pass.
+  - Note: PR #120 on 22 November 2026. Six interfaces in `contracts/src/interfaces/` exported by `make abis` as `anchoredComplianceAbi`, `circleTokenAbi`, `b20TokenAbi`, `b20PolicyRegistryAbi`, `xStockAbi`, `sanctionsListAbi`, plus `morphoOracleAbi` (Morpho `IOracle`). `calendarPoster` and `isKeeper` were already in `riskManagerAbi` and `marginRouterAbi`. `issuer-abis.test.ts` pins the signatures; 128 shared tests pass. Done when #120 merges.
 
 ## X. X Layer (TapeOut Accelerate)
 

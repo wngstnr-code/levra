@@ -292,6 +292,7 @@ Newest first.
 
 Newest first.
 
+- 22 November 2026: SC-88 in PR #120: the issuer control ABIs and the Morpho oracle `price()` exported to `packages/shared/abis` for the keeper (Dharu's request from BE-75 and BE-30).
 - 22 November 2026: SC-55 on X Layer, step 2 of 3 done. The Safe ran the step 1 batch: `0xfa71c192e171d8b51ddbc6bbe7f358ab82b4f46be9e2a78a63e8be9bd339706f`. `acceptOwnership` is scheduled, executable from 24 November 2026, 03:06 UTC (10:06 WIB). Base is executable from 23 November, 23:51 UTC, so both `executeBatch` steps can run on 24 November after 10:06 WIB.
 - 22 November 2026: SC-55 on X Layer, step 1 of 3 done. `HandOver.s.sol`: 5 transactions, all successful, first `0xd341773ac2662b59ce48b430b23900844298c13edf7889341d8be8c732272980`, last `0xe0a0d1b4b6ab04bc96dc2fbb0c8a92b9a4437b88827185cd4c2c33c81eb68e51`. Timelock `0xce171c460929433640f58dC5d3e9746Db00b420e`, Safe is guardian, pending owners set. PR #116 records the timelock. The OKX explorer form answered `SERVER_ERROR` for the router and OKLink no longer issues API keys, so the explorer check is retried later; Sourcify has all 13 X Layer contracts. Next: the Safe signs the X Layer step 1 batch, then both chains run `executeBatch` after the 2 day delay.
 ### Nabil
