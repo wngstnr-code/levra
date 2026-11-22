@@ -37,7 +37,7 @@ export function ComplianceProvider({ children }: { children: React.ReactNode }) 
 
 export const useGate = () => useContext(GateContext);
 
-/** The screen for a region the issuer does not allow. It points to Positions, where closing always works. */
+/** The screen for a region the issuer does not allow. It points to Positions, where closing can never be paused by Levra. */
 export function RegionBlocked() {
   const m = useT();
   return (
