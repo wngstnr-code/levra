@@ -9,6 +9,7 @@ import { Button, ButtonLink } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 import { TermsSheet } from "./TermsSheet";
+import { useChainHref } from "@/lib/useChain";
 
 type Gate = {
   status: ComplianceStatus;
@@ -39,13 +40,14 @@ export const useGate = () => useContext(GateContext);
 
 /** The screen for a region the issuer does not allow. It points to Positions, where closing can never be paused by Levra. */
 export function RegionBlocked() {
+  const href = useChainHref();
   const m = useT();
   return (
     <div className="space-y-4">
       <EmptyState glyph="!" tone="down" title={m.gate.blockedTitle} body={m.gate.blockedBody} />
       <Card className="flex flex-wrap items-center gap-4">
         <p className="flex-1 text-sm text-fg-2">{m.gate.blockedKeep}</p>
-        <ButtonLink href="/positions">{m.gate.goPositions}</ButtonLink>
+        <ButtonLink href={href("/positions")}>{m.gate.goPositions}</ButtonLink>
       </Card>
     </div>
   );

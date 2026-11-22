@@ -4,16 +4,16 @@ import type { HistoryItem, HistoryItemType } from "@levra/shared/api";
 import { useState } from "react";
 import type { Address } from "viem";
 import { useHistory } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
-import { stockOf } from "@/lib/deployment";
 import { historySentence } from "@/lib/historyText";
 import { useT } from "@/lib/i18n";
 import { formatLocal } from "@/lib/time";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Skeleton } from "../ui/Skeleton";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 
 type Filter = "all" | "trades" | "collateral" | "protection" | "liquidations" | "earn";
 const groups: Record<Exclude<Filter, "all">, HistoryItemType[]> = {
@@ -74,8 +74,9 @@ export function HistoryList({ address }: { address: Address }) {
 }
 
 function Row({ item }: { item: HistoryItem }) {
+  const chain = useChain();
   const m = useT();
-  const stock = stockOf(item.symbol);
+  const stock = stockOn(chain, item.symbol);
   const mark = marks[item.type];
   return (
     <div className="squircle flex items-start gap-4 rounded-panel bg-surface-2 p-4">
@@ -90,11 +91,11 @@ function Row({ item }: { item: HistoryItem }) {
             {item.side ? ` ${item.side === "long" ? m.trade.long : m.trade.short}`.toLowerCase() : ""}
           </span>
         </div>
-        <p className="mt-1 text-sm text-fg-2">{historySentence(item, m)}</p>
+        <p className="mt-1 text-sm text-fg-2">{historySentence(item, m, (sym) => stockOn(chain, sym))}</p>
       </div>
       <div className="shrink-0 text-right text-[13px]">
         <p className="text-fg-2">{formatLocal(item.timestamp)}</p>
-        <a href={`${monad.blockExplorers.default.url}/tx/${item.txHash}`} target="_blank" rel="noreferrer" className="font-medium text-lime">
+        <a href={`${chain.explorer}/tx/${item.txHash}`} target="_blank" rel="noreferrer" className="font-medium text-lime">
           {m.common.viewTx} ↗
         </a>
       </div>

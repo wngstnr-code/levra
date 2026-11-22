@@ -1,6 +1,9 @@
 import type { Market } from "@levra/shared/api";
 import { describe, expect, it } from "vitest";
+import { stocks } from "@levra/shared/markets";
 import { buildMarketRows } from "./marketRows";
+
+const list = Object.values(stocks);
 
 const qqqLong: Market = {
   symbol: "QQQ",
@@ -32,19 +35,19 @@ const qqqLong: Market = {
 };
 
 describe("buildMarketRows", () => {
-  it("lists every stock in the shared list", () => {
-    expect(buildMarketRows(undefined, {}).map((r) => r.stock.symbol)).toEqual(["QQQ", "HOOD", "BIL"]);
+  it("lists every stock it is given", () => {
+    expect(buildMarketRows(list, undefined, {}).map((r) => r.stock.symbol)).toEqual(["QQQ", "HOOD", "BIL"]);
   });
 
   it("prefers the service price and keeps the oracle session", () => {
-    const rows = buildMarketRows([qqqLong], { QQQ: { priceE8: 1n, feedUpdatedAt: 5, session: "PRE_MARKET" } });
+    const rows = buildMarketRows(list, [qqqLong], { QQQ: { priceE8: 1n, feedUpdatedAt: 5, session: "PRE_MARKET" } });
     expect(rows[0]).toMatchObject({ priceE8: 74_145_000_000n, feedUpdatedAt: 1791880000, session: "PRE_MARKET", deviationBps: -260 });
     expect(rows[0]!.long?.marketId).toBe(qqqLong.marketId);
     expect(rows[0]!.short).toBeNull();
   });
 
   it("falls back to the oracle when the service has nothing", () => {
-    const rows = buildMarketRows(undefined, { HOOD: { priceE8: 10_875_000_000n, feedUpdatedAt: 7, session: "CLOSED" } });
+    const rows = buildMarketRows(list, undefined, { HOOD: { priceE8: 10_875_000_000n, feedUpdatedAt: 7, session: "CLOSED" } });
     expect(rows[1]).toMatchObject({ priceE8: 10_875_000_000n, feedUpdatedAt: 7, session: "CLOSED", long: null, deviationBps: null });
   });
 });

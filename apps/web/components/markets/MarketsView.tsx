@@ -7,7 +7,7 @@ import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { buildMarketRows, type MarketRow } from "@/lib/marketRows";
 import { chartValues } from "@/lib/priceSeries";
-import { formatEastern, formatLocal } from "@/lib/time";
+import { formatLocal } from "@/lib/time";
 import { stockTone } from "@/lib/tones";
 import { formatBps, formatLeverage, formatUsd, formatWadPercent } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
@@ -22,6 +22,9 @@ import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
 import { StatBox } from "../ui/StatBox";
 import { TokenIcon } from "../ui/TokenIcon";
+import { listedStocks } from "@/lib/chains";
+import { MarketClock } from "./MarketClock";
+import { useChain, useChainHref } from "@/lib/useChain";
 
 const DASH = "—";
 
@@ -31,7 +34,8 @@ export function MarketsView() {
   const session = useApiSession();
   const oracle = useOracleSnapshots();
   const now = useNowSeconds();
-  const rows = buildMarketRows(markets.data?.markets, oracle.snapshots);
+  const chain = useChain();
+  const rows = buildMarketRows(listedStocks(chain), markets.data?.markets, oracle.snapshots);
   const loading = (apiConfigured ? markets.isPending : false) && oracle.isPending;
   const nothing = rows.every((r) => r.priceE8 === null);
   const next = markets.data?.session ?? session.data;
@@ -43,8 +47,8 @@ export function MarketsView() {
           <h1 className="text-display text-[40px] leading-tight font-semibold">{m.markets.title}</h1>
           <p className="mt-2 text-[15px] text-fg-2">{m.markets.subtitle}</p>
         </div>
-        {next?.nextCloseAt && <p className="text-right text-[13px] text-fg-2">{m.markets.nextClose(formatEastern(next.nextCloseAt))}</p>}
       </div>
+      <MarketClock session={rows.find((r) => r.session)?.session ?? next?.session ?? null} info={next ?? null} />
 
       {!loading && nothing && oracle.isError ? (
         <Card className="flex items-center gap-4">
@@ -56,7 +60,7 @@ export function MarketsView() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-3">
-            {rows.map((row) => (loading || row.priceE8 === null ? <CardSkeleton key={row.stock.symbol} /> : <MarketCard key={row.stock.symbol} row={row} now={now} />))}
+            {rows.slice(0, 3).map((row) => (loading || row.priceE8 === null ? <CardSkeleton key={row.stock.symbol} /> : <MarketCard key={row.stock.symbol} row={row} now={now} />))}
           </div>
           <MarketsTable rows={rows} now={now} loading={loading} />
         </>
@@ -136,6 +140,7 @@ function CardSkeleton() {
 }
 
 function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; loading: boolean }) {
+  const href = useChainHref();
   const m = useT();
   const head = [m.markets.stock, m.markets.oraclePrice, m.markets.session, m.markets.dexVsOracle, m.markets.softHard, m.markets.maxLeverage, m.markets.borrowApy, m.markets.canBorrow, m.markets.cap];
   return (
@@ -160,7 +165,7 @@ function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; 
             return (
               <tr key={stock.symbol} className="border-t border-line">
                 <td className="py-[18px] pr-4 pl-7">
-                  <Link href={`/markets/${stock.symbol}`} className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-lime">
+                  <Link href={href(`/markets/${stock.symbol}`)} className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-lime">
                     <TokenIcon symbol={stock.symbol} size={36} />
                     <span>
                       <span className="block text-[15px] font-semibold">{stock.tokenSymbol}</span>
@@ -179,10 +184,10 @@ function MarketsTable({ rows, now, loading }: { rows: MarketRow[]; now: number; 
                 <td className="py-[18px] pr-7 pl-4">
                   <div className="flex justify-end gap-2">
                     {paused && <span className="self-center text-[13px] text-caution">{m.markets.paused}</span>}
-                    <ButtonLink href={`/markets/${stock.symbol}`} variant="secondary" size="sm" className="hidden lg:inline-flex">
+                    <ButtonLink href={href(`/markets/${stock.symbol}`)} variant="secondary" size="sm" className="hidden lg:inline-flex">
                       {m.markets.detail}
                     </ButtonLink>
-                    <ButtonLink href={`/trade?symbol=${stock.symbol}`} size="sm" disabled={paused || row.stale}>
+                    <ButtonLink href={href(`/trade?symbol=${stock.symbol}`)} size="sm" disabled={paused || row.stale}>
                       {m.markets.trade}
                     </ButtonLink>
                   </div>

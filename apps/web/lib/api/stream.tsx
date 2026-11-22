@@ -4,18 +4,20 @@ import { signedDeviationBps } from "@levra/shared/math";
 import { marketEvent, priceEvent, sessionEvent, type MarketsResponse } from "@levra/shared/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { endpointUrl } from "./client";
+import { useChain } from "../useChain";
+import { chainScopedPath, endpointUrl } from "./client";
 import { apiConfigured, queryKeys } from "./hooks";
 
 /** Keeps the cached markets current from the server-sent event stream, so prices move without a reload. */
 export function StreamSync() {
   const queryClient = useQueryClient();
+  const chain = useChain();
 
   useEffect(() => {
     if (!apiConfigured) return;
-    const source = new EventSource(endpointUrl("/v1/stream"));
+    const source = new EventSource(endpointUrl(chainScopedPath("/v1/stream", chain.id)));
     const update = (fn: (prev: MarketsResponse) => MarketsResponse) =>
-      queryClient.setQueryData<MarketsResponse>(queryKeys.markets, (prev) => (prev ? fn(prev) : prev));
+      queryClient.setQueryData<MarketsResponse>([...queryKeys.markets, chain.id], (prev) => (prev ? fn(prev) : prev));
 
     source.addEventListener("price", (e) => {
       const p = priceEvent.safeParse(JSON.parse((e as MessageEvent<string>).data));
@@ -48,10 +50,10 @@ export function StreamSync() {
       const p = sessionEvent.safeParse(JSON.parse((e as MessageEvent<string>).data));
       if (!p.success) return;
       update((prev) => ({ ...prev, session: p.data }));
-      queryClient.setQueryData(queryKeys.session, p.data);
+      queryClient.setQueryData([...queryKeys.session, chain.id], p.data);
     });
     return () => source.close();
-  }, [queryClient]);
+  }, [queryClient, chain.id]);
 
   return null;
 }

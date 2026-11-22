@@ -1,16 +1,12 @@
 "use client";
 
 import type { SignatureInput } from "@levra/shared/api";
-import { tokens } from "@levra/shared/addresses";
-import { stocks } from "@levra/shared/markets";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 import { apiConfigured, queryKeys, useMarkets } from "@/lib/api/hooks";
-import { monad } from "@/lib/chain";
 import { describeError } from "@/lib/contractErrors";
-import { deployedMarket, deployment, stockOf } from "@/lib/deployment";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
@@ -32,20 +28,26 @@ import { OrderPanel, type ActionState } from "./OrderPanel";
 import { PriceCard } from "./PriceCard";
 import { QuoteDetailsSheet } from "./QuoteDetailsSheet";
 import { QuoteSummary } from "./QuoteSummary";
+import { useChain, useChainHref } from "@/lib/useChain";
+import { deployedMarketOn, listedStocks, stockOn } from "@/lib/chains";
+import { noticeFor } from "@/lib/warnings";
+import { haltNotice, hasNoPrice, noPriceNotice } from "@/lib/marketState";
 
 
 type Side = "long" | "short";
-const USDC_DECIMALS = tokens.USDC.decimals;
 
 export function TradeView() {
+  const chain = useChain();
+  const USDC_DECIMALS = chain.usdc.decimals;
+  const href = useChainHref();
   const m = useT();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const symbol = stockOf(search.get("symbol") ?? "") ? search.get("symbol")! : "QQQ";
-  const shortAvailable = deployedMarket(symbol, "short") !== null;
+  const symbol = stockOn(chain, search.get("symbol") ?? "") ? search.get("symbol")! : listedStocks(chain)[0]!.symbol;
+  const shortAvailable = deployedMarketOn(chain, symbol, "short") !== null;
   const side: Side = search.get("side") === "short" && shortAvailable ? "short" : "long";
-  const stock = stockOf(symbol)!;
+  const stock = stockOn(chain, symbol)!;
 
   const setParams = (next: Record<string, string>) => {
     const q = new URLSearchParams(search.toString());
@@ -77,11 +79,11 @@ export function TradeView() {
   const positionUsd = marginRaw ? (marginRaw * BigInt(leverageE2)) / 100n : 0n;
 
   const balance = useReadContract({
-    address: tokens.USDC.address,
+    address: chain.usdc.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
-    chainId: monad.id,
+    chainId: chain.id,
     query: { enabled: !!address, refetchInterval: 15_000 },
   });
 
@@ -92,6 +94,7 @@ export function TradeView() {
   const q = quote.data && params && quote.data.market.symbol === symbol && quote.data.market.side === side ? quote.data : undefined;
   const pending = q ? splitRequirements(q.requirements, signatures) : { toSign: [], toApprove: [] };
   const blocked = q?.warnings.find((w) => w.severity === "block");
+  const marketBlock = haltNotice(market, m) ?? (market && hasNoPrice(market.oraclePriceE8) ? noPriceNotice(m) : null);
   const quoteError = quote.error ? describeError(quote.error, m) : null;
 
   const gated = useGatedAction();
@@ -99,11 +102,12 @@ export function TradeView() {
     if (address && gated) return gated.onClick ? { kind: "ready", label: gated.label, onClick: gated.onClick } : { kind: "disabled", label: gated.label };
     if (!address) return signIn ? { kind: "signIn", onClick: signIn } : { kind: "disabled", label: m.wallet.unavailable };
     if (!apiConfigured) return { kind: "disabled", label: m.trade.serviceOffline };
+    if (marketBlock) return { kind: "disabled", label: marketBlock.title };
     if (side === "short" && !shortAvailable) return { kind: "disabled", label: m.trade.noShortMarket };
     if (!marginRaw || marginRaw === 0n) return { kind: "disabled", label: m.trade.enterAmount };
     if (balance.data !== undefined && marginRaw > balance.data) return { kind: "disabled", label: m.trade.notEnough };
     if (!q) return { kind: "disabled", label: quoteError ? m.common.notAvailable : m.trade.gettingQuote };
-    if (blocked) return { kind: "disabled", label: blocked.message };
+    if (blocked) return { kind: "disabled", label: noticeFor(blocked, m).title };
     const needsSetup = pending.toSign.length + pending.toApprove.length > 0;
     const label = side === "long" ? (needsSetup ? m.trade.signAndOpenLong : m.trade.openLong) : needsSetup ? m.trade.signAndOpenShort : m.trade.openShort;
     return {
@@ -136,7 +140,7 @@ export function TradeView() {
         setSignatures(sigs);
         return quote.refresh(sigs);
       },
-      guard: (tx) => guardRouterTx(tx, { router: deployment.router, action: side === "long" ? "openLong" : "openShort", marketId: market.marketId }),
+      guard: (tx) => guardRouterTx(tx, { router: chain.deployment.router, action: side === "long" ? "openLong" : "openShort", marketId: market.marketId }),
       invalidate: [queryKeys.account(address), queryKeys.history(address), queryKeys.markets],
     });
   };
@@ -158,10 +162,10 @@ export function TradeView() {
           <span className="sr-only">{m.trade.chooseStock}</span>
           <select
             value={symbol}
-            onChange={(e) => setParams({ symbol: e.target.value, ...(deployedMarket(e.target.value, "short") ? {} : { side: "long" }) })}
+            onChange={(e) => setParams({ symbol: e.target.value, ...(deployedMarketOn(chain, e.target.value, "short") ? {} : { side: "long" }) })}
             className="cursor-pointer bg-transparent text-[15px] font-semibold outline-none"
           >
-            {Object.values(stocks).map((s) => (
+            {listedStocks(chain).map((s) => (
               <option key={s.symbol} value={s.symbol} className="bg-surface-2">
                 {s.tokenSymbol} · {s.name}
               </option>
@@ -203,7 +207,7 @@ export function TradeView() {
           capShare={capRaw ? Number((positionUsd * 1000n) / capRaw) / 1000 : null}
           capText={capRaw ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(capRaw, 0)) : null}
           firstTimeSignatures={pending.toSign.length}
-          notes={q?.warnings.filter((w) => w.severity !== "block").map((w) => w.message) ?? []}
+          notes={[...(marketBlock ? [marketBlock] : []), ...(q?.warnings.map((w) => noticeFor(w, m)) ?? [])]}
           action={action}
         />
       </div>
@@ -231,7 +235,7 @@ export function TradeView() {
                   <span className="ml-auto font-medium">{formatUsdE8(BigInt(q.preview.liqPriceE8))}</span>
                 </p>
               </div>
-              <ButtonLink href="/positions" size="lg" className="w-full">
+              <ButtonLink href={href("/positions")} size="lg" className="w-full">
                 {m.trade.viewPosition}
               </ButtonLink>
             </div>

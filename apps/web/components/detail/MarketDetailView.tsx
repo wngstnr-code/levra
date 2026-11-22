@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { apiConfigured, useMarketDetail } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
-import { deployedMarket, stockOf } from "@/lib/deployment";
 import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { stockTone } from "@/lib/tones";
@@ -24,28 +23,37 @@ import { Ring } from "../ui/Ring";
 import { SessionBadge } from "../ui/SessionBadge";
 import { Skeleton } from "../ui/Skeleton";
 import { TokenIcon } from "../ui/TokenIcon";
+import { useChain, useChainHref } from "@/lib/useChain";
+import { deployedMarketOn, stockOn } from "@/lib/chains";
+import { haltNotice, hasNoPrice } from "@/lib/marketState";
+import { NoticeRow } from "../ui/NoticeRow";
 
 const DASH = "—";
 
 export function MarketDetailView({ symbol }: { symbol: string }) {
+  const chain = useChain();
+  const href = useChainHref();
   const m = useT();
-  const stock = stockOf(symbol)!;
+  const stock = stockOn(chain, symbol)!;
   const detail = useMarketDetail(symbol);
   const oracle = useOracleSnapshots();
   const now = useNowSeconds();
-  const hasShort = deployedMarket(symbol, "short") !== null;
+  const hasShort = deployedMarketOn(chain, symbol, "short") !== null;
   const [side, setSide] = useState<"long" | "short">("long");
   const market = detail.data?.markets.find((x) => x.side === side) ?? null;
   const snap = oracle.snapshots[symbol];
-  const priceE8 = market ? BigInt(market.oraclePriceE8) : (snap?.priceE8 ?? null);
+  const noPrice = hasNoPrice(market?.oraclePriceE8);
+  const priceE8 = market && !noPrice ? BigInt(market.oraclePriceE8) : (snap?.priceE8 ?? null);
+  const halt = haltNotice(market, m);
   const session = snap?.session ?? detail.data?.session.session ?? null;
   const gaps = (gapTable as Record<string, { worstDropBps: number; worstRiseBps: number }>)[symbol];
 
   return (
     <div className="space-y-4">
-      <Link href="/markets" className="text-[13px] text-fg-3 hover:text-fg-2">
+      <Link href={href("/markets")} className="text-[13px] text-fg-3 hover:text-fg-2">
         {m.detail.breadcrumb} / {stock.tokenSymbol}
       </Link>
+      {halt && <NoticeRow notice={halt} />}
       <div className="flex flex-wrap items-end gap-4 pb-2">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-3.5">
@@ -55,23 +63,23 @@ export function MarketDetailView({ symbol }: { symbol: string }) {
             {session && <SessionBadge session={session} />}
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {priceE8 !== null ? <Money value={formatUsdE8(priceE8)} className="text-display text-[44px] leading-none font-semibold" /> : <Skeleton className="h-11 w-48" />}
+            {noPrice && priceE8 === null ? <span className="text-display text-[44px] leading-none font-semibold">{m.noPrice.title}</span> : priceE8 !== null ? <Money value={formatUsdE8(priceE8)} className="text-display text-[44px] leading-none font-semibold" /> : <Skeleton className="h-11 w-48" />}
             {market?.dexDeviationBps != null && <ChangePill direction={market.dexDeviationBps >= 0 ? "up" : "down"}>{formatBps(market.dexDeviationBps, { signed: true, fractionDigits: 1 })}</ChangePill>}
             {(market?.oracleFeedUpdatedAt ?? snap?.feedUpdatedAt) && <span className="text-sm text-fg-2">{m.markets.quoteAge(formatAge(now - (market?.oracleFeedUpdatedAt ?? snap!.feedUpdatedAt)))}</span>}
           </div>
         </div>
         <div className="flex flex-wrap gap-2.5">
           {hasShort && (
-            <ButtonLink href="/earn" variant="secondary">
+            <ButtonLink href={href("/earn")} variant="secondary">
               {m.detail.lend(stock.tokenSymbol)}
             </ButtonLink>
           )}
           {hasShort && (
-            <ButtonLink href={`/trade?symbol=${symbol}&side=short`} className="bg-peach">
+            <ButtonLink href={href(`/trade?symbol=${symbol}&side=short`)} className="bg-peach">
               {m.trade.short}
             </ButtonLink>
           )}
-          <ButtonLink href={`/trade?symbol=${symbol}&side=long`}>{m.trade.long}</ButtonLink>
+          <ButtonLink href={href(`/trade?symbol=${symbol}&side=long`)}>{m.trade.long}</ButtonLink>
         </div>
       </div>
 
@@ -151,7 +159,7 @@ function OracleCard({ market, now, history }: { market: Market; now: number; his
       {history.length > 1 ? <AreaChart values={history} baseline={0} tone={(dev ?? 0) < 0 ? "down" : "up"} label={m.detail.deviationHistory} className="h-28" /> : <p className="text-sm text-fg-3">{m.detail.noHistory}</p>}
       <p className="text-xs text-fg-3">{m.detail.swapLimit}</p>
       <div>
-        <Row k={m.detail.oraclePrice} v={formatUsdE8(BigInt(market.oraclePriceE8))} />
+        <Row k={m.detail.oraclePrice} v={hasNoPrice(market.oraclePriceE8) ? m.noPrice.title : formatUsdE8(BigInt(market.oraclePriceE8))} />
         <Row k={m.detail.dexMid} v={market.dexMidPriceE8 ? formatUsdE8(BigInt(market.dexMidPriceE8)) : DASH} />
         <Row k={m.detail.published} v={m.common.ago(formatAge(now - market.oraclePublishedAt))} />
       </div>
@@ -160,8 +168,9 @@ function OracleCard({ market, now, history }: { market: Market; now: number; his
 }
 
 function LendingCard({ market, symbol }: { market: Market; symbol: string }) {
+  const chain = useChain();
   const m = useT();
-  const stock = stockOf(symbol)!;
+  const stock = stockOn(chain, symbol)!;
   const fmt = (raw: string) => (market.side === "long" ? `${formatUsd(raw, 0)} USDC` : `${formatToken(raw, stock.decimals, 2)} ${stock.tokenSymbol}`);
   return (
     <Card className="flex flex-col gap-4">

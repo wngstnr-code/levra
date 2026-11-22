@@ -1,13 +1,13 @@
 import type { HistoryItem } from "@levra/shared/api";
 import { formatUsdE8 } from "./format";
 import type { Messages } from "./i18n/en";
-import { stockOf } from "./deployment";
+import type { AnyStock } from "@levra/shared/markets";
 import { formatToken, formatUsd, formatUsdSigned } from "./units";
 
 const DASH = "—";
 
 /** One plain sentence for a history item: what happened, at what price, what it cost, what is left. */
-export function historySentence(item: HistoryItem, m: Messages): string {
+export function historySentence(item: HistoryItem, m: Messages, stockOf: (symbol: string) => AnyStock | null): string {
   const t = m.history.text;
   const stock = stockOf(item.symbol);
   const stockAmt = item.stockAmountRaw && stock ? `${formatToken(item.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}` : DASH;
