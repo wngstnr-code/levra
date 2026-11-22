@@ -30,5 +30,6 @@ export function toRouterRow(log: RawLog): Omit<typeof routerEvents.$inferInsert,
     blockTime: new Date(log.blockTime * 1000),
     txHash: log.txHash.toLowerCase(),
     logIndex: log.logIndex,
+    router: log.address.toLowerCase(),
   };
 }

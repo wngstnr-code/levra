@@ -12,7 +12,8 @@ export type RawLog = {
 };
 
 /** `topic1`, when given, keeps only logs whose first indexed argument is one of these (for Morpho: our market ids). */
-export type LogQuery = { address: Address; topic0: Hex[]; topic1?: Hex[]; fromBlock: bigint; toBlock: bigint };
+/** `address` may list several contracts, as every router of a deployment (BE-100). */
+export type LogQuery = { address: Address | Address[]; topic0: Hex[]; topic1?: Hex[]; fromBlock: bigint; toBlock: bigint };
 
 export type LogPage = {
   logs: RawLog[];

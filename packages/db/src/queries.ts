@@ -31,13 +31,28 @@ export async function morphoPositions(db: Db, chainId: number, filter: { user?: 
     .filter((p) => p.collateral !== 0n || p.borrowShares !== 0n);
 }
 
-/** Users and markets whose latest `ProtectionSet` switched protection on (BE-31). The chain has the final word. */
-export async function protectedPositions(db: Db, chainId: number): Promise<{ user: string; marketId: string }[]> {
+/**
+ * The sync cursor of the router events (BE-100). With previous routers it gets a new name for each router added, so the
+ * indexer reads every router again from the deployment block and the new router's early events are not missed.
+ */
+export function routerCursor(deployment: { previousRouters?: readonly string[] }): string {
+  const previous = deployment.previousRouters?.length ?? 0;
+  return previous === 0 ? "router_events" : `router_events:${previous + 1}`;
+}
+
+/**
+ * Users and markets whose latest `ProtectionSet` on `router` switched protection on (BE-31). Opt-in does not move to a
+ * new router (03 section 6), so events of a previous router never count. Rows without a router (indexed before BE-100)
+ * count only while the deployment has no previous router, since they all come from it. The chain has the final word.
+ */
+export async function protectedPositions(db: Db, chainId: number, router: { address: string; hasPrevious: boolean }): Promise<{ user: string; marketId: string }[]> {
+  const address = router.address.toLowerCase();
   const rows = (await db.execute(sql`
     select "user", market_id from (
       select distinct on ("user", market_id) "user", market_id, (args->>'enabled')::boolean as enabled
       from router_events
       where chain_id = ${chainId} and name = 'ProtectionSet'
+        and (router = ${address} or (router is null and ${!router.hasPrevious}))
       order by "user", market_id, block_number desc, log_index desc
     ) latest where enabled
   `)) as unknown as { user: string; market_id: string }[];

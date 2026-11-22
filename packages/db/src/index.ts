@@ -12,6 +12,7 @@ export {
   morphoPositions,
   observedClosedStretches,
   rateHistory,
+  routerCursor,
   type EventPosition,
 } from "./queries";
 export * from "./schema";
