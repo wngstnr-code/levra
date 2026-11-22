@@ -35,6 +35,8 @@ export type AppDeps = {
   db?: Db;
   /** Readers of the other chains that have a deployment (BE-95), served at `/v1/:chainId/...` (BE-70) and in /v1/status. */
   otherChains?: ChainReader[];
+  /** Swap routes of the other chains by chain ID (BE-96). A chain without one serves no quotes. */
+  otherSwaps?: Map<number, SwapSource>;
   version?: string;
   /** Wallet sign-in and alert settings (BE-33). Off without it; needs `db`. */
   auth?: { secret: string; domains: RegExp[]; telegramBot?: string };
@@ -60,7 +62,7 @@ function haltsFromDb(db: Db, chainId: number): Halts {
   return () => cached("halts", 30_000, () => activeGates(db, chainId));
 }
 
-export function createApp({ logger, reader, otherChains = [], swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
+export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
   const app = new Hono();
   if (corsOrigins.length > 0) {
     app.use(
@@ -105,7 +107,7 @@ export function createApp({ logger, reader, otherChains = [], swap, events, stre
     sub.route("/", streamRoutes(r, logger, stream, mids));
     sub.route("/", accountRoutes(r, store));
     sub.route("/", earnRoutes(r, store));
-    // Quotes need a swap provider for the chain: KyberSwap on Monad today, Base and X Layer with BE-96 and BE-72.
+    // Quotes need a swap route for the chain (BE-96): KyberSwap on Monad, the best of three on Base, X Layer with BE-81.
     // Region and terms belong to the wallet, so the same gate applies on every chain.
     if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance));
     sub.notFound(notFound);
@@ -114,7 +116,7 @@ export function createApp({ logger, reader, otherChains = [], swap, events, stre
   };
   const chainApps = new Map<number, Hono>();
   if (reader) chainApps.set(reader.deployment.chainId, chainApp(reader, events ?? chainEventStore(reader), swap));
-  for (const r of otherChains) chainApps.set(r.deployment.chainId, chainApp(r, db ? dbEventStore(db, r.deployment.chainId) : chainEventStore(r), undefined));
+  for (const r of otherChains) chainApps.set(r.deployment.chainId, chainApp(r, db ? dbEventStore(db, r.deployment.chainId) : chainEventStore(r), otherSwaps.get(r.deployment.chainId)));
 
   app.all("/v1/:chainId{[0-9]+}/*", async (c) => {
     const id = Number(c.req.param("chainId"));
