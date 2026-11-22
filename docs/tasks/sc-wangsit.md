@@ -265,6 +265,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: the keeper can import them instead of the inline ABIs in `apps/keeper/src/monitor/gates.ts` and `calendar/poster.ts`, and shared tests pass.
   - Note: PR #120 on 22 November 2026. Six interfaces in `contracts/src/interfaces/` exported by `make abis` as `anchoredComplianceAbi`, `circleTokenAbi`, `b20TokenAbi`, `b20PolicyRegistryAbi`, `xStockAbi`, `sanctionsListAbi`, plus `morphoOracleAbi` (Morpho `IOracle`). `calendarPoster` and `isKeeper` were already in `riskManagerAbi` and `marginRouterAbi`. `issuer-abis.test.ts` pins the signatures; 128 shared tests pass. Done when #120 merges.
 
+- [~] **SC-89 · No token as swap target or spender**
+  - Needs: BE-94 finding 3.
+  - Do: the deploy scripts refuse a swap target or spender that is USDC or a stock of the deployment, before anything is created.
+  - Done when: `Deploy.s.sol` and `RedeployRouter.s.sol` check it, a test covers a bad config and every live config, and the PR is merged.
+  - Note: written on 22 November 2026 on branch `sc/SC-89-swap-target-guard` (`script/SwapTargetGuard.sol`, `test/SwapTargetGuard.t.sol`, 5 tests). The full suite passes.
+
 ## X. X Layer (TapeOut Accelerate)
 
 Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
@@ -315,5 +321,5 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - What changes: a new `MarginRouter` and `Lens` over the live `RiskManager` and markets; the deployment file gets the new addresses and `previousRouters` (03 section 6). The old router keeps working, and positions stay in the users' own Morpho accounts, so either router can close them.
   - Migration steps: (1) `make redeploy-router-monad KEEPER=<protector key>`; (2) BE: the indexer reads `router` and every `previousRouters` address, and the keeper protects only users who opted in on the new router (BE side); (3) FE: ask a user with an open position to authorize the new router on the next action (the one signature flow already does this), and ask users who had protection on to turn it on again, since opt-in never moves by itself; (4) verify the source on Sourcify and update 05 and `docs/public/contracts.md`.
   - Done when: the new router is live and verified, the deployment file and the shared bundle are updated, and one real close goes through the new router.
-  - Note: script and fork test written on 20 November 2026 (`script/RedeployRouter.s.sol`, `test/RedeployRouter.t.sol`): the new router and lens sit on the live risk manager with KyberSwap as the only target and the same fees, and the file keeps the old router. Not run on mainnet.
+  - Note: script and fork test written on 20 November 2026 (`script/RedeployRouter.s.sol`, `test/RedeployRouter.t.sol`): the new router and lens sit on the live risk manager with KyberSwap as the only target and the same fees, and the file keeps the old router. Not run on mainnet. Checked on 22 November 2026: the second reader is done (BE-94), but the indexer does not read `previousRouters` yet and the app flow for re-authorizing and opting in again is not confirmed, so it is not run. The Monad handover follows the new router, so the new owner key is handed over once.
 
