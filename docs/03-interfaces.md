@@ -843,6 +843,9 @@ type AlertSettings = {
 // When alerts go out (alerts keeper): 24 hours, 4 hours and 1 hour before a close, for positions above the closed-market
 // limit; once when a position's LTV passes the threshold, again only after it went back under; on auto-deleverage,
 // liquidation and an arrived deposit, for events less than a day old.
+// Halts (BE-75) go to every wallet with a channel, with no event switch: when an issuer control blocks a stock the user
+// holds (or the whole chain, which also covers USDC lent in Earn), once per block, and once more when it is lifted. The
+// text is the market's `haltReasons` sentence.
 
 type ConfigResponse = {
   chainId: number;
