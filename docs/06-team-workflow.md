@@ -36,9 +36,10 @@ Every open PR used to add its decision row at the end of the table in `09` and i
 
 1. `docs/PROGRESS.md` and `docs/09-decisions-and-questions.md` change only on `main`, as docs-only commits, never in a work branch.
 2. A decision: pull `main`, take the next free `D-xx`, and push the row to `main` when the decision is made, before the PR. This also keeps two people from taking the same number. Name the branch or PR in the row.
-3. Daily log, blockers, known issues, review notes and the interface change log: push to `main` the same day, naming the branch or PR.
+3. Daily log, blockers, known issues, review notes and the interface change log: push to `main` the same day, naming the branch or PR. The daily log has one section per person; add lines only at the top of your own section, so two people never write at the same spot (a shared dated heading made #110 conflict with Wangsit's lines on 22 November 2026).
 4. The PR holds the code, its tests and the docs that describe that code (`03`, `04`, `05`, `hosting.md`, your own task file). These rarely collide, since each change edits its own section.
 5. When anything merges into `main`, merge `main` into your other open branches the same day (`git merge origin/main`, never a force-push), so a conflict stays one or two lines.
+6. When a docs-only change to these two files goes through a PR (when a direct push to `main` is not possible), it holds only those docs and is merged the same day. If `main` moves first, merge `main` into it at once and check that no `D-xx` number was taken twice.
 
 ## Changing the interface agreements
 
