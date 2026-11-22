@@ -37,14 +37,21 @@ contract RedeployRouterTest is Test {
         assertTrue(address(r.router) != LIVE_ROUTER);
     }
 
+    /// Holds for the file before SC-87 ran on mainnet (no `previousRouters`) and after it (the live router listed).
     function test_deploymentFileKeepsTheOldRouter() public {
+        address current = vm.parseJsonAddress(deployment, ".router");
+        address[] memory before = vm.keyExistsJson(deployment, ".previousRouters")
+            ? vm.parseJsonAddressArray(deployment, ".previousRouters")
+            : new address[](0);
+
         string memory updated = script.updatedDeployment(deployment, r);
         assertEq(vm.parseJsonAddress(updated, ".router"), address(r.router));
         assertEq(vm.parseJsonAddress(updated, ".lens"), address(r.lens));
         assertEq(vm.parseJsonAddress(updated, ".riskManager"), LIVE_RISK);
         address[] memory previous = vm.parseJsonAddressArray(updated, ".previousRouters");
-        assertEq(previous.length, 1);
+        assertEq(previous.length, before.length + 1);
         assertEq(previous[0], LIVE_ROUTER);
+        assertEq(previous[previous.length - 1], current);
         assertEq(
             vm.parseJsonBytes32(updated, ".markets[4].marketId"),
             vm.parseJsonBytes32(deployment, ".markets[4].marketId")
@@ -53,9 +60,9 @@ contract RedeployRouterTest is Test {
         RedeployRouter.Redeployed memory again = script.redeploy(config, updated, address(script), address(0xFEE));
         string memory twice = script.updatedDeployment(updated, again);
         previous = vm.parseJsonAddressArray(twice, ".previousRouters");
-        assertEq(previous.length, 2);
+        assertEq(previous.length, before.length + 2);
         assertEq(previous[0], LIVE_ROUTER);
-        assertEq(previous[1], address(r.router));
+        assertEq(previous[previous.length - 1], address(r.router));
         assertEq(vm.parseJsonAddress(twice, ".router"), address(again.router));
     }
 }
