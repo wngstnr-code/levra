@@ -68,7 +68,7 @@ export const detail = () => ({
   deviationHistory: [0, 1, 2].map((i) => ({ timestamp: now() - (2 - i) * 3600, oraclePriceE8: "74145000000", dexMidPriceE8: "72217000000", deviationBps: -200 - i * 30 })),
 });
 
-type Answers = { eligible?: boolean; stale?: boolean; gateOff?: boolean; haltReasons?: string[]; noPrice?: boolean };
+type Answers = { eligible?: boolean; stale?: boolean; gateOff?: boolean; haltReasons?: string[]; noPrice?: boolean; chains?: [number, string, string, boolean][] };
 
 /** Answers the fake service address and keeps chain calls out, so each test only sees its own data. */
 export async function mockService(page: Page, a: Answers = {}) {
@@ -78,6 +78,7 @@ export async function mockService(page: Page, a: Answers = {}) {
     const json = (body: unknown) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     const shape = <T extends { oraclePriceE8: string }>(list: T[]) => list.map((x) => ({ ...x, haltReasons: a.haltReasons ?? [], ...(a.noPrice ? { oraclePriceE8: "0" } : {}) }));
     if (path === "/v1/markets") return json({ session: session(), markets: shape(markets) });
+    if (path === "/v1/chains" && a.chains) return json({ defaultChainId: 143, chains: a.chains.map(([chainId, slug, name, live]) => ({ chainId, slug, name, nativeSymbol: "X", live })) });
     if (path === "/v1/session") return json(session());
     if (path === "/v1/status") return json(status(a.stale));
     if (path === "/v1/markets/QQQ") return json({ ...detail(), markets: shape(detail().markets) });

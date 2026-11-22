@@ -98,6 +98,21 @@ test("old links move to the Monad pages and the network picker lists the chains"
   await expect(sheet.getByRole("button", { name: /Monad/ })).toHaveAttribute("aria-current", "true");
 });
 
+test("the network picker says when our service does not serve a chain yet", async ({ page }) => {
+  await mockService(page, { chains: [[143, "monad", "Monad", true], [8453, "base", "Base", false], [196, "xlayer", "X Layer", true]] });
+  await page.goto("/monad/markets");
+  await page.getByRole("button", { name: /Change network/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Network" });
+  await expect(sheet.getByRole("button", { name: /Base/ })).toContainText("come soon");
+  await expect(sheet.getByRole("button", { name: /Monad/ })).not.toContainText("come soon");
+});
+
+test("trade stops opening on a halted market", async ({ page }) => {
+  await mockService(page, { haltReasons: ["The issuer paused QQQ."] });
+  await page.goto("/monad/trade?symbol=QQQ");
+  await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
+});
+
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere/markets");
