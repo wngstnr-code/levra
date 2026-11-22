@@ -75,7 +75,7 @@ The machine-readable list is [`contracts/deployments/base.json`](../../contracts
 
 ## Addresses on X Layer
 
-X Layer mainnet (chain ID 196), deployed on 22 November 2026, at the same contract addresses as on Base. Not audited. The limits are initial proposals. Ownership is still with the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` and moves to a timelock run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` next.
+X Layer mainnet (chain ID 196), deployed on 22 November 2026, at the same contract addresses as on Base. Not audited. The limits are initial proposals. Ownership is moving from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` to a 2 day timelock `0xce171c460929433640f58dC5d3e9746Db00b420e` run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069`. Until the Safe accepts, the deployer is still the owner.
 
 | Contract | Address | What it does |
 |---|---|---|
