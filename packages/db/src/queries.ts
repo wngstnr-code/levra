@@ -190,15 +190,16 @@ export function gateSymbol(key: string): string | null {
 
 /**
  * Issuer controls the team monitor sees blocking now (BE-75): its active `gate:` rows, without the "could not be read"
- * ones. A row stays as the monitor last wrote it, so this is only as current as the monitor's heartbeat.
+ * ones. A row stays as the monitor last wrote it, so this is only as current as the monitor's heartbeat. `since` is when
+ * the block started (unix seconds), so a block that is lifted and comes back counts as a new one.
  */
-export async function activeGates(db: Db, chainId: number): Promise<{ key: string; symbol: string | null; message: string }[]> {
+export async function activeGates(db: Db, chainId: number): Promise<{ key: string; symbol: string | null; message: string; since: number }[]> {
   const rows = (await db.execute(sql`
-    select key, coalesce(message, key) as message from monitor_state
+    select key, coalesce(message, key) as message, coalesce(extract(epoch from since), 0)::bigint::text as since from monitor_state
     where chain_id = ${chainId} and active and key like 'gate:%' and key not like '%:unread'
     order by key
-  `)) as unknown as { key: string; message: string }[];
-  return rows.map((r) => ({ key: r.key, symbol: gateSymbol(r.key), message: r.message }));
+  `)) as unknown as { key: string; message: string; since: string }[];
+  return rows.map((r) => ({ key: r.key, symbol: gateSymbol(r.key), message: r.message, since: Number(r.since) }));
 }
 
 /** Latest DEX mid price (8 decimals) per stock symbol from the depth keeper, when not older than `maxAgeSeconds`. */
