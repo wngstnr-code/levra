@@ -1,5 +1,7 @@
-import { external } from "@levra/shared/addresses";
+import { dexMidPriceE8, type SwapSource } from "@levra/kyber";
+import { external, tokens } from "@levra/shared/addresses";
 import { morphoAbi } from "@levra/shared/abis";
+import { stocks, type StockSymbol } from "@levra/shared/markets";
 import type { Deployment } from "@levra/shared/deployments";
 import { readDeployment } from "@levra/shared/deployments/node";
 import {
@@ -139,6 +141,17 @@ export async function postAnchoredPrice(chain: ForkClient, priceId: Hex, priceE8
   await as(chain, operator, () =>
     send(chain, operator, oracle, anchoredOperatorAbi, "updatePrice", [{ priceId, price: priceE8, bestBid: priceE8, bestAsk: priceE8, feedUpdateTimestamp: block.timestamp, session }]),
   );
+}
+
+/**
+ * Posts the DEX mid price as the Anchored price in the regular session. A fork made on a weekend or holiday otherwise
+ * quotes with ORACLE_STALE (closed session) or HIGH_DEVIATION (the DEX kept trading), and the router refuses to open.
+ */
+export async function openSessionAtDexPrice(chain: ForkClient, swap: SwapSource, symbol: StockSymbol) {
+  const stock = stocks[symbol];
+  const last = await chain.readContract({ address: external.anchoredStockOracle, abi: anchoredOperatorAbi, functionName: "latestPrice", args: [stock.priceId] });
+  const mid = await dexMidPriceE8(swap, { usdc: tokens.USDC.address, stock: stock.token, usdcDecimals: tokens.USDC.decimals, stockDecimals: stock.decimals, refPriceE8: BigInt(last.price) });
+  await postAnchoredPrice(chain, stock.priceId, mid);
 }
 
 /** Opens a position straight on Morpho for `user`, without the router. */
