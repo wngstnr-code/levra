@@ -5,11 +5,14 @@ import { liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
 import { stocks } from "@levra/shared/markets";
 import { eq } from "drizzle-orm";
 import pino from "pino";
-import { createPublicClient, createWalletClient, erc20Abi, http, parseAbi, parseUnits, type Hex } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, http, keccak256, parseAbi, parseUnits, toBytes, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { monad } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress } from "../../api/test/fork-helpers";
+import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, refreshAnchoredPrice } from "../../api/test/fork-helpers";
+
+/** Anchored's id for QQQ: keccak256 of the uppercase symbol (03). */
+const QQQ_PRICE_ID = keccak256(toBytes("QQQ"));
 import { rpcSource } from "../../indexer/src/sources/rpc";
 import { MORPHO_CURSOR, morphoStream, syncStream } from "../../indexer/src/sync";
 import { createLiquidatorBot } from "../src/liquidator/bot";
@@ -53,7 +56,9 @@ describe.skipIf(!onFork || !dbUrl)("liquidator bot on the fork (BE-32)", () => {
 
   it("liquidates a position pushed past the hard limit after interest accrued, with a zero loss budget (BE-89), leaves a healthy one alone, and keeps no tokens", { timeout: 300_000 }, async () => {
     // One aQQQ each, borrowing 73% of its oracle value (close to the 77% limit) and 40% (far from it). Sized from the
-    // oracle so the test does not depend on where QQQ trades on the day the fork is made.
+    // oracle so the test does not depend on where QQQ trades on the day the fork is made. A fork made while the feed is
+    // quiet (a weekend) has a stale price that Morpho's borrow refuses, so it is posted again first.
+    await refreshAnchoredPrice(chain, QQQ_PRICE_ID);
     const [priceE8] = await chain.readContract({ address: market.oracle, abi: sessionOracleAbi, functionName: "snapshot" });
     const shareUsdc = priceE8 / 100n;
     await openOnMorpho(chain, market.marketId, risky, parseUnits("1", 18), (shareUsdc * 73n) / 100n);
@@ -121,6 +126,7 @@ describe.skipIf(!onFork || !dbUrl)("liquidator bot on the fork (BE-32)", () => {
     const short = deployment.markets.find((m) => m.symbol === "QQQ" && m.side === "short")!;
     const borrower = randomAddress();
     // One aQQQ share borrowed against USDC worth it at 70% LTV, sized from the oracle (the first test cut the price).
+    await refreshAnchoredPrice(chain, QQQ_PRICE_ID);
     const [priceE8] = await chain.readContract({ address: short.oracle, abi: sessionOracleAbi, functionName: "snapshot" });
     await openOnMorpho(chain, short.marketId, borrower, (priceE8 / 100n) * 100n / 70n, parseUnits("1", 18));
     await syncStream(db, rpcSource(client), deployment, morphoStream(deployment));

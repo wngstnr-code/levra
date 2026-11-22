@@ -33,6 +33,72 @@ The machine-readable list is [`contracts/deployments/monad.json`](../../contract
 
 The source of all nine contracts is verified on Sourcify with an exact match. Each one can be read at `https://repo.sourcify.dev/143/<address>`. The source is in [`contracts/src`](../../contracts/src) under the MIT license.
 
+## Addresses on Base
+
+Base mainnet (chain ID 8453), deployed on 22 November 2026. Not audited. The limits are initial proposals. Ownership is moving from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` to a 2 day timelock [`0xA0089B68a8CFf4d810985DF8503815b3d1344c67`](https://basescan.org/address/0xA0089B68a8CFf4d810985DF8503815b3d1344c67) run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069`; the vault goes to the Safe directly. Until the Safe accepts, the deployer is still the owner.
+
+| Contract | Address | What it does |
+|---|---|---|
+| `MarginRouter` | [`0xf5585feA7aeDC5e148201052f73139111810aA88`](https://basescan.org/address/0xf5585feA7aeDC5e148201052f73139111810aA88) | Opens and closes positions in one transaction |
+| `RiskManager` | [`0x8354ff472d87C942f9186acc83e0600424272594`](https://basescan.org/address/0x8354ff472d87C942f9186acc83e0600424272594) | Holds the soft limits and checks every new position |
+| `Lens` | [`0xa8d15000992Cd055E7731E884D91b16F2123A327`](https://basescan.org/address/0xa8d15000992Cd055E7731E884D91b16F2123A327) | Read-only view of positions and markets |
+| `Liquidator` | [`0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`](https://basescan.org/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) | Liquidates unhealthy positions on Morpho |
+
+Markets, all on Morpho (`0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb`). The stock is the Coinbase B20 token; the oracle is a `ChainlinkSessionOracle` over Chainlink's Coinbase feed:
+
+| Market | Collateral | Borrowed | Hard limit | Morpho market ID | Oracle |
+|---|---|---|---|---|---|
+| AAPL long | the stock | USDC | 77% | `0x7934723c6cc42d5f2bd3c58af4fc14bf0b5ae38245638adabf2052032967b398` | `0xDF21F507676cF34F78080a7eAAeD967E741fDD00` |
+| AMZN long | the stock | USDC | 77% | `0x23c5324881859a2163ff984d67449fa0f1c0e12f3c52a4dbbbfb4b3313c3f38c` | `0x6964d40b507c6da717334eAe7B775C9F365d576D` |
+| GOOGL long | the stock | USDC | 77% | `0x45059d2328299056d05545d0368c8b0d34397047820a0d46b7775275375c76b2` | `0x112e34bFD7B39e3790B435Afb825a980E0512355` |
+| META long | the stock | USDC | 77% | `0x6cf665db25bb5a59615cceffed97e527cfe0183f08176c568fc9c939f91b6647` | `0x7DB3B3de66Dd60D26ca9aEDc4378cE2Fa2D837BD` |
+| MSFT long | the stock | USDC | 77% | `0xba887b01160863891d76a273f5dbab6efc6dbe3df5a732ee112313da5aba7ff7` | `0x04Cb51598F7b7B78dd46BF26766256Fe1f8EeA88` |
+| NVDA long | the stock | USDC | 62.5% | `0x34b62b714803c0121c14ce767b8de3a1d87460f41c662b927dd2bc1527316876` | `0xf256b7b9Ef29eF2A279052209F686f66BA952987` |
+| SPCX long | the stock | USDC | 62.5% | `0xc22d1bc9f71832e1f83eedbecdb45980381176f8889f7b697c2bf6de6223c242` | `0xb96F27C67e626C9931c58fa01bF8F8ED08acE28a` |
+| TSLA long | the stock | USDC | 62.5% | `0xd62e941889f385ac51cc825c72a2ea04e7c8e02ceb68c141d0b0a7d17fbf01c9` | `0xe8aD8d1Bbbd8e3A0BBb5c1Bc600318ffb4AD073D` |
+| AAPL short | USDC | the stock | 77% | `0x8fed1ed63e26d4997525ab68f67a58878eb481b711ebf0f560054885a25226e6` | `0xA000362E65E1e92D14Df46df035CbdC8E75Bb67F` |
+| AMZN short | USDC | the stock | 77% | `0xf6d5949b6bea4691073b7ce82d431f73a73bc6fdd98499e79e8e8e12441b4175` | `0xce171c460929433640f58dC5d3e9746Db00b420e` |
+| GOOGL short | USDC | the stock | 77% | `0x5aa5136108ae13ef4ebbc91faada6ae1ad47d07c9c8d77290e76c388446253a9` | `0x4A6f3c95919E21EB03437D5A90813C59Ab5d4D76` |
+| META short | USDC | the stock | 77% | `0x11a4175314b1b174363dbdea13b6f2bc8277c947953b7a4cf01eb32a984126dd` | `0x0f67ca2C7D1f0a6B1AC513492d049886949A1ca1` |
+| MSFT short | USDC | the stock | 77% | `0x5f57cf8280964dc2a851e5c8d6da850227b9aec1f1791292fc024bbb6646bda8` | `0x87EfBB7e351F36fC51280d79a9Cb82c109c42A4C` |
+| NVDA short | USDC | the stock | 62.5% | `0x869c760367a10b076bc0206b63d003cc519f994b14d6aad61b976ac15a52e080` | `0x8626edD94FA49c30D5b04c0e0E52e5B50Db3d8cc` |
+| SPCX short | USDC | the stock | 62.5% | `0x0ae42283dd827b92d084ef5b64a7fe8e145b5216718b17c6addd36fbf5c6e581` | `0x86a124066493dc5d84da4C63Ba06BEF4461bAe7E` |
+| TSLA short | USDC | the stock | 62.5% | `0x8430223a3d5943137fd3924fedbb90d3c2e250270f07bceaebce1a427e792b0d` | `0x0AEE0870183D9c2b27A52b24123022D9AD33E1f4` |
+
+The USDC vault for lenders on Base:
+
+| Contract | Address | What it does |
+|---|---|---|
+| `Levra USDC` (`lvUSDC`) | [`0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8`](https://basescan.org/address/0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8) | Takes USDC deposits and lends them to the eight long markets |
+
+The machine-readable list is [`contracts/deployments/base.json`](../../contracts/deployments/base.json). All 20 contracts are verified on Basescan and on Sourcify (exact match).
+
+## Addresses on X Layer
+
+X Layer mainnet (chain ID 196), deployed on 22 November 2026, at the same contract addresses as on Base. Not audited. The limits are initial proposals. Ownership is still with the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` and moves to a timelock run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` next.
+
+| Contract | Address | What it does |
+|---|---|---|
+| `MarginRouter` | [`0xf5585feA7aeDC5e148201052f73139111810aA88`](https://web3.okx.com/explorer/x-layer/address/0xf5585feA7aeDC5e148201052f73139111810aA88) | Opens and closes positions in one transaction |
+| `RiskManager` | [`0x8354ff472d87C942f9186acc83e0600424272594`](https://web3.okx.com/explorer/x-layer/address/0x8354ff472d87C942f9186acc83e0600424272594) | Holds the soft limits and checks every new position |
+| `Lens` | [`0xa8d15000992Cd055E7731E884D91b16F2123A327`](https://web3.okx.com/explorer/x-layer/address/0xa8d15000992Cd055E7731E884D91b16F2123A327) | Read-only view of positions and markets |
+| `Liquidator` | [`0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`](https://web3.okx.com/explorer/x-layer/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) | Liquidates unhealthy positions on Morpho |
+
+Markets, all on Morpho. The stock is the wrapped xStock; the oracle is a `ChainlinkSessionOracle` over the xStocks price feed:
+
+| Market | Collateral | Borrowed | Hard limit | Morpho market ID | Oracle |
+|---|---|---|---|---|---|
+| GOOGL long | the stock | USDC | 77% | `0x5f8fcdef7968590c7058067757d18d99bb7e143d86fbb3a6f44d1e47cc470cd3` | `0xDF21F507676cF34F78080a7eAAeD967E741fDD00` |
+| NVDA long | the stock | USDC | 62.5% | `0x198bc6185b1da4e17abc2eba61a01d60c07959cb9a31ac5ce6dc6985835871d9` | `0x6964d40b507c6da717334eAe7B775C9F365d576D` |
+| QQQ long | the stock | USDC | 77% | `0x5c544c155f3c2ca375b8cb80faecb05f5b0e7a59654302fec365c5ab230d649f` | `0x112e34bFD7B39e3790B435Afb825a980E0512355` |
+| SPY long | the stock | USDC | 77% | `0x2b3aa5ead3faedc052f997864164a95f2c129ae5ac3b848bfc36b5b77a3c4206` | `0x7DB3B3de66Dd60D26ca9aEDc4378cE2Fa2D837BD` |
+| GOOGL short | USDC | the stock | 77% | `0x6efe0004b4ca99b217c9bc9f762cf100b218329986badb9b3d98c53cdcdb0100` | `0x04Cb51598F7b7B78dd46BF26766256Fe1f8EeA88` |
+| NVDA short | USDC | the stock | 62.5% | `0x34879d26e0cb222ee47260d4a8046bdf983b09bbb4077abba127451d9d364f85` | `0xf256b7b9Ef29eF2A279052209F686f66BA952987` |
+| QQQ short | USDC | the stock | 77% | `0x831dc8cdce8fd98f567a5e397830a8b89847a7a9d9cf7603e475c2177a2e5413` | `0xb96F27C67e626C9931c58fa01bF8F8ED08acE28a` |
+| SPY short | USDC | the stock | 77% | `0xa403cfaa81f30eae48fd68c6bd2705ecd3c5b0da892e343a48bf3e710ad94282` | `0xe8aD8d1Bbbd8e3A0BBb5c1Bc600318ffb4AD073D` |
+
+There is no USDC vault on X Layer: Morpho has no MetaMorpho factory there, so lenders supply directly to a market (D-84). The machine-readable list is [`contracts/deployments/xlayer.json`](../../contracts/deployments/xlayer.json). All 12 contracts are verified on Sourcify (exact match).
+
 ## Where your funds are
 
 Your collateral and your debt sit in your own position on Morpho, under your own address. Levra's contracts hold no user funds between transactions. The router asks Morpho for a flash loan, swaps on the exchange, and puts the result into your Morpho position, all inside one transaction.

@@ -9,7 +9,7 @@ Last updated: 20 November 2026
 - Tick tasks in your own task file, in the same PR as the work.
 - Edit only your own rows and your own log entries here, so three people can edit this file without conflicts.
 - Write a blocker the same day it appears.
-- After each working day, add one to three lines to the daily log.
+- After each working day, add one to three lines at the top of your own section of the daily log, never in someone else's.
 
 Count progress from a terminal:
 
@@ -64,7 +64,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 22 November 2026 | Dharu (keeper ABIs) | Wangsit | Export to `packages/shared/abis`: Anchored compliance `isDenylisted`, Circle USDC `paused` and `isBlacklisted`, B20 `policyId` and `isPaused`, the B20 policy registry `isAuthorized`, xStock `isPaused` and `asset`, the sanctions list `isSanctioned`, and `RiskManager.calendarPoster`. Until then they are inline in `apps/keeper/src/monitor/gates.ts` and `calendar/poster.ts` | BE-75, BE-30 |
+| 22 November 2026 | Dharu (keeper ABIs) | Wangsit | Export to `packages/shared/abis`: Anchored compliance `isDenylisted`, Circle USDC `paused` and `isBlacklisted`, B20 `policyId` and `isPaused`, the B20 policy registry `isAuthorized`, xStock `isPaused` and `asset`, the sanctions list `isSanctioned`, and `RiskManager.calendarPoster`. Until then they are inline in `apps/keeper/src/monitor/gates.ts` and `calendar/poster.ts`. Taken up by Wangsit as SC-88 | BE-75, BE-30, SC-88 |
 | 20 November 2026 | Wangsit (landing site on `levra.finance`) | Dharu | `AUTH_DOMAIN=app.levra.finance` and `https://app.levra.finance` are set on the VPS and work (checked 22 November 2026). Left: add `https://levra.finance` to `CORS_ORIGINS` in the VPS `api.env`, as in `deploy/env/api.env.example`; today a call from the landing origin gets no CORS header | BE-90 |
 | 20 November 2026 | Wangsit (web app on `app.levra.finance`) | Nabil | Add `app.levra.finance` to the allowed domains of the WalletConnect (Reown) project if the app uses one, and change any link in `apps/web` that points at `levra-mon.vercel.app`, which now answers 404 | FE |
 | 20 November 2026 | Dharu | Wangsit | Team keys for the 1inch Swap API and the OKX DEX API: made on the team account on 21 November 2026 and tested (a Base quote from 1inch and an X Layer quote from OKX v6 both answer). Left: Wangsit writes them into the VPS secret files (the folders exist, and his SSH key `wangsit-levra-vps` was added on 21 November), never in chat, under the names `ONEINCH_API_KEY`, `OKX_API_KEY`, `OKX_SECRET_KEY` and `OKX_API_PASSPHRASE`. Optional: a read-only deploy key on the repo for the VPS | BE-96, BE-81, BE-90 |
@@ -194,8 +194,18 @@ The binding source is `contracts/deployments/*.json`. This table is a convenienc
 | Monad mainnet, staging | `SessionOracle`, HOOD short | `0xaFe518da5cBa30B198e96F26074f66f85241DE95` | 13 October 2026 |
 
 | Monad mainnet, staging | USDC vault `Levra USDC` (`lvUSDC`), MetaMorpho v1.1 | `0xfB99A7E3f5571baA363d67F7823bb354cfd95447` | 13 October 2026 |
+| Base mainnet | `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` | 22 November 2026 |
+| Base mainnet | `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` | 22 November 2026 |
+| Base mainnet | `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` | 22 November 2026 |
+| Base mainnet | `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | 22 November 2026 |
+| Base mainnet | USDC vault `Levra USDC` (`lvUSDC`), MetaMorpho v1.1 | `0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8` | 22 November 2026 |
+| Base mainnet | `TimelockController` (2 days, Safe only) | `0xA0089B68a8CFf4d810985DF8503815b3d1344c67` | 22 November 2026 |
+| X Layer mainnet | `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` | 22 November 2026 |
+| X Layer mainnet | `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` | 22 November 2026 |
+| X Layer mainnet | `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` | 22 November 2026 |
+| X Layer mainnet | `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | 22 November 2026 |
 
-Market IDs are in `contracts/deployments/monad.json`.
+Market IDs are in `contracts/deployments/monad.json` and `contracts/deployments/base.json` (with the 16 Base oracles).
 
 ## Interface changes
 
@@ -256,7 +266,7 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 | Date | Who | Issue | Severity | Task |
 |---|---|---|---|---|
-| 22 November 2026 | Dharu | On Base and X Layer, after a Thursday close before Good Friday, the next Friday 20:00 close is just over 8 days away, past the contract's horizon, so `nextCloseAt` stays empty for about 4 hours that Thursday evening. No pre-close window is due then; the closed regime still starts from the oracle. Next in 2027 (25 March) | Low | BE-30 |
+| 22 November 2026 | Dharu | On Base and X Layer, after a Thursday close before Good Friday, the next weekly close (Saturday 00:00 UTC) is just over 8 days away, past the contract's horizon, so `nextCloseAt` stays empty for about 3 hours that Thursday evening. No pre-close window is due then; the closed regime still starts from the oracle. Next in 2027 (25 March) | Low | BE-30 |
 | 22 November 2026 | Dharu | With `ORIGIN=cloudflare` the server accepts any connection from Cloudflare's ranges, so another Cloudflare account could point its own record at our IP and reach the API through Cloudflare. Cloudflare still writes the real visitor address and country, so the region check should hold, but that is not verified. Authenticated origin pulls with our own certificate would close it | Low | BE-52 |
 | 20 November 2026 | Dharu | When a market's oracle cannot be read (`snapshot()` reverts), the API cannot quote a close, so the web app cannot close that position through Levra even after SC-86 lets the router close in full without a price. A price that is only stale still quotes. Found in BE-94 | Medium | BE-99 |
 | 20 November 2026 | Wangsit | On a Monday US holiday the Chainlink price stops from Monday 01:00 UTC until the feed writes (fail closed, D-92). For that day a partial reduce, `removeCollateral` and Morpho liquidations wait; a full close and adding collateral work. A known exception to product rule 8, chosen over serving a three day old price | Medium | SC-52 |
@@ -264,13 +274,35 @@ Weaknesses found in review that are not fixed yet. Severity is high, medium or l
 
 ## Daily log
 
-Newest first. One to three lines per person per working day: what got done, what is next, any blocker.
+One section per person. Add your lines only at the top of your own section, each starting with the date, newest first: one to three lines per working day, saying what got done, what is next and any blocker. Two people then never add lines at the same spot, so git merges their changes without a conflict (06, "Avoiding merge conflicts in shared docs"). Entries up to 22 November 2026 stay in the dated log below.
+
+### Dharu
+
+Newest first.
+
+- 22 November 2026: BE-75 team part in PR #111. The monitor alerts at once when an issuer control blocks Morpho, our router or our liquidator (Anchored denylist and USDC on Monad, B20 pause, policy and oracle pause on Base, xStock pause and sanctions on X Layer). Fork test: denylisting Morpho raises the alert. Live read: 17 controls on Base and 9 on X Layer, none blocking. Next: Wangsit's review (Circle USDC on Base and X Layer, the USDC vault), user alerts and the halted flag in the API.
+- 22 November 2026: BE-30 for Base and X Layer in PR #109 (D-106). `FEED_SCHEDULE`: Saturday 00:00 UTC, the oracle's own weekly close (Friday 19:00 New York time in winter, fixed after Wangsit's review), and the exchange close before a holiday; the calendar job now runs on every chain. Next: the poster role and key on Base and X Layer (BE-73, BE-80), and checking the Thanksgiving freeze with the BE-97 recorder.
+- 22 November 2026: BE-88 in PR #108 (D-105). The protector sizes keeper reductions inside the router's floor and size bound and simulates before sending. The keeper fork tests now post a fresh Anchored price first (the weekend fork price is stale and `CLOSED`); every keeper test passes on a fresh fork deploy of `main` (100).
+
+### Wangsit
+
+Newest first.
+
+### Nabil
+
+Newest first.
+
+## Daily log until 22 November 2026
 
 ### 22 November 2026
 
-- Dharu: BE-88 in PR #108 (D-105). The protector sizes keeper reductions inside the router's floor and size bound and simulates before sending. The keeper fork tests now post a fresh Anchored price first (the weekend fork price is stale and `CLOSED`); every keeper test passes on a fresh fork deploy of `main` (100).
-- Dharu: BE-30 for Base and X Layer in PR #109 (D-106). `FEED_SCHEDULE`: Friday 20:00 New York time, the exchange close before a holiday; the calendar job now runs on every chain. Next: the poster role and key on Base and X Layer (BE-73, BE-80), and checking the Thanksgiving freeze with the BE-97 recorder.
-- Dharu: BE-75 team part in PR #111. The monitor alerts at once when an issuer control blocks Morpho, our router or our liquidator (Anchored denylist and USDC on Monad, B20 pause, policy and oracle pause on Base, xStock pause and sanctions on X Layer). Fork test: denylisting Morpho raises the alert. Live read: 17 controls on Base and 9 on X Layer, none blocking. Next: user alerts and the halted flag in the API.
+- Wangsit: SC-83 deployed on X Layer mainnet. 41 transactions, all successful, first `0x7f6a86e4fcc178e35a467e9fa6fb9e6d56df37bef1803fedc1947a2952a11115`, last `0xfc0e5ab9839d1aee47b41f3ae390fa4e17792c33841040c4c85e2eff63161f61`. Same contract addresses as on Base, 8 markets, roles on chain match the X Layer keys, fee to the Safe, no vault (D-84). Sourcify 12 of 12. PR #115 adds `xlayer.json` and `@levra/shared/deployments/xlayer`. Next: the OKX explorer check and the handover to the timelock and Safe.
+- Wangsit: reviewed Dharu's PRs on GitHub. #108 (BE-88) approved: the plan matches the router's floor and size bound. #109 and #110: `nextCloseAt` on Base and X Layer is Friday 20:00 New York time, one hour after `ChainlinkSessionOracle` closes (Saturday 00:00 UTC) in winter; asked for Saturday 00:00 UTC. #111: asked to add Circle USDC on Base and X Layer and the USDC vault to the watched controls. The ABI request is SC-88.
+- Wangsit: SC-55 on Base, step 2 of 3 done. The Safe ran the step 1 batch (Wangsit and Nabil): `0x7b59b025e93a6aa7a8f8de72e127ddf4348183a9d9d0904c25d5c73e001eb9f4`. The vault now belongs to the Safe; `acceptOwnership` on the risk manager, router and liquidator is scheduled in the timelock, executable from 23 November 2026, 23:51 UTC (24 November, 06:51 WIB). Next: the Safe runs `executeBatch` after that. Seeding the Base markets (SC-77, SC-78) waits for the team's decision on the seed funds.
+- Wangsit: SC-55 on Base, step 1 of 3 done. `HandOver.s.sol`: 6 transactions, all successful, first `0xa8e45cc4c7f2844c53bef940798b47e41e2671c58af6b5945c733fdc0148adc8`, last `0xb0f409a4d74d1e8ff4ff99a72a6d8a5ee85f510489de2033fff979b02a59dcfc`. Timelock `0xA0089B68a8CFf4d810985DF8503815b3d1344c67` (2 days, Safe only), Safe is guardian, pending owners set; the deployer stays owner until the Safe accepts. PR #114 records the timelock. Next: the Safe signs the step 1 batch (schedule `acceptOwnership` through the timelock and accept the vault), then `executeBatch` after 2 days.
+- Wangsit: Base Earn vault `0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8` (`lvUSDC`) deployed: 21 transactions, all successful, first `0xb94e983c19be59aed509e6d16d79f1c550e46fa267ebd932fbc0d0bb95c86d3b`, last `0x310b183ea5b8c6aa0bd9eefcff6d33e672a216a4fa57c2494fce8e3b2ef11084`. Fee 10% to the Safe, timelock 1 day, 8 long markets in the queue with the config caps. PR #113 adds it to `base.json`. Review comments posted on Nabil's PRs #94, #95, #97 and #99. Next: handover of router, risk manager, liquidator and vault to the Safe (SC-55).
+- Wangsit: SC-76 deployed on Base mainnet. 73 transactions, all successful, blocks 60554987 to 60555427, first `0x0a8a95990430ff3319c7915d5ce8fc9e824a039a6c1df2780c996ce3ef38744f`, last `0x75c79b172f0d3278b525eb2e33021a2059ca0f174dcd47766dee547dfb1c29ff`. Router `0xf5585feA7aeDC5e148201052f73139111810aA88`, risk manager `0x8354ff472d87C942f9186acc83e0600424272594`, liquidator `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`, lens `0xa8d15000992Cd055E7731E884D91b16F2123A327`, 16 markets. Roles on chain match the Base keys; owner is still the deployer until SC-55. SC-71 rerun with the real addresses: 32 of 32, all our contracts authorized under policy 5. All 20 contracts verified on Basescan and Sourcify. Deployment file and `@levra/shared/deployments/base` in PR #112. The first attempt stopped in simulation on a `mainnet.base.org` connection reset and sent nothing. Next: merge #112, handover to the Safe (SC-55), seed (SC-77, SC-78).
+- Wangsit: sign-in on `app.levra.finance` failed ("Could not log in with wallet") because the old Privy app was on a personal account and did not list the new domain. New Privy app in the team account, `NEXT_PUBLIC_PRIVY_APP_ID` replaced in Vercel for every environment (05). The 1inch and OKX keys are on the VPS: `api` (all 4), `keeper-base` (1inch), `keeper-xlayer` (3 OKX), all 0400 `levra:levra`, lengths match the root `.env`. The Base and X Layer role addresses from Dharu are in `contracts/.env`, the active lines point at Base, and `make deploy-base-dry` passes with them (deployer holds 0.0025 ETH on Base, about 0.00037 ETH needed).
 - Dharu: GitHub access back; the finished backend branches are rebased on `main` and open as PRs #100 (BE-91), #101 (BE-90), #102 (BE-89), #103 (BE-70) and #104 (BE-99, after #103). The BE-70 decision is renumbered D-102, since `main` took D-98 for the private repo. Checked the live VPS from outside: only ports 22, 80 and 443 open, SSH keys only, TLS 1.3, CORS refuses other origins.
 - Dharu: the Cloudflare proxy was on for a while on 21 November without the API change, so every visitor shared Cloudflare's address in the rate limit; Wangsit turned it off again (checked: the record answers with the server's IP). BE-52 on `be/BE-52-cloudflare-origin` (D-103): the `ORIGIN` switch in Caddy, the `deploy.sh` guard, per chain country lists for Base and X Layer (D-73), and the steps to turn the proxy on in `hosting.md`.
 - Dharu: after #100 to #102 merged, PRs #103 to #106 conflicted on the same lines in `PROGRESS.md` and `09`. Merged `main` into each, then moved their `PROGRESS.md` and `09` lines here, so those PRs no longer touch either file. New rule in 06 ("Avoiding merge conflicts in shared docs") and CLAUDE.md section 4: both files change on `main` only.

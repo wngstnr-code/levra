@@ -358,7 +358,7 @@ Our geo-blocking list is an open decision (Q-24). Earlier docs said "outside the
 | Service | Finding | Status |
 |---|---|---|
 | Envio | Its supported networks page lists Monad mainnet, chain 143, with HyperSync at `https://143.hypersync.xyz`. Whether an API token is required was not found | From documentation. Not run (BE-06) |
-| Privy | The embedded wallet is a normal key wallet by default (an HD wallet). It supports `signTypedData` and private key export. Smart wallets are an optional layer on top | From documentation. Run on 13 October 2026: embedded wallet creation by email and passkey, and export of its recovery phrase. `signTypedData` not run (FE-02, FE-11) |
+| Privy | App `cmwqzdxwq016t0hidh4mbfyl8` in the team account (levrafinance), created on 22 November 2026 after the old app on a personal account could not be found. Allowed origins: `https://app.levra.finance`, `https://levra.finance`, `http://localhost:3000`. Login methods: external wallets, email, passkey. Still in development mode. Embedded wallets made under the old app do not carry over. The embedded wallet is a normal key wallet by default (an HD wallet). It supports `signTypedData` and private key export. Smart wallets are an optional layer on top | From documentation. Run on 13 October 2026: embedded wallet creation by email and passkey, and export of its recovery phrase. `signTypedData` not run (FE-02, FE-11) |
 | Railway | Hosted the backend from 14 October to 20 November 2026 (D-41, replaced by D-94): project `levra` with services `api`, `indexer`, `keeper` and `Postgres`, built from `main`. The old API address `https://api-production-c154.up.railway.app` no longer serves the API | Verified on 14 October 2026 that all three services ran. Checked on 20 November 2026: `/v1/health` answers 404 |
 | VPS | Planned host of the backend (D-94): Docker Compose with Postgres, one API, one indexer and one keeper per chain, and Caddy for HTTPS. Setup in `docs/hosting.md` | Server running at netcup since 20 November 2026: VPS 1000 G12.5, 4 vCore, 8 GB RAM, 128 GB disk, Nürnberg (Germany), monthly. IP addresses kept out of this public repo. Backend not deployed yet. BE-90 |
 | Telegram | Alert bot `@levra_alerts_bot` (BE-33, BE-50). Its token was only on Railway's keeper service (`TELEGRAM_BOT_TOKEN`) until 20 November 2026 and becomes a secret file of the keeper on the VPS (BE-90); the username goes on the api (`TELEGRAM_BOT_USERNAME`). Team alerts go to the "Levra Team" group (`TEAM_TELEGRAM_CHAT_ID`). It is a basic group: if it is ever upgraded to a supergroup, its chat id changes and the variable must be updated | Verified on 14 October 2026: `getMe` answers for the token, a test message reached the group, and the keeper runs `alerts` and `monitor` |
@@ -456,6 +456,21 @@ Reserve is the whole pool, not the depth near the price.
 - Built swaps (`/swap`, sender and receiver a contract, `disableEstimate`) for $1,000 of NVDAc, TSLAc and MSFTc target the 1inch router `0x1111...2A65`. Run with `eth_simulateV1` on the live node from Morpho's address (a contract holding USDC, standing for our router), each succeeds and delivers exactly the quoted amount, using 446,000 to 565,000 gas.
 - The API refuses requests whose User-Agent looks like a script library (Cloudflare error 1010). Send a plain client name.
 - Verified by quote and simulation on this date only. Prices and routes change by the minute.
+
+### Levra deployment on Base (SC-76)
+
+Deployed on 22 November 2026 by `make deploy-base` from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0`: 73 transactions, all status 1, blocks 60554987 to 60555427, about 0.000142 ETH in total. The binding list is `contracts/deployments/base.json`, bundled as `@levra/shared/deployments/base`.
+
+| Contract | Address |
+|---|---|
+| `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` |
+| `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` |
+| `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` |
+| `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` |
+
+16 markets (long and short for 8 stocks), one `ChainlinkSessionOracle` each. Verified on chain on 22 November 2026: all four contracts have code; owner of router, risk manager and liquidator is the deployer (handover to the Safe is SC-55); router keeper `0xD30865fcA0C71B3aA3d617a8790C6aC0884B7645`, liquidator keeper `0x29202644892Ec09885fA97d1Bd428b3b01c8CEcA`, calendar poster `0xf8Fe4cBFc742aeBD5509c7d2275a9538ed9Ea905`, oracle age poster `0x2cF63398c3faFBdeCAaeEfE8E8a3C815dD300DAF` (Dharu's keys on the VPS). B20 recheck with these addresses (SC-71): all 8 stocks on policy 5, none paused, and router, liquidator, risk manager, lens and Safe authorized; `b20-policy.live.test.ts` 32 of 32. Source verified on Basescan (router, risk manager, liquidator, lens and the AAPL oracle exact match, the other 15 oracles similar match) and on Sourcify (20 exact). The free Etherscan API plan does not cover Base, so Basescan was done through its web form. Earn vault `Levra USDC` (`lvUSDC`) `0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8`, MetaMorpho v1.1, deployed on 22 November 2026 (21 transactions, blocks 60565888 to 60566038). Read on chain: asset USDC, fee 10% to the team Safe, timelock 1 day, supply queue of the 8 long markets, caps AAPL, AMZN, GOOGL, META, MSFT 10,000 USDC each; NVDA and TSLA 5,000; SPCX 2,000 (initial proposals), owner the deployer until SC-55, no curator or guardian. Exact match on Sourcify.
+
+Handover started on 22 November 2026 (SC-55, `script/HandOver.s.sol`, 6 transactions, all successful): `TimelockController` `0xA0089B68a8CFf4d810985DF8503815b3d1344c67` with a 2 day delay, proposer and executor the team Safe only, no outside admin; the Safe is guardian of the risk manager; pending owner of the risk manager, router and liquidator is the timelock, of the vault the Safe. Read on chain the same day: the deployer is still owner of all four until the Safe accepts. The Safe batches are `~/Desktop/levra-safe/base-handover-step1.json` (schedule and vault accept) and `step2` (execute after 2 days), not in the repo. Timelock operation id `0x1a4aa380e2f4e540cd80997b7b32ef952ce432763d19f957246b27b80b26af43`. Step 1 executed by the Safe on 22 November 2026 (signed by Wangsit, executed by Nabil): `0x7b59b025e93a6aa7a8f8de72e127ddf4348183a9d9d0904c25d5c73e001eb9f4`, block 60573480. Read on chain: the vault owner is the Safe; the timelock operation is pending and ready from 23 November 2026, 23:51:11 UTC. Step 2 (`executeBatch`) after that time.
 
 ### Full long and short on Base, simulated (SC-75)
 
@@ -572,6 +587,10 @@ OKX DEX API v6 on chain 196, 20 November 2026 around 03:00 UTC, against the xSto
 | wNVDAx | 8 | 11 | 44 | 137 | 8 | 45 | 250 | Uniswap V3 and V4 |
 
 The API needs a key, secret and passphrase, and no project ID; v5 is retired. Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS, so scripts resolve it through 1.1.1.1. Verified by quote only on this date.
+
+### Levra deployment on X Layer (SC-83)
+
+Deployed on 22 November 2026 from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` (`forge script script/Deploy.s.sol` with `config/xlayer.json`): 41 transactions, all status 1, blocks 76536643 to 76536721, about 0.00036 OKB. Same addresses as on Base (same deployer and nonce): router `0xf5585feA7aeDC5e148201052f73139111810aA88`, risk manager `0x8354ff472d87C942f9186acc83e0600424272594`, liquidator `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`, lens `0xa8d15000992Cd055E7731E884D91b16F2123A327`. 8 markets (long and short for GOOGL, NVDA, QQQ, SPY), one `ChainlinkSessionOracle` each. Read on chain the same day: code at all four, owner the deployer until SC-55, router keeper `0x4C180407D6F186DAd38c2258D3283C270403F875`, liquidator keeper `0x7DDdBE1bc0380451Cc97055C3B21f35219bcf399`, calendar poster `0x96ddD13205f48d2C975eC383fae579eE54Fbf99A`, oracle age poster `0x43A4C2ebc4fb9F8b21A03CC50EB57a62A62622cb`, fee recipient the team Safe, the GOOGL oracle returns a price. No vault (D-84). Sourcify 12 of 12 exact match; the OKX explorer is not checked yet. The binding list is `contracts/deployments/xlayer.json`, bundled as `@levra/shared/deployments/xlayer` (PR #115).
 
 ### Full long and short on an X Layer fork (SC-83)
 

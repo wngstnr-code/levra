@@ -1,5 +1,5 @@
 import { createDb, routerEvents, runMigrations, syncCursors } from "@levra/db";
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, dexMidPriceE8, KYBER_MONAD_URL } from "@levra/kyber";
 import { external, tokens } from "@levra/shared/addresses";
 import { lensAbi, marginRouterAbi, morphoAbi } from "@levra/shared/abis";
 import { WAD, mulDiv, stockForUsd } from "@levra/shared/math";
@@ -9,7 +9,7 @@ import { createPublicClient, createWalletClient, http, parseUnits, type Address,
 import { privateKeyToAccount } from "viem/accounts";
 import { monad } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, send } from "../../api/test/fork-helpers";
+import { as, createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, postAnchoredPrice, randomAddress, send } from "../../api/test/fork-helpers";
 import { rpcSource } from "../../indexer/src/sources/rpc";
 import { ROUTER_CURSOR, routerStream, syncStream } from "../../indexer/src/sync";
 import { createProtector, TARGET_BELOW_SOFT_WAD } from "../src/protector/protector";
@@ -50,6 +50,12 @@ describe.skipIf(!onFork || !dbUrl)("protector on the fork (BE-31)", () => {
     await runMigrations(dbUrl ?? "");
     await db.delete(routerEvents).where(eq(routerEvents.name, "ProtectionSet"));
     await db.delete(syncCursors).where(eq(syncCursors.name, ROUTER_CURSOR));
+
+    // The router refuses a keeper trade far from the oracle and any keeper trade once the session is CLOSED, so the
+    // oracle is set to the DEX mid price in the regular session (a fork is often made on a weekend).
+    const quoted = await lensMarket(long.marketId);
+    const dexE8 = await dexMidPriceE8(swap, { usdc: tokens.USDC.address, stock: tokens.aQQQ.address, usdcDecimals: tokens.USDC.decimals, stockDecimals: 18, refPriceE8: quoted.priceE8 });
+    await postAnchoredPrice(chain, quoted.priceId, dexE8);
 
     // Between the soft limit and the hard limit: blocked from opening more, not yet liquidatable.
     const [lm, sm] = await Promise.all([lensMarket(long.marketId), lensMarket(short.marketId)]);

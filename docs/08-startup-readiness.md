@@ -61,6 +61,7 @@ The product opens to the public only when all of these rows are met. None can be
 | Market depth on the exchange | Falls enough to break the position cap rule | BE-04, BE-50 |
 | Last block of the indexer | Falling behind | BE-50 |
 | API errors and response time | Pass the threshold | BE-50 |
+| Issuer pauses and blocklists: Anchored's denylist and Circle's USDC pause and blacklist (Monad), B20 transfer pause, transfer policy and Coinbase oracle pause (Base), wrapped and underlying xStock pause and the sanctions list (X Layer), each checked for Morpho, our router and our liquidator | A control blocks any of them, at once; a control that cannot be read for more than a few minutes | BE-75 |
 | Errors in the web app | Spike | FE-54 |
 
 ### Who is on watch
