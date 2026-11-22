@@ -588,6 +588,10 @@ OKX DEX API v6 on chain 196, 20 November 2026 around 03:00 UTC, against the xSto
 
 The API needs a key, secret and passphrase, and no project ID; v5 is retired. Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS, so scripts resolve it through 1.1.1.1. Verified by quote only on this date.
 
+### Levra deployment on X Layer (SC-83)
+
+Deployed on 22 November 2026 from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` (`forge script script/Deploy.s.sol` with `config/xlayer.json`): 41 transactions, all status 1, blocks 76536643 to 76536721, about 0.00036 OKB. Same addresses as on Base (same deployer and nonce): router `0xf5585feA7aeDC5e148201052f73139111810aA88`, risk manager `0x8354ff472d87C942f9186acc83e0600424272594`, liquidator `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`, lens `0xa8d15000992Cd055E7731E884D91b16F2123A327`. 8 markets (long and short for GOOGL, NVDA, QQQ, SPY), one `ChainlinkSessionOracle` each. Read on chain the same day: code at all four, owner the deployer until SC-55, router keeper `0x4C180407D6F186DAd38c2258D3283C270403F875`, liquidator keeper `0x7DDdBE1bc0380451Cc97055C3B21f35219bcf399`, calendar poster `0x96ddD13205f48d2C975eC383fae579eE54Fbf99A`, oracle age poster `0x43A4C2ebc4fb9F8b21A03CC50EB57a62A62622cb`, fee recipient the team Safe, the GOOGL oracle returns a price. No vault (D-84). Sourcify 12 of 12 exact match; the OKX explorer is not checked yet. The binding list is `contracts/deployments/xlayer.json`, bundled as `@levra/shared/deployments/xlayer` (PR #115).
+
 ### Full long and short on an X Layer fork (SC-83)
 
 `make xlayer-fork-e2e` on 20 November 2026: the real deployment script with `config/xlayer.json` on a local fork, then a user with 1,000 USDC:

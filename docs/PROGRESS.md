@@ -199,6 +199,10 @@ The binding source is `contracts/deployments/*.json`. This table is a convenienc
 | Base mainnet | `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | 22 November 2026 |
 | Base mainnet | USDC vault `Levra USDC` (`lvUSDC`), MetaMorpho v1.1 | `0x58e732287C17922E9f071d09bC0D5bf5Dd7285b8` | 22 November 2026 |
 | Base mainnet | `TimelockController` (2 days, Safe only) | `0xA0089B68a8CFf4d810985DF8503815b3d1344c67` | 22 November 2026 |
+| X Layer mainnet | `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88` | 22 November 2026 |
+| X Layer mainnet | `RiskManager` | `0x8354ff472d87C942f9186acc83e0600424272594` | 22 November 2026 |
+| X Layer mainnet | `Lens` | `0xa8d15000992Cd055E7731E884D91b16F2123A327` | 22 November 2026 |
+| X Layer mainnet | `Liquidator` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` | 22 November 2026 |
 
 Market IDs are in `contracts/deployments/monad.json` and `contracts/deployments/base.json` (with the 16 Base oracles).
 
@@ -272,6 +276,7 @@ Newest first. One to three lines per person per working day: what got done, what
 
 ### 22 November 2026
 
+- Wangsit: SC-83 deployed on X Layer mainnet. 41 transactions, all successful, first `0x7f6a86e4fcc178e35a467e9fa6fb9e6d56df37bef1803fedc1947a2952a11115`, last `0xfc0e5ab9839d1aee47b41f3ae390fa4e17792c33841040c4c85e2eff63161f61`. Same contract addresses as on Base, 8 markets, roles on chain match the X Layer keys, fee to the Safe, no vault (D-84). Sourcify 12 of 12. PR #115 adds `xlayer.json` and `@levra/shared/deployments/xlayer`. Next: the OKX explorer check and the handover to the timelock and Safe.
 - Wangsit: reviewed Dharu's PRs on GitHub. #108 (BE-88) approved: the plan matches the router's floor and size bound. #109 and #110: `nextCloseAt` on Base and X Layer is Friday 20:00 New York time, one hour after `ChainlinkSessionOracle` closes (Saturday 00:00 UTC) in winter; asked for Saturday 00:00 UTC. #111: asked to add Circle USDC on Base and X Layer and the USDC vault to the watched controls. The ABI request is SC-88.
 - Wangsit: SC-55 on Base, step 2 of 3 done. The Safe ran the step 1 batch (Wangsit and Nabil): `0x7b59b025e93a6aa7a8f8de72e127ddf4348183a9d9d0904c25d5c73e001eb9f4`. The vault now belongs to the Safe; `acceptOwnership` on the risk manager, router and liquidator is scheduled in the timelock, executable from 23 November 2026, 23:51 UTC (24 November, 06:51 WIB). Next: the Safe runs `executeBatch` after that. Seeding the Base markets (SC-77, SC-78) waits for the team's decision on the seed funds.
 - Wangsit: SC-55 on Base, step 1 of 3 done. `HandOver.s.sol`: 6 transactions, all successful, first `0xa8e45cc4c7f2844c53bef940798b47e41e2671c58af6b5945c733fdc0148adc8`, last `0xb0f409a4d74d1e8ff4ff99a72a6d8a5ee85f510489de2033fff979b02a59dcfc`. Timelock `0xA0089B68a8CFf4d810985DF8503815b3d1344c67` (2 days, Safe only), Safe is guardian, pending owners set; the deployer stays owner until the Safe accepts. PR #114 records the timelock. Next: the Safe signs the step 1 batch (schedule `acceptOwnership` through the timelock and accept the vault), then `executeBatch` after 2 days.

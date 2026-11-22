@@ -290,7 +290,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: SC-82.
   - Do: deploy router, risk manager, oracle adapter, lens and liquidator; add the OKX DEX router to the allowlist; create the short markets and Earn vaults; write `deployments.xlayer.ts`; hand ownership to the multisig on X Layer.
   - Done when: contracts verified on the X Layer explorer, addresses in 05 and `docs/public/contracts.md`.
-  - Note: rehearsed on 20 November 2026 with `make xlayer-fork-e2e`: the deployment script with `config/xlayer.json` runs on an X Layer fork, an NVDA long opens and closes through OKX DEX, and a QQQ short opens through Uniswap and closes through OKX DEX, with the router empty at the end (05). The real deployment waits for OKB for gas, the multisig on X Layer, and Dharu's check of the SC-82 limits. The OKX DEX router and its approve contract are fixed in the config (D-85, D-88).
+  - Note: rehearsed on 20 November 2026 with `make xlayer-fork-e2e`: the deployment script with `config/xlayer.json` runs on an X Layer fork, an NVDA long opens and closes through OKX DEX, and a QQQ short opens through Uniswap and closes through OKX DEX, with the router empty at the end (05). The real deployment waits for OKB for gas, the multisig on X Layer, and Dharu's check of the SC-82 limits. The OKX DEX router and its approve contract are fixed in the config (D-85, D-88). Deployed on mainnet on 22 November 2026 (05, PROGRESS), Sourcify 12 of 12, PR #115 for `xlayer.json` and `deployments.xlayer.ts`. No vault on X Layer (D-84). Left: the OKX explorer check, merge #115, and the handover (SC-55).
 
 - [ ] **SC-84 · Seed and first real trades on X Layer**
   - Needs: SC-83, X-35.

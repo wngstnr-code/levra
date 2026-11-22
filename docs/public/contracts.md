@@ -73,6 +73,32 @@ The USDC vault for lenders on Base:
 
 The machine-readable list is [`contracts/deployments/base.json`](../../contracts/deployments/base.json). All 20 contracts are verified on Basescan and on Sourcify (exact match).
 
+## Addresses on X Layer
+
+X Layer mainnet (chain ID 196), deployed on 22 November 2026, at the same contract addresses as on Base. Not audited. The limits are initial proposals. Ownership is still with the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` and moves to a timelock run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` next.
+
+| Contract | Address | What it does |
+|---|---|---|
+| `MarginRouter` | [`0xf5585feA7aeDC5e148201052f73139111810aA88`](https://web3.okx.com/explorer/x-layer/address/0xf5585feA7aeDC5e148201052f73139111810aA88) | Opens and closes positions in one transaction |
+| `RiskManager` | [`0x8354ff472d87C942f9186acc83e0600424272594`](https://web3.okx.com/explorer/x-layer/address/0x8354ff472d87C942f9186acc83e0600424272594) | Holds the soft limits and checks every new position |
+| `Lens` | [`0xa8d15000992Cd055E7731E884D91b16F2123A327`](https://web3.okx.com/explorer/x-layer/address/0xa8d15000992Cd055E7731E884D91b16F2123A327) | Read-only view of positions and markets |
+| `Liquidator` | [`0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`](https://web3.okx.com/explorer/x-layer/address/0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7) | Liquidates unhealthy positions on Morpho |
+
+Markets, all on Morpho. The stock is the wrapped xStock; the oracle is a `ChainlinkSessionOracle` over the xStocks price feed:
+
+| Market | Collateral | Borrowed | Hard limit | Morpho market ID | Oracle |
+|---|---|---|---|---|---|
+| GOOGL long | the stock | USDC | 77% | `0x5f8fcdef7968590c7058067757d18d99bb7e143d86fbb3a6f44d1e47cc470cd3` | `0xDF21F507676cF34F78080a7eAAeD967E741fDD00` |
+| NVDA long | the stock | USDC | 62.5% | `0x198bc6185b1da4e17abc2eba61a01d60c07959cb9a31ac5ce6dc6985835871d9` | `0x6964d40b507c6da717334eAe7B775C9F365d576D` |
+| QQQ long | the stock | USDC | 77% | `0x5c544c155f3c2ca375b8cb80faecb05f5b0e7a59654302fec365c5ab230d649f` | `0x112e34bFD7B39e3790B435Afb825a980E0512355` |
+| SPY long | the stock | USDC | 77% | `0x2b3aa5ead3faedc052f997864164a95f2c129ae5ac3b848bfc36b5b77a3c4206` | `0x7DB3B3de66Dd60D26ca9aEDc4378cE2Fa2D837BD` |
+| GOOGL short | USDC | the stock | 77% | `0x6efe0004b4ca99b217c9bc9f762cf100b218329986badb9b3d98c53cdcdb0100` | `0x04Cb51598F7b7B78dd46BF26766256Fe1f8EeA88` |
+| NVDA short | USDC | the stock | 62.5% | `0x34879d26e0cb222ee47260d4a8046bdf983b09bbb4077abba127451d9d364f85` | `0xf256b7b9Ef29eF2A279052209F686f66BA952987` |
+| QQQ short | USDC | the stock | 77% | `0x831dc8cdce8fd98f567a5e397830a8b89847a7a9d9cf7603e475c2177a2e5413` | `0xb96F27C67e626C9931c58fa01bF8F8ED08acE28a` |
+| SPY short | USDC | the stock | 77% | `0xa403cfaa81f30eae48fd68c6bd2705ecd3c5b0da892e343a48bf3e710ad94282` | `0xe8aD8d1Bbbd8e3A0BBb5c1Bc600318ffb4AD073D` |
+
+There is no USDC vault on X Layer: Morpho has no MetaMorpho factory there, so lenders supply directly to a market (D-84). The machine-readable list is [`contracts/deployments/xlayer.json`](../../contracts/deployments/xlayer.json). All 12 contracts are verified on Sourcify (exact match).
+
 ## Where your funds are
 
 Your collateral and your debt sit in your own position on Morpho, under your own address. Levra's contracts hold no user funds between transactions. The router asks Morpho for a flash loan, swaps on the exchange, and puts the result into your Morpho position, all inside one transaction.
