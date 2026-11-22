@@ -10,8 +10,8 @@ const icons: Record<WarningCode, LevraIconName> = {
   PRE_CLOSE_WINDOW: "weekendGuard",
   HIGH_DEVIATION: "debtRatio",
   HIGH_PRICE_IMPACT: "mondayGap",
-  NEAR_SOFT_LIMIT: "safeLimit",
-  POSITION_CAP: "safeLimit",
+  NEAR_SOFT_LIMIT: "borrowLimit",
+  POSITION_CAP: "borrowLimit",
   LOW_LIQUIDITY: "lend",
 };
 

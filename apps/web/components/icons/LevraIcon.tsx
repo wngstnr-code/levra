@@ -9,7 +9,7 @@ const paths = {
   weekendGuard: "M12 3 L19 6 V11 C19 16 15.5 19.5 12 21 C8.5 19.5 5 16 5 11 V6 Z M14.5 9.5 A3.2 3.2 0 1 0 14.5 15 A4 4 0 0 1 14.5 9.5 Z",
   pricePaused: "M4 12 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 M10 9 V15 M14 9 V15",
   mondayGap: "M4 8 H10 M14 16 H20 M10 8 L14 16 M4 20 H20",
-  safeLimit: "M4 18 A8 8 0 0 1 20 18 M12 18 L16 11 M4 18 H6 M18 18 H20",
+  borrowLimit: "M4 18 A8 8 0 0 1 20 18 M12 18 L16 11 M4 18 H6 M18 18 H20",
   liquidation: "M12 3 L21 19 H3 Z M12 10 V14 M12 17 V17.2",
   debtRatio: "M4 12 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 M12 4 V12 L18 16",
   verified:
