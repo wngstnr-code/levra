@@ -1,4 +1,4 @@
-import { SwapError, type SwapQuote } from "@levra/kyber";
+import { SwapError, type SwapQuote } from "@levra/swap";
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { QuoteCloseRequest, QuoteCloseResponse } from "@levra/shared/api";
 import { BPS, MAX_UINT256, WAD, cautiousPriceE8, morphoOraclePrice, positionLtvWad, signedDeviationBps } from "@levra/shared/math";
@@ -8,11 +8,15 @@ import { ApiHttpError, upstream } from "../errors";
 import { realizedOnReduce, shortCostBasis } from "../positions/cost-basis";
 import { toCostEvents } from "../positions/events";
 import {
+  NO_PRICE_WARNING,
   PRICE_IMPACT_WARN_BPS,
   QUOTE_TTL_SECONDS,
   TX_DEADLINE_SECONDS,
+  dexRefPriceE8,
   execPriceE8,
+  hasNoPrice,
   midPriceE8,
+  requireCloseWithoutPrice,
   tokenDecimals,
   warningList,
   type QuoteDeps,
@@ -80,6 +84,8 @@ export async function quoteCloseShort({ reader, swap, events: store }: QuoteDeps
   const [quoteDecimals, stockDecimals] = (await upstream(() => tokenDecimals(reader, [quote, stock]))) as [number, number];
 
   const full = fraction === WAD;
+  await requireCloseWithoutPrice(reader, m, full);
+  const noPrice = hasNoPrice(m);
   const withdraw = full ? pos.collateralRaw : (pos.collateralRaw * fraction) / WAD;
   const debtRepaid = full ? pos.debtRaw : (pos.debtRaw * fraction) / WAD;
   const repayShares = full ? MAX_UINT256 : ((await upstream(() => reader.borrowShares(m.info.marketId, req.user))) * fraction) / WAD;
@@ -87,7 +93,9 @@ export async function quoteCloseShort({ reader, swap, events: store }: QuoteDeps
 
   const need = debtRepaid === 0n ? 0n : closeShortNeed(debtRepaid);
   const target = closeShortTarget(need, req.slippageBps);
-  const guess = firstBuyGuess(target, m.oraclePriceE8, quoteDecimals, stockDecimals);
+  // Without an oracle price, the first guess and the mid price probes start from what the DEX pays for the stock owed.
+  const refE8 = noPrice && target > 0n ? await dexRefPriceE8(swap, { quote, stock, stockAmount: target, quoteDecimals, stockDecimals }) : m.oraclePriceE8;
+  const guess = firstBuyGuess(target, refE8, quoteDecimals, stockDecimals);
   const [route, midE8] = await Promise.all([
     need === 0n
       ? Promise.resolve(null)
@@ -101,7 +109,8 @@ export async function quoteCloseShort({ reader, swap, events: store }: QuoteDeps
           slippageBps: req.slippageBps,
           maxIn: withdraw,
         }),
-    midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, m.oraclePriceE8),
+    // Nothing to buy and no oracle price: there is no swap to compare with a mid price.
+    refE8 === 0n ? Promise.resolve(0n) : midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, refE8),
   ]);
   const amountIn = route?.amountIn ?? 0n;
   const bought = route?.amountOut ?? 0n;
@@ -112,13 +121,19 @@ export async function quoteCloseShort({ reader, swap, events: store }: QuoteDeps
   const minReturn = minReturnRaw > 0n ? minReturnRaw : 0n;
 
   const execE8 = bought > 0n ? execPriceE8(amountIn, bought, quoteDecimals, stockDecimals) : 0n;
-  const price = morphoOraclePrice("short", cautiousPriceE8("short", { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals);
-  const ltvAfter = full ? 0n : positionLtvWad(pos.debtRaw - debtRepaid, pos.collateralRaw - withdraw, price);
-  const deviation = execE8 > 0n ? signedDeviationBps(execE8, m.oraclePriceE8) : 0;
+  const ltvAfter = full
+    ? 0n
+    : positionLtvWad(
+        pos.debtRaw - debtRepaid,
+        pos.collateralRaw - withdraw,
+        morphoOraclePrice("short", cautiousPriceE8("short", { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals),
+      );
+  const deviation = execE8 > 0n && !noPrice ? signedDeviationBps(execE8, m.oraclePriceE8) : 0;
   // Buying: a price above the mid is worse for the trader.
   const priceImpact = execE8 > 0n ? signedDeviationBps(execE8, midE8) : 0;
 
   const { warnings, add, blocked } = warningList();
+  if (noPrice) add("ORACLE_STALE", "warn", NO_PRICE_WARNING);
   if (!full && m.oracleHardStale) add("ORACLE_STALE", "block", "Morpho cannot price this market right now, so a partial close would fail. A full close still works.");
   if (returned < 0n) add("HIGH_PRICE_IMPACT", "block", "Buying back this share of the stock costs more than the collateral it frees.");
   if (Math.abs(deviation) * 2 > m.maxDeviationBps) add("HIGH_DEVIATION", "warn", "The swap price is far from the oracle price.");

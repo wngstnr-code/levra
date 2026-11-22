@@ -1,0 +1,36 @@
+import type { Position } from "@levra/shared/api";
+import { signedDeviationBps } from "@levra/shared/math";
+import { formatUsdE8 } from "./format";
+import { formatBps, formatUsdSigned } from "./units";
+
+export type ShareCardData = {
+  tokenSymbol: string;
+  side: "long" | "short";
+  chainName: string;
+  /** How far the price moved since entry, in the trade's favour when positive. */
+  moveText: string;
+  moveUp: boolean;
+  pnlText: string;
+  entryText: string;
+  nowText: string;
+};
+
+/** What the share card shows, from the position the service reports. Only shared formulas are used. */
+export function shareCardData(p: Position, tokenSymbol: string, chainName: string): ShareCardData {
+  const raw = signedDeviationBps(BigInt(p.oraclePriceE8), BigInt(p.entryPriceE8));
+  const inFavour = p.side === "long" ? raw : -raw;
+  return {
+    tokenSymbol,
+    side: p.side,
+    chainName,
+    moveText: formatBps(inFavour, { signed: true, fractionDigits: 1 }),
+    moveUp: inFavour >= 0,
+    pnlText: formatUsdSigned(p.unrealizedPnlUsdRaw),
+    entryText: formatUsdE8(BigInt(p.entryPriceE8)),
+    nowText: formatUsdE8(BigInt(p.oraclePriceE8)),
+  };
+}
+
+export function postOnXUrl(text: string, link: string): string {
+  return `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`;
+}

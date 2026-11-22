@@ -31,10 +31,10 @@ const envSchema = z.object({
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**
    * Hosts of the web app that a sign-in message may name, comma-separated; `*` stands for one dash-separated part, for
-   * example app.levra.xyz,levra-mon-*-team.vercel.app,localhost:3000.
+   * example app.levra.finance,levra-*-team.vercel.app,localhost:3000.
    */
   AUTH_DOMAIN: optional(),
-  /** Web origins allowed to call the API from a browser, same pattern rules, for example https://levra-mon.vercel.app. */
+  /** Web origins allowed to call the API from a browser, same pattern rules, for example https://app.levra.finance. */
   CORS_ORIGINS: optional(),
   /** Username of the alert bot, without @. The Telegram link route is off without it. */
   TELEGRAM_BOT_USERNAME: optional(),
@@ -49,6 +49,10 @@ const envSchema = z.object({
   GEO_COUNTRY_HEADER: optional(),
   /** Comma-separated ISO 3166-1 alpha-2 codes to refuse, decided with counsel (X-10). Needs GEO_COUNTRY_HEADER. */
   BLOCKED_COUNTRIES: optional(),
+  /** More codes refused on Base only, on top of BLOCKED_COUNTRIES (D-73). Needs GEO_COUNTRY_HEADER. */
+  BASE_BLOCKED_COUNTRIES: optional(),
+  /** More codes refused on X Layer only, on top of BLOCKED_COUNTRIES (D-73). Needs GEO_COUNTRY_HEADER. */
+  XLAYER_BLOCKED_COUNTRIES: optional(),
   /** Request header with the visitor's region, for example cf-region-code (Cloudflare's visitor location headers). */
   GEO_REGION_HEADER: optional(),
   /** Comma-separated ISO 3166-2 codes to refuse, for example UA-43,UA-40 (D-42). Needs GEO_REGION_HEADER and GEO_COUNTRY_HEADER. */

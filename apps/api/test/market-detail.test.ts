@@ -34,6 +34,8 @@ function market(side: "long" | "short"): MarketState {
     publishedAt: 1_791_880_600,
     oracleStale: false,
     oracleHardStale: false,
+    uiMultiplierWad: null,
+    tokenPaused: false,
   } as MarketState;
 }
 

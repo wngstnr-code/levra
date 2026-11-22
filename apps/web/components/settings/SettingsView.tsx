@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { privyAppId } from "@/lib/privy";
 import { formatWadPercent } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
+import { useRouterUpgrade } from "@/lib/useRouterUpgrade";
 import { useTxFlow } from "@/lib/useTxFlow";
 import { ProtectionToggle } from "../protection/ProtectionToggle";
 import { useSignIn } from "../SignIn";
@@ -43,6 +44,7 @@ export function SettingsView() {
           </div>
           <div className="flex flex-col gap-4 [&>*:last-child]:flex-1">
             <AuthorizationCard user={address} />
+            <OldAccessCard user={address} />
             {privyAppId && <WalletCard />}
           </div>
         </div>
@@ -126,6 +128,38 @@ function AuthorizationCard({ user }: { user: `0x${string}` }) {
         signatures={0}
         approvals={0}
         confirmLabel={on ? m.settings.revoke : m.settings.allow}
+        onConfirm={run}
+        onClose={flow.reset}
+      />
+    </Card>
+  );
+}
+
+function OldAccessCard({ user }: { user: `0x${string}` }) {
+  const chain = useChain();
+  const m = useT();
+  const flow = useTxFlow();
+  const { oldAccess, queryKey } = useRouterUpgrade(user);
+  const old = oldAccess[0];
+  if (!old) return null;
+  const run = () =>
+    void flow.runDirect({
+      account: user,
+      call: { address: chain.morpho, abi: morphoAbi, functionName: "setAuthorization", args: [old, false] },
+      invalidate: [queryKey, queryKeys.account(user)],
+    });
+  return (
+    <Card className="flex flex-col gap-3">
+      <p className="label-caps">{m.upgrade.oldAccess}</p>
+      <p className="text-[13px] leading-relaxed text-fg-2">{m.upgrade.oldAccessBody}</p>
+      <Button variant="secondary" onClick={flow.review}>{m.upgrade.removeOld}</Button>
+      <TxSheet
+        title={m.upgrade.removeOld}
+        state={flow.state}
+        sentences={[...m.upgrade.removeSentences, m.earn.contract("Morpho")]}
+        signatures={0}
+        approvals={0}
+        confirmLabel={m.upgrade.removeOld}
         onConfirm={run}
         onClose={flow.reset}
       />

@@ -1,4 +1,4 @@
-import { SwapError } from "@levra/kyber";
+import { SwapError } from "@levra/swap";
 import type { ApiError, ApiErrorCode } from "@levra/shared/api";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 

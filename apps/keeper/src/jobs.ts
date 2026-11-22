@@ -1,4 +1,4 @@
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { chains } from "@levra/shared/chains";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { stocksByChain, type ChainlinkStock } from "@levra/shared/markets";
@@ -74,9 +74,8 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     logger.info("oracle age poster off: ORACLE_AGE_POSTER_KEY or DEPLOYMENT_FILE is not set");
   }
 
-  if (!onMonad) {
-    notHere("calendar poster", "BE-30");
-  } else if (deployment && env.CALENDAR_POSTER_KEY) {
+  // Every chain: Anchored's observed schedule on Monad, the Chainlink feeds' weekly freeze elsewhere (scheduleForChain).
+  if (deployment && env.CALENDAR_POSTER_KEY) {
     jobs.push(createCalendarPoster({ client, wallet: walletFor(env.CALENDAR_POSTER_KEY), deployment }));
   } else {
     logger.info("calendar poster off: CALENDAR_POSTER_KEY or DEPLOYMENT_FILE is not set");

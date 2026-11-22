@@ -6,7 +6,7 @@
 /deploy/                             @dharumahendra
 /.dockerignore                       @dharumahendra
 /packages/db/                        @dharumahendra
-/packages/kyber/                     @dharumahendra
+/packages/swap/                      @dharumahendra
 /packages/intents/                   @dharumahendra
 
 /packages/shared/                    @wngstnr-code @dharumahendra
