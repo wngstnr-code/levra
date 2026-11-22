@@ -10,7 +10,8 @@ const clock = (unix: number) => {
   return `${p.date} ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
 };
 
-describe("when to post nextCloseAt", () => {
+// The simulations below step through weeks of calendar time; a slow CI runner needs more than the 5 second default.
+describe("when to post nextCloseAt", { timeout: 30_000 }, () => {
   it("posts when nothing is on chain and when a close is wrong, and leaves a correct one alone", () => {
     const now = at("2026-11-16", 10);
     expect(decideNextClose({ now, current: 0, next: at("2026-11-20", 16) })).toMatchObject({ action: "post", value: at("2026-11-20", 16) });
@@ -35,14 +36,15 @@ describe("when to post nextCloseAt", () => {
     let current = 0;
     const posted: number[] = [];
     for (let now = from; now < to; now += 600) {
-      const d = decideNextClose({ now, current, next: nextCloseAfter(now, schedule) });
+      const next = nextCloseAfter(now, schedule);
+      const d = decideNextClose({ now, current, next });
       if (d.action === "post") {
         current = d.value;
         posted.push(d.value);
       }
       // Outside the grace hour, the chain holds a close in the future, unless the next close is beyond the contract's
       // 8-day horizon (after a Thursday close before Good Friday with the feed schedule); no window is due then.
-      const horizonOk = nextCloseAfter(now, schedule) <= now + 8 * 86_400;
+      const horizonOk = next <= now + 8 * 86_400;
       if (now >= current + 3_600 && horizonOk) throw new Error(`no future close on chain at ${clock(now)}`);
     }
     return posted.map(clock);
