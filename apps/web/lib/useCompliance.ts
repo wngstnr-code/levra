@@ -47,7 +47,7 @@ export function useCompliance(address: Address | undefined) {
     const signature = await signMessage(config, { account: address, message: termsMessage(q.data.termsVersion, address) });
     await api("termsAccept", { body: { address, termsVersion: q.data.termsVersion, signature } });
     await queryClient.invalidateQueries({ queryKey: queryKeys.eligibility(address, chain.id) });
-  }, [address, config, q.data, queryClient]);
+  }, [address, chain.id, config, q.data, queryClient]);
 
   return { status, termsVersion: q.data?.termsVersion ?? null, error: q.error, retry: q.refetch, accept };
 }
