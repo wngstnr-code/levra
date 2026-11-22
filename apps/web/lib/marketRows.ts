@@ -1,3 +1,4 @@
+import { hasNoPrice } from "./marketState";
 import type { Market, SessionName } from "@levra/shared/api";
 import type { AnyStock } from "@levra/shared/markets";
 
@@ -23,7 +24,7 @@ export function buildMarketRows(stocks: AnyStock[], apiMarkets: Market[] | undef
     const snap = oracle[stock.symbol];
     return {
       stock,
-      priceE8: lead ? BigInt(lead.oraclePriceE8) : (snap?.priceE8 ?? null),
+      priceE8: lead && !hasNoPrice(lead.oraclePriceE8) ? BigInt(lead.oraclePriceE8) : (snap?.priceE8 || null),
       feedUpdatedAt: lead ? lead.oracleFeedUpdatedAt : (snap?.feedUpdatedAt ?? null),
       session: snap?.session ?? null,
       stale: lead?.oracleStale ?? false,
