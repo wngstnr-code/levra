@@ -7,7 +7,7 @@ import type { Deployment } from "@levra/shared/deployments";
 import { morphoIsHealthy } from "@levra/shared/math";
 import { and, eq, gte } from "drizzle-orm";
 import { getAddress, type Address, type PublicClient } from "viem";
-import { scheduleFromLogger, type ScheduleSource } from "../calendar/poster";
+import { scheduleForChain, type ScheduleSource } from "../calendar/poster";
 import { maxAgeRule } from "../oracle/max-age";
 import { readGates } from "./gates";
 import { yahooBars, type BarSource } from "../gaps/source";
@@ -119,7 +119,7 @@ export type MonitorOptions = {
 
 /** Team monitoring and alerts (BE-50): every row of "What we monitor" in 08, to the team channels. */
 /** Team monitoring and alerts for one chain; the API and gap checks run once, in the KEEPER_GLOBAL keeper. */
-export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, schedule = scheduleFromLogger, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
+export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, schedule = scheduleForChain, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
   const chainId = deployment.chainId as ChainId;
   const morpho = morphoOn(chainId);
   const labels = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));

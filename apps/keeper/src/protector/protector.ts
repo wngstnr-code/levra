@@ -21,7 +21,7 @@ import {
   type Transport,
   type WalletClient,
 } from "viem";
-import { scheduleFromLogger } from "../calendar/poster";
+import { scheduleForChain } from "../calendar/poster";
 import { morphoOn } from "../chain";
 import type { Job } from "../runner";
 
@@ -252,7 +252,7 @@ export async function refusedByBounds(simulate: () => Promise<unknown>): Promise
 
 /** The next close by the calendar (BE-30), unix seconds. */
 export type CloseSource = (db: Db, now: number, chainId: number) => Promise<number>;
-export const closeFromCalendar: CloseSource = async (db, now, chainId) => nextCloseAfter(now, await scheduleFromLogger(db, chainId));
+export const closeFromCalendar: CloseSource = async (db, now, chainId) => nextCloseAfter(now, await scheduleForChain(db, chainId));
 
 export type ProtectorOptions = {
   client: PublicClient;
