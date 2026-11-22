@@ -14,7 +14,7 @@ import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import { dbEventStore } from "../src/positions/events";
 import { createKyber } from "@levra/kyber";
-import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, openOnMorpho, randomAddress, seedMarket } from "./fork-helpers";
+import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, openOnMorpho, openSessionAtDexPrice, randomAddress, seedMarket } from "./fork-helpers";
 
 const dbUrl = process.env.TEST_DATABASE_URL;
 
@@ -36,6 +36,7 @@ describe.skipIf(!onFork || !dbUrl)("accounts and history from the indexer, on th
     await db.delete(routerEvents);
     await db.delete(morphoEvents);
     await db.delete(syncCursors);
+    await openSessionAtDexPrice(chain, swap, "QQQ");
     await seedMarket(chain, market.marketId, parseUnits("5000", 6));
     await deal(chain, tokens.USDC.address, user.address, parseUnits("200", 6));
     await chain.setBalance({ address: user.address, value: parseUnits("10", 18) });
