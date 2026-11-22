@@ -27,7 +27,7 @@ export const en = {
     title: "Sign in to Levra",
     sub: "One account on every network.",
     baseAccount: "Base Account",
-    baseAccountSub: "Passkey wallet from Base",
+    baseAccountSub: "First in the wallet list",
     email: "Email",
     emailSub: "We create a wallet you can export",
     passkey: "Passkey",
@@ -44,7 +44,7 @@ export const en = {
   },
   notices: {
     ORACLE_STALE: { title: "Price delayed", body: "Wait for a fresh price to open." },
-    SESSION_CLOSED: { title: "Market closed", body: "New trades wait for the open. Closing always works." },
+    SESSION_CLOSED: { title: "Market closed", body: "New trades wait for the open. We can never pause closing." },
     PRE_CLOSE_WINDOW: { title: "Weekend soon", body: "Limits are lower before the weekend." },
     HIGH_DEVIATION: { title: "Price differs", body: "The exchange price is far from the real price." },
     HIGH_PRICE_IMPACT: { title: "Big trade", body: "This size moves the price. Try a smaller amount." },
@@ -55,7 +55,7 @@ export const en = {
   clock: {
     closesIn: (t: string) => `Closes in ${t}`,
     opensIn: (t: string) => `Opens in ${t}`,
-    weekendNote: "Limits are lower until the market opens. Closing always works.",
+    weekendNote: "Limits are lower until the market opens. We can never pause closing.",
   },
   network: {
     title: "Network",
@@ -127,8 +127,8 @@ export const en = {
       PositionCapExceeded: "This is over the size limit for this stock.",
       PriceDeviationTooHigh: "The exchange price is too far from the real price.",
       SoftLimitExceeded: "This is more than you can borrow right now.",
-      MarketClosed: "Market closed. New trades wait for the open. Closing always works.",
-      InvalidOraclePrice: "The price looks wrong, so new trades wait. Closing always works.",
+      MarketClosed: "Market closed. New trades wait for the open. We can never pause closing.",
+      InvalidOraclePrice: "The price looks wrong, so new trades wait. We can never pause closing.",
       DeleverageTooDeep: "Weekend protection would sell more than needed, so it stopped.",
       DeleverageTooLarge: "Weekend protection would sell too much at once, so it stopped.",
       LtvNotReduced: "Weekend protection didn't lower the debt ratio, so nothing changed.",
