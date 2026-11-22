@@ -18,3 +18,9 @@ export function haltNotice(market: Pick<Market, "haltReasons" | "tokenPaused"> |
 export function noPriceNotice(m: Messages): Omit<Notice, "code"> {
   return { icon: "pricePaused", blocks: true, title: m.noPrice.title, body: m.noPrice.body };
 }
+
+/** Without a price only adding funds, repaying and a full close work (D-100); any other tab falls back to close. */
+export function manageTabs<T extends string>(all: readonly T[], noPrice: boolean, asked: T): { tabs: T[]; tab: T } {
+  const tabs = noPrice ? all.filter((t) => t === "add" || t === "repay" || t === "close") : [...all];
+  return { tabs, tab: tabs.includes(asked) ? asked : ("close" as T) };
+}

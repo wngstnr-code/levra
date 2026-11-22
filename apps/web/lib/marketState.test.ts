@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { en } from "./i18n/en";
-import { haltNotice, hasNoPrice } from "./marketState";
+import { haltNotice, hasNoPrice, manageTabs } from "./marketState";
 
 describe("hasNoPrice", () => {
   it("is true only for a zero price", () => {
@@ -26,5 +26,16 @@ describe("haltNotice", () => {
 
   it("blocks on a paused token without reasons", () => {
     expect(haltNotice({ tokenPaused: true }, en)?.body).toBe(en.halt.tokenPaused);
+  });
+});
+
+describe("manageTabs", () => {
+  const all = ["add", "remove", "repay", "reduce", "close"] as const;
+  it("keeps every tab with a price", () => {
+    expect(manageTabs(all, false, "reduce")).toEqual({ tabs: [...all], tab: "reduce" });
+  });
+  it("offers only add, repay and close without a price, and falls back to close", () => {
+    expect(manageTabs(all, true, "reduce")).toEqual({ tabs: ["add", "repay", "close"], tab: "close" });
+    expect(manageTabs(all, true, "add").tab).toBe("add");
   });
 });

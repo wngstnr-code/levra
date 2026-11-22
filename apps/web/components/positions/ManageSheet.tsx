@@ -25,19 +25,15 @@ import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
 import { noticeFor } from "@/lib/warnings";
 import { NoticeRow } from "../ui/NoticeRow";
-import { hasNoPrice, noPriceNotice } from "@/lib/marketState";
+import { hasNoPrice, manageTabs, noPriceNotice } from "@/lib/marketState";
 
 const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
 const FRACTIONS = [25, 50, 75, 100];
 const SLIPPAGE_BPS = 50;
 
-/** Without a price only a full close, adding funds and repaying work (D-100). */
-const NO_PRICE_TABS: ManageTab[] = ["add", "repay", "close"];
-
 export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
   const noPrice = hasNoPrice(position.oraclePriceE8);
-  const tabs = noPrice ? NO_PRICE_TABS : TABS;
-  const tab = tabs.includes(asked) ? asked : "close";
+  const { tabs, tab } = manageTabs(TABS, noPrice, asked);
   const chain = useChain();
   const m = useT();
   const flow = useTxFlow();
