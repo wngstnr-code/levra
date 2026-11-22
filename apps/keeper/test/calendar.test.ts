@@ -65,21 +65,24 @@ describe("when to post nextCloseAt", () => {
     expect(simulate(at("2026-11-16", 0), at("2026-11-30", 0), observed)).toEqual(["2026-11-20 20:00", "2026-11-25 20:00", "2026-11-27 17:00", "2026-12-04 20:00"]);
   });
 
-  it("holds the Chainlink feed close on Base and X Layer: Friday 20:00, the exchange close before a holiday and on a short day", () => {
+  it("holds the Base and X Layer close: Saturday 00:00 UTC, the exchange close before a holiday and on a short day", () => {
+    // Winter: Saturday 00:00 UTC is Friday 19:00 in New York.
     expect(simulate(at("2026-11-16", 0), at("2026-12-14", 0), FEED_SCHEDULE)).toEqual([
-      "2026-11-20 20:00",
+      "2026-11-20 19:00",
       // Not observed yet for a holiday: the earliest a feed could freeze.
       "2026-11-25 16:00",
       "2026-11-27 13:00",
-      "2026-12-04 20:00",
-      "2026-12-11 20:00",
-      "2026-12-18 20:00",
+      "2026-12-04 19:00",
+      "2026-12-11 19:00",
+      "2026-12-18 19:00",
     ]);
   });
 
-  it("keeps the feed close at 20:00 New York time across the daylight saving change", () => {
-    // Clocks move forward on Sunday 14 March 2027; Good Friday 2027 is 26 March, so Thursday 25 March closes.
-    expect(simulate(at("2027-03-08", 0), at("2027-03-29", 0), FEED_SCHEDULE)).toEqual(["2027-03-12 20:00", "2027-03-19 20:00", "2027-03-25 16:00", "2027-04-02 20:00"]);
+  it("follows the contract's UTC clock across both daylight saving changes", () => {
+    // November 2026: clocks move back on Sunday 1 November.
+    expect(simulate(at("2026-10-19", 0), at("2026-11-09", 0), FEED_SCHEDULE)).toEqual(["2026-10-23 20:00", "2026-10-30 20:00", "2026-11-06 19:00", "2026-11-13 19:00"]);
+    // March 2027: clocks move forward on Sunday 14 March; Good Friday is 26 March, so Thursday 25 March closes.
+    expect(simulate(at("2027-03-08", 0), at("2027-03-29", 0), FEED_SCHEDULE)).toEqual(["2027-03-12 19:00", "2027-03-19 20:00", "2027-03-25 16:00", "2027-04-02 20:00"]);
   });
 });
 
