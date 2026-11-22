@@ -1,4 +1,4 @@
-import { SwapError, type SwapSource } from "@levra/kyber";
+import { SwapError, type SwapSource } from "@levra/swap";
 import { createBucketStore, type BucketRule } from "./bucket";
 
 /**

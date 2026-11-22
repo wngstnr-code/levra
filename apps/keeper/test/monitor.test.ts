@@ -1,6 +1,6 @@
-import { createDb, monitorState, runMigrations } from "@levra/db";
+import { activeGates, createDb, gateSymbol, monitorState, runMigrations } from "@levra/db";
 import { WAD } from "@levra/shared/math";
-import { like } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { evaluate, oracleLimit, type Condition, type Finding, type Snapshot } from "../src/monitor/checks";
 import { reconcile, type Notice } from "../src/monitor/job";
@@ -42,6 +42,8 @@ function healthy(): Snapshot {
     head: 1_010n,
     api: { ok: true, ms: 200, detail: "status 200" },
     gaps: [{ symbol: "QQQ", table: { over2PctShareBps: 310, worstDropBps: -540, worstRiseBps: 390 }, fresh: { over2PctShareBps: 290, worstDropBps: -540, worstRiseBps: 390 } }],
+    lossBudgets: [{ token: "0xUSDC", label: "USDC", budget: 0n }],
+    gates: [{ key: "gate:anchored-denylist:Morpho", blocked: false, message: "Anchored compliance denylists Morpho" }],
   };
 }
 
@@ -66,6 +68,8 @@ describe("team monitor checks (08, one per row)", () => {
       ["indexer:morpho_events", (s) => (s.head = 1_400n)],
       ["api", (s) => (s.api = { ok: false, ms: 10_000, detail: "timeout" })],
       ["gap-table:QQQ", (s) => (s.gaps[0]!.fresh = { over2PctShareBps: 320, worstDropBps: -610, worstRiseBps: 390 })],
+      ["gate:anchored-denylist:Morpho", (s) => (s.gates[0]!.blocked = true)],
+      ["gate:anchored-denylist:Morpho:unread", (s) => (s.gates[0]!.blocked = null)],
     ];
     for (const [key, change] of cases) {
       const s = healthy();
@@ -84,7 +88,19 @@ describe("team monitor checks (08, one per row)", () => {
     expect(values).toEqual([
       [`max-oracle-age:${MARKET}`, "2100"],
       ["next-close-at", String(NOW + 86_400)],
+      ["loss-budget:0xusdc", "0"],
     ]);
+  });
+
+  it("tells the team when the liquidator's loss budget is set or spent (BE-89)", () => {
+    const budget = evaluate(healthy()).find((f) => f.key === "loss-budget:0xusdc");
+    expect(budget?.kind).toBe("value");
+    if (budget?.kind !== "value") return;
+    expect(budget.describe("0", "50000000")).toBe("Liquidator loss budget for USDC changed from 0 to 50000000 base units. The owner added to it (LossBudgetSet).");
+    expect(budget.describe("50000000", "49999990")).toContain("A liquidation lost money (LossBudgetSpent) or the owner cleared it.");
+    const none = healthy();
+    none.lossBudgets = [];
+    expect(evaluate(none).some((f) => f.key.startsWith("loss-budget:"))).toBe(false);
   });
 
   it("judges a keeper wallet against the gas token and limit of its chain", () => {
@@ -206,5 +222,36 @@ describe.skipIf(!url)("team alerts sent once and resolved (needs TEST_DATABASE_U
     await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(60), send);
     await reconcile(db, 143, [cond("t-api", true), { kind: "event", key: "t-bad-debt", message: "bad debt" }], at(120), send);
     expect(sent.sort()).toEqual(["ALERT: bad debt", "ALERT: t-api message"]);
+  });
+
+  it("leaves the blocking gates for the API to read, each mapped to its stock or to the whole chain (BE-75)", async () => {
+    // X Layer keys in a test database; the fork tests use Monad.
+    const chain = 196;
+    await db.delete(monitorState).where(and(eq(monitorState.chainId, chain), like(monitorState.key, "gate:%")));
+    const gate = (key: string, blocked: boolean | null) => ({ key, blocked, message: `${key} message` });
+    const snapshot = { ...healthy(), chainId: chain as 196, gates: [gate("gate:xstock-paused:NVDA", true), gate("gate:xstock-paused:QQQx", true), gate("gate:usdc-blacklist:router", true), gate("gate:xstock-paused:SPY", false), gate("gate:xstock-sanctions:Morpho", null)] };
+    await reconcile(db, chain, evaluate(snapshot).filter((f) => f.key.startsWith("gate:")), at(0), send);
+    const shown = (key: string) => `${key} message. Opening, closing or liquidating may fail while it lasts.`;
+    // `since` is when the block started, in unix seconds: halt alerts key on it.
+    const since = Math.floor(at(0).getTime() / 1000);
+    expect(await activeGates(db, chain)).toEqual([
+      { key: "gate:usdc-blacklist:router", symbol: null, message: shown("gate:usdc-blacklist:router"), since },
+      { key: "gate:xstock-paused:NVDA", symbol: "NVDA", message: shown("gate:xstock-paused:NVDA"), since },
+      { key: "gate:xstock-paused:QQQx", symbol: "QQQ", message: shown("gate:xstock-paused:QQQx"), since },
+    ]);
+    // Lifted: nothing left to show.
+    snapshot.gates = snapshot.gates.map((g) => ({ ...g, blocked: false }));
+    await reconcile(db, chain, evaluate(snapshot).filter((f) => f.key.startsWith("gate:")), at(60), send);
+    expect(await activeGates(db, chain)).toEqual([]);
+    await db.delete(monitorState).where(and(eq(monitorState.chainId, chain), like(monitorState.key, "gate:%")));
+  });
+
+  it("maps every gate key the keeper writes", () => {
+    expect(gateSymbol("gate:b20-paused:NVDA")).toBe("NVDA");
+    expect(gateSymbol("gate:oracle-paused:GOOGL")).toBe("GOOGL");
+    expect(gateSymbol("gate:xstock-paused:SPYx")).toBe("SPY");
+    expect(gateSymbol("gate:anchored-denylist:Morpho")).toBeNull();
+    expect(gateSymbol("gate:b20-policy:5:router")).toBeNull();
+    expect(gateSymbol("gate:usdc-paused")).toBeNull();
   });
 });

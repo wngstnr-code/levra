@@ -15,10 +15,32 @@ export type EtDate = string;
  * - `closeOffsetSeconds`: after the regular close (16:00, or 13:00 on an early close) of the last trading day.
  * - `openOffsetSeconds`: after 00:00 of the next trading day (negative when the market reopens the evening before).
  */
-export type SessionSchedule = { closeOffsetSeconds: number; openOffsetSeconds: number; source: "observed" | "regular" };
+export type SessionSchedule = {
+  closeOffsetSeconds: number;
+  openOffsetSeconds: number;
+  /**
+   * When set, the weekly close and open follow `ChainlinkSessionOracle`'s UTC clock (04): a full Friday closes at
+   * Saturday 00:00 UTC and Monday opens at 01:00 UTC, with no daylight saving on chain.
+   */
+  weeklyUtc?: boolean;
+  source: "observed" | "regular" | "feed";
+};
+
+const utcMidnight = (date: EtDate): number => {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return Date.UTC(y, m - 1, d) / 1000;
+};
 
 /** Until a weekend is observed: close at the regular close (an early close is safe, a late one is not), open at 09:30. */
 export const REGULAR_SCHEDULE: SessionSchedule = { closeOffsetSeconds: 0, openOffsetSeconds: 9.5 * 3600, source: "regular" };
+
+/**
+ * Base and X Layer (04, BE-30): the feeds freeze from Friday 20:00 to Sunday 20:00 New York time (05), and
+ * `ChainlinkSessionOracle` counts Saturday 00:00 to Monday 01:00 UTC as closed. A full Friday closes on the contract's
+ * clock, which is at or before 20:00 New York time (19:00 in winter). A close before a holiday or on an early close day
+ * is not observed yet, so it is the exchange close, the earliest a feed could freeze.
+ */
+export const FEED_SCHEDULE: SessionSchedule = { closeOffsetSeconds: 0, openOffsetSeconds: -4 * 3600, weeklyUtc: true, source: "feed" };
 
 const parts = new Intl.DateTimeFormat("en-US", {
   timeZone: NEW_YORK,
@@ -144,12 +166,14 @@ export function regularCloseAt(date: EtDate): number {
 /** A close is the last trading day before a day without trading (a weekend or a holiday). */
 function closeOn(date: EtDate, schedule: SessionSchedule): number | null {
   if (!isTradingDay(date) || isTradingDay(addDays(date, 1))) return null;
+  if (schedule.weeklyUtc && weekdayOf(date) === 5 && !isEarlyClose(date)) return utcMidnight(addDays(date, 1));
   return regularCloseAt(date) + schedule.closeOffsetSeconds;
 }
 
 /** An open is the first trading day after a day without trading. */
 function openOn(date: EtDate, schedule: SessionSchedule): number | null {
   if (!isTradingDay(date) || isTradingDay(addDays(date, -1))) return null;
+  if (schedule.weeklyUtc && weekdayOf(date) === 1) return utcMidnight(date) + 3600;
   return etToUnix(date) + schedule.openOffsetSeconds;
 }
 

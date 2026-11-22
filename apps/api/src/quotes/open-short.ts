@@ -25,6 +25,7 @@ import {
   execPriceE8,
   maxLtvWithAccrual,
   midPriceE8,
+  requirePrice,
   tokenDecimals,
   warningList,
   type QuoteDeps,
@@ -55,6 +56,7 @@ export async function quoteOpenShort({ reader, swap }: QuoteDeps, req: QuoteOpen
   ]);
   const m = markets.find((x) => x.info.symbol === req.symbol && x.info.side === "short");
   if (!m) throw new ApiHttpError("NOT_FOUND", `No short market for ${req.symbol}.`);
+  requirePrice(m);
 
   const quote = m.info.collateralToken;
   const stock = m.info.loanToken;

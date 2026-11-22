@@ -2,15 +2,15 @@
 
 How the backend runs after Railway (D-94). Tasks: BE-90 (server and services), BE-91 (moving off Railway), BE-53 (backups), BE-55 (keys), BE-52 (CDN and the country header).
 
-Status on 20 November 2026: the files in `deploy/` are written. Verified in a local copy of this setup on Docker Desktop (Windows), against Monad mainnet on the public RPC: the image builds; `migrate` runs before the apps; the API answers `/v1/health` and `/v1/status` through Caddy; the indexer syncs; the keeper jobs that need no key report healthy and the role jobs stay off without keys; secrets reach the apps from files and do not show in `docker inspect`; `deploy/keys.sh`'s script writes key files and prints only addresses. Not verified yet: `setup-server.sh`, `new-secrets.sh`, `deploy.sh` and `backup.sh` on a real Ubuntu server, HTTPS with a real certificate, and recovery after a reboot. The VPS is bought on 21 November 2026.
+Status on 20 November 2026: the files in `deploy/` are written. Verified in a local copy of this setup on Docker Desktop (Windows), against Monad mainnet on the public RPC: the image builds; `migrate` runs before the apps; the API answers `/v1/health` and `/v1/status` through Caddy; the indexer syncs; the keeper jobs that need no key report healthy and the role jobs stay off without keys; secrets reach the apps from files and do not show in `docker inspect`; `deploy/keys.sh`'s script writes key files and prints only addresses. Not verified yet: `setup-server.sh`, `new-secrets.sh`, `deploy.sh` and `backup.sh` on the real server, HTTPS with a real certificate, and recovery after a reboot. The server keeps netcup's Debian 13 (D-101): in Debian 13 containers, `setup-server.sh`'s OS check, its packages and Docker 29.10 from Docker's Debian repository install cleanly, and its check of the SSH settings in effect catches an image line that still allows passwords; the steps that need systemd (SSH reload, firewall, timezone) run only on the server. The VPS is bought and running since 20 November 2026 (see "The server"); setup on it has not started.
 
 | File in `deploy/` | Purpose |
 |---|---|
 | `Dockerfile`, `entrypoint.sh` | The one image, and the start step that loads secret files |
-| `compose.yml`, `Caddyfile` | The services below, and HTTPS in front of the API |
+| `compose.yml`, `caddy/` | The services below, and HTTPS in front of the API (`caddy/Caddyfile`, plus `origin-open.caddy` and `origin-cloudflare.caddy` for who may connect) |
 | `env/*.env.example` | The settings each service reads, copied to `/opt/levra/env/` |
 | `secrets.md` | Which secret file each service needs |
-| `setup-server.sh` | First-time hardening of a fresh Ubuntu 24.04 server, run once as root |
+| `setup-server.sh` | First-time hardening of a fresh Debian 13 (or Ubuntu 24.04) server, run once as root |
 | `new-secrets.sh` | Makes the database password, every `DATABASE_URL` and `AUTH_SECRET` on the server, without showing them |
 | `keys.sh` | Makes role keys on the server (BE-55, `docs/keys.md`) |
 | `deploy.sh` | Builds, migrates, starts and checks a commit |
@@ -26,9 +26,10 @@ Railway no longer serves the backend: the old address `https://api-production-c1
 
 | Item | Proposal | Status |
 |---|---|---|
-| OS | Ubuntu 24.04 LTS, x86_64 | Proposal |
-| Size | 4 vCPU, 8 GB RAM, 160 GB SSD for three chains. 2 vCPU, 4 GB RAM and 80 GB is enough for Monad alone | Initial proposal, checked after one week of real load |
-| Region | Outside the countries our providers restrict: not US, CA, GB, AU, SG or CH (1inch, D-73). A data center in the EU fits. Check the OKX and 1inch terms for server traffic from the chosen country | Not verified |
+| Host | netcup VPS 1000 G12.5 ("VPS 1000 G12.5 iv 1M EU"), Nürnberg, Germany. Monthly term, 14.01 EUR a month with one IPv4 address and an IPv6 /64, next bill on 20 December 2026. Account of the team Gmail with 2FA on. Managed in netcup's Server Control Panel | Ordered, paid and listed as a product on 20 November 2026. Its IP addresses stay out of this public repo, so nobody can go around Cloudflare; the team keeps them in its private notes |
+| OS | Debian 13 (trixie), x86_64, as netcup installed it (D-101). `setup-server.sh` also accepts Ubuntu 24.04 | Decided on 20 November 2026. Debian 13 seen on the server's console in netcup's panel; check with `cat /etc/os-release` before `setup-server.sh` |
+| Size | 4 vCPU, 8 GB RAM, 160 GB SSD for three chains. 2 vCPU, 4 GB RAM and 80 GB is enough for Monad alone | Initial proposal. Bought: 4 vCore, 8 GB RAM, 128 GB disk. Checked after one week of real load |
+| Region | Outside the countries our providers restrict: not US, CA, GB, AU, SG or CH (1inch, D-73). A data center in the EU fits. Check the OKX and 1inch terms for server traffic from the chosen country | Germany is outside the 1inch list (D-73). The OKX and 1inch terms for server traffic are not verified |
 | Access | SSH keys of the three of us only. No password login, no root login. One `levra` user runs Docker. Being in the `docker` group equals root, so it stays with the three of us | Proposal |
 | Firewall | Incoming 22, 80 and 443 only. Postgres has no public port | Proposal |
 | Updates | Automatic security updates on | Proposal |
@@ -67,8 +68,22 @@ Rules: a secret is never printed, pasted in chat or committed. The keeper's logg
 
 ## HTTPS and the API address
 
-1. Until the domain is chosen (Q-25): Caddy gets a Let's Encrypt certificate for an interim name that points at the server's IP address, for example `api.<ip with dashes>.sslip.io`. Not verified: check that the certificate is issued before the address goes to Nabil. Before Cloudflare, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
-2. Once the domain exists: `api.<domain>` on Cloudflare, proxied. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52). This is what lets the API refuse US users on Base (D-73).
+1. First deploy: `api.levra.finance` (D-96) is an `A` record on Cloudflare pointing at the server's IPv4 address, **DNS only** (grey cloud), and `API_HOST=api.levra.finance` in `caddy.env`. Caddy then gets a Let's Encrypt certificate itself. Not verified: check that the certificate is issued (`curl https://api.levra.finance/v1/health`) before the address goes to Nabil. Until Cloudflare proxies it, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
+2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52). This is what lets the API refuse US users on Base (D-73).
+
+### Cloudflare in front (BE-52)
+
+Turning the proxy on changes three things at once, so do it in one go, in this order:
+
+1. Cloudflare, any time before: SSL/TLS mode **Full (strict)** (Flexible would loop with Caddy's redirect to HTTPS) and minimum TLS version 1.2. Neither changes anything while the record is DNS only.
+2. Read Cloudflare's ranges again (`https://www.cloudflare.com/ips-v4` and `ips-v6`) and compare them with `deploy/caddy/origin-cloudflare.caddy`. A change goes through a PR first.
+3. Cloudflare: turn the `api` record to Proxied. The API keeps working, but until step 4 every visitor shares Cloudflare's address in the rate limit.
+4. On the server, right after: in `caddy.env` set `ORIGIN=cloudflare`; in `api.env` set `TRUST_PROXY_HEADER=cf-connecting-ip`, `GEO_COUNTRY_HEADER=cf-ipcountry` and `GEO_REGION_HEADER=cf-region-code`; then `deploy/deploy.sh`. The script refuses Cloudflare headers with `ORIGIN=open` (anyone could forge them) and `ORIGIN=cloudflare` without `cf-connecting-ip` (shared rate limit), and checks the Caddy config before the running Caddy sees it.
+5. Check: `/v1/health` answers through the domain; a request straight to the server's IP is closed; `curl -sI https://api.levra.finance` shows `server: cloudflare`.
+
+With `ORIGIN=cloudflare` Caddy closes every connection that does not come from Cloudflare's ranges (`remote_ip`). Docker publishes ports 80 and 443 past `ufw`, which is why the check is in Caddy and not in the firewall. Turning the proxy off again is the same steps in reverse: `ORIGIN=open` and `TRUST_PROXY_HEADER=x-forwarded-for` with the GEO headers emptied, deployed right after the record goes back to DNS only.
+
+Not verified yet: certificate renewal through the proxy. Caddy answers the ACME HTTP challenge before its routes and Let's Encrypt reaches it through Cloudflare, so it is expected to work; check Caddy's log at the first renewal (about 30 days before the certificate ends in February 2027). Known limit: another Cloudflare account could point its own record at our IP and pass the range check; Cloudflare still writes the real visitor address and country in that case, but this is not verified. Authenticated origin pulls with our own certificate would close it.
 
 Every change of address: `MONITOR_API_URL` on the keeper, `NEXT_PUBLIC_API_URL` on Vercel (Nabil), the API links in the root README, and the VPS row in 05.
 
@@ -76,7 +91,7 @@ Every change of address: `MONITOR_API_URL` on the keeper, `NEXT_PUBLIC_API_URL` 
 
 First time (BE-90):
 
-1. Harden the server (access, firewall, updates) and install Docker with the Compose plugin.
+1. Harden the server (access, firewall, updates) and install Docker with the Compose plugin: `deploy/setup-server.sh`, copied to the server with `scp` because the repo is not there yet.
 2. Clone the repo to `/opt/levra/app`, with a read-only deploy key (added by Wangsit as repo admin), or with SSH agent forwarding from a team machine so no GitHub key is stored on the server.
 3. Write the env files and the secret files (BE-91 for the values that were on Railway).
 4. Run `deploy/deploy.sh`.

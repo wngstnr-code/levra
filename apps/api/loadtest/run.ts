@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { serve } from "@hono/node-server";
 import { createDb } from "@levra/db";
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { readDeployment } from "@levra/shared/deployments/node";
 import pino from "pino";
 import { createPublicClient, http, type Address } from "viem";

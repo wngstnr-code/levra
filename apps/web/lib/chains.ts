@@ -1,16 +1,15 @@
 import { externalByChain, tokensByChain, type Address } from "@levra/shared/addresses";
 import { chains as sharedChains, chainBySlug, DEFAULT_CHAIN_ID, type ChainId, type ChainSlug } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
+import { baseDeployment } from "@levra/shared/deployments/base";
 import { monadDeployment } from "@levra/shared/deployments/monad";
+import { xlayerDeployment } from "@levra/shared/deployments/xlayer";
 import { stocksByChain, type AnyStock } from "@levra/shared/markets";
 import { http, type Chain as ViemChain, type Transport } from "viem";
 import { base as baseDefaults, monad as monadDefaults, xLayer as xLayerDefaults } from "viem/chains";
 
-/**
- * Deployments of our contracts per chain. A chain is offered in the app only once its deployment
- * file exists in packages/shared (SC-73, SC-76, SC-83): add the import here when it lands.
- */
-const deployments: Partial<Record<ChainId, Deployment>> = { 143: monadDeployment };
+/** Deployments of our contracts per chain. A chain is offered in the app only when it is listed here. */
+const deployments: Partial<Record<ChainId, Deployment>> = { 143: monadDeployment, 8453: baseDeployment, 196: xlayerDeployment };
 
 const rpcUrls: Record<ChainId, string | undefined> = {
   143: process.env.NEXT_PUBLIC_MONAD_RPC_URL || undefined,

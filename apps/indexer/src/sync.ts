@@ -1,8 +1,8 @@
-import { morphoEvents, routerEvents, syncCursors, vaultEvents, type Db } from "@levra/db";
+import { morphoEvents, routerCursor, routerEvents, syncCursors, vaultEvents, type Db } from "@levra/db";
 import { externalByChain } from "@levra/shared/addresses";
 import { isChainId } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Address, Hex } from "viem";
 import { morphoTopics, toMorphoRow } from "./morpho";
 import { routerTopics, toRouterRow } from "./router";
@@ -18,7 +18,7 @@ export type SyncResult = { head: bigint; lastBlock: bigint; inserted: number };
 /** One stream of logs into one table, with its own cursor. */
 export type Stream = {
   cursor: string;
-  address: Address;
+  address: Address | Address[];
   topic0: Hex[];
   topic1?: Hex[];
   table: typeof routerEvents | typeof morphoEvents | typeof vaultEvents;
@@ -26,9 +26,13 @@ export type Stream = {
   toRow: (log: RawLog) => Omit<typeof routerEvents.$inferInsert | typeof vaultEvents.$inferInsert, "chainId">;
 };
 
+/**
+ * Every router of the deployment, current and previous (03 section 6, BE-100). Adding a router renames the cursor, so
+ * all of them are read again from the deployment block; rows already stored only get their router filled in.
+ */
 export const routerStream = (deployment: Deployment): Stream => ({
-  cursor: ROUTER_CURSOR,
-  address: deployment.router,
+  cursor: routerCursor(deployment),
+  address: deployment.previousRouters?.length ? [deployment.router, ...deployment.previousRouters] : deployment.router,
   topic0: routerTopics,
   table: routerEvents,
   toRow: toRouterRow,
@@ -74,7 +78,15 @@ export async function syncStream(db: Db, source: LogSource, deployment: Deployme
     await db.transaction(async (tx) => {
       if (rows.length > 0) {
         // Each stream pairs a table with rows of that table; the union type cannot express the pairing.
-        inserted += (await tx.insert(stream.table).values(rows as never).onConflictDoNothing().returning({ tx: stream.table.txHash })).length;
+        // A rescan after a router change fills the router of rows indexed before BE-100 (counted as written); nothing else changes.
+        const written =
+          stream.table === routerEvents
+            ? tx
+                .insert(routerEvents)
+                .values(rows as never)
+                .onConflictDoUpdate({ target: [routerEvents.chainId, routerEvents.txHash, routerEvents.logIndex], set: { router: sql`excluded.router` }, setWhere: sql`${routerEvents.router} is null` })
+            : tx.insert(stream.table).values(rows as never).onConflictDoNothing();
+        inserted += (await written.returning({ tx: stream.table.txHash })).length;
       }
       const row = { lastBlock, updatedAt: new Date() };
       await tx

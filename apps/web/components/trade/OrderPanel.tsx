@@ -29,7 +29,7 @@ type Props = {
   capShare: number | null;
   capText: string | null;
   firstTimeSignatures: number;
-  notes: Notice[];
+  notes: Omit<Notice, "code">[];
   action: ActionState;
 };
 
@@ -162,7 +162,7 @@ export function OrderPanel(p: Props) {
         </button>
       )}
       {p.notes.map((n) => (
-        <NoticeRow key={n.code} notice={n} onPastel />
+        <NoticeRow key={n.title} notice={n} onPastel />
       ))}
     </section>
   );

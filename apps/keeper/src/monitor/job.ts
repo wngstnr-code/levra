@@ -1,5 +1,5 @@
-import { keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, syncCursors, type Db } from "@levra/db";
-import { lensAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
+import { keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, routerCursor, syncCursors, type Db } from "@levra/db";
+import { lensAbi, liquidatorAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { KeeperName } from "@levra/shared/api";
 import { chains, type ChainId } from "@levra/shared/chains";
 import { isScheduledClosed } from "@levra/shared/calendar";
@@ -7,8 +7,9 @@ import type { Deployment } from "@levra/shared/deployments";
 import { morphoIsHealthy } from "@levra/shared/math";
 import { and, eq, gte } from "drizzle-orm";
 import { getAddress, type Address, type PublicClient } from "viem";
-import { scheduleFromLogger, type ScheduleSource } from "../calendar/poster";
+import { scheduleForChain, type ScheduleSource } from "../calendar/poster";
 import { maxAgeRule } from "../oracle/max-age";
+import { readGates } from "./gates";
 import { yahooBars, type BarSource } from "../gaps/source";
 import { gapStatsFromBars, gapTable, type GapStats } from "@levra/shared/gaps";
 import { loadOracleReport } from "../oracle/report";
@@ -118,7 +119,7 @@ export type MonitorOptions = {
 
 /** Team monitoring and alerts (BE-50): every row of "What we monitor" in 08, to the team channels. */
 /** Team monitoring and alerts for one chain; the API and gap checks run once, in the KEEPER_GLOBAL keeper. */
-export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, schedule = scheduleFromLogger, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
+export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, schedule = scheduleForChain, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
   const chainId = deployment.chainId as ChainId;
   const morpho = morphoOn(chainId);
   const labels = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
@@ -182,6 +183,18 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
     return out;
   }
 
+  /** USDC for the long markets, the stock for the short ones. A liquidator without `lossBudgetOf` (Monad's live one) gives none. */
+  async function lossBudgets(): Promise<Snapshot["lossBudgets"]> {
+    const liquidator = deployment.liquidator;
+    if (!liquidator) return [];
+    const loans = [...new Map(deployment.markets.map((m) => [m.loanToken.toLowerCase(), { token: m.loanToken, label: m.side === "long" ? "USDC" : `the ${m.symbol} short market's stock` }])).values()];
+    const reads = await client.multicall({
+      allowFailure: true,
+      contracts: loans.map((l) => ({ address: liquidator, abi: liquidatorAbi, functionName: "lossBudgetOf", args: [l.token] }) as const),
+    });
+    return loans.flatMap((l, i) => (reads[i]!.status === "success" ? [{ ...l, budget: reads[i]!.result as bigint }] : []));
+  }
+
   async function collect(db: Db): Promise<{ snapshot: Snapshot; limits: Record<string, OracleLimit> }> {
     const now = clock();
     const [views, nextCloseAt, sched, mids, beats, cursors, block, stats, api] = await Promise.all([
@@ -225,7 +238,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
 
     const lookback = new Date((now - 86_400) * 1000);
     const liquidations = await db.select().from(morphoEvents).where(and(eq(morphoEvents.chainId, chainId), eq(morphoEvents.name, "Liquidate"), gte(morphoEvents.blockTime, lookback)));
-    const watchedCursors = ["router_events", "morpho_events", ...(deployment.usdcVault ? ["vault_events"] : [])];
+    const watchedCursors = [routerCursor(deployment), "morpho_events", ...(deployment.usdcVault ? ["vault_events"] : [])];
 
     const snapshot: Snapshot = {
       chainId,
@@ -255,6 +268,8 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
       head: block.number,
       api,
       gaps: await gapRows(symbols),
+      lossBudgets: await lossBudgets(),
+      gates: await readGates(client, chainId, deployment),
     };
     return { snapshot, limits };
   }

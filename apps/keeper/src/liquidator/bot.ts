@@ -1,9 +1,12 @@
 import { morphoPositions } from "@levra/db";
-import type { SwapSource } from "@levra/kyber";
-import { liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
+import type { SwapSource } from "@levra/swap";
+import { lensAbi, liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
+import { tokensByChain } from "@levra/shared/addresses";
+import { isChainId, type ChainId } from "@levra/shared/chains";
+import { findStock } from "@levra/shared/markets";
 import type { Deployment } from "@levra/shared/deployments";
-import { BPS, maxSeizable, morphoIsHealthy, morphoRepaidForSeize, mulDiv, type MorphoTotals } from "@levra/shared/math";
-import { getAddress, type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type WalletClient } from "viem";
+import { BPS, accrueBorrowAssets, maxSeizable, morphoIsHealthy, morphoRepaidCeiling, morphoRepaidForSeize, mulDiv, type MorphoTotals } from "@levra/shared/math";
+import { getAddress, zeroAddress, type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type WalletClient } from "viem";
 import { morphoOn } from "../chain";
 import type { Job } from "../runner";
 
@@ -13,6 +16,11 @@ const GAS_MARGIN_PCT = 15n;
 const MAX_HALVINGS = 4;
 /** A short liquidation buys back the stock with part of the seized USDC; this is the first guess above the oracle value. */
 const SHORT_BUY_BUFFER_BPS = 300n;
+/**
+ * Interest a liquidation is sized for beyond the block it was planned in: the time to land, with room to spare (BE-89).
+ * Initial proposal. At 100% a year it adds about a millionth of the debt, while the repay ceiling it feeds moves by a wei.
+ */
+const ACCRUAL_MARGIN_SECONDS = 300n;
 
 export type LiquidationPlan = {
   marketId: Hex;
@@ -32,7 +40,21 @@ export type LiquidatorOptions = {
   intervalMs?: number;
 };
 
-type MarketCtx = { market: Deployment["markets"][number]; totals: MorphoTotals; price: bigint; priceE8: bigint };
+/**
+ * `totals` decide health and the seizure; `repaid` is what the swap must bring back for a seizure. A liquidator with a
+ * loss budget (D-91) reverts on a single wei short, so it is sized with the accrued totals and a ceiling; the live Monad
+ * liquidator has none and keeps the sizing it was tested with (BE-89).
+ */
+type MarketCtx = {
+  market: Deployment["markets"][number];
+  totals: MorphoTotals;
+  price: bigint;
+  priceE8: bigint;
+  repaid: (seized: bigint) => bigint;
+  /** USDC and the stock on this chain: Base stocks have 8 decimals, the others 18. */
+  quoteDecimals: bigint;
+  stockDecimals: bigint;
+};
 
 /**
  * Watches every borrower the indexer knows in our markets, including those who use Morpho directly, and liquidates a
@@ -43,8 +65,12 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
   const liquidator = deployment.liquidator;
   const slip = BigInt(slippageBps);
   const morpho = morphoOn(deployment.chainId);
+  if (!isChainId(deployment.chainId)) throw new Error(`Deployment is for chain ${deployment.chainId}, which has no addresses in packages/shared`);
+  const chainId: ChainId = deployment.chainId;
 
-  async function marketCtx(market: Deployment["markets"][number]): Promise<MarketCtx | null> {
+  type LensMarket = { totalBorrowAssets: bigint; borrowRatePerSecond: bigint };
+
+  async function marketCtx(market: Deployment["markets"][number], lens: Map<string, LensMarket> | null): Promise<MarketCtx | null> {
     const [m, price, snapshot] = await Promise.all([
       client.readContract({ address: morpho, abi: morphoAbi, functionName: "market", args: [market.marketId] }),
       // price() reverts when the oracle is stale; Morpho cannot liquidate then either.
@@ -52,7 +78,27 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
       client.readContract({ address: market.oracle, abi: sessionOracleAbi, functionName: "snapshot" }).catch(() => null),
     ]);
     if (price === null || snapshot === null) return null;
-    return { market, totals: { totalBorrowAssets: m.totalBorrowAssets, totalBorrowShares: m.totalBorrowShares }, price, priceE8: snapshot[0] };
+    const lltv = BigInt(market.lltv);
+    const stock = findStock(chainId, market.symbol);
+    if (!stock) throw new Error(`${market.symbol} is not a stock on chain ${chainId}`);
+    const decimals = { quoteDecimals: BigInt(tokensByChain[chainId].USDC.decimals), stockDecimals: BigInt(stock.decimals) };
+    const stored = { totalBorrowAssets: m.totalBorrowAssets, totalBorrowShares: m.totalBorrowShares };
+    if (!lens) return { market, totals: stored, price, priceE8: snapshot[0], ...decimals, repaid: (seized) => morphoRepaidForSeize(seized, stored, price, lltv).repaidAssets };
+
+    const view = lens.get(market.marketId.toLowerCase());
+    if (!view) throw new Error(`Lens does not list ${market.symbol} ${market.side}`);
+    // Lens gives Morpho's expectedMarketBalances at the latest block; borrow shares do not change with interest.
+    const totals = { totalBorrowAssets: view.totalBorrowAssets, totalBorrowShares: m.totalBorrowShares };
+    const atLanding = { ...totals, totalBorrowAssets: accrueBorrowAssets(view.totalBorrowAssets, view.borrowRatePerSecond, ACCRUAL_MARGIN_SECONDS) };
+    return { market, totals, price, priceE8: snapshot[0], ...decimals, repaid: (seized) => morphoRepaidCeiling(seized, atLanding, price, lltv) };
+  }
+
+  /** Whether the deployed liquidator has the loss budget (D-91). The live Monad one does not (BE-89). */
+  async function hasLossBudget(): Promise<boolean> {
+    return client.readContract({ address: liquidator!, abi: liquidatorAbi, functionName: "lossBudgetOf", args: [zeroAddress] }).then(
+      () => true,
+      () => false,
+    );
   }
 
   async function plan(ctx: MarketCtx, borrower: Address, position: { collateral: bigint; borrowShares: bigint }): Promise<LiquidationPlan | string> {
@@ -62,7 +108,7 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
     if (seized === 0n) return "nothing can be seized";
 
     for (let attempt = 0; attempt <= MAX_HALVINGS && seized > 0n; attempt++, seized /= 2n) {
-      const { repaidAssets } = morphoRepaidForSeize(seized, totals, price, lltv);
+      const repaidAssets = ctx.repaid(seized);
       if (market.side === "long") {
         // Sell the seized stock; the USDC must cover the repaid debt.
         const q = await swap.quote({ tokenIn: market.collateralToken, tokenOut: market.loanToken, amountIn: seized, sender: liquidator!, slippageBps });
@@ -71,7 +117,7 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
         continue;
       }
       // Short: buy back the stock debt with part of the seized USDC, sized from the oracle price, then corrected once.
-      let amountIn = (mulDiv(repaidAssets * priceE8, 10n ** 6n, 100_000_000n * 10n ** 18n) * (BPS + SHORT_BUY_BUFFER_BPS)) / BPS;
+      let amountIn = (mulDiv(repaidAssets * priceE8, 10n ** ctx.quoteDecimals, 100_000_000n * 10n ** ctx.stockDecimals) * (BPS + SHORT_BUY_BUFFER_BPS)) / BPS;
       for (let fix = 0; fix < 3 && amountIn <= seized; fix++) {
         const q = await swap.quote({ tokenIn: market.collateralToken, tokenOut: market.loanToken, amountIn, sender: liquidator!, slippageBps });
         const minOut = (q.amountOut * (BPS - slip)) / BPS;
@@ -92,13 +138,22 @@ export function createLiquidatorBot({ client, wallet, deployment, swap, slippage
 
       const ours = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m]));
       const borrowers = (await morphoPositions(db, chainId)).filter((p) => p.borrowShares > 0n && ours.has(p.marketId));
+      const budgeted = borrowers.length > 0 && (await hasLossBudget());
+      const lens = budgeted
+        ? new Map(
+            (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).map((v) => [
+              v.marketId.toLowerCase(),
+              { totalBorrowAssets: v.totalBorrowAssets, borrowRatePerSecond: v.borrowRatePerSecond },
+            ]),
+          )
+        : null;
       const contexts = new Map<string, MarketCtx | null>();
       const results: Record<string, unknown>[] = [];
       let unhealthy = 0;
 
       for (const candidate of borrowers) {
         const market = ours.get(candidate.marketId)!;
-        if (!contexts.has(market.marketId)) contexts.set(market.marketId, await marketCtx(market));
+        if (!contexts.has(market.marketId)) contexts.set(market.marketId, await marketCtx(market, lens));
         const ctx = contexts.get(market.marketId);
         if (!ctx) continue;
 
