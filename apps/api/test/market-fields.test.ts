@@ -90,6 +90,13 @@ describe("chain in the path (BE-70)", () => {
     const res = await app.request("/v1/8453/quote/open", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     expect(res.status).toBe(404);
   });
+
+  it("serves quotes on a chain once it has a swap route (BE-96)", async () => {
+    const swap = { quote: async () => Promise.reject(new Error("unused")), price: async () => 0n };
+    const withSwap = createApp({ logger: pino({ level: "silent" }), reader: monad, otherChains: [base], otherSwaps: new Map([[8453, swap]]) });
+    const res = await withSwap.request("/v1/8453/quote/open", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("market fields for every chain (BE-70)", () => {
