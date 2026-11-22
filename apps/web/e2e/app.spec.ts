@@ -1,4 +1,7 @@
+import { readDeployment } from "@levra/shared/deployments/node";
 import { expect, mockService, test } from "./fixtures";
+
+const monadRouter = readDeployment(new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname).router;
 
 test("markets shows prices, limits and leverage from the service", async ({ page }) => {
   await mockService(page);
@@ -65,7 +68,7 @@ test("the trade form opens when the service has the region and terms gate off", 
 test("help lists the deployed contracts and explains each word", async ({ page }) => {
   await mockService(page);
   await page.goto("/help#ltv");
-  await expect(page.getByText("0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6").first()).toBeVisible();
+  await expect(page.getByText(monadRouter).first()).toBeVisible();
   await expect(page.getByText("Your debt divided by")).toBeVisible();
 });
 
