@@ -28,12 +28,12 @@ importers:
       '@levra/intents':
         specifier: workspace:*
         version: link:../../packages/intents
-      '@levra/kyber':
-        specifier: workspace:*
-        version: link:../../packages/kyber
       '@levra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@levra/swap':
+        specifier: workspace:*
+        version: link:../../packages/swap
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4(postgres@3.4.9)
@@ -111,12 +111,12 @@ importers:
       '@levra/intents':
         specifier: workspace:*
         version: link:../../packages/intents
-      '@levra/kyber':
-        specifier: workspace:*
-        version: link:../../packages/kyber
       '@levra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@levra/swap':
+        specifier: workspace:*
+        version: link:../../packages/swap
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(postgres@3.4.9)
@@ -263,7 +263,26 @@ importers:
         specifier: ^5.0.4
         version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
-  packages/kyber:
+  packages/shared:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      viem:
+        specifier: ^2.57.5
+        version: 2.57.5(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@5.0.10)(zod@4.6.7)
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/swap:
     dependencies:
       '@levra/shared':
         specifier: workspace:*
@@ -281,25 +300,6 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
-      vitest:
-        specifier: ^5.0.4
-        version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
-
-  packages/shared:
-    dependencies:
-      zod:
-        specifier: ^4.6.7
-        version: 4.6.7
-    devDependencies:
-      '@types/node':
-        specifier: ^26.6.5
-        version: 26.6.5
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-      viem:
-        specifier: ^2.57.5
-        version: 2.57.5(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@5.0.10)(zod@4.6.7)
       vitest:
         specifier: ^5.0.4
         version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))

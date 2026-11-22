@@ -1,3 +1,4 @@
+import { SwapError } from "@levra/swap";
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { QuoteCloseRequest, QuoteCloseResponse } from "@levra/shared/api";
 import { BPS, MAX_UINT256, WAD, cautiousPriceE8, morphoOraclePrice, positionLtvWad, signedDeviationBps } from "@levra/shared/math";
@@ -7,11 +8,14 @@ import { ApiHttpError, upstream } from "../errors";
 import { longCostBasis, realizedOnReduce } from "../positions/cost-basis";
 import { toCostEvents } from "../positions/events";
 import {
+  NO_PRICE_WARNING,
   PRICE_IMPACT_WARN_BPS,
   QUOTE_TTL_SECONDS,
   TX_DEADLINE_SECONDS,
   execPriceE8,
+  hasNoPrice,
   midPriceE8,
+  requireCloseWithoutPrice,
   tokenDecimals,
   warningList,
   type QuoteDeps,
@@ -44,15 +48,21 @@ export async function quoteCloseLong({ reader, swap, events: store }: QuoteDeps,
   const [quoteDecimals, stockDecimals] = (await upstream(() => tokenDecimals(reader, [quote, stock]))) as [number, number];
 
   const full = fraction === WAD;
+  await requireCloseWithoutPrice(reader, m, full);
+  const noPrice = hasNoPrice(m);
   const withdraw = full ? pos.collateralRaw : (pos.collateralRaw * fraction) / WAD;
   const debtRepaid = full ? pos.debtRaw : (pos.debtRaw * fraction) / WAD;
   const repayShares = full ? MAX_UINT256 : ((await upstream(() => reader.borrowShares(m.info.marketId, req.user))) * fraction) / WAD;
   if (withdraw === 0n) throw new ApiHttpError("BAD_REQUEST", "This fraction sells nothing.");
 
-  const [route, midE8] = await Promise.all([
-    swap.quote({ tokenIn: stock, tokenOut: quote, amountIn: withdraw, sender: reader.deployment.router, slippageBps: req.slippageBps }),
-    midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, m.oraclePriceE8),
-  ]);
+  const routeFor = () => swap.quote({ tokenIn: stock, tokenOut: quote, amountIn: withdraw, sender: reader.deployment.router, slippageBps: req.slippageBps });
+  const [route, midE8] = noPrice ? await routeThenMid() : await Promise.all([routeFor(), midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, m.oraclePriceE8)]);
+  /** Without an oracle price the route's own fill is the reference for the mid price probes. */
+  async function routeThenMid() {
+    const r = await routeFor();
+    if (r.amountOut === 0n) throw new SwapError("NO_ROUTE", "No route sells this stock right now.");
+    return [r, await midPriceE8(swap, quote, stock, quoteDecimals, stockDecimals, execPriceE8(r.amountOut, withdraw, quoteDecimals, stockDecimals))] as const;
+  }
   const proceeds = route.amountOut;
   const minProceeds = (proceeds * (BPS - BigInt(req.slippageBps))) / BPS;
   const fee = (proceeds * fees.feeBps) / BPS;
@@ -62,12 +72,18 @@ export async function quoteCloseLong({ reader, swap, events: store }: QuoteDeps,
   const minReturn = minReturnRaw > 0n ? minReturnRaw : 0n;
 
   const execE8 = execPriceE8(proceeds, withdraw, quoteDecimals, stockDecimals);
-  const price = morphoOraclePrice("long", cautiousPriceE8("long", { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals);
-  const ltvAfter = full ? 0n : positionLtvWad(pos.debtRaw - debtRepaid, pos.collateralRaw - withdraw, price);
-  const deviation = signedDeviationBps(execE8, m.oraclePriceE8);
+  const ltvAfter = full
+    ? 0n
+    : positionLtvWad(
+        pos.debtRaw - debtRepaid,
+        pos.collateralRaw - withdraw,
+        morphoOraclePrice("long", cautiousPriceE8("long", { priceE8: m.oraclePriceE8, bidE8: m.bidE8, askE8: m.askE8 }), stockDecimals, quoteDecimals),
+      );
+  const deviation = noPrice ? 0 : signedDeviationBps(execE8, m.oraclePriceE8);
   const priceImpact = -signedDeviationBps(execE8, midE8);
 
   const { warnings, add, blocked } = warningList();
+  if (noPrice) add("ORACLE_STALE", "warn", NO_PRICE_WARNING);
   if (!full && m.oracleHardStale) add("ORACLE_STALE", "block", "Morpho cannot price this market right now, so a partial close would fail. A full close still works.");
   if (returned < 0n) add("HIGH_PRICE_IMPACT", "block", "Selling this share of the stock would not cover the debt it repays.");
   if (Math.abs(deviation) * 2 > m.maxDeviationBps) add("HIGH_DEVIATION", "warn", "The swap price is far from the oracle price.");

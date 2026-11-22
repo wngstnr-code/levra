@@ -9,8 +9,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
-import { createKyber } from "@levra/kyber";
-import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, seedMarket } from "./fork-helpers";
+import { createKyber } from "@levra/swap";
+import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, openSessionAtDexPrice, seedMarket } from "./fork-helpers";
 
 describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
   const deployment = forkDeployment();
@@ -25,6 +25,7 @@ describe.skipIf(!onFork)("long quotes executed on the fork (BE-12)", () => {
   let snapshotId: Hex;
   beforeAll(async () => {
     snapshotId = await chain.snapshot();
+    await openSessionAtDexPrice(chain, swap, "QQQ");
     await seedMarket(chain, market.marketId, parseUnits("5000", 6));
     await deal(chain, tokens.USDC.address, user.address, parseUnits("200", 6));
     await chain.setBalance({ address: user.address, value: parseUnits("10", 18) });

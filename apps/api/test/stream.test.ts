@@ -38,6 +38,8 @@ function market(overrides: Partial<MarketState> = {}): MarketState {
     publishedAt: 1_791_876_168,
     oracleStale: false,
     oracleHardStale: false,
+    uiMultiplierWad: null,
+    tokenPaused: false,
     ...overrides,
   };
 }

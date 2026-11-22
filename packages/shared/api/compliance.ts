@@ -3,6 +3,8 @@ import { address, hex, unixSeconds } from "./primitives";
 
 export const eligibilityQuery = z.object({
   address: address.optional(),
+  /** The chain the visitor wants to use. Base and X Layer refuse more countries than Monad (D-73). Without it, the list shared by every chain decides. */
+  chainId: z.coerce.number().int().positive().optional(),
 });
 export type EligibilityQuery = z.infer<typeof eligibilityQuery>;
 

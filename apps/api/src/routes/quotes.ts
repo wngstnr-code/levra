@@ -9,7 +9,7 @@ import { quoteCollateral } from "../quotes/collateral";
 import { quoteOpenLong } from "../quotes/open-long";
 import { quoteOpenShort } from "../quotes/open-short";
 import type { EventStore } from "../positions/events";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import type { Compliance } from "./compliance";
 
 export async function body<T extends z.ZodType>(schema: T, raw: Promise<unknown>): Promise<z.infer<T>> {
@@ -28,7 +28,7 @@ export function quoteRoutes(reader: ChainReader, swap: SwapSource, events: Event
 
   app.post("/v1/quote/open", async (c) => {
     const req = await body(quoteOpenRequest, c.req.json());
-    if (compliance) await compliance.require(c, req.user);
+    if (compliance) await compliance.require(c, req.user, reader.deployment.chainId);
     return c.json(req.side === "short" ? await quoteOpenShort(deps, req) : await quoteOpenLong(deps, req));
   });
 

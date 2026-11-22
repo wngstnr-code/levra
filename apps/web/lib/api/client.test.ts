@@ -69,3 +69,13 @@ describe("api client", () => {
     await expect(api("session")).rejects.toMatchObject({ code: "NETWORK" });
   });
 });
+
+describe("isChainScoped", () => {
+  it("keeps the chain list, eligibility and sign-in global, and markets per chain", async () => {
+    const { isChainScoped } = await import("./client");
+    expect(isChainScoped("chains")).toBe(false);
+    expect(isChainScoped("eligibility")).toBe(false);
+    expect(isChainScoped("authSiwe")).toBe(false);
+    expect(isChainScoped("markets")).toBe(true);
+  });
+});

@@ -1,12 +1,13 @@
-import { alertDeliveries, alertSettings, createDb, morphoEvents, routerEvents, runMigrations } from "@levra/db";
+import { alertDeliveries, alertSettings, createDb, monitorState, morphoEvents, routerEvents, runMigrations } from "@levra/db";
 import { lensAbi } from "@levra/shared/abis";
 import { WAD, mulDiv } from "@levra/shared/math";
-import { eq } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import pino from "pino";
 import { createPublicClient, http, parseUnits, type Hex } from "viem";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress } from "../../api/test/fork-helpers";
+import { createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, refreshAnchoredPrice } from "../../api/test/fork-helpers";
 import { createAlerts } from "../src/alerts/job";
+import { GATE_EFFECT } from "../src/monitor/checks";
 
 const dbUrl = process.env.TEST_DATABASE_URL;
 
@@ -44,6 +45,9 @@ describe.skipIf(!onFork || !dbUrl)("user alerts on the fork (BE-33)", () => {
   beforeAll(async () => {
     snapshot = await chain.snapshot();
     await runMigrations(dbUrl ?? "");
+    const quiet = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).find((m) => m.marketId === long.marketId)!;
+    // A fork made while the feed is quiet (a weekend) has a stale price that Morpho's borrow refuses.
+    await refreshAnchoredPrice(chain, quiet.priceId);
     const lm = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).find((m) => m.marketId === long.marketId)!;
     const stockValue = mulDiv(lm.priceE8, 10n ** 6n, 10n ** 8n);
     // Above the closed-market limit, below the hard limit; and one far below both.
@@ -103,5 +107,50 @@ describe.skipIf(!onFork || !dbUrl)("user alerts on the fork (BE-33)", () => {
       ["risky@example.com", "Position reduced by protection"],
     ]);
     expect(await runNow()).toEqual([]);
+  });
+
+  it("alerts the holders of a halted stock once, again for a new block, and when it is lifted, not while it is unreadable (BE-75)", { timeout: 120_000 }, async () => {
+    const gate = async (key: string, active: boolean, since: Date | null, message: string) =>
+      db
+        .insert(monitorState)
+        .values({ chainId: 143, key, active, since, notified: true, value: null, message, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: [monitorState.chainId, monitorState.key], set: { active, since, message, updatedAt: new Date() } });
+    const paused = `aQQQ transfers paused by the issuer. ${GATE_EFFECT}`;
+    const both = (subject: string) => [
+      ["calm@example.com", subject],
+      ["risky@example.com", subject],
+    ];
+    await db.delete(monitorState).where(and(eq(monitorState.chainId, 143), like(monitorState.key, "gate:%")));
+    try {
+      // A stock nobody here holds.
+      await gate("gate:b20-paused:HOOD", true, new Date(), `aHOOD transfers paused by the issuer. ${GATE_EFFECT}`);
+      expect(await runNow()).toEqual([]);
+
+      await gate("gate:b20-paused:QQQ", true, new Date(1_795_000_000_000), paused);
+      expect((await runNow()).sort()).toEqual(both("Trading may be blocked on Monad"));
+      expect(inbox[0]?.text).toContain("aQQQ transfers paused by the issuer.");
+      expect(inbox[0]?.text).toContain("Affected: QQQ long.");
+      expect(await runNow()).toEqual([]);
+
+      await gate("gate:b20-paused:QQQ", false, null, paused);
+      expect((await runNow()).sort()).toEqual(both("Block lifted on Monad"));
+      expect(inbox[0]?.text).toContain("aQQQ transfers paused by the issuer: no longer blocking.");
+      expect(await runNow()).toEqual([]);
+
+      // Blocked again later: a new block, so a new alert. Then the control cannot be read: no "lifted" until it can.
+      await gate("gate:b20-paused:QQQ", true, new Date(1_795_100_000_000), paused);
+      expect((await runNow()).sort()).toEqual(both("Trading may be blocked on Monad"));
+      await gate("gate:b20-paused:QQQ", false, null, paused);
+      await gate("gate:b20-paused:QQQ:unread", true, new Date(), "aQQQ transfers paused by the issuer could not be read");
+      expect(await runNow()).toEqual([]);
+      await gate("gate:b20-paused:QQQ:unread", false, null, "aQQQ transfers paused by the issuer could not be read");
+      expect((await runNow()).sort()).toEqual(both("Block lifted on Monad"));
+
+      // A chain-wide control reaches every holder.
+      await gate("gate:usdc-paused", true, new Date(1_795_200_000_000), `Circle paused USDC. ${GATE_EFFECT}`);
+      expect((await runNow()).sort()).toEqual(both("Trading may be blocked on Monad"));
+    } finally {
+      await db.delete(monitorState).where(and(eq(monitorState.chainId, 143), like(monitorState.key, "gate:%")));
+    }
   });
 });
