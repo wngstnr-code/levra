@@ -6,7 +6,7 @@ One file per secret in `/opt/levra/secrets/<service>/<NAME>`. The file name is t
 |---|---|---|
 | `postgres` | `POSTGRES_PASSWORD` | Yes |
 | `migrate` | `DATABASE_URL` | Yes |
-| `api` | `DATABASE_URL`, `AUTH_SECRET` (at least 32 random characters), `KYBER_API_KEY`, `INTENTS_JWT` | `DATABASE_URL`; the others turn features on |
+| `api` | `DATABASE_URL`, `AUTH_SECRET` (at least 32 random characters), `KYBER_API_KEY`, `ONEINCH_API_KEY` (1inch in the Base quotes), `INTENTS_JWT` | `DATABASE_URL`; the others turn features on |
 | `indexer-monad` | `DATABASE_URL`, `ENVIO_API_TOKEN` | `DATABASE_URL` |
 | `keeper-monad` | `DATABASE_URL`, `ORACLE_AGE_POSTER_KEY`, `CALENDAR_POSTER_KEY`, `PROTECTOR_KEY`, `LIQUIDATOR_KEY`, `TELEGRAM_BOT_TOKEN`, `RESEND_API_KEY`, `TEAM_WEBHOOK_URL`, `KYBER_API_KEY`, `INTENTS_JWT` | `DATABASE_URL`; each role job runs only when its key is set |
 | `keeper-base`, `keeper-xlayer` | `DATABASE_URL`. The role keys of that chain come with our deployment there (BE-73, BE-80) | `DATABASE_URL` |
