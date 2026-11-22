@@ -1,4 +1,4 @@
-import { dexMidPriceE8, type SwapSource } from "@levra/kyber";
+import { dexMidPriceE8, type SwapSource } from "@levra/swap";
 import { external, tokens } from "@levra/shared/addresses";
 import { morphoAbi } from "@levra/shared/abis";
 import { stocks, type StockSymbol } from "@levra/shared/markets";

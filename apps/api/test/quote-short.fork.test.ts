@@ -1,4 +1,4 @@
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { tokens } from "@levra/shared/addresses";
 import { lensAbi } from "@levra/shared/abis";
 import { quoteCloseResponse, quoteOpenResponse } from "@levra/shared/api";

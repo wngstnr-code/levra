@@ -1,5 +1,5 @@
 import { protectedPositions, type Db } from "@levra/db";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { tokensByChain } from "@levra/shared/addresses";
 import { isChainId, type ChainId } from "@levra/shared/chains";
 import { findStock } from "@levra/shared/markets";

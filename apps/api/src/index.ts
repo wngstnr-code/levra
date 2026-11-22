@@ -9,7 +9,7 @@ import { createChainReader } from "./chain/reader";
 import { loadEnv } from "./env";
 import { createLogger } from "./logger";
 import { dbEventStore } from "./positions/events";
-import { createKyber } from "@levra/kyber";
+import { createKyber } from "@levra/swap";
 import { createIntents } from "@levra/intents";
 import { parsePatterns } from "./origins";
 import { budgetedSwap } from "./rate-limit/swap-budget";

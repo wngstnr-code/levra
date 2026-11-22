@@ -22,7 +22,7 @@ import { createCache } from "./chain/cache";
 import { quoteRoutes } from "./routes/quotes";
 import { statusRoutes } from "./routes/status";
 import { streamRoutes, type StreamOptions } from "./routes/stream";
-import { SwapError, type SwapSource } from "@levra/kyber";
+import { SwapError, type SwapSource } from "@levra/swap";
 
 export type AppDeps = {
   logger: Logger;

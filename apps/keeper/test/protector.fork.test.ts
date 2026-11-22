@@ -1,5 +1,5 @@
 import { createDb, routerEvents, runMigrations, syncCursors } from "@levra/db";
-import { createKyber, dexMidPriceE8, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, dexMidPriceE8, KYBER_MONAD_URL } from "@levra/swap";
 import { external, tokens } from "@levra/shared/addresses";
 import { lensAbi, marginRouterAbi, morphoAbi } from "@levra/shared/abis";
 import { WAD, mulDiv, stockForUsd } from "@levra/shared/math";

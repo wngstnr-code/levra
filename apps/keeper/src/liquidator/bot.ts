@@ -1,5 +1,5 @@
 import { morphoPositions } from "@levra/db";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { lensAbi, liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
 import { tokensByChain } from "@levra/shared/addresses";
 import { isChainId, type ChainId } from "@levra/shared/chains";

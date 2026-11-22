@@ -1,4 +1,4 @@
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { marginRouterAbi } from "@levra/shared/abis";
 import { BPS, WAD, mulDiv } from "@levra/shared/math";
 import { ContractFunctionExecutionError, ContractFunctionRevertedError, encodeErrorResult, type Address, type Hex } from "viem";

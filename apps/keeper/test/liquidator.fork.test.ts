@@ -1,5 +1,5 @@
 import { createDb, morphoEvents, runMigrations, syncCursors } from "@levra/db";
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { external, tokens } from "@levra/shared/addresses";
 import { liquidatorAbi, morphoAbi, sessionOracleAbi } from "@levra/shared/abis";
 import { stocks } from "@levra/shared/markets";
