@@ -411,6 +411,7 @@ Status: proposed by Dharu on 20 November 2026 and built the same day as addition
 - Sign-in: the SIWE message may name any chain this API serves (`live` in `/v1/chains`), the chain the wallet is on. The signature is checked on that chain, so a smart wallet deployed only there still signs in. The token is the same for every chain.
 - `Market` gains three fields for the Base and X Layer stocks: `oracleKind`, `uiMultiplierWad` and `tokenPaused` (main data shapes). On Chainlink chains `oracleFeedUpdatedAt` and `oraclePublishedAt` are both the feed round's `updatedAt` (D-97), and `session` comes from our oracle's market clock, so a feed held over the weekend shows as `CLOSED` or `UNKNOWN`, not as a new field.
 - Short capacity on Base (FE-72) is the existing `availableLiquidityRaw` of the short market.
+- `Market.haltReasons` (BE-75) comes from the team monitor's issuer checks, which run every minute; it is as current as the monitor's heartbeat in `/v1/status`. `tokenPaused` stays the direct chain read of the token's own pause flag.
 
 ```ts
 type ChainInfo = {
@@ -509,6 +510,8 @@ type Market = {
   oracleKind?: "anchored" | "chainlink"; // Anchored on Monad, Chainlink on Base and X Layer
   uiMultiplierWad?: string | null; // B20 stock tokens on Base: the token's uiMultiplier() (1e18 = 1, dividends raise it); share units shown to users = raw amount x this; null where the token has none
   tokenPaused?: boolean;      // the issuer paused the stock token; false where the chain has no pause flag
+  // BE-75: always sent (empty without a database); optional in the zod schema until the web app reads it
+  haltReasons?: string[];     // issuer controls the team monitor sees blocking this market now, one plain sentence each: a pause of this stock, or a pause or blocklist covering the chain (USDC, Morpho, our router, liquidator or vault); opening, closing or liquidating may fail while not empty
 };
 
 type QuoteOpenRequest = {

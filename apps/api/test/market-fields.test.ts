@@ -6,7 +6,8 @@ import { zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import type { ChainReader, MarketState } from "../src/chain/reader";
-import { toApiMarket } from "../src/routes/markets";
+import { haltReasonsFor, marketRoutes, toApiMarket } from "../src/routes/markets";
+import { Hono } from "hono";
 
 const WAD = 10n ** 18n;
 
@@ -102,5 +103,34 @@ describe("market fields for every chain (BE-70)", () => {
     const m = toApiMarket(state(baseStocks.AAPL, { uiMultiplierWad: 1_000_500_000_000_000_000n, tokenPaused: true }));
     expect(m).toMatchObject({ oracleKind: "chainlink", uiMultiplierWad: "1000500000000000000", tokenPaused: true });
     expect(marketSchema.parse(m)).toEqual(m);
+  });
+});
+
+describe("issuer blocks on the markets (BE-75)", () => {
+  const blocks = [
+    { symbol: "AAPL", message: "AAPLc transfers are paused by the issuer" },
+    { symbol: null, message: "Circle blacklists router for USDC" },
+  ];
+
+  it("gives a stock its own blocks and the chain-wide ones, and nothing when there are none", () => {
+    expect(haltReasonsFor(blocks, "AAPL")).toEqual(["AAPLc transfers are paused by the issuer", "Circle blacklists router for USDC"]);
+    expect(haltReasonsFor(blocks, "NVDA")).toEqual(["Circle blacklists router for USDC"]);
+    expect(haltReasonsFor([], "AAPL")).toEqual([]);
+  });
+
+  it("serves them in the market list and the market detail", async () => {
+    const reader = fakeReader(8453, [state(baseStocks.AAPL), state(baseStocks.NVDA)]);
+    const app = new Hono().route("/", marketRoutes(reader, undefined, undefined, undefined, async () => blocks));
+    const list = marketsResponse.parse(await (await app.request("/v1/markets")).json());
+    expect(list.markets.map((m) => [m.symbol, m.haltReasons])).toEqual([
+      ["AAPL", ["AAPLc transfers are paused by the issuer", "Circle blacklists router for USDC"]],
+      ["NVDA", ["Circle blacklists router for USDC"]],
+    ]);
+    const detail = (await (await app.request("/v1/markets/NVDA")).json()) as { markets: { haltReasons: string[] }[] };
+    expect(detail.markets[0]!.haltReasons).toEqual(["Circle blacklists router for USDC"]);
+  });
+
+  it("sends an empty list without a database", () => {
+    expect(toApiMarket(state(stocks.HOOD)).haltReasons).toEqual([]);
   });
 });

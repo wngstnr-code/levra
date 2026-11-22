@@ -53,6 +53,12 @@ export const market = z.object({
   uiMultiplierWad: wad.nullable().optional(),
   /** The issuer paused the stock token. False where the chain has no pause flag. */
   tokenPaused: z.boolean().optional(),
+  /**
+   * BE-75. Issuer controls the team monitor sees blocking this market now, one plain sentence each: a pause of this stock,
+   * or a pause or blocklist that covers the whole chain (USDC, Morpho, our router). Empty when none; opening, closing or
+   * liquidating may fail while it is not. Optional until the web app reads it.
+   */
+  haltReasons: z.array(z.string()).optional(),
 });
 export type Market = z.infer<typeof market>;
 
