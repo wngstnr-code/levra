@@ -17,7 +17,7 @@ export function PrivySignInProvider({ children }: { children: React.ReactNode })
   return (
     <SignInContext.Provider value={show}>
       {children}
-      <SignInSheet open={open} onClose={() => setOpen(false)} />
+      <SignInSheet open={open} onClose={() => setOpen(false)} onReopen={show} />
     </SignInContext.Provider>
   );
 }
@@ -26,7 +26,7 @@ export function PrivySignInProvider({ children }: { children: React.ReactNode })
 export const useSignIn = () => useContext(SignInContext);
 
 /** Our own front for Privy: every option calls Privy, which creates and secures the wallet. */
-function SignInSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function SignInSheet({ open, onClose, onReopen }: { open: boolean; onClose: () => void; onReopen: () => void }) {
   const m = useT();
   const s = m.signIn;
   const { login } = usePrivy();
@@ -41,6 +41,7 @@ function SignInSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
       await fn();
     } catch {
       setError(s.failed);
+      onReopen();
     }
   };
 

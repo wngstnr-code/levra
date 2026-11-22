@@ -27,7 +27,7 @@ export const en = {
     title: "Sign in to Levra",
     sub: "One account on every network.",
     baseAccount: "Base Account",
-    baseAccountSub: "Passkey wallet from Base",
+    baseAccountSub: "First in the wallet list",
     email: "Email",
     emailSub: "We create a wallet you can export",
     passkey: "Passkey",
