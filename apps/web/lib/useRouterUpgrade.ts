@@ -15,19 +15,20 @@ export function useRouterUpgrade(user: Address | undefined) {
     markets.map((mk) => ({ address: r, abi: marginRouterAbi, functionName: "protectionEnabled" as const, args: [user!, mk.marketId] as const, chainId: chain.id })),
   );
   const query = useReadContracts({ contracts: [...access, ...protection], query: { enabled: !!user && old.length > 0 } });
-  const flags = (query.data ?? []).map((r) => r.status === "success" && r.result === true);
+  const flags = (query.data ?? []).map((r) => (r.status === "success" ? r.result === true : undefined));
   return { ...upgradeState(old, markets, flags), queryKey: query.queryKey };
 }
 
 /**
  * flags: isAuthorized for each old router, then protectionEnabled per market for the current router
- * followed by each old router. A failed read counts as false.
+ * followed by each old router. A failed read is undefined: never reported as access, and protection is
+ * only asked again where the current router answered false.
  */
-export function upgradeState<M>(old: Address[], markets: M[], flags: boolean[]) {
+export function upgradeState<M>(old: Address[], markets: M[], flags: (boolean | undefined)[]) {
   const on = (i: number) => flags[i] === true;
   const base = old.length;
   return {
     oldAccess: old.filter((_, i) => on(i)),
-    protectionToRestore: markets.filter((_, j) => !on(base + j) && old.some((__, k) => on(base + (k + 1) * markets.length + j))),
+    protectionToRestore: markets.filter((_, j) => flags[base + j] === false && old.some((__, k) => on(base + (k + 1) * markets.length + j))),
   };
 }

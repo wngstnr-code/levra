@@ -154,7 +154,7 @@ export function PositionsView() {
                 marketId={p.marketId}
                 on={protection.isOn(p.marketId) ?? p.protection}
                 name={`${stockOn(chain, p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`}
-                invalidate={[protection.queryKey, queryKeys.account(address)]}
+                invalidate={[protection.queryKey, upgrade.queryKey, queryKeys.account(address)]}
               />
             }
           />

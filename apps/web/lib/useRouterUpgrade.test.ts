@@ -18,7 +18,11 @@ describe("upgradeState", () => {
     expect(upgradeState([A], ["QQQ", "SPY"], [false, false, true, true, true]).protectionToRestore).toEqual(["QQQ"]);
   });
 
-  it("treats failed reads as off", () => {
+  it("reports nothing for failed reads", () => {
     expect(upgradeState([A], ["QQQ"], [])).toEqual({ oldAccess: [], protectionToRestore: [] });
+  });
+
+  it("does not ask again when the current router read failed", () => {
+    expect(upgradeState([A], ["QQQ"], [false, undefined, true]).protectionToRestore).toEqual([]);
   });
 });
