@@ -477,6 +477,14 @@ export const en = {
     bannerTitle: "At risk this weekend",
     bannerBody: (s: string) => `${s} is above the weekend limit. Add funds or reduce it.`,
   },
+  upgrade: {
+    protectionTitle: "Turn protection on again",
+    protectionBody: (stocks: string) => `Levra moved to a new contract. Protection for ${stocks} is off until you turn it on again.`,
+    oldAccess: "Old Levra contract",
+    oldAccessBody: "It still has trading access. Levra no longer uses it, so you can remove it.",
+    removeOld: "Remove access",
+    removeSentences: ["Remove trading access from the old Levra contract", "Your positions stay as they are"],
+  },
   settings: {
     title: "Settings",
     appearance: "Appearance",

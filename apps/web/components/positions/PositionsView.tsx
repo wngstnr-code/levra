@@ -10,6 +10,8 @@ import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
 import { formatToken, formatUsd, formatUsdSigned } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
+import { useRouterUpgrade } from "@/lib/useRouterUpgrade";
+import { NoticeRow } from "../ui/NoticeRow";
 import { PreCloseCard } from "../protection/PreCloseCard";
 import { ProtectionToggle } from "../protection/ProtectionToggle";
 import { Banner } from "../ui/Banner";
@@ -43,6 +45,7 @@ export function PositionsView() {
   const mon = useBalance({ address, chainId: chain.id, query: { enabled: !!address } });
   const managed = account.data?.positions.find((p) => p.marketId === manage?.marketId) ?? null;
   const protection = useProtection(address);
+  const upgrade = useRouterUpgrade(address);
   const markets = useMarkets();
   const openSoft = (marketId: string) => markets.data?.markets.find((x) => x.marketId === marketId)?.softLtvOpenWad;
 
@@ -91,6 +94,9 @@ export function PositionsView() {
   return (
     <div className="space-y-4">
       {header}
+      {upgrade.protectionToRestore.length > 0 && (
+        <NoticeRow notice={{ icon: "weekendGuard", blocks: false, title: m.upgrade.protectionTitle, body: m.upgrade.protectionBody(upgrade.protectionToRestore.map((x) => x.symbol).join(", ")) }} />
+      )}
       <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
         <Card className="flex flex-col gap-5 p-8">
           <p className="label-caps">{m.positions.totalEquity}</p>
