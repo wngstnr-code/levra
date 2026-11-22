@@ -19,7 +19,8 @@ export const queryKeys = {
   earnAccount: (address: string) => ["earnAccount", address.toLowerCase()] as const,
   depositTokens: ["depositTokens"] as const,
   depositStatus: (id: string) => ["depositStatus", id] as const,
-  eligibility: (address: string | undefined) => ["eligibility", address?.toLowerCase() ?? null] as const,
+  eligibility: (address: string | undefined, chainId?: number) => ["eligibility", address?.toLowerCase() ?? null, chainId ?? null] as const,
+  chains: ["chains"] as const,
 };
 
 export const apiConfigured = apiBaseUrl !== null;
@@ -28,6 +29,18 @@ export const apiConfigured = apiBaseUrl !== null;
 export function shouldRetry(failureCount: number, error: unknown): boolean {
   if (error instanceof ApiRequestError && error.status !== undefined && error.status < 500) return false;
   return failureCount < 2;
+}
+
+/** Which chains the API serves now (BE-70). Null while unknown or when the API predates the list. */
+export function useLiveChains(): Set<number> | null {
+  const q = useQuery({
+    queryKey: queryKeys.chains,
+    queryFn: ({ signal }) => api("chains", { signal }),
+    enabled: apiConfigured,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  return q.data ? new Set(q.data.chains.filter((c) => c.live).map((c) => c.chainId)) : null;
 }
 
 export function useMarkets() {

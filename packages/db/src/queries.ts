@@ -31,13 +31,28 @@ export async function morphoPositions(db: Db, chainId: number, filter: { user?: 
     .filter((p) => p.collateral !== 0n || p.borrowShares !== 0n);
 }
 
-/** Users and markets whose latest `ProtectionSet` switched protection on (BE-31). The chain has the final word. */
-export async function protectedPositions(db: Db, chainId: number): Promise<{ user: string; marketId: string }[]> {
+/**
+ * The sync cursor of the router events (BE-100). With previous routers it gets a new name for each router added, so the
+ * indexer reads every router again from the deployment block and the new router's early events are not missed.
+ */
+export function routerCursor(deployment: { previousRouters?: readonly string[] }): string {
+  const previous = deployment.previousRouters?.length ?? 0;
+  return previous === 0 ? "router_events" : `router_events:${previous + 1}`;
+}
+
+/**
+ * Users and markets whose latest `ProtectionSet` on `router` switched protection on (BE-31). Opt-in does not move to a
+ * new router (03 section 6), so events of a previous router never count. Rows without a router (indexed before BE-100)
+ * count only while the deployment has no previous router, since they all come from it. The chain has the final word.
+ */
+export async function protectedPositions(db: Db, chainId: number, router: { address: string; hasPrevious: boolean }): Promise<{ user: string; marketId: string }[]> {
+  const address = router.address.toLowerCase();
   const rows = (await db.execute(sql`
     select "user", market_id from (
       select distinct on ("user", market_id) "user", market_id, (args->>'enabled')::boolean as enabled
       from router_events
       where chain_id = ${chainId} and name = 'ProtectionSet'
+        and (router = ${address} or (router is null and ${!router.hasPrevious}))
       order by "user", market_id, block_number desc, log_index desc
     ) latest where enabled
   `)) as unknown as { user: string; market_id: string }[];
@@ -161,6 +176,30 @@ export async function rateHistory(db: Db, chainId: number, marketIds: string[], 
     ) b order by at, market_id
   `)) as unknown as { market_id: string; at: string; borrow: string; supply: string; util: string }[];
   return rows.map((r) => ({ marketId: r.market_id, timestamp: Number(r.at), borrowApyWad: r.borrow, supplyApyWad: r.supply, utilizationWad: r.util }));
+}
+
+/**
+ * The stock a monitor gate key is about (BE-75), or null when it covers the whole chain. Keys from
+ * `apps/keeper/src/monitor/gates.ts`: `gate:b20-paused:NVDA`, `gate:oracle-paused:NVDA`, `gate:xstock-paused:NVDA` and
+ * `gate:xstock-paused:NVDAx` (the underlying) name one stock; a blocked account, USDC or a transfer policy covers all.
+ */
+export function gateSymbol(key: string): string | null {
+  const m = /^gate:(?:b20-paused|oracle-paused|xstock-paused):([A-Z0-9.]+?)x?$/.exec(key);
+  return m ? m[1]! : null;
+}
+
+/**
+ * Issuer controls the team monitor sees blocking now (BE-75): its active `gate:` rows, without the "could not be read"
+ * ones. A row stays as the monitor last wrote it, so this is only as current as the monitor's heartbeat. `since` is when
+ * the block started (unix seconds), so a block that is lifted and comes back counts as a new one.
+ */
+export async function activeGates(db: Db, chainId: number): Promise<{ key: string; symbol: string | null; message: string; since: number }[]> {
+  const rows = (await db.execute(sql`
+    select key, coalesce(message, key) as message, coalesce(extract(epoch from since), 0)::bigint::text as since from monitor_state
+    where chain_id = ${chainId} and active and key like 'gate:%' and key not like '%:unread'
+    order by key
+  `)) as unknown as { key: string; message: string; since: string }[];
+  return rows.map((r) => ({ key: r.key, symbol: gateSymbol(r.key), message: r.message, since: Number(r.since) }));
 }
 
 /** Latest DEX mid price (8 decimals) per stock symbol from the depth keeper, when not older than `maxAgeSeconds`. */

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import { listedStocks, webChains, type WebChain } from "@/lib/chains";
+import { useLiveChains } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
 import { formatToken } from "@/lib/units";
@@ -53,10 +54,12 @@ function ChainSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
     onClose();
     if (c.id !== active.id) router.push(switchChainPath(pathname, c));
   };
+  const live = useLiveChains();
   return (
     <Sheet open={open} onClose={onClose} title={m.network.title}>
       <ul className="space-y-1">
         {webChains.map((c, i) => {
+          const served = live === null || live.has(c.id);
           const on = c.id === active.id;
           const bal = balances.data?.[i];
           return (
@@ -69,7 +72,7 @@ function ChainSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <ChainMark chain={c} className="size-8" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{c.name}</span>
-                  <span className="block text-xs text-fg-3">{m.network.stocks(listedStocks(c).length)}</span>
+                  <span className="block text-xs text-fg-3">{served ? m.network.stocks(listedStocks(c).length) : m.network.noData}</span>
                 </span>
                 <span className="text-right">
                   {bal?.status === "success" && <span className="block font-mono text-xs">{m.network.balance(formatToken(bal.result, c.usdc.decimals, 2))}</span>}

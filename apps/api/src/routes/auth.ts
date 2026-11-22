@@ -18,13 +18,15 @@ export type AuthOptions = {
   secret: string;
   /** Hosts of the web app that the sign-in message may name (EIP-4361): production, preview and local (BE-56). */
   domains: RegExp[];
-  chainId: number;
 };
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
-/** Sign-In with Ethereum (EIP-4361). Smart wallets work too: viem checks ERC-1271 and ERC-6492 signatures on chain. */
-export function authRoutes(client: PublicClient, db: Db, opts: AuthOptions) {
+/**
+ * Sign-In with Ethereum (EIP-4361). Smart wallets work too: viem checks ERC-1271 and ERC-6492 signatures on chain,
+ * so the message is checked on the chain it names. Only chains this API serves are accepted (BE-70).
+ */
+export function authRoutes(clients: ReadonlyMap<number, PublicClient>, db: Db, opts: AuthOptions) {
   const app = new Hono();
 
   app.get("/v1/auth/nonce", async (c) => {
@@ -39,7 +41,8 @@ export function authRoutes(client: PublicClient, db: Db, opts: AuthOptions) {
     const { message, signature } = parsed.data;
     const fields = parseSiweMessage(message);
     if (!fields.address || !fields.nonce) throw new ApiHttpError("BAD_REQUEST", "Not a sign-in message.");
-    if (!fields.domain || !matchesAny(opts.domains, fields.domain) || fields.chainId !== opts.chainId) throw new ApiHttpError("UNAUTHORIZED", "The message is for another site or network.");
+    const client = fields.chainId === undefined ? undefined : clients.get(fields.chainId);
+    if (!fields.domain || !matchesAny(opts.domains, fields.domain) || !client) throw new ApiHttpError("UNAUTHORIZED", "The message is for another site or network.");
 
     const valid = await upstream(() => client.verifySiweMessage({ message, signature, domain: fields.domain, nonce: fields.nonce }));
     if (!valid) throw new ApiHttpError("UNAUTHORIZED", "The signature does not match the message.");

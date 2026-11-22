@@ -48,6 +48,8 @@ export const routerEvents = pgTable(
     blockTime: timestamp("block_time", { withTimezone: true }).notNull(),
     txHash: text("tx_hash").notNull(),
     logIndex: integer("log_index").notNull(),
+    /** The router that emitted it, lowercase (BE-100). Null on rows indexed before the column, until the next rescan fills it. */
+    router: text("router"),
   },
   (t) => [
     uniqueIndex("router_events_log").on(t.chainId, t.txHash, t.logIndex),

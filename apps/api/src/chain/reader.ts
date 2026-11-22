@@ -1,10 +1,20 @@
-import { externalByChain } from "@levra/shared/addresses";
+import { BASE_CHAIN_ID, baseExternal, externalByChain, tokensByChain } from "@levra/shared/addresses";
 import { isChainId } from "@levra/shared/chains";
-import { lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
+import { coinbaseOracleRegistryAbi, lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
 import { listMarkets, type MarketInfo } from "@levra/shared/markets";
-import { erc20Abi, getAbiItem, parseAbi, type Address, type Hex, type PublicClient } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  erc20Abi,
+  getAbiItem,
+  parseAbi,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from "viem";
 import { createCache } from "./cache";
 
 /**
@@ -54,6 +64,10 @@ export type MarketState = {
   oracleStale: boolean;
   /** SessionOracle's hard check alone. When true, Morpho cannot price the market, so a partial withdrawal fails. */
   oracleHardStale: boolean;
+  /** B20 tokens on Base: the registry multiplier (WAD), equal to the token's `uiMultiplier()` (05). Null elsewhere. */
+  uiMultiplierWad: bigint | null;
+  /** The issuer paused the token in the Coinbase oracle registry (Base). False on chains without that flag. */
+  tokenPaused: boolean;
 };
 
 export type RouterEvent =
@@ -130,6 +144,14 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
         if (r.status !== "success") throw r.error;
         return r.result as T;
       };
+      // Coinbase stocks on Base: the multiplier and the issuer pause live in the oracle registry, keyed by token.
+      const registry = deployment.chainId === BASE_CHAIN_ID ? baseExternal.coinbaseOracleRegistry : null;
+      const params = registry
+        ? await client.multicall({
+            allowFailure: false,
+            contracts: infos.map((info) => ({ address: registry, abi: coinbaseOracleRegistryAbi, functionName: "getOracleParams", args: [info.stock.token] }) as const),
+          })
+        : null;
 
       return views.map((v, i) => {
         const config = ok<{ maxDeviationBps: number; maxOracleAge: number }>(extra[3 * i]!);
@@ -162,6 +184,8 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
           publishedAt: Number(v.publishedAt),
           oracleStale: v.stale || tooOldToOpen,
           oracleHardStale: v.stale,
+          uiMultiplierWad: params ? params[i]![0] : null,
+          tokenPaused: params ? params[i]![1] : false,
         };
       });
     });
@@ -261,11 +285,13 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       const events: RouterEvent[] = [];
       const opened = getAbiItem({ abi: marginRouterAbi, name: "PositionOpened" });
       const reduced = getAbiItem({ abi: marginRouterAbi, name: "PositionReduced" });
+      // Every router of the deployment: positions opened on a previous one are part of the history (BE-100).
+      const routers = [deployment.router, ...(deployment.previousRouters ?? [])];
       for (let from = BigInt(deployment.block); from <= head; from += LOG_RANGE) {
         const to = from + LOG_RANGE - 1n < head ? from + LOG_RANGE - 1n : head;
         const [o, r] = await Promise.all([
-          client.getLogs({ address: deployment.router, event: opened, args: { user }, fromBlock: from, toBlock: to, strict: true }),
-          client.getLogs({ address: deployment.router, event: reduced, args: { user }, fromBlock: from, toBlock: to, strict: true }),
+          client.getLogs({ address: routers, event: opened, args: { user }, fromBlock: from, toBlock: to, strict: true }),
+          client.getLogs({ address: routers, event: reduced, args: { user }, fromBlock: from, toBlock: to, strict: true }),
         ]);
         for (const l of o) {
           events.push({ kind: "opened", marketId: l.args.marketId, block: l.blockNumber, logIndex: l.logIndex, margin: l.args.margin, collateralDelta: l.args.collateralDelta, debtDelta: l.args.debtDelta, fee: l.args.fee });
@@ -277,5 +303,23 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       return events.sort((a, b) => (a.block === b.block ? a.logIndex - b.logIndex : a.block < b.block ? -1 : 1));
     });
 
-  return { deployment, markets, session, positions, latestBlock, routerFees, permitDomain, userState, borrowShares, routerEvents, client };
+  /** The chain's own Morpho and USDC (packages/shared), so no route reaches for Monad's by mistake (BE-70). */
+  const usdc = tokensByChain[deployment.chainId].USDC;
+  /**
+   * Whether a full close through this router works while the oracle cannot be read (SC-86). Routers built with SC-86
+   * also carry DELEVERAGE_FLOOR (it came later); the live Monad router has neither. Router code never changes.
+   */
+  const closesWithoutPrice = () =>
+    cached("closesWithoutPrice", Number.POSITIVE_INFINITY, async () => {
+      try {
+        await client.readContract({ address: deployment.router, abi: marginRouterAbi, functionName: "DELEVERAGE_FLOOR" });
+        return true;
+      } catch (err) {
+        const missing = err instanceof BaseError && err.walk((e) => e instanceof ContractFunctionRevertedError || e instanceof ContractFunctionZeroDataError);
+        if (missing) return false;
+        throw err;
+      }
+    });
+
+  return { deployment, morpho, usdc, markets, session, positions, latestBlock, routerFees, closesWithoutPrice, permitDomain, userState, borrowShares, routerEvents, client };
 }

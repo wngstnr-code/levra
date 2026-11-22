@@ -1,5 +1,7 @@
-import { external } from "@levra/shared/addresses";
+import { dexMidPriceE8, type SwapSource } from "@levra/swap";
+import { external, tokens } from "@levra/shared/addresses";
 import { morphoAbi } from "@levra/shared/abis";
+import { stocks, type StockSymbol } from "@levra/shared/markets";
 import type { Deployment } from "@levra/shared/deployments";
 import { readDeployment } from "@levra/shared/deployments/node";
 import {
@@ -8,6 +10,7 @@ import {
   erc20Abi,
   http,
   keccak256,
+  parseAbi,
   parseUnits,
   publicActions,
   toHex,
@@ -96,6 +99,59 @@ export async function seedMarket(chain: ForkClient, marketId: Hex, amount: bigin
     await send(chain, lender, external.morpho, morphoAbi, "supply", [params, amount, 0n, lender, "0x"]);
   });
   return params;
+}
+
+/** Test only: the Anchored oracle's operator write, which only a fork lets us call. */
+const anchoredOperatorAbi = parseAbi([
+  "function OPERATOR_ROLE() view returns (bytes32)",
+  "function getRoleMember(bytes32 role, uint256 index) view returns (address)",
+  "function latestPrice(bytes32) view returns ((int128 price, int128 bestBid, int128 bestAsk, uint64 feedUpdateTimestamp, uint64 publishedAt, uint80 roundId, uint8 session))",
+  "function updatePrice((bytes32 priceId, int256 price, int256 bestBid, int256 bestAsk, uint64 feedUpdateTimestamp, uint8 session) p)",
+]);
+
+/**
+ * Posts the latest Anchored price again with the current block time, so a fork made while the feed was quiet can open
+ * positions. Same session as before.
+ */
+export async function refreshAnchoredPrice(chain: ForkClient, priceId: Hex) {
+  const oracle = external.anchoredStockOracle;
+  const role = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "OPERATOR_ROLE" });
+  const operator = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "getRoleMember", args: [role, 0n] });
+  const last = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "latestPrice", args: [priceId] });
+  const block = await chain.getBlock();
+  await as(chain, operator, () =>
+    send(chain, operator, oracle, anchoredOperatorAbi, "updatePrice", [
+      { priceId, price: last.price, bestBid: last.bestBid, bestAsk: last.bestAsk, feedUpdateTimestamp: block.timestamp, session: last.session },
+    ]),
+  );
+}
+
+/** `Regular` in the oracle's `Session` enum (03). */
+export const SESSION_REGULAR = 2;
+
+/**
+ * Posts `priceE8` as the Anchored price, bid and ask, with the current block time and `session`. For tests that need the
+ * oracle near the DEX price (keeper reductions check the deviation) or an open market on a weekend fork.
+ */
+export async function postAnchoredPrice(chain: ForkClient, priceId: Hex, priceE8: bigint, session = SESSION_REGULAR) {
+  const oracle = external.anchoredStockOracle;
+  const role = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "OPERATOR_ROLE" });
+  const operator = await chain.readContract({ address: oracle, abi: anchoredOperatorAbi, functionName: "getRoleMember", args: [role, 0n] });
+  const block = await chain.getBlock();
+  await as(chain, operator, () =>
+    send(chain, operator, oracle, anchoredOperatorAbi, "updatePrice", [{ priceId, price: priceE8, bestBid: priceE8, bestAsk: priceE8, feedUpdateTimestamp: block.timestamp, session }]),
+  );
+}
+
+/**
+ * Posts the DEX mid price as the Anchored price in the regular session. A fork made on a weekend or holiday otherwise
+ * quotes with ORACLE_STALE (closed session) or HIGH_DEVIATION (the DEX kept trading), and the router refuses to open.
+ */
+export async function openSessionAtDexPrice(chain: ForkClient, swap: SwapSource, symbol: StockSymbol) {
+  const stock = stocks[symbol];
+  const last = await chain.readContract({ address: external.anchoredStockOracle, abi: anchoredOperatorAbi, functionName: "latestPrice", args: [stock.priceId] });
+  const mid = await dexMidPriceE8(swap, { usdc: tokens.USDC.address, stock: stock.token, usdcDecimals: tokens.USDC.decimals, stockDecimals: stock.decimals, refPriceE8: BigInt(last.price) });
+  await postAnchoredPrice(chain, stock.priceId, mid);
 }
 
 /** Opens a position straight on Morpho for `user`, without the router. */

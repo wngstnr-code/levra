@@ -31,6 +31,7 @@ import { QuoteSummary } from "./QuoteSummary";
 import { useChain, useChainHref } from "@/lib/useChain";
 import { deployedMarketOn, listedStocks, stockOn } from "@/lib/chains";
 import { noticeFor } from "@/lib/warnings";
+import { haltNotice, hasNoPrice, noPriceNotice } from "@/lib/marketState";
 
 
 type Side = "long" | "short";
@@ -43,7 +44,7 @@ export function TradeView() {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const symbol = stockOn(chain, search.get("symbol") ?? "") ? search.get("symbol")! : "QQQ";
+  const symbol = stockOn(chain, search.get("symbol") ?? "") ? search.get("symbol")! : listedStocks(chain)[0]!.symbol;
   const shortAvailable = deployedMarketOn(chain, symbol, "short") !== null;
   const side: Side = search.get("side") === "short" && shortAvailable ? "short" : "long";
   const stock = stockOn(chain, symbol)!;
@@ -93,6 +94,7 @@ export function TradeView() {
   const q = quote.data && params && quote.data.market.symbol === symbol && quote.data.market.side === side ? quote.data : undefined;
   const pending = q ? splitRequirements(q.requirements, signatures) : { toSign: [], toApprove: [] };
   const blocked = q?.warnings.find((w) => w.severity === "block");
+  const marketBlock = haltNotice(market, m) ?? (market && hasNoPrice(market.oraclePriceE8) ? noPriceNotice(m) : null);
   const quoteError = quote.error ? describeError(quote.error, m) : null;
 
   const gated = useGatedAction();
@@ -100,6 +102,7 @@ export function TradeView() {
     if (address && gated) return gated.onClick ? { kind: "ready", label: gated.label, onClick: gated.onClick } : { kind: "disabled", label: gated.label };
     if (!address) return signIn ? { kind: "signIn", onClick: signIn } : { kind: "disabled", label: m.wallet.unavailable };
     if (!apiConfigured) return { kind: "disabled", label: m.trade.serviceOffline };
+    if (marketBlock) return { kind: "disabled", label: marketBlock.title };
     if (side === "short" && !shortAvailable) return { kind: "disabled", label: m.trade.noShortMarket };
     if (!marginRaw || marginRaw === 0n) return { kind: "disabled", label: m.trade.enterAmount };
     if (balance.data !== undefined && marginRaw > balance.data) return { kind: "disabled", label: m.trade.notEnough };
@@ -204,7 +207,7 @@ export function TradeView() {
           capShare={capRaw ? Number((positionUsd * 1000n) / capRaw) / 1000 : null}
           capText={capRaw ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(capRaw, 0)) : null}
           firstTimeSignatures={pending.toSign.length}
-          notes={q?.warnings.map((w) => noticeFor(w, m)) ?? []}
+          notes={[...(marketBlock ? [marketBlock] : []), ...(q?.warnings.map((w) => noticeFor(w, m)) ?? [])]}
           action={action}
         />
       </div>

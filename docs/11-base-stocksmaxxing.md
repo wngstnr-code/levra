@@ -157,7 +157,7 @@ Rules are not detailed on the page (Q-33). What we do:
 
 - One X post a day from a team account: what shipped, a screenshot or short clip, real transaction hashes. Tag @buildonbase.
 - The daily log in PROGRESS.md is the source for the post, so there is no extra writing.
-- Repo made public before submission, or a public mirror, after a secrets check (X-33, Q-32).
+- Repo made public before submission, or a public mirror, after a secrets check (X-33, Q-32). It is private during development (D-98) and must be public again before 5 December.
 
 ## 11. Open items
 

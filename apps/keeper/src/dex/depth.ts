@@ -1,5 +1,5 @@
 import { dexQuotes, marketRates } from "@levra/db";
-import { MID_PROBE_USD_RAW, SwapError, dexMidPriceE8, type SwapSource } from "@levra/kyber";
+import { MID_PROBE_USD_RAW, SwapError, dexMidPriceE8, type SwapSource } from "@levra/swap";
 import { external, tokens } from "@levra/shared/addresses";
 import { anchoredStockOracleAbi } from "@levra/shared/abis";
 import { BPS, signedDeviationBps, stockForUsd, swapPriceE8 } from "@levra/shared/math";

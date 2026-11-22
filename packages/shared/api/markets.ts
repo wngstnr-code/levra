@@ -44,6 +44,21 @@ export const market = z.object({
   utilizationWad: wad,
   borrowApyWad: wad,
   supplyApyWad: wad,
+
+  // BE-70. The API always sends these three; they are optional here so code written against the Monad-only shape
+  // still compiles until the web app reads them (FE-70).
+  /** Anchored on Monad, Chainlink on Base and X Layer. */
+  oracleKind: z.enum(["anchored", "chainlink"]).optional(),
+  /** B20 tokens on Base: the token's `uiMultiplier()`; share units shown = raw amount times this. Null elsewhere. */
+  uiMultiplierWad: wad.nullable().optional(),
+  /** The issuer paused the stock token. False where the chain has no pause flag. */
+  tokenPaused: z.boolean().optional(),
+  /**
+   * BE-75. Issuer controls the team monitor sees blocking this market now, one plain sentence each: a pause of this stock,
+   * or a pause or blocklist that covers the whole chain (USDC, Morpho, our router). Empty when none; opening, closing or
+   * liquidating may fail while it is not. Optional until the web app reads it.
+   */
+  haltReasons: z.array(z.string()).optional(),
 });
 export type Market = z.infer<typeof market>;
 

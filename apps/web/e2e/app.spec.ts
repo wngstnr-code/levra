@@ -26,6 +26,20 @@ test("market detail explains the limits", async ({ page }) => {
   await expect(page.getByText("Price impact by size")).toBeVisible();
 });
 
+test("an issuer halt shows on the market page", async ({ page }) => {
+  await mockService(page, { haltReasons: ["The issuer paused QQQ."] });
+  await page.goto("/markets/QQQ");
+  await expect(page.getByText("Trading stopped by the issuer")).toBeVisible();
+  await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
+});
+
+test("a market without a price says so", async ({ page }) => {
+  await mockService(page, { noPrice: true });
+  await page.goto("/markets/QQQ");
+  await expect(page.getByText("No price").first()).toBeVisible();
+  await expect(page.getByText("$0.00")).toHaveCount(0);
+});
+
 test("trade asks to sign in before anything else", async ({ page }) => {
   await mockService(page);
   await page.goto("/trade?symbol=QQQ");
@@ -61,6 +75,20 @@ test("an unknown page says so", async ({ page }) => {
   await expect(page.getByText("Page not found")).toBeVisible();
 });
 
+test("markets shows the market clock with the session and a countdown", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await expect(page.getByText(/^(Closes|Opens) in /).first()).toBeVisible();
+});
+
+test("animations are off when the system asks for reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mockService(page);
+  await page.goto("/monad/markets");
+  const duration = await page.locator(".animate-page-in").first().evaluate((el) => getComputedStyle(el).animationDuration);
+  expect(parseFloat(duration)).toBeLessThan(0.01);
+});
+
 test("old links move to the Monad pages and the network picker lists the chains", async ({ page }) => {
   await mockService(page);
   await page.goto("/markets");
@@ -68,6 +96,21 @@ test("old links move to the Monad pages and the network picker lists the chains"
   await page.getByRole("button", { name: /Change network/ }).click();
   const sheet = page.getByRole("dialog", { name: "Network" });
   await expect(sheet.getByRole("button", { name: /Monad/ })).toHaveAttribute("aria-current", "true");
+});
+
+test("the network picker says when our service does not serve a chain yet", async ({ page }) => {
+  await mockService(page, { chains: [[143, "monad", "Monad", true], [8453, "base", "Base", false], [196, "xlayer", "X Layer", true]] });
+  await page.goto("/monad/markets");
+  await page.getByRole("button", { name: /Change network/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Network" });
+  await expect(sheet.getByRole("button", { name: /Base/ })).toContainText("come soon");
+  await expect(sheet.getByRole("button", { name: /Monad/ })).not.toContainText("come soon");
+});
+
+test("trade stops opening on a halted market", async ({ page }) => {
+  await mockService(page, { haltReasons: ["The issuer paused QQQ."] });
+  await page.goto("/monad/trade?symbol=QQQ");
+  await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
 });
 
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {

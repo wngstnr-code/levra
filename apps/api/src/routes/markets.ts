@@ -1,4 +1,4 @@
-import { external, tokens } from "@levra/shared/addresses";
+import { externalByChain, tokensByChain } from "@levra/shared/addresses";
 import { deviationHistory, latestDepthRun, latestOraclePrice, oraclePriceSeries, rateHistory, type Db } from "@levra/db";
 import {
   priceHistoryQuery,
@@ -14,15 +14,19 @@ import {
   type RatePoint,
   type SessionInfo,
 } from "@levra/shared/api";
-import { isStockSymbol, stocks } from "@levra/shared/markets";
+import { isChainId } from "@levra/shared/chains";
+import { findStock } from "@levra/shared/markets";
 import { borrowApyWad, maxLeverageE2, signedDeviationBps, supplyApyWad, utilizationWad } from "@levra/shared/math";
 import { Hono } from "hono";
 import { createCache } from "../chain/cache";
 import type { ChainReader, ChainSession, MarketState } from "../chain/reader";
 import { ApiHttpError, upstream } from "../errors";
 
-/** `dexMidE8` comes from the depth keeper (BE-04); without a recent measurement the DEX fields stay null. */
-export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
+/**
+ * `dexMidE8` comes from the depth keeper (BE-04); without a recent measurement the DEX fields stay null. `haltReasons`
+ * come from the team monitor (BE-75).
+ */
+export function toApiMarket(m: MarketState, dexMidE8?: bigint, haltReasons: string[] = []): Market {
   const utilization = utilizationWad(m.totalBorrowRaw, m.totalSupplyRaw);
   const borrowApy = borrowApyWad(m.borrowRatePerSecondWad);
   const available = m.totalSupplyRaw > m.totalBorrowRaw ? m.totalSupplyRaw - m.totalBorrowRaw : 0n;
@@ -40,7 +44,7 @@ export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
     oraclePublishedAt: m.publishedAt,
     oracleStale: m.oracleStale,
     dexMidPriceE8: dexMidE8 === undefined ? null : dexMidE8.toString(),
-    dexDeviationBps: dexMidE8 === undefined ? null : signedDeviationBps(dexMidE8, m.oraclePriceE8),
+    dexDeviationBps: dexMidE8 === undefined || m.oraclePriceE8 === 0n ? null : signedDeviationBps(dexMidE8, m.oraclePriceE8),
     lltvWad: m.lltvWad.toString(),
     softLtvOpenWad: m.softLtvOpenWad.toString(),
     softLtvClosedWad: m.softLtvClosedWad.toString(),
@@ -53,7 +57,19 @@ export function toApiMarket(m: MarketState, dexMidE8?: bigint): Market {
     utilizationWad: utilization.toString(),
     borrowApyWad: borrowApy.toString(),
     supplyApyWad: supplyApyWad(borrowApy, utilization, m.morphoFeeWad).toString(),
+    oracleKind: "priceFeed" in m.info.stock ? "chainlink" : "anchored",
+    uiMultiplierWad: m.uiMultiplierWad === null ? null : m.uiMultiplierWad.toString(),
+    tokenPaused: m.tokenPaused,
+    haltReasons,
   };
+}
+
+/** Active issuer blocks on the chain (BE-75): `symbol` null covers every market. */
+export type Halts = () => Promise<{ symbol: string | null; message: string }[]>;
+export const noHalts: Halts = async () => [];
+
+export function haltReasonsFor(halts: { symbol: string | null; message: string }[], symbol: string): string[] {
+  return halts.filter((h) => h.symbol === null || h.symbol === symbol).map((h) => h.message);
 }
 
 export function toSessionInfo(s: ChainSession): SessionInfo {
@@ -131,15 +147,18 @@ export function marketRoutes(
   dexMids: DexMids = noDexMids,
   history: MarketHistory = noMarketHistory,
   now: () => number = Date.now,
+  halts: Halts = noHalts,
 ) {
   const app = new Hono();
   const { deployment } = reader;
+  const chainId = deployment.chainId;
+  if (!isChainId(chainId)) throw new Error(`Deployment is for chain ${chainId}, which has no addresses in packages/shared`);
 
   app.get("/v1/config", (c) =>
     c.json({
       chainId: deployment.chainId,
-      morpho: external.morpho,
-      usdc: tokens.USDC.address,
+      morpho: externalByChain[chainId].morpho,
+      usdc: tokensByChain[chainId].USDC.address,
       router: deployment.router,
       riskManager: deployment.riskManager,
       lens: deployment.lens,
@@ -150,14 +169,18 @@ export function marketRoutes(
   app.get("/v1/session", async (c) => c.json(toSessionInfo(await upstream(reader.session))));
 
   app.get("/v1/markets", async (c) => {
-    const [session, markets, mids] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids()]);
-    return c.json({ session: toSessionInfo(session), markets: markets.map((m) => toApiMarket(m, mids.get(m.info.symbol))) } satisfies MarketsResponse);
+    const [session, markets, mids, blocks] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids(), halts()]);
+    return c.json({
+      session: toSessionInfo(session),
+      markets: markets.map((m) => toApiMarket(m, mids.get(m.info.symbol), haltReasonsFor(blocks, m.info.symbol))),
+    } satisfies MarketsResponse);
   });
 
   app.get("/v1/markets/:symbol", async (c) => {
     const symbol = c.req.param("symbol").toUpperCase();
-    if (!isStockSymbol(symbol)) throw new ApiHttpError("NOT_FOUND", `No stock ${symbol}.`);
-    const [session, markets, mids] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids()]);
+    const stock = findStock(chainId, symbol);
+    if (!stock) throw new ApiHttpError("NOT_FOUND", `No stock ${symbol}.`);
+    const [session, markets, mids, blocks] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids(), halts()]);
     const own = markets.filter((m) => m.info.symbol === symbol);
     if (own.length === 0) throw new ApiHttpError("NOT_FOUND", `No market for ${symbol} in this deployment.`);
     const [depth, rateHistory, deviationHistory] = await Promise.all([
@@ -165,13 +188,12 @@ export function marketRoutes(
       upstream(() => history.rates(own.map((m) => m.info.marketId))),
       upstream(() => history.deviation(symbol)),
     ]);
-    const stock = stocks[symbol];
     return c.json({
       symbol,
       name: stock.name,
       stockToken: stock.token,
       session: toSessionInfo(session),
-      markets: own.map((m) => toApiMarket(m, mids.get(symbol))),
+      markets: own.map((m) => toApiMarket(m, mids.get(symbol), haltReasonsFor(blocks, symbol))),
       depth,
       rateHistory,
       deviationHistory,
@@ -181,7 +203,7 @@ export function marketRoutes(
   const cachedPrices = createCache(now);
   app.get("/v1/markets/:symbol/prices", async (c) => {
     const symbol = c.req.param("symbol").toUpperCase();
-    if (!isStockSymbol(symbol) || !deployment.markets.some((m) => m.symbol === symbol)) {
+    if (!findStock(chainId, symbol) || !deployment.markets.some((m) => m.symbol === symbol)) {
       throw new ApiHttpError("NOT_FOUND", `No market for ${symbol} in this deployment.`);
     }
     const parsed = priceHistoryQuery.safeParse({ range: c.req.query("range") });

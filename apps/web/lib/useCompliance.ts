@@ -1,5 +1,6 @@
 "use client";
 
+import { useChain } from "./useChain";
 import { termsMessage } from "@levra/shared/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
@@ -17,10 +18,11 @@ const gateOff = (e: unknown) => e instanceof ApiRequestError && e.code === "NOT_
 /** Region and terms checks before opening, supplying or depositing (FE-50). Closing and withdrawing are never gated. */
 export function useCompliance(address: Address | undefined) {
   const config = useConfig();
+  const chain = useChain();
   const queryClient = useQueryClient();
   const q = useQuery({
-    queryKey: queryKeys.eligibility(address),
-    queryFn: ({ signal }) => api("eligibility", { query: { address }, signal }),
+    queryKey: queryKeys.eligibility(address, chain.id),
+    queryFn: ({ signal }) => api("eligibility", { query: { address, chainId: chain.id }, signal }),
     enabled: apiConfigured,
     staleTime: 5 * 60_000,
     retry: shouldRetry,
@@ -44,8 +46,8 @@ export function useCompliance(address: Address | undefined) {
     if (!address || !q.data) return;
     const signature = await signMessage(config, { account: address, message: termsMessage(q.data.termsVersion, address) });
     await api("termsAccept", { body: { address, termsVersion: q.data.termsVersion, signature } });
-    await queryClient.invalidateQueries({ queryKey: queryKeys.eligibility(address) });
-  }, [address, config, q.data, queryClient]);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.eligibility(address, chain.id) });
+  }, [address, chain.id, config, q.data, queryClient]);
 
   return { status, termsVersion: q.data?.termsVersion ?? null, error: q.error, retry: q.refetch, accept };
 }

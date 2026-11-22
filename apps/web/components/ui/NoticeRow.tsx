@@ -3,7 +3,7 @@ import type { Notice } from "@/lib/warnings";
 import { LevraIcon } from "../icons/LevraIcon";
 
 /** One notice above an action. On a pastel panel it uses ink, elsewhere the signal colors. */
-export function NoticeRow({ notice, onPastel = false }: { notice: Notice; onPastel?: boolean }) {
+export function NoticeRow({ notice, onPastel = false }: { notice: Omit<Notice, "code">; onPastel?: boolean }) {
   return (
     <div
       role={notice.blocks ? "alert" : "status"}

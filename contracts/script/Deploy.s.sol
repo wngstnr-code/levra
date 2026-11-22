@@ -17,6 +17,7 @@ import {Liquidator} from "../src/Liquidator.sol";
 import {MarginRouter} from "../src/MarginRouter.sol";
 import {RiskManager} from "../src/RiskManager.sol";
 import {SessionOracle} from "../src/SessionOracle.sol";
+import {SwapTargetGuard} from "./SwapTargetGuard.sol";
 
 /// Deploys the Levra contracts on one chain and creates its stock markets on Morpho, from
 /// config/<chain>.json (DEPLOY_CONFIG). Limits come from docs/04-risk-rules.md and are initial proposals.
@@ -89,6 +90,7 @@ contract Deploy is Script {
     function deploy(string memory json, address owner, address feeRecipient) public returns (Deployed memory d) {
         require(vm.parseJsonUint(json, ".chainId") == block.chainid, "config is for another chain");
         ChainConfig memory c = _chain(json);
+        SwapTargetGuard.check(c.swapTargets, c.swapSpenders, tokensOf(json));
         d.risk = new RiskManager(c.morpho, owner, c.preCloseWindow);
         d.router = new MarginRouter(c.morpho, d.risk, c.swapTargets, c.swapSpenders, owner, feeRecipient, c.feeBps);
         d.lens = new Lens(c.morpho, d.risk, d.router);
@@ -222,6 +224,16 @@ contract Deploy is Script {
         p.maxOracleAge = uint32(vm.parseJsonUint(json, string.concat(at, ".maxOracleAge")));
         if (vm.keyExistsJson(json, string.concat(at, ".feed"))) {
             p.feed = vm.parseJsonAddress(json, string.concat(at, ".feed"));
+        }
+    }
+
+    /// USDC and every stock in the config: the tokens a swap target or spender must never be.
+    function tokensOf(string memory json) public view returns (address[] memory tokens) {
+        uint256 n = _count(json, ".markets");
+        tokens = new address[](n + 1);
+        tokens[0] = vm.parseJsonAddress(json, ".usdc");
+        for (uint256 i; i < n; ++i) {
+            tokens[i + 1] = vm.parseJsonAddress(json, string.concat(".markets[", vm.toString(i), "].stock"));
         }
     }
 

@@ -11,5 +11,6 @@ export * from "./auth";
 export * from "./alerts";
 export * from "./status";
 export * from "./config";
+export * from "./chains";
 export * from "./stream";
 export * from "./endpoints";

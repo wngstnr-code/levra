@@ -1,6 +1,6 @@
 import { createDb, runMigrations, termsAcceptances } from "@levra/db";
 import type { IntentsSource } from "@levra/intents";
-import type { SwapSource } from "@levra/kyber";
+import type { SwapSource } from "@levra/swap";
 import { eligibilityResponse, termsAcceptResponse, termsMessage } from "@levra/shared/api";
 import { eq } from "drizzle-orm";
 import pino from "pino";
@@ -10,6 +10,7 @@ import { monad } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import type { ChainReader } from "../src/chain/reader";
+import { countryList } from "../src/routes/compliance";
 
 const url = process.env.TEST_DATABASE_URL;
 const VERSION = "test-2026-10-14";
@@ -40,6 +41,78 @@ describe("region blocking inside a country (D-42)", () => {
     expect(await eligible({ "cf-ipcountry": "UA" })).toBe(true);
     expect(await eligible({ "cf-ipcountry": "US", "cf-region-code": "TX" })).toBe(false);
     expect(await eligible({ "cf-region-code": "43" })).toBe(false);
+  });
+});
+
+describe("countries refused on one chain only (D-73)", () => {
+  const reader = { client: {}, deployment: { chainId: 143, markets: [] } } as unknown as ChainReader;
+  const app = createApp({
+    logger: pino({ level: "silent" }),
+    reader,
+    db: {} as never,
+    compliance: {
+      termsVersion: VERSION,
+      countryHeader: "cf-ipcountry",
+      blockedCountries: new Set(["US"]),
+      blockedCountriesByChain: new Map([[8453, new Set(["GB", "SG"])]]),
+    },
+  });
+  const check = async (query: string, country: string | null) => {
+    const res = await app.request(`/v1/eligibility${query}`, { headers: country ? { "cf-ipcountry": country } : {} });
+    return { status: res.status, body: res.status === 200 ? eligibilityResponse.parse(await res.json()) : null };
+  };
+
+  it("refuses the chain's own list only on that chain, and the shared list everywhere", async () => {
+    expect((await check("?chainId=8453", "GB")).body?.eligible).toBe(false);
+    expect((await check("?chainId=8453", "sg")).body).toMatchObject({ eligible: false, reason: "REGION_BLOCKED" });
+    expect((await check("?chainId=143", "GB")).body?.eligible).toBe(true);
+    expect((await check("", "GB")).body?.eligible).toBe(true);
+    expect((await check("?chainId=196", "GB")).body?.eligible).toBe(true);
+    expect((await check("?chainId=8453", "ID")).body?.eligible).toBe(true);
+    for (const chain of ["8453", "143", "196"]) expect((await check(`?chainId=${chain}`, "US")).body?.eligible).toBe(false);
+  });
+
+  it("refuses a visitor with no country on a chain with a list, even when the shared list is empty", async () => {
+    const onlyBase = createApp({
+      logger: pino({ level: "silent" }),
+      reader,
+      db: {} as never,
+      compliance: { termsVersion: VERSION, countryHeader: "cf-ipcountry", blockedCountries: new Set(), blockedCountriesByChain: new Map([[8453, new Set(["GB"])]]) },
+    });
+    const eligible = async (query: string) => eligibilityResponse.parse(await (await onlyBase.request(`/v1/eligibility${query}`)).json()).eligible;
+    expect(await eligible("?chainId=8453")).toBe(false);
+    expect(await eligible("?chainId=143")).toBe(true);
+  });
+
+  it("gates opening on the chain of the quote route", async () => {
+    const open = { user: privateKeyToAccount(generatePrivateKey()).address, symbol: "QQQ", side: "long", marginRaw: "1000000", leverageE2: 150, slippageBps: 100 };
+    const openOn = async (chainId: number, country: string) => {
+      const chainApp = createApp({
+        logger: pino({ level: "silent" }),
+        reader: { client: {}, deployment: { chainId, markets: [] } } as unknown as ChainReader,
+        swap: {} as SwapSource,
+        db: {} as never,
+        compliance: { termsVersion: VERSION, countryHeader: "cf-ipcountry", blockedCountries: new Set(["US"]), blockedCountriesByChain: new Map([[8453, new Set(["GB"])]]) },
+      });
+      const res = await chainApp.request("/v1/quote/open", { method: "POST", headers: { "content-type": "application/json", "cf-ipcountry": country }, body: JSON.stringify(open) });
+      return ((await res.json()) as { error: { code: string } }).error.code;
+    };
+    expect(await openOn(8453, "GB")).toBe("REGION_BLOCKED");
+    // On Monad the region passes; the stand-in database then fails, which proves the gate let it through.
+    expect(await openOn(143, "GB")).not.toBe("REGION_BLOCKED");
+  });
+
+  it("refuses a chain ID that is not a number", async () => {
+    for (const bad of ["abc", "0", "-1", "8453.5", "1e3"]) expect((await check(`?chainId=${bad}`, "ID")).status).toBe(400);
+  });
+});
+
+describe("country lists", () => {
+  it("reads codes in any case and refuses anything that is not two letters", () => {
+    expect([...countryList("X", " us, gb ,")]).toEqual(["US", "GB"]);
+    expect(countryList("X", undefined).size).toBe(0);
+    expect(() => countryList("BASE_BLOCKED_COUNTRIES", "GB,UK1")).toThrow("BASE_BLOCKED_COUNTRIES must list two-letter country codes, not: UK1");
+    expect(() => countryList("X", "USA")).toThrow();
   });
 });
 

@@ -1,10 +1,11 @@
-import { alertDeliveries, alertSettings, deposits, morphoEvents, routerEvents, type Db } from "@levra/db";
+import { activeGates, alertDeliveries, alertSettings, deposits, monitorState, morphoEvents, routerEvents, type Db } from "@levra/db";
 import { lensAbi } from "@levra/shared/abis";
 import { chains } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
 import { WAD } from "@levra/shared/math";
-import { and, eq, gte, inArray } from "drizzle-orm";
-import { getAddress, type PublicClient } from "viem";
+import { and, eq, gte, inArray, like } from "drizzle-orm";
+import { erc20Abi, getAddress, type PublicClient } from "viem";
+import { GATE_EFFECT } from "../monitor/checks";
 import { closeFromCalendar, type CloseSource } from "../protector/protector";
 import type { Job } from "../runner";
 import type { Channels } from "./channels";
@@ -29,6 +30,45 @@ const hours = (s: number) => (s >= 86_400 ? "24 hours" : `${s / 3_600} hour${s =
 
 export type Alert = { address: string; key: string; subject: string; text: string };
 
+/** An issuer control the team monitor sees blocking (BE-75): `symbol` is the one stock it covers, or null for the whole chain. */
+export type Halt = { key: string; symbol: string | null; message: string; since: number };
+/** What a user holds on this chain: positions by stock, and whether they lend USDC in the Earn vault. */
+export type Holdings = { positions: { symbol: string; label: string }[]; lends: boolean };
+
+const HALT_PREFIX = "halt:";
+
+/**
+ * The alert for a user hit by a halt: positions in the paused stock, or anything at all when it covers the whole chain.
+ * Its key holds the gate and the start of the block, so a block that is lifted and comes back alerts again.
+ */
+export function haltAlert(h: Halt, held: Holdings, chainName: string): Omit<Alert, "address"> | null {
+  const affected = [
+    ...held.positions.filter((p) => h.symbol === null || p.symbol === h.symbol).map((p) => p.label),
+    ...(h.symbol === null && held.lends ? ["USDC lent in Earn"] : []),
+  ];
+  if (affected.length === 0) return null;
+  return {
+    key: `${HALT_PREFIX}${h.key}:${h.since}`,
+    subject: `Trading may be blocked on ${chainName}`,
+    text: `${h.message}\n\nAffected: ${affected.join(", ")}.\n\nWe will send another message when it is lifted.`,
+  };
+}
+
+/**
+ * The follow-up for a halt alert already sent (`sentKey` without the chain id) whose block is no longer active.
+ * `label` is the control as the monitor named it, without the effect sentence.
+ */
+export function liftedAlert(sentKey: string, active: Set<string>, label: string | undefined, chainName: string): Omit<Alert, "address"> | null {
+  if (!sentKey.startsWith(HALT_PREFIX)) return null;
+  const block = sentKey.slice(HALT_PREFIX.length);
+  if (active.has(block)) return null;
+  return {
+    key: `lifted:${block}`,
+    subject: `Block lifted on ${chainName}`,
+    text: `${label ? `${label}: ` : ""}no longer blocking. If something else still blocks this market, you will have a separate message about it.`,
+  };
+}
+
 type Settings = typeof alertSettings.$inferSelect;
 type MarketView = { marketId: string; softLtvClosed: bigint };
 
@@ -52,6 +92,7 @@ export type AlertsOptions = {
 export function createAlerts({ client, deployment, channels, telegram, nextClose = closeFromCalendar, clock, intervalMs = 60_000 }: AlertsOptions): Job {
   const chainClock = async () => Number((await client.getBlock({ blockTag: "latest" })).timestamp);
   const symbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
+  const marketSymbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m.symbol as string]));
 
   async function deliver(db: Db, s: Settings, alert: Alert): Promise<{ sent: number; failed: number }> {
     const targets: [string, () => Promise<void>][] = [];
@@ -95,6 +136,21 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
       const stage = preCloseStage(now, closeAt);
       const since = new Date((now - EVENT_LOOKBACK_SECONDS) * 1000);
       const addresses = users.map((u) => u.address);
+      const halts = await activeGates(db, chainId);
+      const activeBlocks = new Set(halts.map((h) => `${h.key}:${h.since}`));
+      const [haltsSent, gateRows] = await Promise.all([
+        db
+          .selectDistinct({ address: alertDeliveries.address, key: alertDeliveries.key })
+          .from(alertDeliveries)
+          .where(and(inArray(alertDeliveries.address, addresses), like(alertDeliveries.key, `${chainId}:halt:%`))),
+        db
+          .select({ key: monitorState.key, active: monitorState.active, message: monitorState.message })
+          .from(monitorState)
+          .where(and(eq(monitorState.chainId, chainId), like(monitorState.key, "gate:%"))),
+      ]);
+      const gateLabels = new Map(gateRows.map((r) => [r.key, r.message?.replace(` ${GATE_EFFECT}`, "").replace(/\.$/, "")]));
+      // A control that cannot be read is not lifted: the block may still be there.
+      const unread = new Set(gateRows.filter((r) => r.active && r.key.endsWith(":unread")).map((r) => r.key.slice(0, -":unread".length)));
       const [reduced, liquidated, arrived] = await Promise.all([
         db.select().from(routerEvents).where(and(eq(routerEvents.chainId, chainId), eq(routerEvents.name, "PositionReduced"), inArray(routerEvents.user, addresses), gte(routerEvents.blockTime, since))),
         db.select().from(morphoEvents).where(and(eq(morphoEvents.chainId, chainId), eq(morphoEvents.name, "Liquidate"), inArray(morphoEvents.user, addresses), gte(morphoEvents.blockTime, since))),
@@ -110,9 +166,36 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
       };
 
       for (const s of users) {
-        const positions = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getPositions", args: [getAddress(s.address)] })).filter(
-          (p) => p.debt > 0n && symbols.has(p.marketId.toLowerCase()),
+        const all = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getPositions", args: [getAddress(s.address)] })).filter((p) =>
+          symbols.has(p.marketId.toLowerCase()),
         );
+        const positions = all.filter((p) => p.debt > 0n);
+
+        // Halts (BE-75): sent to everyone with alerts set up, with no setting to turn them off, since a halt can stop a close.
+        if (halts.length > 0) {
+          const wholeChain = halts.some((h) => h.symbol === null);
+          const lends =
+            wholeChain && deployment.usdcVault
+              ? (await client.readContract({ address: deployment.usdcVault, abi: erc20Abi, functionName: "balanceOf", args: [getAddress(s.address)] })) > 0n
+              : false;
+          const held: Holdings = {
+            positions: all
+              .filter((p) => p.collateral > 0n || p.debt > 0n)
+              .map((p) => ({ symbol: marketSymbols.get(p.marketId.toLowerCase())!, label: symbols.get(p.marketId.toLowerCase())! })),
+            lends,
+          };
+          for (const h of halts) {
+            const alert = haltAlert(h, held, chainName);
+            if (alert) await send(s, alert);
+          }
+        }
+        for (const sentRow of haltsSent.filter((r) => r.address === s.address)) {
+          const sentKey = sentRow.key.slice(`${chainId}:`.length);
+          const gateKey = sentKey.slice(HALT_PREFIX.length, sentKey.lastIndexOf(":"));
+          if (unread.has(gateKey)) continue;
+          const alert = liftedAlert(sentKey, activeBlocks, gateLabels.get(gateKey) ?? undefined, chainName);
+          if (alert) await send(s, alert);
+        }
 
         if (s.preClose && stage !== null) {
           const atRisk = positions.filter((p) => p.ltv > (markets.find((m) => m.marketId === p.marketId.toLowerCase())?.softLtvClosed ?? 0n));

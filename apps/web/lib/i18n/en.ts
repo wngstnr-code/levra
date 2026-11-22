@@ -44,7 +44,7 @@ export const en = {
   },
   notices: {
     ORACLE_STALE: { title: "Price delayed", body: "Wait for a fresh price to open." },
-    SESSION_CLOSED: { title: "Market closed", body: "New trades wait for the open. We can never pause closing." },
+    SESSION_CLOSED: { title: "Market closed", body: "New trades wait for the open. Levra never pauses closing. Closing needs a valid price, so it may wait for the price to return." },
     PRE_CLOSE_WINDOW: { title: "Weekend soon", body: "Limits are lower before the weekend." },
     HIGH_DEVIATION: { title: "Price differs", body: "The exchange price is far from the real price." },
     HIGH_PRICE_IMPACT: { title: "Big trade", body: "This size moves the price. Try a smaller amount." },
@@ -55,7 +55,7 @@ export const en = {
   clock: {
     closesIn: (t: string) => `Closes in ${t}`,
     opensIn: (t: string) => `Opens in ${t}`,
-    weekendNote: "Limits are lower until the market opens. We can never pause closing.",
+    weekendNote: "Limits are lower until the market opens. Levra never pauses closing. Closing needs a valid price, so it may wait for the price to return.",
   },
   network: {
     title: "Network",
@@ -64,6 +64,7 @@ export const en = {
     stocks: (n: number) => `${n} stock${n === 1 ? "" : "s"}`,
     balance: (v: string) => `${v} USDC`,
     note: "The whole app follows this network.",
+    noData: "Prices and positions from our service come soon",
   },
   nav: { markets: "Markets", trade: "Trade", positions: "Positions", earn: "Earn", deposit: "Deposit", settings: "Settings", account: "Account", help: "Help" },
   session: {
@@ -127,8 +128,8 @@ export const en = {
       PositionCapExceeded: "This is over the size limit for this stock.",
       PriceDeviationTooHigh: "The exchange price is too far from the real price.",
       SoftLimitExceeded: "This is more than you can borrow right now.",
-      MarketClosed: "Market closed. New trades wait for the open. We can never pause closing.",
-      InvalidOraclePrice: "The price looks wrong, so new trades wait. We can never pause closing.",
+      MarketClosed: "Market closed. New trades wait for the open. Levra never pauses closing. Closing needs a valid price, so it may wait for the price to return.",
+      InvalidOraclePrice: "The price looks wrong, so new trades wait. Levra never pauses closing. Closing needs a valid price, so it may wait for the price to return.",
       DeleverageTooDeep: "Weekend protection would sell more than needed, so it stopped.",
       DeleverageTooLarge: "Weekend protection would sell too much at once, so it stopped.",
       LtvNotReduced: "Weekend protection didn't lower the debt ratio, so nothing changed.",
@@ -309,7 +310,7 @@ export const en = {
     stockBack: "Stock back to you",
     realized: "Profit / loss",
     fee: "Fee",
-    neverPaused: "We can never pause adding funds or closing.",
+    neverPaused: "We never pause closing, reducing or adding collateral.",
     confirm: {
       add: (v: string) => `Add ${v}`,
       remove: (v: string) => `Remove ${v}`,
@@ -477,6 +478,22 @@ export const en = {
     bannerTitle: "At risk this weekend",
     bannerBody: (s: string) => `${s} is above the weekend limit. Add funds or reduce it.`,
   },
+  halt: {
+    title: "Trading stopped by the issuer",
+    tokenPaused: "The issuer paused this stock token. Opening waits until they lift it. Closing may also fail until then.",
+  },
+  noPrice: {
+    title: "No price",
+    body: "We can't read this stock's price right now. You can add funds, repay or close in full.",
+  },
+  upgrade: {
+    protectionTitle: "Turn protection on again",
+    protectionBody: (stocks: string) => `Levra moved to a new contract. Protection for ${stocks} is off until you turn it on again with the switch on that position below.`,
+    oldAccess: "Old Levra contract",
+    oldAccessBody: "It still has trading access. Levra no longer uses it, so you can remove it.",
+    removeOld: "Remove access",
+    removeSentences: ["Remove trading access from the old Levra contract", "Your positions stay as they are"],
+  },
   settings: {
     title: "Settings",
     appearance: "Appearance",
@@ -634,19 +651,19 @@ export const en = {
         ],
       },
       base: {
-        howBody: "Levra runs no exchange and no lending venue. Trades are routed through 1inch, KyberSwap or Aerodrome. Loans happen on Morpho, in a position that belongs to your wallet. Prices come from Chainlink's feed for each Coinbase stock. Levra puts the steps together in one confirmation and never keeps your funds between transactions.",
+        howBody: "Levra runs no exchange and no lending venue. Trades may route through 1inch, KyberSwap or Aerodrome. Loans happen on Morpho, in a position that belongs to your wallet. Prices come from Chainlink's feed for each Coinbase stock. Levra puts the steps together in one confirmation and never keeps your funds between transactions.",
         pillars: [
-          { k: "Trades", t: "1inch, KyberSwap, Aerodrome", b: "Routes across exchanges on Base." },
+          { k: "Trades", t: "1inch, KyberSwap, Aerodrome", b: "May route across exchanges on Base." },
           { k: "Loans", t: "Morpho", b: "In a position that belongs to your wallet." },
-          { k: "Prices", t: "Chainlink", b: "Pauses on weekends and holidays." },
+          { k: "Prices", t: "Chainlink", b: "Has paused on weekends so far." },
         ],
       },
       xlayer: {
-        howBody: "Levra runs no exchange and no lending venue. Trades go through OKX DEX or Uniswap. Loans happen on Morpho, in a position that belongs to your wallet. Prices come from the xStocks feeds Morpho uses. Levra puts the steps together in one confirmation and never keeps your funds between transactions.",
+        howBody: "Levra runs no exchange and no lending venue. Trades may route through OKX DEX or Uniswap. Loans happen on Morpho, in a position that belongs to your wallet. Prices come from the xStocks feeds Morpho uses. Levra puts the steps together in one confirmation and never keeps your funds between transactions.",
         pillars: [
-          { k: "Trades", t: "OKX DEX, Uniswap", b: "Exchanges on X Layer." },
+          { k: "Trades", t: "OKX DEX, Uniswap", b: "May route across exchanges on X Layer." },
           { k: "Loans", t: "Morpho", b: "In a position that belongs to your wallet." },
-          { k: "Prices", t: "xStocks feeds", b: "Pause Fri 8 PM to Sun 8 PM ET." },
+          { k: "Prices", t: "xStocks feeds", b: "Has paused from Friday evening to Sunday evening (US time) so far." },
         ],
       },
     },

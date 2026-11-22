@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import pino from "pino";
 import { createPublicClient, custom, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { monad } from "viem/chains";
+import { base, monad } from "viem/chains";
 import { createSiweMessage } from "viem/siwe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signToken, verifyToken } from "../src/auth/token";
@@ -33,7 +33,8 @@ describe.skipIf(!url)("wallet sign-in and alert settings (needs TEST_DATABASE_UR
   // Plain wallets are checked without the chain; a call means a smart wallet, which this test does not use.
   const client = createPublicClient({ chain: monad, transport: custom({ request: async () => { throw new Error("no chain in this test"); } }) });
   const reader = { client, deployment: { chainId: 143, markets: [] } } as unknown as ChainReader;
-  const app = createApp({ logger: pino({ level: "silent" }), reader, db, auth: { secret: SECRET, domains: parsePatterns(`${DOMAIN},levra-mon-*-team.vercel.app`), telegramBot: "levra_alerts_bot" } });
+  const baseReader = { client: createPublicClient({ chain: base, transport: custom({ request: async () => { throw new Error("no chain in this test"); } }) }), deployment: { chainId: 8453, markets: [] } } as unknown as ChainReader;
+  const app = createApp({ logger: pino({ level: "silent" }), reader, otherChains: [baseReader], db, auth: { secret: SECRET, domains: parsePatterns(`${DOMAIN},levra-*-team.vercel.app`), telegramBot: "levra_alerts_bot" } });
   const user = privateKeyToAccount(generatePrivateKey());
 
   const json = async (res: Response) => ({ status: res.status, body: await res.json() });
@@ -65,8 +66,15 @@ describe.skipIf(!url)("wallet sign-in and alert settings (needs TEST_DATABASE_UR
     // The nonce is spent.
     expect((await signIn(msg)).status).toBe(401);
     // A preview address of this project signs in too; another project's preview does not.
-    expect((await signIn(message(await nonce(), { domain: "levra-mon-git-fe-x-team.vercel.app" }))).status).toBe(200);
-    expect((await signIn(message(await nonce(), { domain: "levra-mon-x.other.vercel.app" }))).status).toBe(401);
+    expect((await signIn(message(await nonce(), { domain: "levra-git-fe-x-team.vercel.app" }))).status).toBe(200);
+    expect((await signIn(message(await nonce(), { domain: "levra-x.other.vercel.app" }))).status).toBe(401);
+  });
+
+  it("signs in from every chain this API serves, and not from one it does not serve yet (BE-70)", async () => {
+    const onBase = await signIn(message(await nonce(), { chainId: 8453 }));
+    expect(onBase.status).toBe(200);
+    expect(verifyToken(SECRET, siweResponse.parse(onBase.body).token, Math.floor(Date.now() / 1000))).toBe(user.address);
+    expect((await signIn(message(await nonce(), { chainId: 196 }))).status).toBe(401);
   });
 
   it("needs a session for the alert settings", async () => {

@@ -166,3 +166,25 @@ body {
 @utility animate-fade-in {
   animation: fade-in 200ms ease-out;
 }
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes tick {
+  from {
+    opacity: 0.45;
+  }
+}
+
+/* Short and calm: no animation blocks input, and reduced motion turns them off above. */
+@utility animate-page-in {
+  animation: page-in 220ms var(--ease-spring);
+}
+
+@utility animate-tick {
+  animation: tick 250ms ease-out;
+}
