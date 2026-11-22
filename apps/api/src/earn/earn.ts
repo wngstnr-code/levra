@@ -1,4 +1,4 @@
-import { morphoAbi } from "@levra/shared/abis";
+import { metaMorphoAbi, morphoAbi } from "@levra/shared/abis";
 import type { EarnAccount, EarnOption, EarnPosition } from "@levra/shared/api";
 import {
   WAD,
@@ -10,23 +10,11 @@ import {
   utilizationWad,
   vaultSupplyApyWad,
 } from "@levra/shared/math";
-import { erc20Abi, parseAbi, type Address, type Hex } from "viem";
+import { erc20Abi, type Address, type Hex } from "viem";
 import { createCache } from "../chain/cache";
 import type { ChainReader, MarketState } from "../chain/reader";
 import type { StoredEvent } from "../positions/events";
 
-/**
- * MetaMorpho reads used by Earn. Temporary until the ABI export in packages/shared includes MetaMorpho (requested from
- * Wangsit).
- */
-const metaMorphoAbi = parseAbi([
-  "function totalAssets() view returns (uint256)",
-  "function fee() view returns (uint96)",
-  "function withdrawQueueLength() view returns (uint256)",
-  "function withdrawQueue(uint256 index) view returns (bytes32)",
-  "function convertToAssets(uint256 shares) view returns (uint256)",
-  "function maxWithdraw(address owner) view returns (uint256)",
-]);
 
 /** Options change with every block, but the screen refreshes slowly. */
 const OPTIONS_TTL_MS = 5_000;

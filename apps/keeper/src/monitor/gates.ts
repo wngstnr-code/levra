@@ -1,20 +1,22 @@
 import { externalByChain, tokensByChain } from "@levra/shared/addresses";
-import { coinbaseOracleRegistryAbi } from "@levra/shared/abis";
+import {
+  anchoredComplianceAbi,
+  b20PolicyRegistryAbi,
+  b20TokenAbi,
+  circleTokenAbi,
+  coinbaseOracleRegistryAbi,
+  sanctionsListAbi,
+  xStockAbi,
+} from "@levra/shared/abis";
 import type { ChainId } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
 import { stocksByChain } from "@levra/shared/markets";
-import { keccak256, parseAbi, toBytes, type Address, type PublicClient } from "viem";
+import { keccak256, toBytes, type Address, type PublicClient } from "viem";
 
 /**
  * Issuer controls that can block our markets (BE-75): a token pause, a blocklist that names Morpho or our contracts, an
- * oracle pause. Temporary ABIs until `packages/shared/abis` exports them (requested from Wangsit).
+ * oracle pause.
  */
-const anchoredComplianceAbi = parseAbi(["function isDenylisted(address account) view returns (bool)"]);
-const circleUsdcAbi = parseAbi(["function paused() view returns (bool)", "function isBlacklisted(address account) view returns (bool)"]);
-const b20Abi = parseAbi(["function policyId(bytes32 policyScope) view returns (uint64)", "function isPaused(uint8 feature) view returns (bool)"]);
-const b20PolicyRegistryAbi = parseAbi(["function isAuthorized(uint64 policyId, address account) view returns (bool)"]);
-const xStockAbi = parseAbi(["function isPaused() view returns (bool)", "function asset() view returns (address)"]);
-const sanctionsListAbi = parseAbi(["function isSanctioned(address account) view returns (bool)"]);
 
 /** B20 feature 0 is transfer (05, SC-71). Mint, burn and seize do not stop a user's close. */
 const B20_TRANSFER = 0;
@@ -54,11 +56,11 @@ function usdcReads(chainId: ChainId, accounts: { name: string; address: Address 
   const usdc = tokensByChain[chainId].USDC.address;
   const holders = deployment?.usdcVault ? [...accounts, { name: "USDC vault", address: deployment.usdcVault }] : accounts;
   return [
-    { key: "gate:usdc-paused", label: "USDC is paused by Circle", call: { address: usdc, abi: circleUsdcAbi, functionName: "paused" }, blockedWhen: isTrue },
+    { key: "gate:usdc-paused", label: "USDC is paused by Circle", call: { address: usdc, abi: circleTokenAbi, functionName: "paused" }, blockedWhen: isTrue },
     ...holders.map((a) => ({
       key: `gate:usdc-blacklist:${a.name}`,
       label: `Circle blacklists ${a.name} (${a.address}) for USDC`,
-      call: { address: usdc, abi: circleUsdcAbi, functionName: "isBlacklisted", args: [a.address] },
+      call: { address: usdc, abi: circleTokenAbi, functionName: "isBlacklisted", args: [a.address] },
       blockedWhen: isTrue,
     })),
   ];
@@ -82,7 +84,7 @@ async function baseGates(client: PublicClient, accounts: { name: string; address
   const gates = await run(
     client,
     stocks.flatMap((s) => [
-      { key: `gate:b20-paused:${s.symbol}`, label: `${s.tokenSymbol} transfers are paused by the issuer`, call: { address: s.token, abi: b20Abi, functionName: "isPaused", args: [B20_TRANSFER] }, blockedWhen: isTrue },
+      { key: `gate:b20-paused:${s.symbol}`, label: `${s.tokenSymbol} transfers are paused by the issuer`, call: { address: s.token, abi: b20TokenAbi, functionName: "isPaused", args: [B20_TRANSFER] }, blockedWhen: isTrue },
       {
         key: `gate:oracle-paused:${s.symbol}`,
         label: `The Coinbase oracle registry pauses ${s.tokenSymbol}; new positions stop and the closed limit applies (04)`,
@@ -94,7 +96,7 @@ async function baseGates(client: PublicClient, accounts: { name: string; address
 
   // The transfer policies of every stock, then whether each policy still lets our accounts through.
   const scopes = stocks.flatMap((s) => B20_SCOPES.map((scope) => ({ s, scope })));
-  const ids = await client.multicall({ allowFailure: true, contracts: scopes.map(({ s, scope }) => ({ address: s.token, abi: b20Abi, functionName: "policyId", args: [scope] }) as const) });
+  const ids = await client.multicall({ allowFailure: true, contracts: scopes.map(({ s, scope }) => ({ address: s.token, abi: b20TokenAbi, functionName: "policyId", args: [scope] }) as const) });
   const policies = new Map<string, { id: bigint; tokens: Set<string> }>();
   ids.forEach((r, i) => {
     const { s } = scopes[i]!;
