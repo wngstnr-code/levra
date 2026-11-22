@@ -73,7 +73,7 @@ export function TxSheet({ title, state, sentences, signatures, approvals, confir
       {state.phase === "error" && (
         <>
           <div className="squircle flex items-start gap-4 rounded-panel bg-surface-1 p-5">
-            <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-down text-xl font-bold text-ink">×</span>
+            <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-down text-xl font-bold text-on-signal">×</span>
             <p className="text-[15px] text-fg">{state.error}</p>
           </div>
           {explorer && (

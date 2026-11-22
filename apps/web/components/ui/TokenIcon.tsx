@@ -7,7 +7,7 @@ export function TokenIcon({ symbol, size = 40, inverted = false, className }: { 
     <span
       aria-hidden
       style={{ width: size, height: size, fontSize: size * 0.42 }}
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-bold", inverted ? "bg-ink text-fg" : cn(toneBg[stockTone(symbol)], "text-ink"), className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-bold", inverted ? "bg-ink text-on-ink" : cn(toneBg[stockTone(symbol)], "text-ink"), className)}
     >
       {symbol.slice(0, 1)}
     </span>

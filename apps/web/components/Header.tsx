@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeftRight, ChartCandlestick, Layers, PiggyBank, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApiSession } from "@/lib/api/hooks";
@@ -13,12 +14,20 @@ import { SessionBadge } from "./ui/SessionBadge";
 import { WalletButton } from "./WalletButton";
 
 export const routes = [
-  { href: "/markets", key: "markets", glyph: "◧" },
-  { href: "/trade", key: "trade", glyph: "⇅" },
-  { href: "/positions", key: "positions", glyph: "◔" },
-  { href: "/earn", key: "earn", glyph: "%" },
-  { href: "/deposit", key: "deposit", glyph: "↓" },
-  { href: "/settings", key: "settings", glyph: "⚙" },
+  { href: "/markets", key: "markets" },
+  { href: "/trade", key: "trade" },
+  { href: "/positions", key: "positions" },
+  { href: "/earn", key: "earn" },
+  { href: "/deposit", key: "deposit" },
+  { href: "/settings", key: "settings" },
+] as const;
+
+const tabs = [
+  { href: "/markets", key: "markets", icon: ChartCandlestick, also: [] },
+  { href: "/trade", key: "trade", icon: ArrowLeftRight, also: [] },
+  { href: "/positions", key: "positions", icon: Layers, also: [] },
+  { href: "/earn", key: "earn", icon: PiggyBank, also: [] },
+  { href: "/settings", key: "account", icon: UserRound, also: ["/deposit", "/help"] },
 ] as const;
 
 export function Header() {
@@ -69,17 +78,16 @@ export function BottomNav() {
   const m = useT();
   const pathname = usePathname();
   return (
-    <nav aria-label={m.a11y.mainNav} className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-bg/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-      <ul className="mx-auto grid max-w-xl grid-cols-6">
-        {routes.map((r) => {
-          const active = pathname.startsWith(r.href);
+    <nav aria-label={m.a11y.mainNav} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+      <ul className="mx-auto grid max-w-xl grid-cols-5">
+        {tabs.map((t) => {
+          const active = [t.href, ...t.also].some((h) => pathname.startsWith(h));
+          const Icon = t.icon;
           return (
-            <li key={r.href}>
-              <Link href={r.href} aria-current={active ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium", active ? "text-lime" : "text-fg-2")}>
-                <span aria-hidden className="text-lg leading-none">
-                  {r.glyph}
-                </span>
-                {m.nav[r.key]}
+            <li key={t.href}>
+              <Link href={t.href} aria-current={active ? "page" : undefined} className={cn("flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors", active ? "text-fg" : "text-fg-3")}>
+                <Icon aria-hidden size={22} strokeWidth={active ? 2 : 1.75} />
+                {m.nav[t.key]}
               </Link>
             </li>
           );

@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { Card } from "./Card";
 
 type Tone = "lime" | "plain" | "down";
-const marks: Record<Tone, string> = { lime: "bg-lime text-ink", plain: "bg-surface-3 text-fg", down: "bg-down text-ink" };
+const marks: Record<Tone, string> = { lime: "bg-lime text-ink", plain: "bg-surface-3 text-fg", down: "bg-down text-on-signal" };
 
 /** The one style for empty, signed-out and error states on every page. */
 export function EmptyState({ glyph, tone = "plain", title, body, action, className }: { glyph: string; tone?: Tone; title: string; body: string; action?: React.ReactNode; className?: string }) {

@@ -6,6 +6,7 @@ import { BottomNav, Header } from "@/components/Header";
 import { StatusBanners } from "@/components/StatusBanners";
 import "./globals.css";
 import { Providers } from "./providers";
+import { themeBootScript } from "@/lib/theme";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
@@ -14,11 +15,20 @@ export const metadata: Metadata = {
   description: "A margin account for tokenized stocks on Monad.",
 };
 
-export const viewport: Viewport = { themeColor: "#0a0a0b", colorScheme: "dark" };
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f5f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0b" },
+  ],
+  colorScheme: "dark light",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="min-h-screen">
         <Providers>
           <Header />

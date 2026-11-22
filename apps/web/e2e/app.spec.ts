@@ -13,17 +13,17 @@ test("markets shows prices, limits and leverage from the service", async ({ page
 test("a stale price shows the banner on every page", async ({ page }) => {
   await mockService(page, { stale: true });
   await page.goto("/markets");
-  await expect(page.getByText("Price is stale")).toBeVisible();
+  await expect(page.getByText("Price delayed")).toBeVisible();
   await page.goto("/help");
-  await expect(page.getByText("Price is stale")).toBeVisible();
+  await expect(page.getByText("Price delayed")).toBeVisible();
 });
 
 test("market detail explains the limits", async ({ page }) => {
   await mockService(page);
   await page.goto("/markets/QQQ");
-  await expect(page.getByText("77% LTV")).toBeVisible();
-  await expect(page.getByText("Soft limit, market closed")).toBeVisible();
-  await expect(page.getByText("Market depth")).toBeVisible();
+  await expect(page.getByText("77%", { exact: true })).toBeVisible();
+  await expect(page.getByText("Weekend limit")).toBeVisible();
+  await expect(page.getByText("Price impact by size")).toBeVisible();
 });
 
 test("trade asks to sign in before anything else", async ({ page }) => {
@@ -31,13 +31,13 @@ test("trade asks to sign in before anything else", async ({ page }) => {
   await page.goto("/trade?symbol=QQQ");
   await expect(page.getByRole("heading", { name: "Trade", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign-in unavailable" })).toBeDisabled();
-  await expect(page.getByText("Position $200 of the $500 cap")).toBeVisible();
+  await expect(page.getByText("$200 of $500 size limit")).toBeVisible();
 });
 
 test("a blocked region cannot reach the trade form", async ({ page }) => {
   await mockService(page, { eligible: false });
   await page.goto("/trade");
-  await expect(page.getByText("Levra is not available where you are")).toBeVisible();
+  await expect(page.getByText("Not available in your region")).toBeVisible();
   await expect(page.getByRole("link", { name: "Go to Positions" })).toBeVisible();
 });
 
@@ -52,13 +52,22 @@ test("help lists the deployed contracts and explains each word", async ({ page }
   await mockService(page);
   await page.goto("/help#ltv");
   await expect(page.getByText("0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6").first()).toBeVisible();
-  await expect(page.getByText("Loan to value")).toBeVisible();
+  await expect(page.getByText("Your debt divided by")).toBeVisible();
 });
 
 test("an unknown page says so", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere");
-  await expect(page.getByText("This page does not exist")).toBeVisible();
+  await expect(page.getByText("Page not found")).toBeVisible();
+});
+
+test("the light theme is kept after a reload", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/settings");
+  await page.getByRole("radio", { name: "Light" }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(245, 245, 242)");
 });
 
 test("phones get the tab bar instead of the top navigation", async ({ page, isMobile }) => {

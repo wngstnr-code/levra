@@ -17,6 +17,7 @@ import { TxSheet } from "../tx/TxSheet";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
+import { ThemeSwitch } from "../theme/ThemeSwitch";
 import { TokenIcon } from "../ui/TokenIcon";
 import { AlertsCard } from "./AlertsCard";
 import { WalletCard } from "./WalletCard";
@@ -29,6 +30,10 @@ export function SettingsView() {
   return (
     <div className="space-y-4">
       <h1 className="text-display pt-2 pb-4 text-[40px] leading-tight font-semibold">{m.settings.title}</h1>
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">{m.settings.appearance}</h2>
+        <ThemeSwitch className="w-full sm:w-80" />
+      </Card>
       {!address ? (
         <EmptyState glyph="◎" tone="lime" title={m.positions.connectTitle} body={m.settings.connect} action={signIn && <Button onClick={signIn}>{m.wallet.signIn}</Button>} />
       ) : (
@@ -54,7 +59,7 @@ function ProtectionCard({ user }: { user: `0x${string}` }) {
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <span aria-hidden className="flex size-10 items-center justify-center rounded-full bg-up font-bold text-ink">⛨</span>
+        <span aria-hidden className="flex size-10 items-center justify-center rounded-full bg-up font-bold text-on-signal">⛨</span>
         <div>
           <h2 className="text-xl font-semibold">{m.protection.title}</h2>
           <p className="text-[13px] text-fg-2">{m.protection.sub}</p>

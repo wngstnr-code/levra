@@ -79,7 +79,7 @@ function Row({ item }: { item: HistoryItem }) {
   const mark = marks[item.type];
   return (
     <div className="squircle flex items-start gap-4 rounded-panel bg-surface-2 p-4">
-      <span aria-hidden className={cn("flex size-10 shrink-0 items-center justify-center rounded-full font-bold text-ink", mark.bg)}>
+      <span aria-hidden className={cn("flex size-10 shrink-0 items-center justify-center rounded-full font-bold", mark.bg, mark.bg === "bg-down" ? "text-on-signal" : "text-ink")}>
         {mark.glyph}
       </span>
       <div className="min-w-0 flex-1">
