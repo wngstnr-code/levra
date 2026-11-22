@@ -1,0 +1,1 @@
+ALTER TABLE "router_events" ADD COLUMN "router" text;

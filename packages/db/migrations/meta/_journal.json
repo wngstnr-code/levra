@@ -71,6 +71,13 @@
       "when": 1795163917388,
       "tag": "0009_chainlink_rounds",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795320750327,
+      "tag": "0010_router_events_router",
+      "breakpoints": true
     }
   ]
 }
