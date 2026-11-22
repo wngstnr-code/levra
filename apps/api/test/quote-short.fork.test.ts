@@ -1,4 +1,4 @@
-import { createKyber, KYBER_MONAD_URL } from "@levra/kyber";
+import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
 import { tokens } from "@levra/shared/addresses";
 import { lensAbi } from "@levra/shared/abis";
 import { quoteCloseResponse, quoteOpenResponse } from "@levra/shared/api";
@@ -10,12 +10,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
-import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, seedMarket } from "./fork-helpers";
+import { createForkClient, deal, forkDeployment, forkRpcUrl, forSigning, onFork, openSessionAtDexPrice, seedMarket } from "./fork-helpers";
 
 describe.skipIf(!onFork)("short quotes executed on the fork (BE-20)", () => {
   const deployment = forkDeployment();
   const reader = createChainReader(createChainClient(143, forkRpcUrl), deployment);
-  const app = createApp({ logger: pino({ level: "silent" }), reader, swap: createKyber({ baseUrl: KYBER_MONAD_URL, clientId: "levra" }) });
+  const swap = createKyber({ baseUrl: KYBER_MONAD_URL, clientId: "levra" });
+  const app = createApp({ logger: pino({ level: "silent" }), reader, swap });
   const chain = createForkClient(forkRpcUrl);
   const user = privateKeyToAccount(generatePrivateKey());
   const market = deployment.markets.find((m) => m.symbol === "QQQ" && m.side === "short")!;
@@ -23,6 +24,7 @@ describe.skipIf(!onFork)("short quotes executed on the fork (BE-20)", () => {
   let snapshotId: Hex;
   beforeAll(async () => {
     snapshotId = await chain.snapshot();
+    await openSessionAtDexPrice(chain, swap, "QQQ");
     // Lenders supply aQQQ, the stock a short borrows.
     await seedMarket(chain, market.marketId, parseUnits("2", 18));
     await deal(chain, tokens.USDC.address, user.address, parseUnits("200", 6));

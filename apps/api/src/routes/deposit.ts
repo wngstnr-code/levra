@@ -136,7 +136,8 @@ export function depositRoutes(db: Db, intents: IntentsSource, compliance?: Compl
     const parsed = depositQuoteRequest.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiHttpError("BAD_REQUEST", "Invalid deposit request.", parsed.error.issues);
     const req = parsed.data;
-    if (compliance) await compliance.require(c, getAddress(req.recipient));
+    // Deposits arrive as USDC on Monad.
+    if (compliance) await compliance.require(c, getAddress(req.recipient), MONAD_CHAIN_ID);
     const amount = BigInt(req.amountRaw);
     if (amount === 0n) throw new ApiHttpError("BAD_REQUEST", "The amount must be above zero.");
     const [origin, usdc] = await Promise.all([otherChainToken(req.originChain, req.originToken), monadAsset(monadTokens.USDC.address)]);

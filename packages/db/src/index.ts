@@ -1,6 +1,8 @@
 export { createDb, type Db } from "./client";
 export { runMigrations } from "./migrate";
 export {
+  activeGates,
+  gateSymbol,
   deviationHistory,
   latestDepthRun,
   protectedPositions,
@@ -10,6 +12,7 @@ export {
   morphoPositions,
   observedClosedStretches,
   rateHistory,
+  routerCursor,
   type EventPosition,
 } from "./queries";
 export * from "./schema";

@@ -37,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       appId={privyAppId}
       config={{
         loginMethods: ["wallet", "email", "passkey"],
-        appearance: { theme, walletChainType: "ethereum-only" },
+        appearance: { theme, walletChainType: "ethereum-only", walletList: ["base_account", "metamask", "okx_wallet", "rainbow", "coinbase_wallet", "wallet_connect"] },
         defaultChain: defaultChain.viem,
         supportedChains: webChains.map((c) => c.viem),
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },

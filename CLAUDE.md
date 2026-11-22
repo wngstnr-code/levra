@@ -35,6 +35,7 @@ If a doc and the code disagree, the code shows what exists and the doc shows wha
 - Commit message format: `<area>: <what changed>`, for example `sc: add soft limit check to openLong`. Areas: `sc`, `be`, `fe`, `shared`, `docs`, `ci`.
 - Never commit or push unless the user asks. Code changes go through a branch and a PR, never straight to `main`. Docs-only changes (`docs/`, `CLAUDE.md`, READMEs) may be pushed straight to `main` when the user asks. Branch names: `<area>/<task-id>-<short-name>`, for example `be/BE-12-quote-long`.
 - Pull before you start. Never force-push a shared branch and never rewrite history a teammate may already have.
+- No merge conflicts in shared docs (06, "Avoiding merge conflicts in shared docs"): `docs/PROGRESS.md` and `docs/09-decisions-and-questions.md` are committed on `main` only, never in a work branch. Push a new `D-xx` row to `main` when the decision is made, before the PR. Open every PR from `main`, not on top of another branch. When anything merges into `main`, merge `main` into the other open branches the same day. The daily log has one section per person: add lines only at the top of your own section. A docs-only PR for these two files is merged the same day; if `main` moves first, merge `main` into it at once.
 - Stage files by path (`git add <path>`), never `git add -A` or `git add .`, so each commit holds only what belongs to it. If one file mixes two changes, split them with `git add -p`.
 - Subject line under 72 characters, in the imperative ("add", not "added"). Add a short body when the reason is not obvious.
 - Each commit should build and pass its tests on its own when possible.
@@ -57,7 +58,7 @@ Work is split between three people. Every task has exactly one owner.
 | Person | Area | Owns | Task file |
 |---|---|---|---|
 | Wangsit | Smart contracts (SC) | `contracts/`, `packages/shared/abis/`, `addresses.ts`, `markets.ts`, `chains.ts`, `deployments*.ts` | `docs/tasks/sc-wangsit.md` |
-| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `deploy/`, `packages/db/`, `packages/kyber/`, `packages/intents/`, `packages/shared/api/`, `math.ts`, `gaps.ts` | `docs/tasks/be-dharu.md` |
+| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `deploy/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/shared/api/`, `math.ts`, `gaps.ts` | `docs/tasks/be-dharu.md` |
 | Nabil | Frontend (FE) | `apps/web/` | `docs/tasks/fe-nabil.md` |
 | All three | Shared | `docs/`, repo setup, non-engineering work | `docs/tasks/00-shared.md` |
 
@@ -73,8 +74,8 @@ Rules:
 Docs are part of the work, not an afterthought. In the same piece of work:
 
 - Mark the task `- [~]` when starting and `- [x]` when it meets its "Done when" line.
-- Add blockers, real transaction hashes and a short daily log entry to `docs/PROGRESS.md`.
-- Record new decisions and answered questions in `docs/09-decisions-and-questions.md`.
+- Add blockers, real transaction hashes and a short daily log entry to `docs/PROGRESS.md` (on `main`, see section 4).
+- Record new decisions and answered questions in `docs/09-decisions-and-questions.md` (on `main`, see section 4).
 - Update `docs/05-addresses-and-services.md` when an address, measurement or service fact changes.
 - Update `docs/03-interfaces.md` together with any interface or API change.
 

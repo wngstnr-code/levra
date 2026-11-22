@@ -1,5 +1,5 @@
 import { createDb, dexQuotes, latestDexMids, runMigrations } from "@levra/db";
-import { SwapError, type SwapSource } from "@levra/kyber";
+import { SwapError, type SwapSource } from "@levra/swap";
 import { tokens } from "@levra/shared/addresses";
 import { stocks } from "@levra/shared/markets";
 import pino from "pino";

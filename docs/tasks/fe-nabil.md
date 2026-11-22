@@ -215,13 +215,15 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: Privy and wagmi with Base and Monad; chain picker in the header; routes `/base/...` and `/monad/...`; balances per chain.
   - Done when: switching chain changes every page with no reload and no wrong-chain transaction is possible.
   - Note: built on 20 November 2026 (`fe/FE-70-b-multichain`): `/[chain]/...` routes with the old paths redirected to Monad, a chain registry in `apps/web/lib/chains.ts` that offers a chain only when its deployment file exists in `packages/shared`, prices and sessions read from each market's `ISessionOracle.snapshot`, chain scoped API calls as `/v1/:chainId/...` (Monad keeps the alias, D-60), the network picker with USDC per chain. Base and X Layer appear when `deployments.base.ts` and `deployments.xlayer.ts` exist (one import line in `lib/chains.ts`).
+  - Note: 22 November 2026 (`fe/FE-80-g-live-chains`): Base and X Layer are on, from `@levra/shared/deployments/base` and `/xlayer`. The network picker reads `GET /v1/chains` and says when our service does not serve a chain yet; the eligibility check sends the chain (D-103). Left: the API on the VPS does not serve `/v1/chains` or `/v1/:chainId/...` yet.
 
 - [ ] **FE-71 · Base markets page**
   - Needs: SC-70.
   - Do: Coinbase stocks with Chainlink price, session, feed frozen and halted states, share units through the multiplier.
   - Done when: real Base prices show next to Monad ones.
+  - Note: 22 November 2026: Base markets list from the deployment, prices from each market's `snapshot()`, the halt notice from `haltReasons` and `tokenPaused`. Not done: share units through `uiMultiplierWad`.
 
-- [ ] **FE-72 · Long, short and close on Base**
+- [~] **FE-72 · Long, short and close on Base**
   - Needs: BE-72, SC-76.
   - Do: reuse the trade flow; Base specific notices (weekend frozen price, issuer can pause a token); the remaining short capacity per stock, since the seed caps it until Earn users add more (D-70); the geo block and risk disclosure before the first trade (D-73).
   - Done when: a real long and short on Base are opened and closed from the web app (checkpoint I-B1).
@@ -231,18 +233,20 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: lend stocks into the short markets and USDC into the long side vault.
   - Done when: a real supply and withdraw from the app.
 
-- [ ] **FE-74 · Base Account and sponsored gas**
+- [~] **FE-74 · Base Account and sponsored gas**
   - Do: Base Account as a sign-in option through Privy, and a Base paymaster for the first actions (budget Q-34).
   - Done when: a new user opens a first position with no ETH.
+  - Note: our own sign-in sheet on top of Privy is built (Base Account first, email with code, passkey, external wallet). Privy 3.48 takes no wallet list in `login()`, so Base Account opens Privy's wallet list with Base Account first; a direct Base Account login is not verified. The paymaster is not started (budget Q-34).
 
 - [ ] **FE-75 · Public stats page**
   - Needs: BE-79.
   - Do: wallets, open interest, volume, Earn supplied, per chain.
   - Done when: live numbers show from the API.
 
-- [ ] **FE-76 · Shareable position card**
+- [~] **FE-76 · Shareable position card**
   - Do: image card for X after open or close (market, side, leverage, PnL in percent), with a link to the app.
   - Done when: a card is generated from a real position.
+  - Note: built on 20 November 2026 (`fe/FE-88-d-flows`): a Share button on every position draws a 1200×630 picture in the browser (stock, side, chain, price move since entry in the trade's favour, entry, now, P&L in dollars) and links to an X post. PnL in percent waits for a shared formula (blocker for Dharu).
 
 - [ ] **FE-77 · Agent entry in the app**
   - Needs: BE-77.
@@ -260,6 +264,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: FE-70, SC-80.
   - Do: X Layer in the chain picker and routes (`/xlayer/...`); markets, trade, positions and Earn for the stocks in D-68; OKX Wallet works as an external wallet through Privy; the same short capacity, weekend frozen price (Friday 20:00 to Sunday 20:00 ET), issuer pause notice, geo block and risk disclosure as on Base (D-69, D-70, D-73).
   - Done when: a real long and short on X Layer are opened and closed from the app (checkpoint I-X1).
+  - Note: 22 November 2026: X Layer is in the picker and routes; Earn has no USDC vault there (the app hides it). Waits for the API on the VPS and a real long and short.
 
 - [ ] **FE-81 · Verified PnL on the share card and leaderboard**
   - Needs: BE-84, FE-76.
@@ -280,14 +285,14 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
 
 ## R. Redesign (Pencil design, 20 November 2026)
 
-The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and light themes, desktop and mobile screens, a states board and the Levra icon set. Copy is plain language: no protocol terms on screen (LTV is "debt ratio", soft limit is "safe limit", oracle price is "price").
+The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and light themes, desktop and mobile screens, a states board and the Levra icon set. Copy is plain language: no protocol terms on screen (LTV is "debt ratio", soft limit is "borrow limit", oracle price is "price").
 
 - [~] **FE-84 · Design system v2 and light mode**
   - Do: color tokens with a dark and a light theme, the `lime-text`, `lilac-text` and `on-signal` tokens, a theme switch (system by default, saved per browser), base components updated to the Pencil design.
   - Done when: every page renders in both themes with no color outside the tokens, and the switch remembers the choice.
 
 - [~] **FE-85 · Levra icon set**
-  - Do: the twelve Levra icons (long, short, leverage, lend, weekend guard, price paused, Monday gap, safe limit, liquidation, debt ratio, verified, any network) as one React icon component on a 24 px grid. Common actions keep Lucide style icons.
+  - Do: the twelve Levra icons (long, short, leverage, lend, weekend guard, price paused, Monday gap, borrow limit, liquidation, debt ratio, verified, any network) as one React icon component on a 24 px grid. Common actions keep Lucide style icons.
   - Done when: the product icons on every page come from the set.
 
 - [~] **FE-86 · Plain language copy**
@@ -302,6 +307,22 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: build the states board: market status pills, position health levels, trade notices from the quote `warnings`, transaction results from the contract and API errors, app errors (region, terms, wrong network, offline, rate limit), empty and loading states.
   - Done when: each warning code, contract error and API error code in 03 maps to a designed state, with a unit test for the mapping.
 
-- [ ] **FE-89 · Motion**
+- [x] **FE-89 · Motion**
   - Do: short, calm transitions (sheets, number changes, tab changes) that respect reduced motion.
   - Done when: no animation blocks input or runs longer than 300 ms, and reduced motion turns them off.
+  - Note: done on 20 November 2026 (`fe/FE-89-e-motion`): pages ease in (220 ms), money values fade when they change (250 ms), sheets slide in; an end-to-end test checks that reduced motion turns them off.
+
+- [x] **FE-90 · Next.js security upgrade**
+  - Do: move off Next.js 16.4.0, which the build flags for known security issues, and patch vulnerable packages under the web app.
+  - Done when: the build shows no security warning, and typecheck, lint, unit and end-to-end tests pass.
+  - Note: done on 20 November 2026 (`fe/FE-90-next-security`): Next.js and eslint-config-next 16.4.6. The root `pnpm.overrides` for ws 8, follow-redirects 1 and zod 4 moved to their own PR (`ci/FE-90-dep-overrides`) because they touch every workspace; Dharu reviews them. Still open (need a major jump in Privy's dependencies): uuid 9, decode-uri-component 0.2 and zod 3.
+
+- [x] **FE-91 · Halted markets and markets without a price**
+  - Do: show `Market.haltReasons` and `tokenPaused` as a blocking notice and stop opening (BE-75); when `oraclePriceE8` is `"0"` show "No price", keep the position out of the numbers and offer only add, repay and a full close (D-100).
+  - Done when: both states have unit and end-to-end tests.
+  - Note: done on 22 November 2026 (`fe/FE-80-g-live-chains`).
+
+- [x] **FE-92 · Router upgrade (SC-87)**
+  - Do: when a deployment lists `previousRouters`, ask users who had protection on an old router to turn it on again, and offer to remove an old router's Morpho access. Access to the new router comes from the quote requirements as before.
+  - Done when: the state is read for every old router and has a unit test.
+  - Note: done on 22 November 2026 (`fe/FE-80-g-live-chains`).

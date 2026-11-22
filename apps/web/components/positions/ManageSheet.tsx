@@ -23,12 +23,17 @@ import { Sheet } from "../ui/Sheet";
 import type { ManageTab } from "./PositionCard";
 import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
+import { noticeFor } from "@/lib/warnings";
+import { NoticeRow } from "../ui/NoticeRow";
+import { hasNoPrice, manageTabs, noPriceNotice } from "@/lib/marketState";
 
 const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
 const FRACTIONS = [25, 50, 75, 100];
 const SLIPPAGE_BPS = 50;
 
-export function ManageSheet({ position, tab, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
+export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
+  const noPrice = hasNoPrice(position.oraclePriceE8);
+  const { tabs, tab } = manageTabs(TABS, noPrice, asked);
   const chain = useChain();
   const m = useT();
   const flow = useTxFlow();
@@ -109,12 +114,13 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
     <>
       <Sheet open={flow.state.phase === "idle"} onClose={onClose} title={m.positions.manageTitle(stock.tokenSymbol, long ? m.trade.long : m.trade.short)}>
         <div role="tablist" className="flex gap-1 rounded-full bg-surface-1 p-1">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => onTab(t)} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", tab === t ? "bg-surface-3 font-semibold" : "text-fg-2 hover:text-fg")}>
               {m.positions.tabs[t]}
             </button>
           ))}
         </div>
+        {noPrice && <NoticeRow notice={noPriceNotice(m)} />}
 
         {isAmount ? (
           <label className="squircle block rounded-panel bg-surface-1 p-5">
@@ -176,9 +182,7 @@ export function ManageSheet({ position, tab, onTab, onClose, user }: { position:
         </div>
 
         {quote?.warnings.map((w) => (
-          <p key={w.code} className={cn("text-[13px]", w.severity === "block" ? "text-down" : "text-caution")}>
-            {w.message}
-          </p>
+          <NoticeRow key={w.code} notice={noticeFor(w, m)} />
         ))}
         <p className="text-xs text-fg-3">{m.positions.neverPaused}</p>
 

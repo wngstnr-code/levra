@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  FEED_SCHEDULE,
   REGULAR_SCHEDULE,
   etParts,
   etToUnix,
@@ -110,5 +111,27 @@ describe("exchange calendar (BE-30)", () => {
     expect(isScheduledClosed(at("2026-10-23", 20), OBSERVED)).toBe(true);
     expect(isScheduledClosed(at("2026-10-25", 20, 1), OBSERVED)).toBe(false);
     expect(isScheduledClosed(at("2026-10-21", 3), OBSERVED)).toBe(false);
+  });
+
+  it("follows ChainlinkSessionOracle's weekly close on Base and X Layer: Saturday 00:00 to Monday 01:00 UTC", () => {
+    const utc = (iso: string) => Date.parse(iso) / 1000;
+    // Winter (EST): Saturday 00:00 UTC is Friday 19:00 in New York, an hour before the feeds freeze.
+    expect(nextCloseAfter(at("2026-11-16", 9), FEED_SCHEDULE)).toBe(utc("2026-11-21T00:00:00Z"));
+    expect(clock(nextCloseAfter(at("2026-11-16", 9), FEED_SCHEDULE))).toBe("2026-11-20 19:00");
+    // Summer (EDT): the same instant is Friday 20:00 in New York.
+    expect(clock(nextCloseAfter(at("2026-07-06", 9), FEED_SCHEDULE))).toBe("2026-07-10 20:00");
+    // The open is Monday 01:00 UTC: Sunday 20:00 in winter, 21:00 in summer.
+    expect(nextOpenAfter(at("2026-11-21", 12), FEED_SCHEDULE)).toBe(utc("2026-11-23T01:00:00Z"));
+    expect(clock(nextOpenAfter(at("2026-07-11", 12), FEED_SCHEDULE))).toBe("2026-07-12 21:00");
+    expect(isScheduledClosed(at("2026-11-20", 18, 59), FEED_SCHEDULE)).toBe(false);
+    expect(isScheduledClosed(at("2026-11-20", 19), FEED_SCHEDULE)).toBe(true);
+    expect(isScheduledClosed(at("2026-11-21", 12), FEED_SCHEDULE)).toBe(true);
+    expect(isScheduledClosed(at("2026-11-22", 20, 1), FEED_SCHEDULE)).toBe(false);
+    // Across the November change (1 November 2026): the Friday before is EDT, the Friday after is EST.
+    expect(nextCloseAfter(at("2026-10-26", 9), FEED_SCHEDULE)).toBe(utc("2026-10-31T00:00:00Z"));
+    expect(nextCloseAfter(at("2026-11-02", 9), FEED_SCHEDULE)).toBe(utc("2026-11-07T00:00:00Z"));
+    // Not observed yet: the exchange close before Thanksgiving, and on the short Friday after it.
+    expect(clock(nextCloseAfter(at("2026-11-23", 9), FEED_SCHEDULE))).toBe("2026-11-25 16:00");
+    expect(clock(nextCloseAfter(at("2026-11-26", 9), FEED_SCHEDULE))).toBe("2026-11-27 13:00");
   });
 });

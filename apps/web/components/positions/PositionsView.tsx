@@ -10,6 +10,8 @@ import { describeError } from "@/lib/contractErrors";
 import { useT } from "@/lib/i18n";
 import { formatToken, formatUsd, formatUsdSigned } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
+import { useRouterUpgrade } from "@/lib/useRouterUpgrade";
+import { NoticeRow } from "../ui/NoticeRow";
 import { PreCloseCard } from "../protection/PreCloseCard";
 import { ProtectionToggle } from "../protection/ProtectionToggle";
 import { Banner } from "../ui/Banner";
@@ -43,6 +45,7 @@ export function PositionsView() {
   const mon = useBalance({ address, chainId: chain.id, query: { enabled: !!address } });
   const managed = account.data?.positions.find((p) => p.marketId === manage?.marketId) ?? null;
   const protection = useProtection(address);
+  const upgrade = useRouterUpgrade(address);
   const markets = useMarkets();
   const openSoft = (marketId: string) => markets.data?.markets.find((x) => x.marketId === marketId)?.softLtvOpenWad;
 
@@ -91,6 +94,9 @@ export function PositionsView() {
   return (
     <div className="space-y-4">
       {header}
+      {upgrade.protectionToRestore.length > 0 && (
+        <NoticeRow notice={{ icon: "weekendGuard", blocks: false, title: m.upgrade.protectionTitle, body: m.upgrade.protectionBody(upgrade.protectionToRestore.map((x) => x.symbol).join(", ")) }} />
+      )}
       <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
         <Card className="flex flex-col gap-5 p-8">
           <p className="label-caps">{m.positions.totalEquity}</p>
@@ -101,8 +107,8 @@ export function PositionsView() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatBox label={m.positions.debt} value={totals ? formatUsd(totals.debtUsdRaw) : "—"} />
             <StatBox label={m.positions.unrealized} value={totals ? formatUsdSigned(pnl) : "—"} />
-            <StatBox label={m.positions.wallet} value={usdc.data !== undefined ? `${formatToken(usdc.data, 6, 2)} USDC` : "—"} />
-            <StatBox label={m.positions.gas} value={mon.data ? `${formatToken(mon.data.value, 18, 2)} MON` : "—"} />
+            <StatBox label={m.positions.wallet} value={usdc.data !== undefined ? `${formatToken(usdc.data, chain.usdc.decimals, 2)} USDC` : "—"} />
+            <StatBox label={m.positions.gas} value={mon.data ? `${formatToken(mon.data.value, mon.data.decimals, 2)} ${chain.nativeSymbol}` : "—"} />
           </div>
         </Card>
         <PreCloseCard overCount={over.length} onReview={over[0] ? () => setManage({ marketId: over[0]!.marketId, tab: "add" }) : null} />
@@ -148,7 +154,7 @@ export function PositionsView() {
                 marketId={p.marketId}
                 on={protection.isOn(p.marketId) ?? p.protection}
                 name={`${stockOn(chain, p.symbol)?.tokenSymbol ?? p.symbol} ${p.side === "long" ? m.trade.long : m.trade.short}`}
-                invalidate={[protection.queryKey, queryKeys.account(address)]}
+                invalidate={[protection.queryKey, upgrade.queryKey, queryKeys.account(address)]}
               />
             }
           />

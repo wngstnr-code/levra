@@ -8,6 +8,9 @@ import { BPS, WAD, liquidationIncentiveFactorWad, utilizationWad } from "@levra/
  * The team monitor's checks (BE-50), one per row of "What we monitor" in 08, as pure functions of one snapshot. Limits
  * are initial proposals unless they come from data or from the chain.
  */
+/** Ends every gate's message. Users read the message too: as a market's halt reason and in their halt alert (BE-75). */
+export const GATE_EFFECT = "Opening, closing or liquidating may fail while it lasts.";
+
 export const LIMITS = {
   /**
    * Gas token a keeper wallet should keep, per chain, in wei. Monad: about 70 transactions at the deployment's measured
@@ -72,6 +75,10 @@ export type Snapshot = {
   api: { ok: boolean; ms: number; detail: string } | null;
   /** The gap table against five years of fresh daily prices (BE-34). `fresh` is null when the source could not be read. */
   gaps: { symbol: string; table: GapStats; fresh: GapStats | null }[];
+  /** `Liquidator.lossBudgetOf` per loan token, in its base units (D-91). Empty for a liquidator without a budget. */
+  lossBudgets: { token: string; label: string; budget: bigint }[];
+  /** Issuer pauses and blocklists that can block a market (BE-75). `blocked` is null when the control could not be read. */
+  gates: { key: string; blocked: boolean | null; message: string }[];
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
@@ -173,6 +180,23 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
   for (const b of s.badDebt) {
     if (s.now - b.at > LIMITS.eventLookbackSeconds) continue;
     out.push({ kind: "event", key: `bad-debt:${b.txHash}:${b.logIndex}`, message: `Bad debt of ${b.badDebtAssets} base units in ${b.label} from ${b.borrower}. Transaction ${b.txHash}.` });
+  }
+
+  for (const b of s.lossBudgets) {
+    out.push({
+      kind: "value",
+      key: `loss-budget:${b.token.toLowerCase()}`,
+      value: String(b.budget),
+      describe: (a, n) =>
+        `Liquidator loss budget for ${b.label} changed from ${a} to ${n} base units. ${BigInt(n) > BigInt(a === "unset" ? "0" : a) ? "The owner added to it (LossBudgetSet)." : "A liquidation lost money (LossBudgetSpent) or the owner cleared it."}`,
+    });
+  }
+
+  for (const g of s.gates) {
+    out.push({ kind: "condition", key: g.key, active: g.blocked === true, forSeconds: 0, message: `${g.message}. ${GATE_EFFECT}` });
+    // The text above is also what the API shows users as a market's halt reason (BE-75), so it holds no team advice.
+    // A control we cannot read hides a pause, but one failed call is not worth a page.
+    out.push({ kind: "condition", key: `${g.key}:unread`, active: g.blocked === null, forSeconds: LIMITS.unhealthyForSeconds, message: g.message });
   }
 
   for (const c of s.indexer) {

@@ -21,7 +21,7 @@ export type EventStore = {
   forUser(user: Address): Promise<StoredEvent[]>;
 };
 
-type Row = typeof routerEvents.$inferSelect;
+type Row = Omit<typeof routerEvents.$inferSelect, "router">;
 
 const toStored = (source: StoredEvent["source"]) => (r: Row): StoredEvent => ({
   source,
