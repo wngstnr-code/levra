@@ -16,7 +16,7 @@ export const en = {
   clock: {
     closesIn: (t: string) => `Closes in ${t}`,
     opensIn: (t: string) => `Opens in ${t}`,
-    weekendNote: "Limits are lower until the market opens. Closing always works.",
+    weekendNote: "Limits are lower until the market opens. We can never pause closing.",
   },
   network: {
     title: "Network",
