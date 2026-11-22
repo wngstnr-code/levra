@@ -1,4 +1,5 @@
 import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
+import { tokensByChain } from "@levra/shared/addresses";
 import { chains } from "@levra/shared/chains";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { stocksByChain, type ChainlinkStock } from "@levra/shared/markets";
@@ -8,7 +9,8 @@ import { createAlerts } from "./alerts/job";
 import { resendEmail, telegramBot, type Channels } from "./alerts/channels";
 import { createCalendarPoster } from "./calendar/poster";
 import { viemChains } from "./chain";
-import { createMarketDepth } from "./dex/depth";
+import { chainlinkPrices, createMarketDepth } from "./dex/depth";
+import { depthSwap } from "./dex/swap";
 import type { Env } from "./env";
 import { createLiquidatorBot } from "./liquidator/bot";
 import { createMonitor, webhookChannel, type TeamChannel } from "./monitor/job";
@@ -42,14 +44,16 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     jobs.push(createOracleRecorder({ client, backfillBlocks: env.ORACLE_BACKFILL_BLOCKS }), createMarketDepth({ client, swap, deployment }));
   } else {
     // Base and X Layer price through Chainlink feeds, recorded round by round (BE-97). Needs no key and no deployment.
-    jobs.push(
-      createChainlinkRecorder({
-        reader: chainFeedReader(client),
-        stocks: Object.values(stocksByChain[chainId]) as ChainlinkStock[],
-        backfillSeconds: env.CHAINLINK_BACKFILL_DAYS * 86_400,
-      }),
-    );
-    notHere("market depth", "BE-96");
+    const feedStocks = Object.values(stocksByChain[chainId]) as ChainlinkStock[];
+    const reader = chainFeedReader(client);
+    jobs.push(createChainlinkRecorder({ reader, stocks: feedStocks, backfillSeconds: env.CHAINLINK_BACKFILL_DAYS * 86_400 }));
+    // The DEX mid price and depth against the feed price (BE-96 step 4), for the markets and the soft layer.
+    const depth = depthSwap(chainId, client, { kyberClientId: env.KYBER_CLIENT_ID, kyberApiKey: env.KYBER_API_KEY });
+    if (depth) {
+      jobs.push(createMarketDepth({ client, swap: depth, deployment, prices: chainlinkPrices(reader, feedStocks), usdc: tokensByChain[chainId].USDC }));
+    } else {
+      notHere("market depth", "BE-81");
+    }
   }
 
   if (env.KEEPER_GLOBAL) {
