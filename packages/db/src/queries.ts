@@ -163,6 +163,29 @@ export async function rateHistory(db: Db, chainId: number, marketIds: string[], 
   return rows.map((r) => ({ marketId: r.market_id, timestamp: Number(r.at), borrowApyWad: r.borrow, supplyApyWad: r.supply, utilizationWad: r.util }));
 }
 
+/**
+ * The stock a monitor gate key is about (BE-75), or null when it covers the whole chain. Keys from
+ * `apps/keeper/src/monitor/gates.ts`: `gate:b20-paused:NVDA`, `gate:oracle-paused:NVDA`, `gate:xstock-paused:NVDA` and
+ * `gate:xstock-paused:NVDAx` (the underlying) name one stock; a blocked account, USDC or a transfer policy covers all.
+ */
+export function gateSymbol(key: string): string | null {
+  const m = /^gate:(?:b20-paused|oracle-paused|xstock-paused):([A-Z0-9.]+?)x?$/.exec(key);
+  return m ? m[1]! : null;
+}
+
+/**
+ * Issuer controls the team monitor sees blocking now (BE-75): its active `gate:` rows, without the "could not be read"
+ * ones. A row stays as the monitor last wrote it, so this is only as current as the monitor's heartbeat.
+ */
+export async function activeGates(db: Db, chainId: number): Promise<{ key: string; symbol: string | null; message: string }[]> {
+  const rows = (await db.execute(sql`
+    select key, coalesce(message, key) as message from monitor_state
+    where chain_id = ${chainId} and active and key like 'gate:%' and key not like '%:unread'
+    order by key
+  `)) as unknown as { key: string; message: string }[];
+  return rows.map((r) => ({ key: r.key, symbol: gateSymbol(r.key), message: r.message }));
+}
+
 /** Latest DEX mid price (8 decimals) per stock symbol from the depth keeper, when not older than `maxAgeSeconds`. */
 export async function latestDexMids(db: Db, chainId: number, maxAgeSeconds: number): Promise<Map<string, bigint>> {
   const rows = (await db.execute(sql`
