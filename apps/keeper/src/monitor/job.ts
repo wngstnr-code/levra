@@ -9,6 +9,7 @@ import { and, eq, gte } from "drizzle-orm";
 import { getAddress, type Address, type PublicClient } from "viem";
 import { scheduleForChain, type ScheduleSource } from "../calendar/poster";
 import { maxAgeRule } from "../oracle/max-age";
+import { readGates } from "./gates";
 import { yahooBars, type BarSource } from "../gaps/source";
 import { gapStatsFromBars, gapTable, type GapStats } from "@levra/shared/gaps";
 import { loadOracleReport } from "../oracle/report";
@@ -268,6 +269,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
       api,
       gaps: await gapRows(symbols),
       lossBudgets: await lossBudgets(),
+      gates: await readGates(client, chainId, deployment),
     };
     return { snapshot, limits };
   }

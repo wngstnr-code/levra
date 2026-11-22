@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import pino from "pino";
 import { createPublicClient, http, parseUnits, type Hex } from "viem";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress } from "../../api/test/fork-helpers";
+import { createForkClient, forkDeployment, forkRpcUrl, onFork, openOnMorpho, randomAddress, refreshAnchoredPrice } from "../../api/test/fork-helpers";
 import { createAlerts } from "../src/alerts/job";
 
 const dbUrl = process.env.TEST_DATABASE_URL;
@@ -44,6 +44,9 @@ describe.skipIf(!onFork || !dbUrl)("user alerts on the fork (BE-33)", () => {
   beforeAll(async () => {
     snapshot = await chain.snapshot();
     await runMigrations(dbUrl ?? "");
+    const quiet = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).find((m) => m.marketId === long.marketId)!;
+    // A fork made while the feed is quiet (a weekend) has a stale price that Morpho's borrow refuses.
+    await refreshAnchoredPrice(chain, quiet.priceId);
     const lm = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).find((m) => m.marketId === long.marketId)!;
     const stockValue = mulDiv(lm.priceE8, 10n ** 6n, 10n ** 8n);
     // Above the closed-market limit, below the hard limit; and one far below both.

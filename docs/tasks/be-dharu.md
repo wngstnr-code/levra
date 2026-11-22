@@ -376,13 +376,14 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
 
 ---
 
-- [ ] **BE-88 · Keeper sizes reductions to the router floor**
+- [x] **BE-88 · Keeper sizes reductions to the router floor**
   - Needs: the router with `DELEVERAGE_FLOOR` (D-91).
   - Do: in `apps/keeper/src/protector/protector.ts` (`planLong`, `planShort`), size each reduction to end between the soft limit and `currentSoftLtv - DELEVERAGE_FLOOR` (read the constant from the ABI), keep the collateral taken out within the D-92 size bound (`DELEVERAGE_SLACK_BPS`), drop the `type(uint256).max` full close branch, and simulate the call before sending so a `DeleverageTooDeep` or `DeleverageTooLarge` plan is resized instead of retried.
   - Done when: the protector never sends a plan the router refuses with `DeleverageTooDeep` or `DeleverageTooLarge`, with a test for a large reduction and a fill better than the oracle.
   - Note (20 November 2026): planned for 27 November, before the first Base weekly close (Friday 27 November, 20:00 New York time). Only routers built from the current `main` have `DELEVERAGE_FLOOR`; the live Monad router does not, so the protector acts only through routers that have it (BE-98).
   - Note (20 November 2026): done in BE-89 already: the protector takes each stock's decimals from `packages/shared` (Base stocks have 8) and skips a market whose oracle says `CLOSED`. The floor sizing above is still to do.
   - Note (20 November 2026, start here): `apps/keeper/test/protector.fork.test.ts` fails on a fresh deploy of `main`. With the QQQ oracle set to the DEX price, the protector sends both reductions but the LTV after does not land at `softLtv - TARGET_BELOW_SOFT_WAD` within 2 points. With the oracle 9% from the DEX it skipped both on "price deviation". The BE-89 changes leave Monad's numbers the same (decimals 6 and 18), so this is most likely the gap this task closes. Not compared on the old keeper code: anvil crashed on the public RPC's rate limit (HTTP 429).
+  - Note (22 November 2026): done on `be/BE-88-keeper-floor` (D-105). The protector reads `DELEVERAGE_FLOOR` and `DELEVERAGE_SLACK_BPS` from the router (the live Monad router has neither and then gets no bound checks) and the market's Morpho price, and plans inside both bounds: no full close branch any more, a plan that would end within 0.5 point of the floor is skipped, and when the slippage alone would break the size bound the swap's `minOut` is raised as far as the quote allows (at least 10 bps under it), else skipped. Every plan is simulated first; a `DeleverageTooDeep` or `DeleverageTooLarge` there is logged and skipped, not sent. Tests: 16 unit tests (both bounds for long and short, a reduction of about half the position, a fill 1% better than the oracle, a raised `minOut`, a route that loses too much, the simulation check). The fork test passes on a fresh deploy of `main`: both reductions land between the target and 2 points under it. The earlier failure came from the fork's oracle, stale and `CLOSED` on a weekend; the test now posts the DEX mid price in the regular session first. The liquidator and alerts fork tests had the same stale price and now refresh it. Every keeper test passes on the fork (100).
 
 - [x] **BE-89 · Liquidation bot leaves a margin for accrual**
   - Needs: the liquidator with `lossBudgetOf` (D-91).
@@ -508,10 +509,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a real transaction shows the code in Base's attribution.
   - Note (20 November 2026): the code goes on every Base transaction the API builds. The constant lives in `packages/shared/api`, so the web app adds the same code to the Base transactions it builds itself (Earn, D-07). First check how Base links a transaction to a Builder Code (not verified). Needed before the first real Base transaction, since traction counts from it.
 
-- [ ] **BE-75 · Policy and pause monitor**
+- [~] **BE-75 · Policy and pause monitor**
   - Do: watch each listed token's policy and pause state; alert the team and the affected users (Telegram) when it changes; mark the market halted in the API.
   - Done when: a fork test that flips a pause raises the alert.
   - Note (20 November 2026): covers X Layer too. D-86: on X Layer the keeper catches a token pause or a sanctions list change and alerts, and the guardian pauses opening.
+  - Note (22 November 2026): the team part is written in the monitor (`apps/keeper/src/monitor/gates.ts`). Every minute it reads, for Morpho and our router and liquidator when deployed: on Monad Anchored's compliance denylist and Circle's USDC pause and blacklist; on Base each stock's B20 transfer pause, the Coinbase oracle registry pause and whether each transfer policy still authorizes the account; on X Layer the wrapped and underlying xStock pause and the sanctions list. A block alerts at once and resolves when lifted; a control that cannot be read alerts after 5 minutes. Fork test: denylisting Morpho on the Monad fork raises the alert and lifting it resolves it. Live read on 22 November 2026: 17 controls on Base and 9 on X Layer, all readable, none blocking. The ABIs are inline until `packages/shared/abis` has them (requested from Wangsit). Still to do: alert the affected users, mark the market halted in the API, and run it on Base and X Layer once their deployment files exist (SC-76).
 
 - [ ] **BE-76 · Cross-chain deposits through CCTP and Across**
   - Do: replace Aurora Intents / 1Click (D-50) for deposits and withdrawals on both chains. Gas top-up on Base is not needed if the paymaster covers it (Q-34).
