@@ -8,6 +8,9 @@ import { BPS, WAD, liquidationIncentiveFactorWad, utilizationWad } from "@levra/
  * The team monitor's checks (BE-50), one per row of "What we monitor" in 08, as pure functions of one snapshot. Limits
  * are initial proposals unless they come from data or from the chain.
  */
+/** Ends every gate's message. Users read the message too: as a market's halt reason and in their halt alert (BE-75). */
+export const GATE_EFFECT = "Opening, closing or liquidating may fail while it lasts.";
+
 export const LIMITS = {
   /**
    * Gas token a keeper wallet should keep, per chain, in wei. Monad: about 70 transactions at the deployment's measured
@@ -190,7 +193,7 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
   }
 
   for (const g of s.gates) {
-    out.push({ kind: "condition", key: g.key, active: g.blocked === true, forSeconds: 0, message: `${g.message}. Opening, closing or liquidating may fail while it lasts.` });
+    out.push({ kind: "condition", key: g.key, active: g.blocked === true, forSeconds: 0, message: `${g.message}. ${GATE_EFFECT}` });
     // The text above is also what the API shows users as a market's halt reason (BE-75), so it holds no team advice.
     // A control we cannot read hides a pause, but one failed call is not worth a page.
     out.push({ kind: "condition", key: `${g.key}:unread`, active: g.blocked === null, forSeconds: LIMITS.unhealthyForSeconds, message: g.message });
