@@ -3,14 +3,12 @@ import { riskManagerAbi } from "@levra/shared/abis";
 import { MONAD_CHAIN_ID } from "@levra/shared/addresses";
 import { FEED_SCHEDULE, nextCloseAfter, scheduleFromStretches, type SessionSchedule } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
-import { parseAbi, type Account, type Chain, type PublicClient, type Transport, type WalletClient } from "viem";
+import { type Account, type Chain, type PublicClient, type Transport, type WalletClient } from "viem";
 import type { Job } from "../runner";
 
 /** RiskManager: MAX_CLOSE_HORIZON and CLOSE_GRACE, in seconds. */
 const MAX_CLOSE_HORIZON = 8 * 86_400;
 const CLOSE_GRACE = 3_600;
-/** `RiskManager.calendarPoster()`. Temporary until the ABI export has it (requested from Wangsit). */
-const calendarPosterAbi = parseAbi(["function calendarPoster() view returns (address)"]);
 /** Monad charges the gas limit (02), so the margin over the estimate stays small. */
 const GAS_MARGIN_PCT = 15n;
 
@@ -58,7 +56,7 @@ export function createCalendarPoster({ client, wallet, deployment, schedule = sc
     name: "calendar",
     intervalMs,
     async run({ db, chainId, logger }) {
-      const poster = await client.readContract({ address: deployment.riskManager, abi: calendarPosterAbi, functionName: "calendarPoster" });
+      const poster = await client.readContract({ address: deployment.riskManager, abi: riskManagerAbi, functionName: "calendarPoster" });
       if (poster.toLowerCase() !== wallet.account.address.toLowerCase()) {
         throw new Error(`Key ${wallet.account.address} is not the calendar poster (${poster})`);
       }
