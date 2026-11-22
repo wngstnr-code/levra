@@ -40,7 +40,10 @@ const same = (a: Address, b: Address) => a.toLowerCase() === b.toLowerCase();
  */
 export async function allowedProviders(client: PublicClient, router: Address, providers: readonly SwapProvider[]): Promise<SwapProvider[]> {
   const targets = await client.readContract({ address: router, abi: marginRouterAbi, functionName: "swapTargets" });
-  const spenders = await Promise.all(targets.map((t) => client.readContract({ address: router, abi: marginRouterAbi, functionName: "swapSpender", args: [t] })));
+  // A router from before fixed spenders (D-79) has no `swapSpender` and approves the target itself.
+  const spenders = await Promise.all(
+    targets.map((t) => client.readContract({ address: router, abi: marginRouterAbi, functionName: "swapSpender", args: [t] }).catch(() => t)),
+  );
   return providers.filter((p) => targets.some((t, i) => same(t, p.target) && same(spenders[i]!, p.spender)));
 }
 

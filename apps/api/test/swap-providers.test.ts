@@ -76,6 +76,16 @@ describe("swap providers per chain (BE-96)", () => {
     expect(again.map((p) => p.name)).toEqual(["a", "b"]);
   });
 
+  it("takes the target as spender on a router without swapSpender (before D-79)", async () => {
+    const client = {
+      async readContract({ functionName }: { functionName: string }) {
+        if (functionName === "swapTargets") return [A];
+        throw new Error("execution reverted");
+      },
+    } as unknown as PublicClient;
+    expect((await allowedProviders(client, ROUTER, [provider("a", A, 1n), provider("b", A, 1n, B)])).map((p) => p.name)).toEqual(["a"]);
+  });
+
   it("matches addresses in any letter case", async () => {
     const { client } = routerClient({ [A.toUpperCase().replace("0X", "0x") as Address]: A });
     expect((await allowedProviders(client, ROUTER, [provider("a", A, 1n)])).map((p) => p.name)).toEqual(["a"]);
