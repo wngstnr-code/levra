@@ -22,11 +22,14 @@ const envSchema = z.object({
   BASE_DEPLOYMENT_FILE: optional(),
   XLAYER_RPC_URL: optional().pipe(z.url().optional()),
   XLAYER_DEPLOYMENT_FILE: optional(),
+  /** KyberSwap endpoint for Monad (the name is older than the other chains); Base uses KyberSwap's Base endpoint. */
   KYBER_BASE_URL: z.url().default("https://aggregator-api.kyberswap.com/monad/api/v1"),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
   /** KyberSwap gateway key for a higher rate limit (05), sent as X-Api-Key. Never commit it. */
   KYBER_API_KEY: optional(),
+  /** 1inch Business API key (05). Base quotes leave 1inch out without it. Never commit it. */
+  ONEINCH_API_KEY: optional(),
   /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**

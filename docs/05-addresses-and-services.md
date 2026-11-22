@@ -174,7 +174,7 @@ Staging deployment of 13 October 2026 (SC-15). Verified by reading the contracts
 | Item | Value |
 |---|---|
 | `MarginRouter` | `0xf5585feA7aeDC5e148201052f73139111810aA88`, deployed on 22 November 2026 (SC-87) by the deployer `0x7C7b...47D0`, blocks 124423028 to 124423041, over the live risk manager and markets. KyberSwap only, fee 10 bps and keeper fee 30 bps to the team Safe, router keeper `0x469a...f474`. Sourcify exact match |
-| Previous router | `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` (13 October 2026). Still works and can close positions; listed under `previousRouters` in the deployment file. Its fee recipient stays `0x7029...1855` |
+| Previous router | `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` (13 October 2026). Still works and can close positions; listed under `previousRouters` in the deployment file. Its fee recipient stays `0x7029...1855`. No keeper since 22 November 2026 (tx `0x941f42e87019cc5ce9a39b9b1c9beaf735f74310adc168f8cdff56de68436470`) |
 | `RiskManager` | `0xe8A2088020Ea61B77e33Df953abcc4004d9FC74F` |
 | `Lens` | `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7` since 22 November 2026 (bound to the new router; Sourcify exact match). The previous lens `0xd3835f7bd58BFBE59Eae6210Bf7257405aF72cb8` reads the old router |
 | `Liquidator` | `0x56d40aCD99F1537f2ecfCD6ba7B1E879F9aaFd39` |
