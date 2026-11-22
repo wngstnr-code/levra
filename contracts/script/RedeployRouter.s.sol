@@ -7,6 +7,7 @@ import {IMorpho} from "morpho-blue/src/interfaces/IMorpho.sol";
 import {IRiskManager} from "../src/interfaces/IRiskManager.sol";
 import {Lens} from "../src/Lens.sol";
 import {MarginRouter} from "../src/MarginRouter.sol";
+import {SwapTargetGuard} from "./SwapTargetGuard.sol";
 
 /// Replaces the router of an existing deployment (SC-87): a new MarginRouter with the code in `main`
 /// (SC-86, D-79) over the same RiskManager and markets, and a new Lens, since Lens is bound to its
@@ -51,6 +52,7 @@ contract RedeployRouter is Script {
         address[] memory spenders = vm.keyExistsJson(config, ".swapSpenders")
             ? vm.parseJsonAddressArray(config, ".swapSpenders")
             : new address[](targets.length);
+        SwapTargetGuard.check(targets, spenders, _tokens(config));
         r.router = new MarginRouter(morpho, risk, targets, spenders, owner, feeRecipient, feeBps);
         r.router.setFees(feeBps, vm.parseJsonUint(config, ".keeperFeeBps"), feeRecipient);
         r.lens = new Lens(morpho, risk, r.router);
@@ -71,6 +73,17 @@ contract RedeployRouter is Script {
         string memory out = vm.replace(deployment, oldRouter, vm.toString(address(r.router)));
         out = vm.replace(out, oldLens, vm.toString(address(r.lens)));
         return vm.replace(out, ',"markets":', string.concat(',"previousRouters":[', previous, '],"markets":'));
+    }
+
+    /// USDC and every stock in the config.
+    function _tokens(string memory config) internal view returns (address[] memory tokens) {
+        uint256 n;
+        while (vm.keyExistsJson(config, string.concat(".markets[", vm.toString(n), "]"))) ++n;
+        tokens = new address[](n + 1);
+        tokens[0] = vm.parseJsonAddress(config, ".usdc");
+        for (uint256 i; i < n; ++i) {
+            tokens[i + 1] = vm.parseJsonAddress(config, string.concat(".markets[", vm.toString(i), "].stock"));
+        }
     }
 
     function _removeKey(string memory deployment, address[] memory earlier) internal pure returns (string memory) {
