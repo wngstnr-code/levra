@@ -1,7 +1,7 @@
 import { morphoAbi } from "@levra/shared/abis";
 import type { Account, HistoryItem, HistoryItemType, Position } from "@levra/shared/api";
 import { gapScenarios } from "@levra/shared/gaps";
-import { BPS, ORACLE_PRICE_SCALE, cautiousPriceE8, collateralValue, morphoOraclePrice, mulDiv } from "@levra/shared/math";
+import { BPS, ORACLE_PRICE_SCALE, cautiousPriceE8, collateralValue, morphoOraclePrice, mulDiv, pnlBps } from "@levra/shared/math";
 import { isChainId } from "@levra/shared/chains";
 import { stocksByChain } from "@levra/shared/markets";
 import { erc20Abi, type Address, type Hex } from "viem";
@@ -81,6 +81,7 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
       entryPriceE8: entryPriceE8(basis, reader.usdc.decimals, m.info.stock.decimals).toString(),
       oraclePriceE8: m.oraclePriceE8.toString(),
       unrealizedPnlUsdRaw: pnl.toString(),
+      pnlBps: priced && basis.shares > 0n ? pnlBps(pnl, basis.invested) : null,
       ltvWad: p.ltvWad.toString(),
       softLtvWad: p.softLtvWad.toString(),
       lltvWad: p.lltvWad.toString(),
