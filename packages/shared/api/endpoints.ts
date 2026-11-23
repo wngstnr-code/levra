@@ -23,6 +23,7 @@ import {
   quoteOpenResponse,
 } from "./quotes";
 import { sessionInfo } from "./session";
+import { statsResponse } from "./stats";
 import { healthResponse, statusResponse } from "./status";
 
 export const API_PREFIX = "/v1";
@@ -57,6 +58,8 @@ export const endpoints = {
 
   earn: { method: "GET", path: "/v1/earn", response: earnResponse },
   earnAccount: { method: "GET", path: "/v1/earn/:address", response: earnAccount },
+
+  stats: { method: "GET", path: "/v1/stats", response: statsResponse },
 
   depositTokens: { method: "GET", path: "/v1/deposit/tokens", response: depositTokensResponse },
   depositQuote: { method: "POST", path: "/v1/deposit/quote", body: depositQuoteRequest, response: depositQuoteResponse },

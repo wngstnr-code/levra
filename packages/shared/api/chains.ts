@@ -40,6 +40,7 @@ export const chainRoutes = [
   "accounts/:address/history",
   "earn",
   "earn/:address",
+  "stats",
 ] as const;
 export type ChainRoute = (typeof chainRoutes)[number];
 
