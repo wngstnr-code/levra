@@ -5,8 +5,8 @@
  */
 export const ERC8021_MARKER = "80218021802180218021802180218021";
 
-/** Levra's code per chain, registered at base.dev. Only Base counts Builder Codes. */
-export const builderCodes: Partial<Record<number, string>> = {};
+/** Levra's code per chain, from the Levra project on dashboard.base.org. Only Base counts Builder Codes. */
+export const builderCodes: Partial<Record<number, string>> = { 8453: "bc_1w63m4n4" };
 
 const CODE = /^[\x21-\x2b\x2d-\x7e]+$/;
 

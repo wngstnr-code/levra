@@ -18,6 +18,12 @@ describe("Base Builder Codes (BE-74)", () => {
     expect(withBuilderCode(8453, "0xa9059cbb", {})).toBe("0xa9059cbb");
   });
 
+  it("carries Levra's code on Base only", () => {
+    expect(Attribution.fromData(withBuilderCode(8453, "0xa9059cbb"))).toEqual({ codes: ["bc_1w63m4n4"], id: 0 });
+    expect(withBuilderCode(143, "0xa9059cbb")).toBe("0xa9059cbb");
+    expect(withBuilderCode(196, "0xa9059cbb")).toBe("0xa9059cbb");
+  });
+
   it("refuses a code that would break the format", () => {
     expect(() => builderCodeSuffix([])).toThrow();
     expect(() => builderCodeSuffix(["bc,x"])).toThrow();
