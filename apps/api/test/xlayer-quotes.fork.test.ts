@@ -33,8 +33,11 @@ import {
 
 /**
  * BE-81: X Layer long and short quotes from the API, executed on an anvil fork of X Layer (no `eth_simulateV1` there;
- * the xStocks are plain ERC-20 tokens, so a fork runs them). Start `anvil --fork-url https://xlayerrpc.okx.com` and run
- * with XLAYER_FORK_RPC_URL; OKX joins with OKX_API_KEY, OKX_SECRET_KEY and OKX_API_PASSPHRASE (from the VPS, 05).
+ * the xStocks are plain ERC-20 tokens, so a fork runs them). Start `anvil --fork-url https://xlayerrpc.okx.com
+ * --block-time 1` and run with XLAYER_FORK_RPC_URL; OKX joins with OKX_API_KEY, OKX_SECRET_KEY and OKX_API_PASSPHRASE
+ * (from the VPS, 05). The quote's deadline is the latest block's time plus 120 s, as on the live chain; without
+ * `--block-time` the fork's latest block falls behind the clock while a cold fork builds a quote, and the quote's own
+ * simulation fails on DeadlineExpired.
  * The feeds stop on the fork, and an open needs a feed younger than the market's maxOracleAge (30 minutes), so the
  * tests must run within 30 minutes of starting anvil, outside the weekly close.
  */
