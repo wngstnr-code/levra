@@ -49,19 +49,20 @@ const keys = { kyberClientId: "levra" };
 const noClient = {} as PublicClient;
 
 describe("swap providers per chain (BE-96)", () => {
-  it("knows KyberSwap on Monad, KyberSwap and Aero on Base plus 1inch with a key, and OKX on X Layer with its keys", () => {
+  it("knows KyberSwap on Monad, KyberSwap and Aero on Base plus 1inch with a key, and Uniswap on X Layer plus OKX with its keys", () => {
     const names = (chainId: 143 | 8453 | 196, k = keys) => swapProviders(chainId, noClient, k).map((p) => p.name);
     expect(names(143)).toEqual(["kyberswap"]);
     expect(names(8453)).toEqual(["kyberswap", "aero"]);
     expect(names(8453, { ...keys, oneInchApiKey: "key" } as typeof keys)).toEqual(["kyberswap", "1inch", "aero"]);
-    expect(names(196)).toEqual([]);
-    expect(names(196, { ...keys, okx: { apiKey: "k", secretKey: "s", passphrase: "p" } } as typeof keys)).toEqual(["okx"]);
+    expect(names(196)).toEqual(["uniswap"]);
+    expect(names(196, { ...keys, okx: { apiKey: "k", secretKey: "s", passphrase: "p" } } as typeof keys)).toEqual(["okx", "uniswap"]);
   });
 
-  it("uses the OKX router as target and its approve contract as spender on X Layer (D-88)", () => {
+  it("uses the OKX router with its approve contract as spender (D-88) and SwapRouter02 for Uniswap on X Layer", () => {
     const xlayer = externalByChain[196];
-    const [okx] = swapProviders(196, noClient, { ...keys, okx: { apiKey: "k", secretKey: "s", passphrase: "p" } } as typeof keys);
-    expect([okx!.target, okx!.spender]).toEqual([xlayer.okxDexRouter, xlayer.okxDexApprove]);
+    const okxKeys = { ...keys, okx: { apiKey: "k", secretKey: "s", passphrase: "p" } } as typeof keys;
+    const byName = Object.fromEntries(swapProviders(196, noClient, okxKeys).map((p) => [p.name, [p.target, p.spender]]));
+    expect(byName).toEqual({ okx: [xlayer.okxDexRouter, xlayer.okxDexApprove], uniswap: [xlayer.uniswapSwapRouter02, xlayer.uniswapSwapRouter02] });
   });
 
   it("uses the Base router addresses the deployment allows (05)", () => {
