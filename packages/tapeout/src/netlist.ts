@@ -93,6 +93,26 @@ export function simulate(gates: readonly Gate[], nIn: number, nOut: number, inpu
   return s.slice(s.length - nOut);
 }
 
+/** `simulate` for many inputs: the gates are read once into typed arrays. */
+export function compileNand(gates: readonly Gate[], nIn: number, nOut: number): (inputs: readonly boolean[]) => boolean[] {
+  const a = new Int32Array(gates.length);
+  const b = new Int32Array(gates.length);
+  gates.forEach((g, i) => {
+    if (g.op !== "nand") throw new Error("compileNand runs NAND-only circuits");
+    a[i] = g.a;
+    b[i] = g.b;
+  });
+  const base = 2 + nIn;
+  const s = new Uint8Array(base + gates.length);
+  return (inputs) => {
+    s[0] = 0;
+    s[1] = 1;
+    for (let i = 0; i < nIn; i++) s[2 + i] = inputs[i] ? 1 : 0;
+    for (let i = 0; i < a.length; i++) s[base + i] = s[a[i]!]! & s[b[i]!]! ? 0 : 1;
+    return Array.from(s.subarray(s.length - nOut), (v) => v === 1);
+  };
+}
+
 /** Inputs, outputs and state are packed LSB first in each byte: bit i is (byte[i >> 3] >> (i & 7)) & 1. */
 export function packBits(bits: readonly boolean[]): Hex {
   const bytes = new Uint8Array(Math.max(1, Math.ceil(bits.length / 8)));
