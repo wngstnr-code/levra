@@ -54,7 +54,9 @@ const blockedRegions = new Set((env.BLOCKED_REGIONS ?? "").split(",").map((c) =>
 if (blockedRegions.size > 0 && !(env.GEO_REGION_HEADER && env.GEO_COUNTRY_HEADER)) throw new Error("BLOCKED_REGIONS needs GEO_REGION_HEADER and GEO_COUNTRY_HEADER");
 const compliance = env.TERMS_VERSION ? { termsVersion: env.TERMS_VERSION, countryHeader: env.GEO_COUNTRY_HEADER, blockedCountries, blockedCountriesByChain, regionHeader: env.GEO_REGION_HEADER, blockedRegions } : undefined;
 if (!compliance) logger.warn("region and terms routes off: TERMS_VERSION is not set; the web app cannot pass its gate");
-const app = createApp({ logger, reader, otherChains, otherSwaps, swap, events: dbEventStore(db, deployment.chainId), db, version: env.APP_VERSION, auth, intents, compliance, corsOrigins, rateLimit: { trustProxyHeader: env.TRUST_PROXY_HEADER } });
+const agent = env.WEB_APP_URL ? { webAppUrl: env.WEB_APP_URL } : undefined;
+if (!agent) logger.info("agent routes off: WEB_APP_URL is not set");
+const app = createApp({ logger, reader, otherChains, otherSwaps, swap, events: dbEventStore(db, deployment.chainId), db, version: env.APP_VERSION, auth, intents, agent, compliance, corsOrigins, rateLimit: { trustProxyHeader: env.TRUST_PROXY_HEADER } });
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   logger.info({ port: info.port, chainId: deployment.chainId, markets: deployment.markets.length, otherChains: otherChains.map((r) => r.deployment.chainId) }, "api listening");

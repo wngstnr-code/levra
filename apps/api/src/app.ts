@@ -15,6 +15,7 @@ import { depositRoutes } from "./routes/deposit";
 import { complianceRoutes, createCompliance, type ComplianceOptions } from "./routes/compliance";
 import type { IntentsSource } from "@levra/intents";
 import { authRoutes } from "./routes/auth";
+import { agentRoutes, preparedRoutes, type QuoteThrough } from "./routes/agent";
 import { earnRoutes } from "./routes/earn";
 import { dbMarketHistory, marketRoutes, type DexMids, type Halts } from "./routes/markets";
 import { activeGates, latestDexMids } from "@levra/db";
@@ -49,6 +50,8 @@ export type AppDeps = {
   intents?: IntentsSource;
   /** Region and terms (BE-52). Needs `db` and `reader`. Without it, opening and depositing are not gated. */
   compliance?: ComplianceOptions;
+  /** Actions an agent prepares for the wallet to sign in the web app (BE-77). Needs `db`. */
+  agent?: { webAppUrl: string };
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
@@ -63,7 +66,7 @@ function haltsFromDb(db: Db, chainId: number): Halts {
   return () => cached("halts", 30_000, () => activeGates(db, chainId));
 }
 
-export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
+export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, agent, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
   const app = new Hono();
   if (corsOrigins.length > 0) {
     app.use(
@@ -113,6 +116,16 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     // Quotes need a swap route for the chain (BE-96): KyberSwap on Monad, the best of three on Base, X Layer with BE-81.
     // Region and terms belong to the wallet, so the same gate applies on every chain.
     if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance));
+    // The agent prepares only what this chain can quote (BE-77), through the same quote route and gate.
+    if (chainSwap && db && agent) {
+      const quoteThrough: QuoteThrough = (path, body, headers) => {
+        const h = new Headers(headers);
+        h.delete("content-length");
+        h.set("content-type", "application/json");
+        return Promise.resolve(sub.request(path, { method: "POST", headers: h, body: JSON.stringify(body) }));
+      };
+      sub.route("/", agentRoutes(r.deployment, db, quoteThrough, agent.webAppUrl));
+    }
     sub.notFound(notFound);
     sub.onError(onError);
     return sub;
@@ -143,6 +156,7 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
   }
 
   if (db && intents) app.route("/", depositRoutes(db, intents, compliance));
+  if (db && agent) app.route("/", preparedRoutes(db));
 
   app.notFound(notFound);
   app.onError(onError);
