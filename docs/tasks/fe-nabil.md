@@ -248,6 +248,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a card is generated from a real position.
   - Note: built on 20 November 2026 (`fe/FE-88-d-flows`): a Share button on every position draws a 1200×630 picture in the browser (stock, side, chain, price move since entry in the trade's favour, entry, now, P&L in dollars) and links to an X post. PnL in percent waits for a shared formula (blocker for Dharu).
   - Note (23 November 2026, Dharu): unblocked by BE-101. Open positions carry `Position.pnlBps`; for other cases use `pnlBps(pnl, invested)` from `@levra/shared/math`.
+  - Note: 23 November 2026 (`fe/FE-76-pnl-percent`): the position card and the share picture show PnL as dollars and percent of the margin put in (`Position.pnlBps`, BE-101); without it only dollars.
 
 - [ ] **FE-77 · Agent entry in the app**
   - Needs: BE-77.
