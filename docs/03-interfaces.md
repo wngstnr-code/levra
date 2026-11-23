@@ -405,7 +405,7 @@ Status: proposed by Dharu on 20 November 2026 and built the same day as addition
 - Routes that depend on a chain take its ID as the first path part: `/v1/:chainId/...`, with `chainId` one of `143` (Monad), `8453` (Base) and `196` (X Layer), the IDs in `chains.ts` and the ones wagmi reports. The shapes inside are the same on every chain.
 - An ID outside that list answers 404 `NOT_FOUND`. A listed chain that this API does not serve yet (no deployment loaded, for example Base before SC-76) answers 404 `NOT_FOUND` with `details: { chainId, live: false }`, so the error code list stays the same. `GET /v1/chains` tells the web app which chains are live.
 - The routes without a chain ID stay as they are and serve Monad (143). They are aliases until the web app has moved (FE-70); removing them is a separate change, agreed first.
-- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, and later `stats`, `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
+- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, `stats`, and later `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
 - Quotes (`quote/*`) on a chain answer only when the API has a swap provider for it: Monad now, Base with BE-72. Before that they answer 404 `NOT_FOUND`. The region and terms gate applies on every chain.
 - Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/quote`, `withdraw/quote`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain. Deposits and withdrawals go to and from Monad only until BE-76 (after the submissions); then the two quotes move under the chain path.
 - Sign-in: the SIWE message may name any chain this API serves (`live` in `/v1/chains`), the chain the wallet is on. The signature is checked on that chain, so a smart wallet deployed only there still signs in. The token is the same for every chain.
@@ -447,6 +447,7 @@ Every chain route (list above) also exists as `/v1/:chainId/<path>` (BE-70); the
 | GET | `/v1/accounts/:address/history` | History of actions and profit and loss | M1 |
 | GET | `/v1/earn` | Earn options: rate, amount lent, part borrowed | M2 |
 | GET | `/v1/earn/:address` | Earn positions of one user | M2 |
+| GET | `/v1/stats` | Public numbers of the chain: wallets, open interest, volume, Earn supplied (BE-79). Needs the database | M2 |
 | GET | `/v1/deposit/tokens` | Supported origin networks and tokens | M4 |
 | POST | `/v1/deposit/quote` | Cross-chain deposit quote and its deposit address | M4 |
 | GET | `/v1/deposit/:id` | Deposit status | M4 |
@@ -894,6 +895,25 @@ type StatusResponse = {
   api: { version: string };
 };
 ```
+
+`GET /v1/:chainId/stats` (BE-79, D-109), schema `statsResponse` in `packages/shared/api/stats.ts`, cached for 60 seconds:
+
+```ts
+type StatsResponse = {
+  chainId: number;
+  wallets: { total: number; traders: number; lenders: number };
+  openInterest: { longUsdRaw: string; shortUsdRaw: string; openPositions: number };
+  volume: { last24hUsdRaw: string; last7dUsdRaw: string; totalUsdRaw: string; trades: number };
+  earn: { suppliedUsdRaw: string };
+  updatedAt: number;
+};
+```
+
+- Dollar amounts are USDC base units. Stock is valued at the market's oracle price now; a market whose oracle has no price counts as 0.
+- `traders`: wallets with a `PositionOpened` on any of the chain's routers. `lenders`: wallets with a vault `Deposit` or a Morpho `Supply` in our markets, without the vault itself. `total` counts a wallet once.
+- `longUsdRaw`: stock collateral of the long markets, rebuilt from the indexed Morpho events. `shortUsdRaw`: `totalBorrowAssets` of the short markets read from Morpho, so interest is included. `openPositions`: Morpho positions with collateral or debt in our markets, from indexed events.
+- Volume: every router `PositionOpened` and `PositionReduced` (automatic reductions included, liquidations not), the stock amount (collateral on a long, debt on a short) times the trade's `execPriceE8`. Windows end at the request time.
+- `earn.suppliedUsdRaw`: the vault's assets plus the stock supplied to the short markets, as in `GET /v1/earn`.
 
 ### The `/v1/stream` stream
 
