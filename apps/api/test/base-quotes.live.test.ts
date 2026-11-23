@@ -11,8 +11,22 @@ import {
 } from "@levra/shared/api";
 import { baseDeployment } from "@levra/shared/deployments/base";
 import { baseStocks } from "@levra/shared/markets";
+import { AERO_TICK_SPACINGS } from "@levra/swap";
 import pino from "pino";
-import { createPublicClient, custom, encodeFunctionData, erc20Abi, http, RpcRequestError, toHex, type Address, type Hex, type PublicClient } from "viem";
+import {
+  createPublicClient,
+  custom,
+  encodeFunctionData,
+  erc20Abi,
+  http,
+  parseAbi,
+  RpcRequestError,
+  toHex,
+  zeroAddress,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from "viem";
 import { base } from "viem/chains";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
@@ -34,8 +48,8 @@ const usdc = baseTokens.USDC.address;
 const router = baseDeployment.router;
 const USER = "0x00000000000000000000000000000000ce751d02" as Address;
 const LENDER = "0x00000000000000000000000000000000ce751d03" as Address;
-/** Holds USDC and the stock tokens on Base; setup calls move some out of it, only inside the simulation. */
-const HOLDER = morpho;
+/** Holds plenty of USDC on Base; setup calls move some out of it, only inside the simulation. */
+const USDC_HOLDER = morpho;
 const MARGIN = 100_000_000n;
 const MAX_GAS = 25_000_000n;
 const ESTIMATE_PRECISION = 5_000n;
@@ -122,11 +136,27 @@ async function request<T>(client: PublicClient, path: string, body: unknown, par
 
 const marketParams = (id: Hex) => node.readContract({ address: morpho, abi: morphoAbi, functionName: "idToMarketParams", args: [id] });
 
-/** `from` supplies `amount` of the market's loan token to Morpho, taken from the holder. */
+const aeroFactoryAbi = parseAbi(["function getPool(address tokenA, address tokenB, int24 tickSpacing) view returns (address)"]);
+
+/**
+ * Whoever holds the most of `token` among Morpho and the token's Aero pools with USDC. Morpho holds less than a share of
+ * some stocks on Base (TSLA, MSFT, AMZN on 23 November 2026), while their Aero pools hold hundreds.
+ */
+async function holderOf(token: Address): Promise<Address> {
+  if (token === usdc) return USDC_HOLDER;
+  const pools = await Promise.all(
+    AERO_TICK_SPACINGS.map((s) => node.readContract({ address: baseExternal.aeroClFactory, abi: aeroFactoryAbi, functionName: "getPool", args: [token, usdc, s] })),
+  );
+  const candidates = [morpho, ...pools.filter((p) => p !== zeroAddress)];
+  const balances = await Promise.all(candidates.map((a) => node.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [a] })));
+  return candidates[balances.indexOf(balances.reduce((a, b) => (b > a ? b : a)))]!;
+}
+
+/** `from` supplies `amount` of the market's loan token to Morpho, taken from its largest holder. */
 async function supplyCalls(from: Address, marketId: Hex, amount: bigint): Promise<Call[]> {
   const p = await marketParams(marketId);
   return [
-    erc20(HOLDER, p.loanToken, "transfer", from, amount),
+    erc20(await holderOf(p.loanToken), p.loanToken, "transfer", from, amount),
     erc20(from, p.loanToken, "approve", morpho, amount),
     morphoCall(from, encodeFunctionData({ abi: morphoAbi, functionName: "supply", args: [p, amount, 0n, from, "0x"] })),
   ];
@@ -136,7 +166,7 @@ async function supplyCalls(from: Address, marketId: Hex, amount: bigint): Promis
 async function setupFor(marketId: Hex, liquidity: bigint): Promise<Call[]> {
   return [
     ...(await supplyCalls(LENDER, marketId, liquidity)),
-    erc20(HOLDER, usdc, "transfer", USER, MARGIN * 3n),
+    erc20(USDC_HOLDER, usdc, "transfer", USER, MARGIN * 3n),
     erc20(USER, usdc, "approve", router, MARGIN * 3n),
     morphoCall(USER, encodeFunctionData({ abi: morphoAbi, functionName: "setAuthorization", args: [router, true] })),
   ];
@@ -206,7 +236,7 @@ describe.skipIf(!live)("Base quotes and Earn against a live simulation (BE-72)",
     const stockSupply = 2n * 10n ** 8n;
     const setup = [
       ...(await supplyCalls(USER, shortMarket, stockSupply)),
-      erc20(HOLDER, usdc, "transfer", USER, MARGIN),
+      erc20(USDC_HOLDER, usdc, "transfer", USER, MARGIN),
       erc20(USER, usdc, "approve", vault, MARGIN),
       call(USER, vault, encodeFunctionData({ abi: metaMorphoAbi, functionName: "deposit", args: [MARGIN, USER] }), 2_000_000n),
     ];
