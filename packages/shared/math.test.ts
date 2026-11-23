@@ -14,6 +14,7 @@ import {
   maxLeverageE2,
   morphoOraclePrice,
   mulDiv,
+  pnlBps,
   positionLtvWad,
   signedDeviationBps,
   stockForUsd,
@@ -161,6 +162,21 @@ describe("deviation", () => {
   it("matches the contract and keeps the sign for display", () => {
     expect(deviationBps(105_000_000n, 100_000_000n)).toBe(500n);
     expect(signedDeviationBps(97_400_000n, 100_000_000n)).toBe(-260);
+  });
+});
+
+describe("PnL in percent (BE-101)", () => {
+  it("is the PnL over the margin put in, in bps, rounded toward zero", () => {
+    expect(pnlBps(30n * USDC, 100n * USDC)).toBe(3_000);
+    expect(pnlBps(-20n * USDC, 200n * USDC)).toBe(-1_000);
+    expect(pnlBps(1n, 3n)).toBe(3_333);
+    expect(pnlBps(-1n, 3n)).toBe(-3_333);
+    expect(pnlBps(-150n * USDC, 100n * USDC)).toBe(-15_000);
+  });
+
+  it("is null without margin put in", () => {
+    expect(pnlBps(5n * USDC, 0n)).toBeNull();
+    expect(pnlBps(5n * USDC, -1n)).toBeNull();
   });
 });
 

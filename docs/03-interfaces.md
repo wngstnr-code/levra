@@ -623,6 +623,7 @@ type Position = {
   entryPriceE8: string;       // average
   oraclePriceE8: string;
   unrealizedPnlUsdRaw: string;
+  pnlBps?: number | null;     // unrealizedPnlUsdRaw / margin put in, signed bps (BE-101)
   ltvWad: string;
   softLtvWad: string;
   lltvWad: string;
@@ -698,7 +699,7 @@ type DepositStatus = {
 When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `snapshot()` reverts), `oraclePriceE8` is `"0"` everywhere it appears, and that is the flag. Clients never divide by it.
 
 - `markets`, `markets/:symbol`, `stream`, `accounts/:address` and `earn` answer as usual. `Market.oracleStale` is true and `dexDeviationBps` is null.
-- `Position`: `valueUsdRaw`, `equityUsdRaw` and `unrealizedPnlUsdRaw` are `"0"`, and the position is left out of `Account.totals`. `ltvWad` is `"0"` (unknown, as Lens reports it), so `overSoftLimit` is false. The web app shows "no price" instead of these numbers.
+- `Position`: `valueUsdRaw`, `equityUsdRaw` and `unrealizedPnlUsdRaw` are `"0"`, `pnlBps` is null, and the position is left out of `Account.totals`. `ltvWad` is `"0"` (unknown, as Lens reports it), so `overSoftLimit` is false. The web app shows "no price" instead of these numbers.
 - `quote/close` with `fractionWad` 1e18: a full close priced by the DEX alone. The swap and its `minOut` come from the route and the user's slippage, `preview.deviationBps` is 0, `preview.ltvAfterWad` is `"0"`, and a warning `ORACLE_STALE` with severity `warn` says so. Only through a router with SC-86 (Base, X Layer, and Monad after SC-87); the live Monad router refuses it.
 - `quote/close` with a smaller fraction, and `quote/open`: 400 `BAD_REQUEST` with `details: { oraclePriceE8: "0" }` and a message that says why. The router would revert them.
 - `quote/collateral`: adding collateral and repaying still quote, with `ltvAfterWad` `"0"` and an `info` warning `ORACLE_STALE`. Removing collateral while there is debt stays blocked (`ORACLE_STALE`, `block`), as before.
@@ -934,7 +935,7 @@ Server-Sent Events, one stream per chain (`/v1/:chainId/stream`, BE-70; `/v1/str
 - On Base, `tx.data` ends with Levra's Builder Code as an ERC-8021 suffix (BE-74, D-108), already counted in `gasLimit`. The frontend sends `tx.data` unchanged and does not add a wallet `dataSuffix` on top. For the Base transactions the web app builds itself (Earn, D-07), it appends the same suffix with `withBuilderCode(chainId, data)` from `@levra/shared/api`, which leaves other chains unchanged.
 - In `typedData`, every `uint256` value is a decimal string so the payload survives JSON. The frontend turns them into `bigint` before signing.
 - `realizedPnlUsdRaw` in a close quote uses the margin put in through the router (from `PositionOpened` and `PositionReduced`). A position built straight on Morpho has no basis there and shows `"0"`.
-- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for positions built straight on Morpho, whose cost is not known. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
+- In `/v1/accounts/:address`, positions are read live from `Lens`, so they are current on every request. `entryPriceE8` and `unrealizedPnlUsdRaw` come from the same router events, and are `"0"` for positions built straight on Morpho, whose cost is not known. `pnlBps` is `unrealizedPnlUsdRaw` over the margin still in the position (the margin put in, less the share taken out by reductions), rounded toward zero, from `pnlBps` in `math.ts`; null for those positions. The API always sends it; the schema marks it optional only so older clients still type-check. History also lists liquidations and actions taken straight on Morpho (`borrow`, `lend`, `withdrawLend` and the collateral and repay types); a Morpho event in the same transaction as a router event is not listed twice.
 - `/history` takes `cursor` (the `id` of the last item shown) and `limit` (1 to 100, default 20) as query parameters, newest first. An unknown cursor answers `BAD_REQUEST`.
 - `maxLtv` in an open transaction is the worst-case LTV of the quote plus 1 bps of it, room for interest that accrues on existing debt before the block (initial proposal).
 - Warning thresholds are initial proposals: `HIGH_PRICE_IMPACT` above 100 bps; `NEAR_SOFT_LIMIT` warns within 2 percentage points of the current soft limit and blocks above it; `HIGH_DEVIATION` warns above half of `maxDeviationBps` and blocks above it.

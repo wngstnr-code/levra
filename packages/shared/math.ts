@@ -229,6 +229,15 @@ export function signedDeviationBps(execPriceE8: bigint, oraclePriceE8: bigint): 
 }
 
 /**
+ * Profit or loss as a share of the margin put in (BE-101), in basis points, rounded toward zero. Null without margin
+ * put in, as for a position built straight on Morpho.
+ */
+export function pnlBps(pnlRaw: bigint, investedRaw: bigint): number | null {
+  if (investedRaw <= 0n) return null;
+  return Number((pnlRaw * 10_000n) / investedRaw);
+}
+
+/**
  * Value of stock to sell to bring a long to target LTV t, with selling cost c:
  * (D - t × V) / ((1 - c) - t). D and V in quote base units, t and c as WAD. Rounded up so the target is reached.
  */

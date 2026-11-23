@@ -485,6 +485,12 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Done when: with a deployment file that has a second router, a test shows the indexer storing both routers' events with their router, the protector ignoring an opt-in made on the old router, and the account history holding positions from both; the monitor and `/v1/status` watch the right indexer cursor.
   - Note (22 November 2026): written. `router_events` has a `router` column (migration 0010). The router stream reads `[router, ...previousRouters]` in one query (RPC and HyperSync both take a list); `routerCursor()` in `packages/db` names the cursor `router_events` with one router and `router_events:<n>` with n routers, so adding a router rescans every router from the deployment block (about 1,100 RPC pages on Monad today), and that rescan only fills `router` on rows indexed before the column. The protector's candidates come from `ProtectionSet` events of the current router only; rows without a router count only while there is no previous router. The account history without a database reads every router. The monitor and `/v1/status` use `routerCursor()`. Tests with the test database: both routers' events land with their router, including the new router's events from before the indexer saw the new file, and only the new router's opt-in counts. Every keeper test passes on a fresh fork (107). Done once SC-87 ships the deployment file and the indexer runs it.
 
+- [x] **BE-101 · PnL in percent**
+  - Needs: nothing. Asked by Nabil on 20 November 2026 for the share card (FE-76).
+  - Do: one formula for a position's PnL in percent in `math.ts`, and the value on `Position`.
+  - Done when: `/v1/accounts/:address` returns it, with tests by hand.
+  - Note (23 November 2026): `pnlBps(pnl, invested)` in `math.ts` (signed bps, rounded toward zero, null without margin put in) and `Position.pnlBps` (03). The base is the margin still in the position, the same one as `unrealizedPnlUsdRaw`. Tests: the formula, and an account at +20% and -20%, plus null for a Morpho-only position and a market without a price. Optional in the schema so the web app's fixtures still type-check.
+
 ---
 
 ## B. Base (Stocks Maxxing)

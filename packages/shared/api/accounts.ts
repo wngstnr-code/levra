@@ -26,6 +26,11 @@ export const position = z.object({
   entryPriceE8: priceE8,
   oraclePriceE8: priceE8,
   unrealizedPnlUsdRaw: signedUsdRaw,
+  /**
+   * `unrealizedPnlUsdRaw` over the margin put in through the router (`pnlBps` in math.ts). Null without that margin or
+   * without a price. The API always sends it; optional so clients built before BE-101 still type-check.
+   */
+  pnlBps: signedBps.nullable().optional(),
   ltvWad: wad,
   softLtvWad: wad,
   lltvWad: wad,
