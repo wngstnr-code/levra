@@ -5,6 +5,7 @@ import { SwapError, type SwapProvider, type SwapQuote } from "./types";
 export const UNISWAP_V3_FEES = [100, 500, 3000, 10000] as const;
 
 const factoryAbi = parseAbi(["function getPool(address tokenA, address tokenB, uint24 fee) view returns (address)"]);
+const peripheryAbi = parseAbi(["function factory() view returns (address)"]);
 // QuoterV2 simulates the swap and reverts with the result, so it is only ever run through eth_call; declared view for viem.
 const quoterAbi = parseAbi([
   "struct QuoteExactInputSingleParams { address tokenIn; address tokenOut; uint256 amountIn; uint24 fee; uint160 sqrtPriceLimitX96; }",
@@ -18,7 +19,8 @@ const swapRouterAbi = parseAbi([
 
 export type UniswapV3Options = {
   client: PublicClient;
-  factory: Address;
+  /** Without it, SwapRouter02's own `factory()` is read once, so pools always come from the factory the router swaps on. */
+  factory?: Address;
   swapRouter02: Address;
   quoterV2: Address;
   /** How long a pair's pool list is reused before the factory is read again. */
@@ -34,6 +36,14 @@ type Pool = { address: Address; fee: number };
  */
 export function createUniswapV3({ client, factory, swapRouter02, quoterV2, poolCacheMs = 10 * 60_000, now = Date.now }: UniswapV3Options): SwapProvider {
   const pools = new Map<string, { at: number; list: Pool[] }>();
+  let factoryRead: Promise<Address> | null = factory ? Promise.resolve(factory) : null;
+  const factoryOf = () => {
+    factoryRead ??= client.readContract({ address: swapRouter02, abi: peripheryAbi, functionName: "factory" }).catch((err: unknown) => {
+      factoryRead = null;
+      throw err;
+    });
+    return factoryRead;
+  };
 
   async function poolsOf(tokenIn: Address, tokenOut: Address): Promise<Pool[]> {
     const key = [tokenIn.toLowerCase(), tokenOut.toLowerCase()].sort().join(":");
@@ -41,7 +51,8 @@ export function createUniswapV3({ client, factory, swapRouter02, quoterV2, poolC
     if (cached && now() - cached.at < poolCacheMs) return cached.list;
     let addresses: readonly Address[];
     try {
-      addresses = await Promise.all(UNISWAP_V3_FEES.map((fee) => client.readContract({ address: factory, abi: factoryAbi, functionName: "getPool", args: [tokenIn, tokenOut, fee] })));
+      const address = await factoryOf();
+      addresses = await Promise.all(UNISWAP_V3_FEES.map((fee) => client.readContract({ address, abi: factoryAbi, functionName: "getPool", args: [tokenIn, tokenOut, fee] })));
     } catch (err) {
       throw new SwapError("UPSTREAM_ERROR", "Could not read the Uniswap pools.", undefined, err);
     }

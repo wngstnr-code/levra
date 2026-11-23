@@ -1,6 +1,6 @@
 import { xlayerExternal, xlayerTokens } from "@levra/shared/addresses";
 import { xlayerDeployment } from "@levra/shared/deployments/xlayer";
-import { createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, http, parseAbi, toHex, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, http, toHex, type Address, type Hex } from "viem";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createOkx, createUniswapV3, type SwapProvider } from "../src";
 
@@ -19,15 +19,8 @@ const usdc = xlayerTokens.USDC.address;
 const USDC_HOLDER = xlayerExternal.morpho;
 const SPEND_USDC = BigInt(process.env.XLAYER_FORK_USDC ?? "100") * 1_000_000n;
 const SLIPPAGE_BPS = 100;
-const routerAbi = parseAbi(["function factory() view returns (address)"]);
-
-// The official Uniswap v3 QuoterV2 on X Layer (Uniswap/contracts, deployments/196.md). Its factory is SwapRouter02's.
-// Belongs in `xlayerExternal` (Wangsit's file); asked in PROGRESS. Until then it lives only in this test.
-const QUOTER_V2: Address = "0xD1b797D92d87B688193A2B976eFc8D577D204343";
-
 async function providers(): Promise<SwapProvider[]> {
-  const factory = await client.readContract({ address: xlayerExternal.uniswapSwapRouter02, abi: routerAbi, functionName: "factory" });
-  const list: SwapProvider[] = [createUniswapV3({ client: client as never, factory, swapRouter02: xlayerExternal.uniswapSwapRouter02, quoterV2: QUOTER_V2 })];
+  const list: SwapProvider[] = [createUniswapV3({ client: client as never, swapRouter02: xlayerExternal.uniswapSwapRouter02, quoterV2: xlayerExternal.uniswapQuoterV2 })];
   const { OKX_API_KEY: apiKey, OKX_SECRET_KEY: secretKey, OKX_API_PASSPHRASE: passphrase } = process.env;
   if (apiKey && secretKey && passphrase) {
     list.unshift(createOkx({ chainId: 196, apiKey, secretKey, passphrase, router: xlayerExternal.okxDexRouter, approve: xlayerExternal.okxDexApprove }));
