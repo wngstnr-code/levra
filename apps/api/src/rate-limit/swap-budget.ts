@@ -14,10 +14,17 @@ export const defaultSwapBudget: BucketRule = { capacity: 12, perMinute: 60 };
  */
 export const oneInchBudget: BucketRule = { capacity: 5, perMinute: 50 };
 
-/** HTTP calls behind each method: KyberSwap needs a route plus a build for a quote, 1inch one call for either. */
+/**
+ * OKX DEX, with the client spacing calls 1.1 s apart like 1inch. OKX's limit for our key is not verified, so this is an
+ * initial proposal.
+ */
+export const okxBudget: BucketRule = { capacity: 5, perMinute: 50 };
+
+/** HTTP calls behind each method: KyberSwap needs a route plus a build for a quote, 1inch and OKX one call for either. */
 export type SwapCost = { price: number; quote: number };
 export const KYBER_COST: SwapCost = { price: 1, quote: 2 };
 export const ONEINCH_COST: SwapCost = { price: 1, quote: 1 };
+export const OKX_COST: SwapCost = { price: 1, quote: 1 };
 
 export function budgetedSwap(swap: SwapSource, rule: BucketRule = defaultSwapBudget, now?: () => number, cost: SwapCost = KYBER_COST): SwapSource {
   const budget = createBucketStore(rule, now);
