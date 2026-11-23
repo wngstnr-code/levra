@@ -64,6 +64,29 @@ describe("Uniswap v3 provider", () => {
     expect(reads.filter((r) => r === "getPool")).toHaveLength(8);
   });
 
+  it("reads the factory from SwapRouter02 once when none is given, and again after a failed read", async () => {
+    const seen: string[] = [];
+    let failFactory = true;
+    const client = {
+      async readContract({ address, functionName, args }: { address: Address; functionName: string; args?: readonly unknown[] }) {
+        seen.push(`${functionName}@${address}`);
+        if (functionName === "factory") {
+          if (failFactory) throw new Error("rpc down");
+          return factory;
+        }
+        if (functionName === "getPool") return Number(args![2]) === 500 ? pool500 : zeroAddress;
+        return [5n, 0n, 0, 0n];
+      },
+    } as unknown as PublicClient;
+    const provider = createUniswapV3({ client, swapRouter02, quoterV2, now: () => 0 });
+    await expect(provider.price({ tokenIn: usdc, tokenOut: qqq, amountIn: 1n })).rejects.toMatchObject({ code: "UPSTREAM_ERROR" });
+    failFactory = false;
+    expect(await provider.price({ tokenIn: usdc, tokenOut: qqq, amountIn: 1n })).toBe(5n);
+    expect(await provider.price({ tokenIn: qqq, tokenOut: usdc, amountIn: 1n })).toBe(5n);
+    expect(seen.filter((s) => s.startsWith("factory@"))).toEqual([`factory@${swapRouter02}`, `factory@${swapRouter02}`]);
+    expect(seen.filter((s) => s.startsWith("getPool@")).every((s) => s === `getPool@${factory}`)).toBe(true);
+  });
+
   it("refuses a slippage of 100% or more", async () => {
     const { client } = chain({ 500: pool500 }, { 500: 5n });
     await expect(uniswap(client).quote({ tokenIn: usdc, tokenOut: qqq, amountIn: 1n, sender, slippageBps: 10_000 })).rejects.toMatchObject({ code: "UPSTREAM_ERROR" });
