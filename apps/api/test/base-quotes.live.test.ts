@@ -1,6 +1,14 @@
 import { baseExternal, baseTokens } from "@levra/shared/addresses";
 import { metaMorphoAbi, morphoAbi } from "@levra/shared/abis";
-import { earnAccount, quoteCloseResponse, quoteOpenResponse, type QuoteCloseResponse, type QuoteOpenResponse } from "@levra/shared/api";
+import {
+  builderCodes,
+  ERC8021_MARKER,
+  earnAccount,
+  quoteCloseResponse,
+  quoteOpenResponse,
+  type QuoteCloseResponse,
+  type QuoteOpenResponse,
+} from "@levra/shared/api";
 import { baseDeployment } from "@levra/shared/deployments/base";
 import { baseStocks } from "@levra/shared/markets";
 import pino from "pino";
@@ -32,6 +40,8 @@ const MARGIN = 100_000_000n;
 const MAX_GAS = 25_000_000n;
 const ESTIMATE_PRECISION = 5_000n;
 const SLIPPAGE_BPS = 100;
+// Every quote must run through the router with the Builder Code suffix (BE-74); a test code stands in until ours is set.
+builderCodes[8453] ??= "bc_levratest";
 
 type Call = { from: Address; to: Address; data: Hex; gas?: Hex };
 type CallResult = { status: Hex; returnData: Hex; gasUsed: Hex; error?: { message?: string } };
@@ -155,6 +165,7 @@ describe.skipIf(!live)("Base quotes and Earn against a live simulation (BE-72)",
       expect(open.requirements.every((r) => r.satisfied)).toBe(true);
       expect(open.warnings.filter((w) => w.severity === "block")).toEqual([]);
       expect(BigInt(open.tx.gasLimit) > 0n).toBe(true);
+      expect(open.tx.data.endsWith(ERC8021_MARKER)).toBe(true);
 
       const opened = await simulate([...setup, txCall(open.tx), positionCall(market.marketId)]);
       setup.forEach((_, i) => ok(opened[i]!, `setup ${i}`));
@@ -173,6 +184,7 @@ describe.skipIf(!live)("Base quotes and Earn against a live simulation (BE-72)",
       const close: QuoteCloseResponse = await request(virtualClient(afterOpen), "/quote/close", closeBody, quoteCloseResponse.parse);
       expect(close.warnings.filter((w) => w.severity === "block")).toEqual([]);
       expect(BigInt(close.tx.gasLimit) > 0n).toBe(true);
+      expect(close.tx.data.endsWith(ERC8021_MARKER)).toBe(true);
 
       const n = afterOpen.length;
       const closed = await simulate([...afterOpen, balanceCall(usdc, USER), txCall(close.tx), positionCall(market.marketId), balanceCall(usdc, USER), balanceCall(usdc, router), balanceCall(stock.token, router)]);

@@ -522,10 +522,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: both run on the VPS against Base mainnet and a test position shows in the API.
   - Note (20 November 2026): the Chainlink price recorder starts earlier as BE-97; the calendar rule for Chainlink chains is in BE-30; the keeper addresses go to Wangsit before SC-76 (BE-55). BE-88 and BE-89 must be done before the keeper acts on Base.
 
-- [ ] **BE-74 · Builder Codes**
+- [~] **BE-74 · Builder Codes**
   - Do: attach Levra's Builder Code to every Base transaction the API builds.
   - Done when: a real transaction shows the code in Base's attribution.
   - Note (20 November 2026): the code goes on every Base transaction the API builds. The constant lives in `packages/shared/api`, so the web app adds the same code to the Base transactions it builds itself (Earn, D-07). First check how Base links a transaction to a Builder Code (not verified). Needed before the first real Base transaction, since traction counts from it.
+  - Note (23 November 2026): how Base links a transaction to a code is now checked against Base's docs: an ERC-8021 suffix at the end of the calldata (D-108). `packages/shared/api/attribution.ts` writes it (tested byte for byte against `ox/erc8021`), and all five API quotes append it on Base before the gas simulation. A live simulation with a test code ran Base long and short, open and close, through our router. Left: Levra's code from base.dev into `builderCodes[8453]` (one line), then a real Base transaction checked on base.dev. FE-93 does the same for the web app's own Base transactions.
 
 - [x] **BE-75 · Policy and pause monitor**
   - Do: watch each listed token's policy and pause state; alert the team and the affected users (Telegram) when it changes; mark the market halted in the API.
