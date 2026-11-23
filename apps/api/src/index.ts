@@ -30,7 +30,8 @@ const otherChains = [
 ];
 const { db, close } = createDb(env.DATABASE_URL);
 // Each chain quotes through the providers its router accepts; each HTTP provider has its own budget (BE-96, BE-51).
-const swapKeys = { kyberClientId: env.KYBER_CLIENT_ID, kyberApiKey: env.KYBER_API_KEY, kyberMonadUrl: env.KYBER_BASE_URL, oneInchApiKey: env.ONEINCH_API_KEY };
+const okx = env.OKX_API_KEY && env.OKX_SECRET_KEY && env.OKX_API_PASSPHRASE ? { apiKey: env.OKX_API_KEY, secretKey: env.OKX_SECRET_KEY, passphrase: env.OKX_API_PASSPHRASE } : undefined;
+const swapKeys = { kyberClientId: env.KYBER_CLIENT_ID, kyberApiKey: env.KYBER_API_KEY, kyberMonadUrl: env.KYBER_BASE_URL, oneInchApiKey: env.ONEINCH_API_KEY, okx };
 const routeOf = (r: ChainReader) => routeForRouter(r.client, r.deployment.router, swapProviders(r.deployment.chainId as ChainId, r.client, swapKeys));
 const swap = routeOf(reader) ?? undefined;
 const otherSwaps = new Map(otherChains.flatMap((r) => {

@@ -49,12 +49,19 @@ const keys = { kyberClientId: "levra" };
 const noClient = {} as PublicClient;
 
 describe("swap providers per chain (BE-96)", () => {
-  it("knows KyberSwap on Monad, KyberSwap and Aero on Base plus 1inch with a key, and nothing on X Layer yet", () => {
+  it("knows KyberSwap on Monad, KyberSwap and Aero on Base plus 1inch with a key, and OKX on X Layer with its keys", () => {
     const names = (chainId: 143 | 8453 | 196, k = keys) => swapProviders(chainId, noClient, k).map((p) => p.name);
     expect(names(143)).toEqual(["kyberswap"]);
     expect(names(8453)).toEqual(["kyberswap", "aero"]);
     expect(names(8453, { ...keys, oneInchApiKey: "key" } as typeof keys)).toEqual(["kyberswap", "1inch", "aero"]);
     expect(names(196)).toEqual([]);
+    expect(names(196, { ...keys, okx: { apiKey: "k", secretKey: "s", passphrase: "p" } } as typeof keys)).toEqual(["okx"]);
+  });
+
+  it("uses the OKX router as target and its approve contract as spender on X Layer (D-88)", () => {
+    const xlayer = externalByChain[196];
+    const [okx] = swapProviders(196, noClient, { ...keys, okx: { apiKey: "k", secretKey: "s", passphrase: "p" } } as typeof keys);
+    expect([okx!.target, okx!.spender]).toEqual([xlayer.okxDexRouter, xlayer.okxDexApprove]);
   });
 
   it("uses the Base router addresses the deployment allows (05)", () => {

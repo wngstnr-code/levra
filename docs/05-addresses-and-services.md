@@ -585,6 +585,15 @@ Read from the X Layer RPC (`https://rpc.xlayer.tech`, block 76329283), the Morph
 | OKX DEX approve contract | `0x8b773D83bc66Be128c60e07E17C8901f7a64F000` | `dexTokenApproveAddress` for chain 196 in the v6 supported chain list. Tokens must be approved here, not to the router: on a fork a swap reverted with only the router approved (Q-47) |
 
 | Uniswap v3 SwapRouter02 | `0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA` | Verified onchain: `factory()` is the Uniswap v3 factory `0x4B2ab38DBF28D31D467aA8993f6c2585981D6804` that holds the wQQQx / USDC pool, `factoryV2()` and `positionManager()` answer, `WETH9()` is WOKB, and the code holds the `exactInputSingle` selector of SwapRouter02. Found as the target of a real swap in that pool. Second swap target on X Layer (D-85) |
+| Uniswap v3 QuoterV2 | `0xD1b797D92d87B688193A2B976eFc8D577D204343` | From Uniswap's own list (`Uniswap/contracts`, `deployments/196.md`). Verified onchain on 23 November 2026: code present, `factory()` is the factory above, `WETH9()` is WOKB. Quotes the Uniswap fallback (BE-81). Not yet in `xlayerExternal` (asked of Wangsit) |
+
+### Swap providers on X Layer (BE-81)
+
+The backend's two X Layer providers, in `packages/swap` (23 November 2026):
+- OKX DEX API v6, the main route: `/api/v6/dex/aggregator/quote` for prices and `/swap` for calldata, with `chainIndex` 196, our router as `userWalletAddress` and `swapReceiverAddress`, and the slippage in percent. Each request is signed: HMAC-SHA256 of timestamp, `GET`, path and query, base64, with the key, timestamp and passphrase as `OK-ACCESS-*` headers. The answer must name the OKX router as `tx.to` with no native value; our router approves the OKX approve contract (D-88). OKX answers HTTP 200 with its own `code`; `50011` is its rate limit. One request per 1.1 s and 50 a minute in the API (initial proposal; OKX's limit for our key is not verified).
+- Uniswap SwapRouter02, the fallback: QuoterV2's `quoteExactInputSingle` for each fee tier (0.01%, 0.05%, 0.3%, 1%) with a pool, the best one built into `exactInputSingle`. Only wQQQx and wGOOGLx have a USDC pool with depth (read on 23 November 2026: wQQQx / USDC 0.05% holds 3,754 wQQQx and $586k USDC, wGOOGLx / USDC 0.05% holds 14.6 wGOOGLx and $2.4k); wNVDAx and wSPYx have none, so OKX routes those.
+
+The X Layer RPC has no `eth_simulateV1`, but the xStocks are plain ERC-20 tokens, so the calldata is checked on an anvil fork (`packages/swap/test/xlayer-fork.test.ts`, run with `XLAYER_FORK_RPC_URL`; OKX joins with its keys). Run on 23 November 2026 around 05:00 UTC without the OKX keys: Uniswap buys 100 USDC of wQQQx and wGOOGLx and sells 95% back through our router's address, each delivering exactly its quote (0 bps), gas 168,000 to 361,000 per swap. Not run yet: OKX (its keys and `web3.okx.com` are reachable only from the VPS).
 
 The listed xStocks markets and their IDs are under "Wrapped xStocks" below.
 

@@ -30,6 +30,10 @@ const envSchema = z.object({
   KYBER_API_KEY: optional(),
   /** 1inch Business API key (05). Base quotes leave 1inch out without it. Never commit it. */
   ONEINCH_API_KEY: optional(),
+  /** OKX DEX API v6 key, secret and passphrase (05). X Layer quotes have no route without all three. Never commit them. */
+  OKX_API_KEY: optional(),
+  OKX_SECRET_KEY: optional(),
+  OKX_API_PASSPHRASE: optional(),
   /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**
