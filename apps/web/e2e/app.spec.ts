@@ -127,6 +127,13 @@ test("stats shows the chain's public numbers", async ({ page }) => {
   await expect(page.getByText("41 trades")).toBeVisible();
 });
 
+test("the footer links to stats on every screen", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Stats" }).click();
+  await expect(page).toHaveURL(/\/monad\/stats$/);
+});
+
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere/markets");
