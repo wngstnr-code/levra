@@ -48,12 +48,11 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     const reader = chainFeedReader(client);
     jobs.push(createChainlinkRecorder({ reader, stocks: feedStocks, backfillSeconds: env.CHAINLINK_BACKFILL_DAYS * 86_400 }));
     // The DEX mid price and depth against the feed price (BE-96 step 4), for the markets and the soft layer.
-    const depth = depthSwap(chainId, client, { kyberClientId: env.KYBER_CLIENT_ID, kyberApiKey: env.KYBER_API_KEY });
-    if (depth) {
-      jobs.push(createMarketDepth({ client, swap: depth, deployment, prices: chainlinkPrices(reader, feedStocks), usdc: tokensByChain[chainId].USDC }));
-    } else {
-      notHere("market depth", "BE-81");
-    }
+    const { OKX_API_KEY: apiKey, OKX_SECRET_KEY: secretKey, OKX_API_PASSPHRASE: passphrase } = env;
+    const okx = apiKey && secretKey && passphrase ? { apiKey, secretKey, passphrase } : undefined;
+    if (chainId === 196 && !okx) logger.warn("market depth on X Layer measures Uniswap only: set OKX_API_KEY, OKX_SECRET_KEY and OKX_API_PASSPHRASE");
+    const depth = depthSwap(chainId, client, { kyberClientId: env.KYBER_CLIENT_ID, kyberApiKey: env.KYBER_API_KEY, okx });
+    jobs.push(createMarketDepth({ client, swap: depth, deployment, prices: chainlinkPrices(reader, feedStocks), usdc: tokensByChain[chainId].USDC }));
   }
 
   if (env.KEEPER_GLOBAL) {

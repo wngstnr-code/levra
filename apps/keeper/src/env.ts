@@ -55,6 +55,10 @@ const fields = z.object({
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
   /** KyberSwap gateway key for a higher rate limit (05), sent as X-Api-Key. Never commit it. */
   KYBER_API_KEY: optional(),
+  /** OKX DEX API v6 (BE-81), for the X Layer depth table; all three are needed. The API's key. Never commit them. */
+  OKX_API_KEY: optional(),
+  OKX_SECRET_KEY: optional(),
+  OKX_API_PASSPHRASE: optional(),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 
