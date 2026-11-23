@@ -552,10 +552,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a real user flow works end to end from chat, recorded for the demo.
   - Note (20 November 2026): Telegram allows one update reader per bot, so the bot's updates move from the keeper to `apps/agent`, and the keeper only sends messages. P2: only if time allows before 4 December.
 
-- [ ] **BE-79 · Public stats endpoint**
+- [~] **BE-79 · Public stats endpoint**
   - Needs: BE-73.
   - Do: `GET /v1/stats` per chain: wallets, open interest long and short, volume, Earn supplied. Only indexed data.
   - Done when: FE-75 reads it.
+  - Note (23 November 2026): built. `GET /v1/:chainId/stats` (and `/v1/stats` for Monad), schema `statsResponse` in `packages/shared/api/stats.ts`, definitions in 03 and D-109 (debt and lent amounts come from chain reads, since shares need the market totals). Queries `marketTrades` and `walletCounts` in `packages/db`, tested against Postgres; the numbers checked by hand in `apps/api/test/stats.test.ts`. Served on every chain the indexer covers: Monad now, Base after BE-73. Left: FE-75 reads it.
 
 
 ---

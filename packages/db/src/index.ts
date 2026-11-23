@@ -8,11 +8,15 @@ export {
   protectedPositions,
   latestDexMids,
   latestOraclePrice,
+  marketTrades,
   oraclePriceSeries,
   morphoPositions,
   observedClosedStretches,
   rateHistory,
   routerCursor,
+  walletCounts,
   type EventPosition,
+  type MarketTrades,
+  type TradeNotional,
 } from "./queries";
 export * from "./schema";

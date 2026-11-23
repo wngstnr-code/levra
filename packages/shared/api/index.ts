@@ -15,3 +15,4 @@ export * from "./chains";
 export * from "./stream";
 export * from "./endpoints";
 export * from "./attribution";
+export * from "./stats";

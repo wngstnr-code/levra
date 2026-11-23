@@ -122,6 +122,11 @@ export function stockForUsd(usdRaw: bigint, priceE8: bigint, quoteDecimals: numb
   return mulDiv(usdRaw * 100_000_000n, 10n ** BigInt(stockDecimals), priceE8 * 10n ** BigInt(quoteDecimals));
 }
 
+/** Dollar value of `stockAmount` at `priceE8`, in quote base units, rounded down. The inverse of `stockForUsd`. */
+export function usdForStock(stockAmount: bigint, priceE8: bigint, quoteDecimals: number, stockDecimals: number): bigint {
+  return mulDiv(stockAmount * priceE8, 10n ** BigInt(quoteDecimals), 100_000_000n * 10n ** BigInt(stockDecimals));
+}
+
 /** Morpho SharesMathLib: virtual shares and assets that keep share prices sane in empty markets. */
 const VIRTUAL_SHARES = 1_000_000n;
 const VIRTUAL_ASSETS = 1n;

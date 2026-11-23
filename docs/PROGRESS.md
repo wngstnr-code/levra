@@ -282,6 +282,7 @@ One section per person. Add your lines only at the top of your own section, each
 
 Newest first.
 
+- 23 November 2026: BE-79 built (D-109): `GET /v1/:chainId/stats` with wallets, open interest, volume and Earn supplied; the shape is in `packages/shared/api/stats.ts` (Nabil's blocker row removed). Numbers checked by hand and the queries against Postgres. Monad has data now, Base after BE-73. Next: FE-75 reads it; then the PnL percent formula for FE-76.
 - 23 November 2026: BE-74: Levra's Builder Code `bc_1w63m4n4` (Base Dashboard project "Levra") set in `builderCodes[8453]`; every Base quote now carries it. Left: deploy and check a real Base transaction on the Base Dashboard.
 - 23 November 2026: BE-101 done (Nabil's blocker for FE-76, row removed): `pnlBps` in `math.ts` and `Position.pnlBps`, the PnL over the margin still in the position, tested by hand.
 - 23 November 2026: BE-74 started (D-108): the API's Base quotes end with an ERC-8021 Builder Code suffix, written by `packages/shared/api/attribution.ts` and tested against `ox/erc8021`; the live Base quote test runs long and short, open and close, through our router with it. FE-93 added for the web app's own Base transactions (needs Nabil's agreement on the 03 change). Blocked on Levra's code from base.dev; until it is set nothing is appended.

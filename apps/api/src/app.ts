@@ -20,6 +20,7 @@ import { dbMarketHistory, marketRoutes, type DexMids, type Halts } from "./route
 import { activeGates, latestDexMids } from "@levra/db";
 import { createCache } from "./chain/cache";
 import { quoteRoutes } from "./routes/quotes";
+import { statsRoutes } from "./routes/stats";
 import { statusRoutes } from "./routes/status";
 import { streamRoutes, type StreamOptions } from "./routes/stream";
 import { SwapError, type SwapSource } from "@levra/swap";
@@ -107,6 +108,8 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     sub.route("/", streamRoutes(r, logger, stream, mids));
     sub.route("/", accountRoutes(r, store));
     sub.route("/", earnRoutes(r, store));
+    // Stats count indexed events (BE-79), so they need the database.
+    if (db) sub.route("/", statsRoutes(r, db));
     // Quotes need a swap route for the chain (BE-96): KyberSwap on Monad, the best of three on Base, X Layer with BE-81.
     // Region and terms belong to the wallet, so the same gate applies on every chain.
     if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance));

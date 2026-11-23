@@ -17,7 +17,9 @@ import {
   pnlBps,
   positionLtvWad,
   signedDeviationBps,
+  stockForUsd,
   supplyApyWad,
+  usdForStock,
   utilizationWad,
 } from "./math";
 
@@ -188,5 +190,18 @@ describe("deleverage size (04)", () => {
 
   it("sells nothing when already at or below the target", () => {
     expect(deleverageSellValue({ debt: 50n * USDC, value: 100n * USDC, targetLtvWad: pct(69), costWad: pct(1) })).toBe(0n);
+  });
+});
+
+describe("stock value in USDC", () => {
+  it("values 1.5 shares at $152.98 as $229.47 for 18 and 8 decimal stocks, rounded down", () => {
+    expect(usdForStock(15n * 10n ** 17n, 15_298_000_000n, 6, 18)).toBe(229_470_000n);
+    expect(usdForStock(150_000_000n, 15_298_000_000n, 6, 8)).toBe(229_470_000n);
+    expect(usdForStock(1n, 15_298_000_000n, 6, 18)).toBe(0n);
+  });
+
+  it("is the inverse of stockForUsd up to rounding", () => {
+    const stock = stockForUsd(1_000n * USDC, 15_298_000_000n, 6, 18);
+    expect(1_000n * USDC - usdForStock(stock, 15_298_000_000n, 6, 18)).toBeLessThanOrEqual(1n);
   });
 });
