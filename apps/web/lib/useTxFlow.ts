@@ -8,6 +8,7 @@ import { useConfig } from "wagmi";
 import { getPublicClient, sendTransaction, signTypedData, waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { describeError } from "./contractErrors";
 import { useT } from "./i18n";
+import { builderSuffix } from "./builderCode";
 import { splitRequirements, toSignatureInput, toTypedData } from "./typedData";
 import { useChain } from "./useChain";
 
@@ -73,7 +74,7 @@ export function useTxFlow() {
         }
         for (const [i, req] of toApprove.entries()) {
           setState({ phase: "approving", step: i + 1 });
-          const approveHash = await writeContract(config, { address: req.token!, abi: erc20Abi, functionName: "approve", args: [req.spender!, BigInt(req.amountRaw ?? MAX_UINT)], chainId: chain.id });
+          const approveHash = await writeContract(config, { address: req.token!, abi: erc20Abi, functionName: "approve", args: [req.spender!, BigInt(req.amountRaw ?? MAX_UINT)], chainId: chain.id, dataSuffix: builderSuffix(chain.id) });
           await waitForTransactionReceipt(config, { hash: approveHash, chainId: chain.id });
         }
         const fresh = toSign.length || toApprove.length ? await p.refresh(signatures) : null;
@@ -99,13 +100,13 @@ export function useTxFlow() {
       try {
         if (p.approve && p.approve.allowance < p.approve.amount) {
           setState({ phase: "approving", step: 1 });
-          const approveHash = await writeContract(config, { address: p.approve.token, abi: erc20Abi, functionName: "approve", args: [p.approve.spender, p.approve.amount], chainId: chain.id });
+          const approveHash = await writeContract(config, { address: p.approve.token, abi: erc20Abi, functionName: "approve", args: [p.approve.spender, p.approve.amount], chainId: chain.id, dataSuffix: builderSuffix(chain.id) });
           await waitForTransactionReceipt(config, { hash: approveHash, chainId: chain.id });
         }
         const client = getPublicClient(config, { chainId: chain.id })!;
         await client.simulateContract({ account: p.account, ...p.call } as Parameters<typeof client.simulateContract>[0]);
         setState({ phase: "wallet", step: 0 });
-        hash = await writeContract(config, { ...p.call, chainId: chain.id } as Parameters<typeof writeContract>[1]);
+        hash = await writeContract(config, { ...p.call, chainId: chain.id, dataSuffix: builderSuffix(chain.id) } as Parameters<typeof writeContract>[1]);
         await finish(hash, p.invalidate);
       } catch (err) {
         fail(err, hash);
