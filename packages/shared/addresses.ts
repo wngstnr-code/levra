@@ -105,6 +105,8 @@ export const xlayerExternal = {
   okxDexRouter: "0x7c5bEE2a8091C3ef39072f64F18Fac913060AEaF",
   okxDexApprove: "0x8b773D83bc66Be128c60e07E17C8901f7a64F000",
   uniswapSwapRouter02: "0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA",
+  /** Uniswap QuoterV2 (Uniswap/contracts deployments/196.md), same factory as uniswapSwapRouter02. A quote source, never a swap target. */
+  uniswapQuoterV2: "0xD1b797D92d87B688193A2B976eFc8D577D204343",
   permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   multicall3: "0xcA11bde05977b3631167028862bE2a173976CA11",
   safeSingleton: "0x41675C099F32341bf84BFc5382aF534df5C7461a",
