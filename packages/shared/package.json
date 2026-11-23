@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "ox": "0.14.56",
     "typescript": "^7.0.2",
     "viem": "^2.57.5",
     "vitest": "^5.0.4"

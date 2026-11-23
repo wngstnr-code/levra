@@ -1,6 +1,6 @@
 import { SwapError } from "@levra/swap";
 import { marginRouterAbi } from "@levra/shared/abis";
-import type { QuoteCloseRequest, QuoteCloseResponse } from "@levra/shared/api";
+import { withBuilderCode, type QuoteCloseRequest, type QuoteCloseResponse } from "@levra/shared/api";
 import { BPS, MAX_UINT256, WAD, cautiousPriceE8, morphoOraclePrice, positionLtvWad, signedDeviationBps } from "@levra/shared/math";
 import { randomUUID } from "node:crypto";
 import { encodeFunctionData, type Hex } from "viem";
@@ -107,7 +107,7 @@ export async function quoteCloseLong({ reader, swap, events: store }: QuoteDeps,
   });
 
   const check = await upstream(() => checkRequirements(reader, { user: req.user, authorization: true, blockTime: block.time }));
-  const data: Hex = closeData;
+  const data: Hex = withBuilderCode(reader.deployment.chainId, closeData);
 
   let gasLimit = 0n;
   if (!blocked() && check.ready) {
