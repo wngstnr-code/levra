@@ -282,6 +282,7 @@ One section per person. Add your lines only at the top of your own section, each
 
 Newest first.
 
+- 23 November 2026: BE-74: Levra's Builder Code `bc_1w63m4n4` (Base Dashboard project "Levra") set in `builderCodes[8453]`; every Base quote now carries it. Left: deploy and check a real Base transaction on the Base Dashboard.
 - 23 November 2026: BE-101 done (Nabil's blocker for FE-76, row removed): `pnlBps` in `math.ts` and `Position.pnlBps`, the PnL over the margin still in the position, tested by hand.
 - 23 November 2026: BE-74 started (D-108): the API's Base quotes end with an ERC-8021 Builder Code suffix, written by `packages/shared/api/attribution.ts` and tested against `ox/erc8021`; the live Base quote test runs long and short, open and close, through our router with it. FE-93 added for the web app's own Base transactions (needs Nabil's agreement on the 03 change). Blocked on Levra's code from base.dev; until it is set nothing is appended.
 - 23 November 2026: BE-72 started: Base long, short, close and Earn answers checked against `eth_simulateV1` on the live chain (`apps/api/test/base-quotes.live.test.ts`). The quoted transactions execute and match the preview within 1 bp; no API change was needed. Left: rerun after SC-76, the other stocks on a weekday, 1inch once its key is on the VPS (asked Wangsit). PRs #139 and #140 merged after the conflict fix. Next: deploy `main` to the VPS, then the 1inch run that closes BE-96.

@@ -331,4 +331,4 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
 - [ ] **FE-93 · Builder Code on the Base transactions the web app builds**
   - Needs: BE-74.
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
-  - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on base.dev.
+  - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
