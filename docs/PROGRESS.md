@@ -65,7 +65,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 20 November 2026 | Wangsit (landing site on `levra.finance`) | Dharu | `AUTH_DOMAIN=app.levra.finance` and `https://app.levra.finance` are set on the VPS and work (checked 22 November 2026). Left: add `https://levra.finance` to `CORS_ORIGINS` in the VPS `api.env`, as in `deploy/env/api.env.example`; today a call from the landing origin gets no CORS header | BE-90 |
-| 20 November 2026 | Nabil | Dharu | A shared formula for position PnL in percent in `math.ts` (or a field on `Position`), for the share card | FE-76 |
 | 20 November 2026 | Nabil | Dharu | The stats endpoint shape (BE-79) in `packages/shared/api`, so the public stats page uses the same definitions as the backend | FE-75 |
 | 22 November 2026 | Nabil (Base and X Layer in the web app) | Dharu | Deploy the API from `main` on the VPS: `api.levra.finance` answers 404 for `/v1/chains` and `/v1/8453/markets`, so BE-70 is not live there yet | FE-70, FE-80 |
 | 20 November 2026 | Wangsit (web app on `app.levra.finance`) | Nabil | Add `app.levra.finance` to the allowed domains of the WalletConnect (Reown) project if the app uses one, (no link in `apps/web` points at `levra-mon.vercel.app`, checked 22 November 2026) | FE |
