@@ -328,7 +328,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Done when: the state is read for every old router and has a unit test.
   - Note: done on 22 November 2026 (`fe/FE-80-g-live-chains`).
 
-- [ ] **FE-93 · Builder Code on the Base transactions the web app builds**
+- [~] **FE-93 · Builder Code on the Base transactions the web app builds**
   - Needs: BE-74.
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
   - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
+  - Note: built on 23 November 2026 (`fe/FE-93-builder-code`): every approval and direct call in `useTxFlow` sends `dataSuffix` from `withBuilderCode`; API transactions go out unchanged. Left: a real Base transaction checked on the Base Dashboard.
