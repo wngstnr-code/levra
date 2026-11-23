@@ -145,6 +145,21 @@ describe("rate limit for cross-chain quotes", () => {
     expect((await deposit("10.0.0.2")).status).toBe(200);
     expect((await deposit("10.0.0.3")).status).toBe(429);
   });
+
+  it("counts quotes, CCTP plans and account reads under a chain ID like the Monad paths", async () => {
+    const app = testApp(clock().now);
+    app.post("/v1/:chainId/quote/open", (c) => c.json({ ok: true }));
+    app.post("/v1/:chainId/bridge/deposit", (c) => c.json({ ok: true }));
+    app.get("/v1/:chainId/accounts/:address", (c) => c.json({ ok: true }));
+    const post = (path: string, ip: string, body: unknown) =>
+      app.request(path, { method: "POST", headers: { "x-forwarded-for": ip, "content-type": "application/json" }, body: JSON.stringify(body) });
+    expect((await post("/v1/196/quote/open", "10.0.0.1", { user: WALLET })).status).toBe(200);
+    expect((await post("/v1/196/bridge/deposit", "10.0.0.2", { recipient: WALLET })).status).toBe(200);
+    expect((await post("/v1/8453/quote/open", "10.0.0.3", { user: WALLET })).status).toBe(429);
+    expect((await get(app, `/v1/196/accounts/${OTHER_WALLET}`, "10.0.0.4")).status).toBe(200);
+    expect((await get(app, `/v1/8453/accounts/${OTHER_WALLET}`, "10.0.0.5")).status).toBe(200);
+    expect((await get(app, `/v1/accounts/${OTHER_WALLET}`, "10.0.0.6")).status).toBe(429);
+  });
 });
 
 describe("rate limit inside the app", () => {
