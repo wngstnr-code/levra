@@ -4,6 +4,10 @@
 	# ORIGIN in caddy.env picks origin-open.caddy or origin-cloudflare.caddy; deploy.sh checks it against api.env.
 	import origin-{$ORIGIN:open}.caddy
 	encode zstd gzip
+	# Remote MCP for AI agents (BE-77). The agent passes the caller's address on to the API (CLIENT_IP_HEADER).
+	handle /mcp {
+		reverse_proxy agent:8790
+	}
 	# Caddy replaces any X-Forwarded-For sent by the client, so the API can trust it (TRUST_PROXY_HEADER).
 	reverse_proxy api:8787 {
 		# The price stream is server-sent events and must not be buffered.
