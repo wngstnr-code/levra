@@ -238,10 +238,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a new user opens a first position with no ETH.
   - Note: our own sign-in sheet on top of Privy is built (Base Account first, email with code, passkey, external wallet). Privy 3.48 takes no wallet list in `login()`, so Base Account opens Privy's wallet list with Base Account first; a direct Base Account login is not verified. The paymaster is not started (budget Q-34).
 
-- [ ] **FE-75 · Public stats page**
+- [x] **FE-75 · Public stats page**
   - Needs: BE-79.
   - Do: wallets, open interest, volume, Earn supplied, per chain.
   - Done when: live numbers show from the API.
+  - Note: done on 23 November 2026 (`fe/FE-75-stats`): `/[chain]/stats` reads `GET /v1/:chainId/stats` (BE-79, D-109) for the chain in the picker: wallets, open positions long and short, volume (24 hours, 7 days, all time), Earn supplied. Live answers checked for Monad, Base and X Layer.
 
 - [~] **FE-76 · Shareable position card**
   - Do: image card for X after open or close (market, side, leverage, PnL in percent), with a link to the app.
