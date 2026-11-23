@@ -1,5 +1,5 @@
 import { marginRouterAbi } from "@levra/shared/abis";
-import type { QuoteOpenRequest, QuoteOpenResponse } from "@levra/shared/api";
+import { withBuilderCode, type QuoteOpenRequest, type QuoteOpenResponse } from "@levra/shared/api";
 import { gapScenarios } from "@levra/shared/gaps";
 import {
   BPS,
@@ -114,9 +114,10 @@ export async function quoteOpenLong({ reader, swap }: QuoteDeps, req: QuoteOpenR
       blockTime: block.time,
     }),
   );
-  const data: Hex = check.preCalls.length
-    ? encodeFunctionData({ abi: marginRouterAbi, functionName: "multicall", args: [[...check.preCalls, openData]] })
-    : openData;
+  const data: Hex = withBuilderCode(
+    reader.deployment.chainId,
+    check.preCalls.length ? encodeFunctionData({ abi: marginRouterAbi, functionName: "multicall", args: [[...check.preCalls, openData]] }) : openData,
+  );
 
   let gasLimit = 0n;
   if (!blocked() && check.ready && check.funded) {

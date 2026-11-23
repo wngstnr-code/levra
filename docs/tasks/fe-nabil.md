@@ -326,3 +326,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: when a deployment lists `previousRouters`, ask users who had protection on an old router to turn it on again, and offer to remove an old router's Morpho access. Access to the new router comes from the quote requirements as before.
   - Done when: the state is read for every old router and has a unit test.
   - Note: done on 22 November 2026 (`fe/FE-80-g-live-chains`).
+
+- [ ] **FE-93 · Builder Code on the Base transactions the web app builds**
+  - Needs: BE-74.
+  - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
+  - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on base.dev.
