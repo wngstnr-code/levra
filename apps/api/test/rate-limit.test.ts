@@ -66,6 +66,7 @@ function testApp(now: () => number) {
   app.get("/v1/earn/:address", (c) => c.json({ address: c.req.param("address") }));
   app.post("/v1/quote/open", async (c) => c.json({ user: ((await c.req.json()) as { user: string }).user }));
   app.post("/v1/deposit/quote", async (c) => c.json({ ok: true }));
+  app.post("/v1/agent/prepare", async (c) => c.json({ ok: true }));
   return app;
 }
 
@@ -144,6 +145,21 @@ describe("rate limit for cross-chain quotes", () => {
     expect((await deposit("10.0.0.1")).status).toBe(200);
     expect((await deposit("10.0.0.2")).status).toBe(200);
     expect((await deposit("10.0.0.3")).status).toBe(429);
+  });
+});
+
+describe("rate limit for prepared actions", () => {
+  it("counts a prepare as a quote, per wallet through the request's user", async () => {
+    const app = testApp(clock().now);
+    const prepare = (ip: string) =>
+      app.request("/v1/agent/prepare", {
+        method: "POST",
+        headers: { "x-forwarded-for": ip, "content-type": "application/json" },
+        body: JSON.stringify({ kind: "close", request: { user: WALLET } }),
+      });
+    expect((await prepare("10.0.0.1")).status).toBe(200);
+    expect((await prepare("10.0.0.2")).status).toBe(200);
+    expect((await prepare("10.0.0.3")).status).toBe(429);
   });
 });
 
