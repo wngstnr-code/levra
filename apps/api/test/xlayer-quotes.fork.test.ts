@@ -35,9 +35,7 @@ import {
  * BE-81: X Layer long and short quotes from the API, executed on an anvil fork of X Layer (no `eth_simulateV1` there;
  * the xStocks are plain ERC-20 tokens, so a fork runs them). Start `anvil --fork-url https://xlayerrpc.okx.com
  * --block-time 1` and run with XLAYER_FORK_RPC_URL; OKX joins with OKX_API_KEY, OKX_SECRET_KEY and OKX_API_PASSPHRASE
- * (from the VPS, 05). The quote's deadline is the latest block's time plus 120 s, as on the live chain; without
- * `--block-time` the fork's latest block falls behind the clock while a cold fork builds a quote, and the quote's own
- * simulation fails on DeadlineExpired.
+ * (from the VPS, 05). One second blocks keep the fork's latest block time near the clock, as on the live chain.
  * The feeds stop on the fork, and an open needs a feed younger than the market's maxOracleAge (30 minutes), so the
  * tests must run within 30 minutes of starting anvil, outside the weekly close.
  */
@@ -265,10 +263,22 @@ describe.skipIf(!forkUrl)(
             leverageE2: c.leverageE2,
             slippageBps: SLIPPAGE_BPS,
           };
+          // The quote's deadline is the block time at its start plus 120 s. A cold fork fetches every contract of the
+          // swap route from the public RPC first, which took longer than that on the VPS, so a first quote warms it.
+          const warmStart = Date.now();
+          await app.request("/v1/196/quote/open", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(openBody),
+          });
+          const quoteStart = Date.now();
           const open: QuoteOpenResponse = await request(
             "/quote/open",
             openBody,
             quoteOpenResponse.parse,
+          );
+          console.log(
+            `${stock.symbol} ${c.side} quote: warm-up ${Math.round((quoteStart - warmStart) / 1000)} s, quote ${Math.round((Date.now() - quoteStart) / 1000)} s`,
           );
           expect(open.requirements.every((r) => r.satisfied)).toBe(true);
           expect(open.warnings.filter((w) => w.severity === "block")).toEqual(
