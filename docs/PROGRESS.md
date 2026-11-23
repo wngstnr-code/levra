@@ -282,6 +282,7 @@ One section per person. Add your lines only at the top of your own section, each
 
 Newest first.
 
+- 23 November 2026: deployed `3bed431` on the VPS with Base and X Layer in `api.env`: `/v1/chains` shows all three live, Base and X Layer markets answer, `/v1/stats` serves Monad. BE-96 done: 1inch runs with the VPS key and delivers its quotes for all 8 Base stocks (05). BE-72: all 8 stocks quoted on a weekday, long, short, close and Earn within 8 bps; the test now takes lent stock from its largest holder. Left for BE-72: the run after SC-76. The Builder Code is live in every Base quote; BE-74 waits for a real Base transaction.
 - 23 November 2026: BE-79 built (D-109): `GET /v1/:chainId/stats` with wallets, open interest, volume and Earn supplied; the shape is in `packages/shared/api/stats.ts` (Nabil's blocker row removed). Numbers checked by hand and the queries against Postgres. Monad has data now, Base after BE-73. Next: FE-75 reads it; then the PnL percent formula for FE-76.
 - 23 November 2026: BE-74: Levra's Builder Code `bc_1w63m4n4` (Base Dashboard project "Levra") set in `builderCodes[8453]`; every Base quote now carries it. Left: deploy and check a real Base transaction on the Base Dashboard.
 - 23 November 2026: BE-101 done (Nabil's blocker for FE-76, row removed): `pnlBps` in `math.ts` and `Position.pnlBps`, the PnL over the margin still in the position, tested by hand.
