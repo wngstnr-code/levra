@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/swap/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `apps/agent/`, `packages/db/`, `packages/swap/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
