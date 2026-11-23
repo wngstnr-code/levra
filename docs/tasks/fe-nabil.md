@@ -253,6 +253,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Needs: BE-77.
   - Do: link and short guide to the Bankr and Telegram agent; show prepared transactions from the agent for signing.
   - Done when: a close prepared in chat is signed in the app.
+  - Note (24 November 2026, Dharu): BE-77 is built, waiting for your review of "Prepared actions for AI agents" in 03. The page is `/prepared/:id`: `GET /v1/prepared/:id` (schemas in `@levra/shared/api`, `preparedResponse`), check the connected wallet is `user` and the chain is `chainId`, then quote `request` again with `POST /v1/:chainId/quote/<kind>` and sign as usual. 404 means unknown, 409 `QUOTE_EXPIRED` means ask the agent again. Show that an agent prepared it. MCP address for the guide: `https://api.levra.finance/mcp` once deployed.
 
 
 ---
