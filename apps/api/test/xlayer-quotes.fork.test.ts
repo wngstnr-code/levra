@@ -8,7 +8,7 @@ import {
 } from "@levra/shared/api";
 import { xlayerDeployment } from "@levra/shared/deployments/xlayer";
 import { xlayerStocks, type XLayerStockSymbol } from "@levra/shared/markets";
-import { createUniswapV3, type SwapProvider } from "@levra/swap";
+import type { SwapProvider } from "@levra/swap";
 import pino from "pino";
 import {
   createPublicClient,
@@ -16,7 +16,6 @@ import {
   encodeFunctionData,
   erc20Abi,
   http,
-  parseAbi,
   toHex,
   type Address,
   type Hex,
@@ -66,12 +65,6 @@ const HOLDER = morpho;
 const MARGIN = 100_000_000n;
 const SLIPPAGE_BPS = 100;
 const HOOK_TIMEOUT_MS = 180_000;
-
-// The official Uniswap v3 QuoterV2 on X Layer; belongs in `xlayerExternal` (asked in PROGRESS), until then only here.
-const QUOTER_V2: Address = "0xD1b797D92d87B688193A2B976eFc8D577D204343";
-const routerFactoryAbi = parseAbi([
-  "function factory() view returns (address)",
-]);
 
 const rpc = (method: string, params: unknown[]) =>
   client.request({ method: method as never, params: params as never });
@@ -135,34 +128,20 @@ const erc20 = (
   amount: bigint,
 ) => encodeFunctionData({ abi: erc20Abi, functionName, args: [to, amount] });
 
-/** The API's providers on X Layer, plus the Uniswap fallback with the QuoterV2 above. */
+/** The API's providers on X Layer: Uniswap, and OKX first when its keys are set. */
 async function providers(): Promise<SwapProvider[]> {
   const {
     OKX_API_KEY: apiKey,
     OKX_SECRET_KEY: secretKey,
     OKX_API_PASSPHRASE: passphrase,
   } = process.env;
-  const okx =
-    apiKey && secretKey && passphrase
-      ? swapProviders(196, client, {
-          kyberClientId: "levra",
-          okx: { apiKey, secretKey, passphrase },
-        })
-      : [];
-  const factory = await client.readContract({
-    address: xlayerExternal.uniswapSwapRouter02,
-    abi: routerFactoryAbi,
-    functionName: "factory",
+  return swapProviders(196, client, {
+    kyberClientId: "levra",
+    okx:
+      apiKey && secretKey && passphrase
+        ? { apiKey, secretKey, passphrase }
+        : undefined,
   });
-  return [
-    ...okx,
-    createUniswapV3({
-      client: client as PublicClient,
-      factory,
-      swapRouter02: xlayerExternal.uniswapSwapRouter02,
-      quoterV2: QUOTER_V2,
-    }),
-  ];
 }
 
 /** `LENDER` supplies `amount` of the market's loan token to Morpho. */
