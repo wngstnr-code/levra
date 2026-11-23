@@ -1,7 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { expect, mockService, test } from "./fixtures";
 
-const monadRouter = readDeployment(new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname).router;
+const monadRouter = readDeployment(fileURLToPath(new URL("../../../contracts/deployments/monad.json", import.meta.url))).router;
 
 test("markets shows prices, limits and leverage from the service", async ({ page }) => {
   await mockService(page);
@@ -116,6 +117,16 @@ test("trade stops opening on a halted market", async ({ page }) => {
   await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
 });
 
+test("stats shows the chain's public numbers", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/stats");
+  await expect(page.getByRole("heading", { name: "Stats" })).toBeVisible();
+  await expect(page.getByText("12", { exact: true })).toBeVisible();
+  await expect(page.getByText("$2,000.00")).toBeVisible();
+  await expect(page.getByText("$35,820.00")).toBeVisible();
+  await expect(page.getByText("41 trades")).toBeVisible();
+});
+
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere/markets");
@@ -141,7 +152,7 @@ test("phones get the tab bar instead of the top navigation", async ({ page, isMo
 });
 
 // The page must never be wider than the screen. Compared with the device width, not innerWidth, which grows with the page.
-for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help"]) {
+for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help", "/stats"]) {
   test(`${path} fits a phone screen`, async ({ page, isMobile }) => {
     test.skip(!isMobile, "phone layout only");
     await mockService(page);
