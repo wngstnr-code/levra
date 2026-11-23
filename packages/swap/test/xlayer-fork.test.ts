@@ -41,9 +41,19 @@ const erc20 = (functionName: "transfer" | "approve", to: Address, amount: bigint
 async function send(from: Address, to: Address, data: Hex): Promise<bigint> {
   const hash = await wallet.sendTransaction({ account: from, to, data, gas: 3_000_000n, chain: null });
   const receipt = await client.waitForTransactionReceipt({ hash });
-  if (receipt.status !== "success") throw new Error(`call to ${to} from ${from} reverted`);
+  if (receipt.status !== "success") {
+    // Replayed on the state just before the failed block, which gives the revert reason the receipt lacks.
+    const reason = await client.call({ account: from, to, data, gas: 3_000_000n, blockNumber: receipt.blockNumber - 1n }).then(
+      () => "no revert on replay",
+      (err: Error) => err.message.split("\n").filter((l) => l.trim()).slice(0, 4).join(" | "),
+    );
+    throw new Error(`call to ${to} from ${from} reverted: ${reason}`);
+  }
   return receipt.gasUsed;
 }
+
+/** Each fork call may fetch state from the X Layer RPC first, which can take seconds on a slow link. */
+const HOOK_TIMEOUT_MS = 60_000;
 const balance = (token: Address) => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [router] });
 
 describe.skipIf(!forkUrl)("X Layer swap calldata on a fork (BE-81)", async () => {
@@ -56,10 +66,10 @@ describe.skipIf(!forkUrl)("X Layer swap calldata on a fork (BE-81)", async () =>
       await rpc("anvil_impersonateAccount", [who]);
       await rpc("anvil_setBalance", [who, toHex(10n ** 19n)]);
     }
-  });
+  }, HOOK_TIMEOUT_MS);
   afterEach(async () => {
     await rpc("evm_revert", [snapshot]);
-  });
+  }, HOOK_TIMEOUT_MS);
 
   const list = forkUrl ? await providers() : [];
   for (const provider of list) {
