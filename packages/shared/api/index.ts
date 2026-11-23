@@ -6,6 +6,7 @@ export * from "./quotes";
 export * from "./accounts";
 export * from "./earn";
 export * from "./deposit";
+export * from "./agent";
 export * from "./compliance";
 export * from "./auth";
 export * from "./alerts";

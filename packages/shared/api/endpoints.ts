@@ -1,5 +1,6 @@
 import { account, historyQuery, historyResponse } from "./accounts";
 import { alertSettings, alertSettingsUpdate, telegramLinkResponse } from "./alerts";
+import { prepareRequest, prepareResponse, preparedResponse } from "./agent";
 import { authNonceResponse, siweRequest, siweResponse } from "./auth";
 import { chainsResponse } from "./chains";
 import { configResponse } from "./config";
@@ -70,6 +71,9 @@ export const endpoints = {
     body: withdrawQuoteRequest,
     response: withdrawQuoteResponse,
   },
+
+  agentPrepare: { method: "POST", path: "/v1/agent/prepare", body: prepareRequest, response: prepareResponse },
+  prepared: { method: "GET", path: "/v1/prepared/:id", response: preparedResponse },
 
   eligibility: { method: "GET", path: "/v1/eligibility", query: eligibilityQuery, response: eligibilityResponse },
   termsAccept: { method: "POST", path: "/v1/terms/accept", body: termsAcceptRequest, response: termsAcceptResponse },
