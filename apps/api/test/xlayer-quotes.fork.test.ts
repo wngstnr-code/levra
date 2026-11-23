@@ -11,6 +11,7 @@ import { xlayerStocks, type XLayerStockSymbol } from "@levra/shared/markets";
 import { createUniswapV3, type SwapProvider } from "@levra/swap";
 import pino from "pino";
 import {
+  createPublicClient,
   createWalletClient,
   encodeFunctionData,
   erc20Abi,
@@ -21,9 +22,9 @@ import {
   type Hex,
   type PublicClient,
 } from "viem";
+import { xLayer } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
-import { createChainClient } from "../src/chain/client";
 import { createChainReader } from "../src/chain/reader";
 import {
   allowedProviders,
@@ -39,10 +40,22 @@ import {
  * tests must run within 30 minutes of starting anvil, outside the weekly close.
  */
 const forkUrl = process.env.XLAYER_FORK_RPC_URL;
-const client = createChainClient(196, forkUrl ?? "http://127.0.0.1:8545");
-const wallet = createWalletClient({
-  transport: http(forkUrl ?? "http://127.0.0.1:8545"),
-});
+/**
+ * Like the API's own client, but a fork fetches every account it has not touched yet from the X Layer RPC first,
+ * which can take far longer than the API's 15 s on a busy public endpoint.
+ */
+const FORK_REQUEST_TIMEOUT_MS = 120_000;
+const forkTransport = () =>
+  http(forkUrl ?? "http://127.0.0.1:8545", {
+    timeout: FORK_REQUEST_TIMEOUT_MS,
+    retryCount: 2,
+  });
+const client = createPublicClient({
+  chain: xLayer,
+  batch: { multicall: true },
+  transport: forkTransport(),
+}) as PublicClient;
+const wallet = createWalletClient({ transport: forkTransport() });
 const morpho = xlayerExternal.morpho;
 const usdc = xlayerTokens.USDC.address;
 const router = xlayerDeployment.router;
@@ -52,7 +65,7 @@ const LENDER = "0x00000000000000000000000000000000ce751d05" as Address;
 const HOLDER = morpho;
 const MARGIN = 100_000_000n;
 const SLIPPAGE_BPS = 100;
-const HOOK_TIMEOUT_MS = 60_000;
+const HOOK_TIMEOUT_MS = 180_000;
 
 // The official Uniswap v3 QuoterV2 on X Layer; belongs in `xlayerExternal` (asked in PROGRESS), until then only here.
 const QUOTER_V2: Address = "0xD1b797D92d87B688193A2B976eFc8D577D204343";
@@ -87,7 +100,11 @@ async function send(
     gas,
     chain: null,
   });
-  const receipt = await client.waitForTransactionReceipt({ hash });
+  // viem's default wait follows X Layer's 1 s blocks; a fork may first fetch the state the transaction touches.
+  const receipt = await client.waitForTransactionReceipt({
+    hash,
+    timeout: FORK_REQUEST_TIMEOUT_MS,
+  });
   if (receipt.status !== "success") {
     // Replayed on the state before the failed block, which gives the revert reason the receipt lacks.
     const reason = await client
@@ -239,15 +256,24 @@ describe.skipIf(!forkUrl)(
           await supply(market.marketId, c.liquidity);
           await send(HOLDER, usdc, erc20("transfer", USER, MARGIN * 3n));
           await send(USER, usdc, erc20("approve", router, MARGIN * 3n));
-          await send(
-            USER,
-            morpho,
-            encodeFunctionData({
-              abi: morphoAbi,
-              functionName: "setAuthorization",
-              args: [router, true],
-            }),
-          );
+          // Morpho refuses to set an authorization twice ("already set"), which a case left over from a failed revert would.
+          const authorized = await client.readContract({
+            address: morpho,
+            abi: morphoAbi,
+            functionName: "isAuthorized",
+            args: [USER, router],
+          });
+          if (!authorized) {
+            await send(
+              USER,
+              morpho,
+              encodeFunctionData({
+                abi: morphoAbi,
+                functionName: "setAuthorization",
+                args: [router, true],
+              }),
+            );
+          }
 
           const openBody = {
             user: USER,
