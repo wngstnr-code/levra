@@ -591,6 +591,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits. First answer Q-40: does a tape out need FabX transistors, and can we get them? If not, raise it to the team the same day, since it blocks BE-83 and BE-86.
   - Note: research on 19 November 2026 (05, TapeOut transistors): FAB-Genesis transistors are sold out; OrderGuard has 9,215 left at 0.0001 OKB each. Still to do: buy enough early, check whether our own processor via the factory gets its own supply, and measure the gate count of the risk and clock circuits.
   - Note (23 November 2026): Q-40 answered, our own processor works. `packages/tapeout` holds the netlist builder (NAND gates, local simulation, bit packing) and the chain calls (processor, mint, tape out, `eval`, container, TapeSend). The fork run in `test/xlayer-fork.test.ts` passes end to end with an 8-bit `a < b` circuit (05). Found on the way: since 8 November 2026 the factory and the new transistor contracts take BEM, not OKB. Left: the mainnet run from a funded key on the VPS (about 0.15 OKB and 0.2 BEM), which needs the TapeOut addresses in `xlayerExternal` (Wangsit, PROGRESS blocker), then the addresses, hashes and circuit ID in 05.
+  - Note (23 November 2026): Wangsit added the TapeOut addresses to `xlayerExternal` (blocker closed); the fork test reads them. Left: the funded key (about 0.15 OKB and 0.2 BEM, more if the clock of BE-86 is taped out with it: 4,850 NAND cost only the 0.01 BEM mint fee at mint price 0) and the mainnet run. Paused by Dharu on 23 November 2026.
   - Done when: findings in 05 and the circuit and message are readable onchain.
 
 - [ ] **BE-83 · Risk circuit**
@@ -609,10 +610,11 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: deposits and withdrawals for X Layer through CCTP V2 with native USDC.
   - Done when: a real deposit from another chain into X Layer, hash in PROGRESS.
 
-- [ ] **BE-86 · Wall Street Clock circuit**
+- [~] **BE-86 · Wall Street Clock circuit**
   - Needs: BE-82.
   - Do: the market sessions from `calendar.ts` (regular, pre, after, overnight, weekend, holiday) as a TapeOut circuit on X Layer that any app can read (D-66). A test compares it with `calendar.ts` across a year of times, including holidays and daylight saving changes. Soft layer only: no contract and no hard limit reads it.
   - Done when: the test passes, the circuit address and ID are in 05 and 03, and the agent and the stats page read it.
+  - Note (23 November 2026): circuit built and tested without waiting for BE-82. `wallStreetClock(2026, 2030)` in `packages/tapeout/src/clock.ts`, 4,850 NAND, built from `calendar.ts`; `clockAt` is the same rules on `calendar.ts` and the test compares the two over five years and around every holiday, early close and daylight saving change. On the fork it tapes out (14.1 million gas) and `eval` (11.2 million gas) matches `calendar.ts` onchain (05). Left: tape out on mainnet with the BE-82 processor, the circuit ID in 05 and 03 (interface change with Nabil for the stats page), then the agent (BE-77) and the stats page read it. The holiday evening overnight session and the 17:00 end of after-hours on an early close are initial proposals (05).
 
 - [ ] **BE-87 · Agent checked by circuits**
   - Needs: BE-83, BE-86, BE-77.

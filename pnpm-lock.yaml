@@ -309,6 +309,9 @@ importers:
 
   packages/tapeout:
     dependencies:
+      '@levra/shared':
+        specifier: workspace:*
+        version: link:../shared
       viem:
         specifier: ^2.57.5
         version: 2.57.5(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@5.0.10)(zod@4.6.7)

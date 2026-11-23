@@ -1,18 +1,39 @@
-import { createPublicClient, createWalletClient, erc20Abi, getAddress, http, stringToHex, toHex, type Address, type Hex } from "viem";
+import { etToUnix } from "@levra/shared/calendar";
+import { xlayerExternal } from "@levra/shared/addresses";
+import { createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, getAddress, http, stringToHex, toHex, type Address, type Hex } from "viem";
 import { xLayer } from "viem/chains";
-import { describe, expect, it } from "vitest";
-import { circuitsAbi, createProcessor, endpointId, evalCircuit, factoryAbi, hubAbi, lessThan, mintNand, openContainer, packBits, sendMessage, tapeout, toBits, transistorsAbi, unpackBits } from "../src";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  circuitsAbi,
+  clockAt,
+  clockInput,
+  createProcessor,
+  endpointId,
+  evalCircuit,
+  factoryAbi,
+  hubAbi,
+  lessThan,
+  mintNand,
+  openContainer,
+  packBits,
+  readClockOutput,
+  sendMessage,
+  tapeout,
+  toBits,
+  transistorsAbi,
+  unpackBits,
+  wallStreetClock,
+} from "../src";
 
 /**
- * BE-82: the whole TapeOut path on a fork of X Layer: our own processor from the factory, NAND mint, tape out of an
- * 8-bit `a < b` circuit, eval, the circuit's container opened, and one TapeSend message from it. Start
- * `anvil --fork-url https://rpc.xlayer.tech --chain-id 196 --block-time 1` and run with XLAYER_FORK_RPC_URL.
+ * BE-82 and BE-86: the TapeOut path on a fork of X Layer. Our own processor from the factory, an 8-bit `a < b` circuit
+ * taped out, evaluated, its container opened and one TapeSend message sent; then the Wall Street Clock taped out and
+ * read onchain against `calendar.ts`. Start `anvil --fork-url https://rpc.xlayer.tech --chain-id 196 --block-time 1`
+ * and run with XLAYER_FORK_RPC_URL.
  */
 const forkUrl = process.env.XLAYER_FORK_RPC_URL;
-// TapeOut on X Layer (05). They move to `xlayerExternal` in packages/shared once Wangsit adds them (PROGRESS blocker).
-const FACTORY: Address = "0x1f09DAeFA827f02CBb40967cc91b259763760761";
-const OPENER: Address = "0x536add8f30f03b69f6fbf29d425a816a0dc50106";
-const HUB: Address = "0xe61A9C7213a6Aa616C246a2B569e555B417b25ee";
+const { tapeoutFactory: FACTORY, tapeoutOpener: OPENER, tapesendHub: HUB, bem: BEM } = xlayerExternal;
+/** TapeOut's protocol wallet holds hundreds of BEM; the fork borrows some. */
 const BEM_HOLDER: Address = "0x571d447f4f24688eC35Ccf07f1D6993655F6aF15";
 const AUTHOR: Address = getAddress("0x00000000000000000000000000000000ce7a0b82");
 const WIDTH = 8;
@@ -23,25 +44,28 @@ const client = createPublicClient({ chain: xLayer, transport });
 const wallet = createWalletClient({ account: AUTHOR, chain: xLayer, transport });
 const clients = { client: client as never, wallet: wallet as never };
 const rpc = (method: string, params: unknown[]) => client.request({ method: method as never, params: params as never });
+const log = (step: string, gas: bigint, fee = 0n) => console.log(`${step}: gas ${gas}, fee ${fee} wei`);
 
-describe.skipIf(!forkUrl)("TapeOut on an X Layer fork (BE-82)", () => {
+describe.skipIf(!forkUrl)("TapeOut on an X Layer fork (BE-82, BE-86)", () => {
+  let cpu: { circuits: Address; transistors: Address };
+
+  beforeAll(async () => {
+    await rpc("anvil_impersonateAccount", [AUTHOR]);
+    await rpc("anvil_setBalance", [AUTHOR, toHex(10n ** 18n)]);
+    await rpc("anvil_impersonateAccount", [BEM_HOLDER]);
+    await rpc("anvil_setBalance", [BEM_HOLDER, toHex(10n ** 18n)]);
+    expect(await client.readContract({ address: FACTORY, abi: factoryAbi, functionName: "bem" })).toBe(BEM);
+    const lend = await wallet.writeContract({ account: BEM_HOLDER, address: BEM, abi: erc20Abi, functionName: "transfer", args: [AUTHOR, 100_000_000n] });
+    await client.waitForTransactionReceipt({ hash: lend });
+    const created = await createProcessor(clients, FACTORY, { name: "Levra fork test", symbol: "LVRT", story: "BE-82 fork test", supply: 1_000_000n, mintPrice: 0n });
+    log("createCPU (fee in BEM units)", created.gasUsed, created.bemFee);
+    expect(await client.readContract({ address: FACTORY, abi: factoryAbi, functionName: "isCPU", args: [created.circuits] })).toBe(true);
+    cpu = created;
+  }, TIMEOUT_MS);
+
   it(
-    "creates a processor, tapes out a < b, evaluates it and sends one TapeSend message",
+    "tapes out a < b, evaluates it and sends one TapeSend message",
     async () => {
-      await rpc("anvil_impersonateAccount", [AUTHOR]);
-      await rpc("anvil_setBalance", [AUTHOR, toHex(10n ** 18n)]);
-      // The processor is paid in BEM: the fork borrows 1 BEM from TapeOut's protocol wallet, which holds hundreds.
-      const bem = await client.readContract({ address: FACTORY, abi: factoryAbi, functionName: "bem" });
-      await rpc("anvil_impersonateAccount", [BEM_HOLDER]);
-      await rpc("anvil_setBalance", [BEM_HOLDER, toHex(10n ** 18n)]);
-      const lend = await wallet.writeContract({ account: BEM_HOLDER, address: bem, abi: erc20Abi, functionName: "transfer", args: [AUTHOR, 100_000_000n] });
-      await client.waitForTransactionReceipt({ hash: lend });
-      const log = (step: string, gas: bigint, fee = 0n) => console.log(`${step}: gas ${gas}, fee ${fee} wei`);
-
-      const cpu = await createProcessor(clients, FACTORY, { name: "Levra fork test", symbol: "LVRT", story: "BE-82 fork test", supply: 1_000_000n, mintPrice: 0n });
-      log("createCPU (fee in BEM units)", cpu.gasUsed, cpu.bemFee);
-      expect(await client.readContract({ address: FACTORY, abi: factoryAbi, functionName: "isCPU", args: [cpu.circuits] })).toBe(true);
-
       const circuit = lessThan(WIDTH);
       const mint = await mintNand(clients, FACTORY, cpu.transistors, BigInt(circuit.gates.length));
       log("mint (fee in BEM units)", mint.gasUsed, mint.bemPaid);
@@ -76,6 +100,29 @@ describe.skipIf(!forkUrl)("TapeOut on an X Layer fork (BE-82)", () => {
       expect(sent.from.toLowerCase()).toBe(opened.container.toLowerCase());
       expect(sent.inboxIndex).toBe(before);
       expect(await client.readContract({ address: HUB, abi: hubAbi, functionName: "inboxCount", args: [to] })).toBe(before + 1n);
+    },
+    TIMEOUT_MS,
+  );
+
+  it(
+    "tapes out the Wall Street Clock and reads it onchain like calendar.ts",
+    async () => {
+      const clock = wallStreetClock(2026, 2030);
+      await mintNand(clients, FACTORY, cpu.transistors, BigInt(clock.gates.length));
+      const taped = await tapeout(clients, cpu.circuits, clock);
+      log(`tapeout clock (${clock.gates.length} NAND)`, taped.gasUsed, taped.fee);
+      expect(taped.gateCount).toBe(clock.gates.length);
+
+      const et = (date: string, h: number, m = 0) => etToUnix(date, h * 3600 + m * 60);
+      const moments = [et("2026-11-23", 10), et("2026-11-23", 3, 59), et("2026-11-26", 12), et("2026-11-27", 13), et("2026-11-29", 20), et("2027-03-14", 9, 30), et("2025-12-31", 12)];
+      for (const unix of moments) {
+        const input = clockInput(unix);
+        const out = await evalCircuit(client, cpu.circuits, taped.id, input);
+        expect(readClockOutput(out), new Date(unix * 1000).toISOString()).toEqual(clockAt(unix, 2026, 2030));
+      }
+      const data = encodeFunctionData({ abi: circuitsAbi, functionName: "eval", args: [taped.id, clockInput(moments[0]!)] });
+      const gas = await client.estimateGas({ to: cpu.circuits, data, account: AUTHOR });
+      console.log(`eval clock: gas ${gas}`);
     },
     TIMEOUT_MS,
   );
