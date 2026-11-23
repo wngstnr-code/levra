@@ -83,11 +83,10 @@ describe("market depth on Base and X Layer (BE-96 step 4)", () => {
     expect(rows).toEqual([expect.objectContaining({ symbol: "NVDA", kind: "mid", deviationBps: 0, midPriceE8: "100005050505" })]);
   });
 
-  it("measures KyberSwap and Aero on Base, KyberSwap on Monad, and nothing on X Layer until BE-81", () => {
+  it("measures KyberSwap and Aero on Base and KyberSwap on Monad (X Layer in depth-swap.test.ts)", () => {
     const keys = { kyberClientId: "levra" };
     expect(depthSwap(143, {} as PublicClient, keys)).not.toBeNull();
     expect(depthSwap(8453, {} as PublicClient, keys)).not.toBeNull();
-    expect(depthSwap(196, {} as PublicClient, keys)).toBeNull();
   });
 });
 
