@@ -213,3 +213,63 @@ export async function latestDexMids(db: Db, chainId: number, maxAgeSeconds: numb
   `)) as unknown as { symbol: string; mid: string }[];
   return new Map(rows.map((r) => [r.symbol, BigInt(r.mid)]));
 }
+
+/** Stock amount × price E8 of router trades in one market, summed over a time window. */
+export type TradeNotional = { collateralTimesPrice: bigint; debtTimesPrice: bigint };
+export type MarketTrades = { marketId: string; trades: number; total: TradeNotional; last7d: TradeNotional; last24h: TradeNotional };
+
+/**
+ * Router trades per market (BE-79): `PositionOpened` and `PositionReduced`, with `collateralDelta` and `debtDelta` each
+ * times the trade's `execPriceE8`. The caller picks the stock side (collateral on a long, debt on a short) and scales it.
+ */
+export async function marketTrades(db: Db, chainId: number, nowSeconds: number): Promise<MarketTrades[]> {
+  const rows = (await db.execute(sql`
+    with t as (
+      select market_id, block_time,
+        (args->>'collateralDelta')::numeric * (args->>'execPriceE8')::numeric as c,
+        (args->>'debtDelta')::numeric * (args->>'execPriceE8')::numeric as d
+      from router_events
+      where chain_id = ${chainId} and name in ('PositionOpened', 'PositionReduced')
+    )
+    select market_id, count(*)::int as trades,
+      sum(c)::text as c_all, sum(d)::text as d_all,
+      coalesce(sum(c) filter (where block_time >= to_timestamp(${nowSeconds - 7 * 86_400})), 0)::text as c_7d,
+      coalesce(sum(d) filter (where block_time >= to_timestamp(${nowSeconds - 7 * 86_400})), 0)::text as d_7d,
+      coalesce(sum(c) filter (where block_time >= to_timestamp(${nowSeconds - 86_400})), 0)::text as c_1d,
+      coalesce(sum(d) filter (where block_time >= to_timestamp(${nowSeconds - 86_400})), 0)::text as d_1d
+    from t
+    group by market_id
+  `)) as unknown as ({ market_id: string; trades: number } & Record<"c_all" | "d_all" | "c_7d" | "d_7d" | "c_1d" | "d_1d", string>)[];
+  const notional = (c: string, d: string): TradeNotional => ({ collateralTimesPrice: BigInt(c), debtTimesPrice: BigInt(d) });
+  return rows.map((r) => ({
+    marketId: r.market_id,
+    trades: r.trades,
+    total: notional(r.c_all, r.d_all),
+    last7d: notional(r.c_7d, r.d_7d),
+    last24h: notional(r.c_1d, r.d_1d),
+  }));
+}
+
+/**
+ * Wallet counts (BE-79). Traders opened a position through the router; lenders deposited in the USDC vault or supplied
+ * to one of our Morpho markets. `excluded` (the vault itself, which supplies the long markets) is not counted.
+ */
+export async function walletCounts(db: Db, chainId: number, excluded: readonly string[]): Promise<{ total: number; traders: number; lenders: number }> {
+  const skip = excluded.map((a) => a.toLowerCase()).join(",");
+  const rows = (await db.execute(sql`
+    with traders as (
+      select distinct "user" from router_events where chain_id = ${chainId} and name = 'PositionOpened'
+    ), lenders as (
+      select "user" from vault_events where chain_id = ${chainId} and name = 'Deposit'
+      union
+      select "user" from morpho_events where chain_id = ${chainId} and name = 'Supply'
+    ), counted_lenders as (
+      select "user" from lenders where not ("user" = any(string_to_array(${skip}::text, ',')))
+    )
+    select (select count(*) from traders)::int as traders,
+      (select count(*) from counted_lenders)::int as lenders,
+      (select count(*) from (select "user" from traders union select "user" from counted_lenders) u)::int as total
+  `)) as unknown as { traders: number; lenders: number; total: number }[];
+  const r = rows[0]!;
+  return { total: r.total, traders: r.traders, lenders: r.lenders };
+}
