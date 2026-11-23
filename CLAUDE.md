@@ -58,7 +58,7 @@ Work is split between three people. Every task has exactly one owner.
 | Person | Area | Owns | Task file |
 |---|---|---|---|
 | Wangsit | Smart contracts (SC) | `contracts/`, `packages/shared/abis/`, `addresses.ts`, `markets.ts`, `chains.ts`, `deployments*.ts` | `docs/tasks/sc-wangsit.md` |
-| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `deploy/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/shared/api/`, `math.ts`, `gaps.ts` | `docs/tasks/be-dharu.md` |
+| Dharu | Backend (BE) | `apps/api/`, `apps/indexer/`, `apps/keeper/`, `deploy/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/tapeout/`, `packages/shared/api/`, `math.ts`, `gaps.ts` | `docs/tasks/be-dharu.md` |
 | Nabil | Frontend (FE) | `apps/web/` | `docs/tasks/fe-nabil.md` |
 | All three | Shared | `docs/`, repo setup, non-engineering work | `docs/tasks/00-shared.md` |
 
