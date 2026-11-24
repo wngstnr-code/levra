@@ -33,6 +33,11 @@ export function sharesRaw(raw: string | bigint, uiMultiplierWad?: string | null)
   return uiMultiplierWad ? (v * BigInt(uiMultiplierWad)) / 10n ** BigInt(WAD_DECIMALS) : v;
 }
 
+/** Share units a user typed back to token units: shares x 1e18 / multiplier, rounded down so nothing is overspent. */
+export function tokenRawFromShares(shares: bigint, uiMultiplierWad?: string | null): bigint {
+  return uiMultiplierWad ? (shares * 10n ** BigInt(WAD_DECIMALS)) / BigInt(uiMultiplierWad) : shares;
+}
+
 /** Like formatToken, with a plus sign for gains and a minus sign for losses. */
 export function formatTokenSigned(raw: string | bigint, decimals: number, fractionDigits = 4): string {
   const v = toBig(raw);

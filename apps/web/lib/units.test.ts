@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBps, formatDuration, formatLeverage, formatToken, formatTokenSigned, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, sharesRaw, wadRatio } from "./units";
+import { formatBps, formatDuration, formatLeverage, formatToken, formatTokenSigned, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, sharesRaw, tokenRawFromShares, wadRatio } from "./units";
 
 describe("formatUsd", () => {
   it("formats USDC base units", () => {
@@ -100,5 +100,13 @@ describe("sharesRaw", () => {
   it("keeps the raw amount without a multiplier", () => {
     expect(sharesRaw("123", null)).toBe(123n);
     expect(sharesRaw("123", undefined)).toBe(123n);
+  });
+});
+
+describe("tokenRawFromShares", () => {
+  it("divides by the multiplier and rounds down", () => {
+    expect(tokenRawFromShares(100050038n, "1000500389301980219")).toBe(99999999n);
+    expect(tokenRawFromShares(7n, "1500000000000000000")).toBe(4n);
+    expect(tokenRawFromShares(7n, null)).toBe(7n);
   });
 });
