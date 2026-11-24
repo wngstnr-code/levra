@@ -520,11 +520,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Note (23 November 2026): `apps/api/test/base-quotes.live.test.ts` (`BASE_LIVE=1`) runs the API on a virtual Base: its reads and gas estimates run in `eth_simulateV1` after setup calls, pinned to one block. Long, short and full close quotes for SPCX execute with the quoted calldata and gas limit and match the preview within 1 bp; the router ends empty; Earn shows a market supply and a vault deposit exactly. No API change was needed. Results in 05. Left: the final run after SC-76 against the finished Base deployment, the other stocks on a weekday (`BASE_LIVE_STOCK`), and 1inch with `ONEINCH_API_KEY`.
   - Note (23 November 2026, later): all 8 stocks run on a weekday, with 1inch competing, on the VPS. Long, short, close and Earn pass for every stock, within 8 bps of the preview. The short and Earn cases of AMZN, META, MSFT and TSLA first failed in the test's setup, because Morpho holds less than 5 of those shares; the test now takes the stock from its largest holder (Morpho or an Aero pool). Results in 05. Left: the final run after SC-76.
 
-- [ ] **BE-73 · Indexer and keeper on Base**
+- [~] **BE-73 · Indexer and keeper on Base**
   - Needs: SC-72, SC-76.
   - Do: run indexer and keeper per chain from config. Index `UIMultiplierUpdated`, `UIMultiplierUpdateCancelled`, `Announcement`, `EndAnnouncement` and the oracle adapter events. Liquidator bot and auto-deleverage on Base. Never act on a frozen feed.
   - Done when: both run on the VPS against Base mainnet and a test position shows in the API.
   - Note (20 November 2026): the Chainlink price recorder starts earlier as BE-97; the calendar rule for Chainlink chains is in BE-30; the keeper addresses go to Wangsit before SC-76 (BE-55). BE-88 and BE-89 must be done before the keeper acts on Base.
+  - Note (24 November 2026): started now that the Base deployment file exists (SC-76, 22 November). `indexer-base` is in `deploy/compose.yml` on `base-rpc.publicnode.com` (`mainnet.base.org` answers `eth_getLogs` with 429); a local run from the deployment block read about 10,000 blocks per query and kept up, no events yet since nothing has traded. `keeper-base.env` gets `DEPLOYMENT_FILE`, which turns on the calendar poster, the team monitor and the depth table for our markets. Read on chain the same day: all four Base role keys hold 0 ETH and `nextCloseAt` is 0, so the pre-close regime is off until the calendar poster is funded and posts. Protector and liquidator stay off on Base for now. Left: fund the keys, deploy, a test position in the API, then the protector and liquidator on Base.
 
 - [~] **BE-74 · Builder Codes**
   - Do: attach Levra's Builder Code to every Base transaction the API builds.
@@ -571,11 +572,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
 
-- [ ] **BE-80 · X Layer in the API, indexer and keeper**
+- [~] **BE-80 · X Layer in the API, indexer and keeper**
   - Needs: BE-70, SC-80, SC-83.
   - Do: serve chain 196 under the chain routes; run the indexer and keeper for X Layer; liquidator bot and auto-deleverage there.
   - Done when: a test position on X Layer shows in the API and the keeper runs on the VPS.
   - Note (20 November 2026): needs BE-95 and BE-81 too. The recorder for the xStocks feeds starts earlier (BE-97). Earn on X Layer is direct supply to our markets (`market:<id>` options, D-84), so it needs no vault code.
+  - Note (24 November 2026): started with the X Layer deployment file (SC-83, 22 November). Chain 196 is already served under the chain routes (BE-70). `indexer-xlayer` is in `deploy/compose.yml` with `LOG_BLOCK_RANGE=100`, since `rpc.xlayer.tech` refuses wider log queries; a local run read about 8,600 blocks a minute, with "over rate limit" answers during the backfill burst that the next round retries (about 25 minutes from the deployment block, then one query per round). `keeper-xlayer.env` gets `DEPLOYMENT_FILE` like Base. All four X Layer role keys hold 0 OKB and `nextCloseAt` is 0 (read the same day). Left: fund the keys, deploy, a test position in the API, then the protector and liquidator on X Layer.
 
 - [x] **BE-81 · OKX DEX API spike and swap provider**
   - Do: quote and build swaps for each wrapped xStock with a contract sender and recipient; measure price, depth and rate limits; check 1inch on X Layer too. Put the provider behind the shared aggregator interface (D-53).
