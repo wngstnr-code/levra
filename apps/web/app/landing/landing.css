@@ -60,3 +60,14 @@
   .glow .glow-echo { transition: none !important; }
   .glow:hover .glow-trace { animation: none; }
 }
+
+/* Marquee rows: two copies side by side, moved by half their width forever. */
+.marquee { animation: marquee 38s linear infinite; }
+.marquee-reverse { animation-direction: reverse; }
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee { animation: none; }
+}
