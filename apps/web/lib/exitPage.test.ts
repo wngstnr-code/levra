@@ -15,5 +15,6 @@ describe("exit page", () => {
   it("has no script and no request to our servers", () => {
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/levra\.finance/);
+    expect(html).toContain("repay(marketParams, 0, borrowShares, yourAddress, 0x)");
   });
 });
