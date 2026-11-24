@@ -563,6 +563,10 @@ export const en = {
     connect: "Sign in to see your settings.",
     methods: { email: "Email", passkey: "Passkey", wallet: "Wallet" },
   },
+  gapCheck: {
+    healthy: (move: string) => `Estimate: after a Monday gap like the worst one so far (${move}), this position would stay under the liquidation limit`,
+    liquidated: (move: string) => `Estimate: after a Monday gap like the worst one so far (${move}), this position would be liquidated`,
+  },
   bridge: {
     methodUsdc: "USDC",
     methodOther: "Other tokens",
