@@ -62,6 +62,7 @@ The product opens to the public only when all of these rows are met. None can be
 | Last block of the indexer | Falling behind | BE-50 |
 | API errors and response time | Pass the threshold | BE-50 |
 | Issuer pauses and blocklists: Anchored's denylist (Monad), B20 transfer pause, transfer policy and Coinbase oracle pause (Base), wrapped and underlying xStock pause and the sanctions list (X Layer), each checked for Morpho, our router and our liquidator; Circle's USDC pause and blacklist on every chain, also for the Earn vault | A control blocks any of them, at once; a control that cannot be read for more than a few minutes | BE-75 |
+| Database backup and weekly restore check | A run fails, the backup has no off-site copy, or no backup in 26 hours or restore check in 7 days and 2 hours | BE-53 |
 | Errors in the web app | Spike | FE-54 |
 
 ### Who is on watch

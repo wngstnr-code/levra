@@ -1,4 +1,6 @@
-# Installed to /etc/cron.d/levra-backup by deploy/setup-server.sh. Every day at 03:00 server time, which setup sets to UTC (BE-53).
+# Installed to /etc/cron.d/levra-backup by deploy/setup-server.sh. Server time, which setup sets to UTC (BE-53).
+# Backup every day at 03:00; restore check of the newest dump every Sunday at 04:00, while the market is closed.
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 0 3 * * * levra /opt/levra/app/deploy/backup.sh >>/opt/levra/backups/backup.log 2>&1
+0 4 * * 0 levra /opt/levra/app/deploy/restore-check.sh >>/opt/levra/backups/restore-check.log 2>&1

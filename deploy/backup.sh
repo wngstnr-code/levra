@@ -2,30 +2,44 @@
 # Daily database backup (BE-53): a pg_dump custom-format file, 14 kept on the server, each one copied off it.
 # Run by cron/levra-backup. The off-site copy uses rclone when LEVRA_BACKUP_REMOTE is set in env/backup.env
 # (for example LEVRA_BACKUP_REMOTE=r2:levra-backups, with the rclone remote configured for the levra user).
-set -euo pipefail
+# Every run, good or bad, is recorded in backup_runs; a backup without an off-site copy counts as failed.
+set -Eeuo pipefail
 
 cd "$(dirname "$0")/.."
-settings="${LEVRA_HOME:-/opt/levra}/env/backup.env"
-if [ -f "$settings" ]; then
-  set -a
-  . "$settings"
-  set +a
-fi
-backups="${LEVRA_HOME:-/opt/levra}/backups"
+. deploy/backup-common.sh
 keep="${LEVRA_BACKUP_KEEP:-14}"
 file="$backups/levra-$(date -u +%Y%m%dT%H%M%SZ).dump"
 
+fail() {
+  trap - ERR
+  echo "backup FAILED: $1" >&2
+  rm -f "$file.partial"
+  record_run backup false "$1" '{}'
+  exit 1
+}
+trap 'fail "this step failed: $BASH_COMMAND"' ERR
+
 install -d -m 0700 "$backups"
-# Inside the container pg_dump connects over the local socket, which needs no password.
-docker compose -f deploy/compose.yml exec -T postgres pg_dump -U levra -d levra --format=custom --no-owner --no-privileges >"$file.partial"
+compose exec -T postgres pg_dump -U levra -d levra --format=custom --no-owner --no-privileges >"$file.partial" ||
+  fail "pg_dump failed (is the postgres container up?)"
 mv "$file.partial" "$file"
 chmod 0600 "$file"
-echo "backup $file ($(stat -c %s "$file") bytes)"
+bytes=$(stat -c %s "$file")
+echo "backup $file ($bytes bytes)"
 
 ls -1 "$backups"/levra-*.dump | sort | head -n "-$keep" | xargs -r rm --
+
+ok=true
+error=""
+offsite=false
 if [ -n "${LEVRA_BACKUP_REMOTE:-}" ]; then
-  rclone copy "$file" "$LEVRA_BACKUP_REMOTE/"
+  rclone copy "$file" "$LEVRA_BACKUP_REMOTE/" || fail "$(basename "$file") could not be copied to $LEVRA_BACKUP_REMOTE"
+  offsite=true
   echo "copied to $LEVRA_BACKUP_REMOTE"
 else
-  echo "LEVRA_BACKUP_REMOTE is not set: this backup exists on this server only" >&2
+  ok=false
+  error="$(basename "$file") exists on this server only: LEVRA_BACKUP_REMOTE is not set"
+  echo "$error" >&2
 fi
+record_run backup "$ok" "$error" "{\"file\":\"$(basename "$file")\",\"bytes\":$bytes,\"offsite\":$offsite}"
+if [ "$ok" != true ]; then exit 1; fi

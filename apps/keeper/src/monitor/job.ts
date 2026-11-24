@@ -1,11 +1,11 @@
-import { keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, routerCursor, syncCursors, type Db } from "@levra/db";
+import { backupRuns, keeperHeartbeats, latestDepthRun, latestDexMids, monitorState, morphoEvents, morphoPositions, routerCursor, syncCursors, type Db } from "@levra/db";
 import { lensAbi, liquidatorAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { KeeperName } from "@levra/shared/api";
 import { chains, type ChainId } from "@levra/shared/chains";
 import { isScheduledClosed } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
 import { morphoIsHealthy } from "@levra/shared/math";
-import { and, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { getAddress, type Address, type PublicClient } from "viem";
 import { scheduleForChain, type ScheduleSource } from "../calendar/poster";
 import { maxAgeRule } from "../oracle/max-age";
@@ -15,7 +15,7 @@ import { gapStatsFromBars, gapTable, type GapStats } from "@levra/shared/gaps";
 import { loadOracleReport } from "../oracle/report";
 import { morphoOn } from "../chain";
 import type { Job } from "../runner";
-import { evaluate, oracleLimit, type Finding, type OracleLimit, type Snapshot } from "./checks";
+import { BACKUP_KINDS, evaluate, oracleLimit, type BackupKind, type Finding, type OracleLimit, type Snapshot } from "./checks";
 
 const SESSIONS = ["UNKNOWN", "PRE_MARKET", "REGULAR", "POST_MARKET", "OVERNIGHT", "CLOSED"];
 /** The oracle limits come from a heavy query over weeks of data; once an hour is enough. */
@@ -110,6 +110,8 @@ export type MonitorOptions = {
   apiUrl?: string;
   /** Whether this monitor runs the daily gap check, which covers every chain. Only in the KEEPER_GLOBAL keeper. */
   checkGaps?: boolean;
+  /** Whether this monitor watches the database backups (BE-53). Only in the KEEPER_GLOBAL keeper. */
+  checkBackups?: boolean;
   schedule?: ScheduleSource;
   /** Daily prices of the real stocks for the gap check (BE-34). */
   bars?: BarSource;
@@ -119,7 +121,7 @@ export type MonitorOptions = {
 
 /** Team monitoring and alerts (BE-50): every row of "What we monitor" in 08, to the team channels. */
 /** Team monitoring and alerts for one chain; the API and gap checks run once, in the KEEPER_GLOBAL keeper. */
-export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, schedule = scheduleForChain, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
+export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, checkBackups = false, schedule = scheduleForChain, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
   const chainId = deployment.chainId as ChainId;
   const morpho = morphoOn(chainId);
   const labels = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
@@ -181,6 +183,12 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
       });
     }
     return out;
+  }
+
+  async function backups(db: Db): Promise<Snapshot["backups"]> {
+    if (!checkBackups) return undefined;
+    const rows = await Promise.all(BACKUP_KINDS.map((kind) => db.select().from(backupRuns).where(eq(backupRuns.kind, kind)).orderBy(desc(backupRuns.finishedAt)).limit(1)));
+    return rows.flat().map((r) => ({ kind: r.kind as BackupKind, finishedAt: Math.floor(r.finishedAt.getTime() / 1000), ok: r.ok, error: r.error }));
   }
 
   /** USDC for the long markets, the stock for the short ones. A liquidator without `lossBudgetOf` (Monad's live one) gives none. */
@@ -270,6 +278,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
       gaps: await gapRows(symbols),
       lossBudgets: await lossBudgets(),
       gates: await readGates(client, chainId, deployment),
+      backups: await backups(db),
     };
     return { snapshot, limits };
   }

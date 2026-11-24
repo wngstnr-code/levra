@@ -305,3 +305,19 @@ export const oracleUpdates = pgTable(
     index("oracle_updates_symbol_time").on(t.chainId, t.symbol, t.blockTime),
   ],
 );
+
+/**
+ * One row per run of `deploy/backup.sh` (kind `backup`) and `deploy/restore-check.sh` (kind `restore_check`), written by
+ * the scripts with psql (BE-53). The team monitor alerts on a failed or missing run. Not chain data: no `chain_id`.
+ */
+export const backupRuns = pgTable(
+  "backup_runs",
+  {
+    kind: text("kind").notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }).notNull().defaultNow(),
+    ok: boolean("ok").notNull(),
+    error: text("error"),
+    details: jsonb("details"),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.finishedAt] })],
+);
