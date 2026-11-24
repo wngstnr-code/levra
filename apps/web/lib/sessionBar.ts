@@ -1,5 +1,5 @@
 import type { SessionName } from "@levra/shared/api";
-import { addDays, etParts, etToUnix, isTradingDay, regularCloseAt } from "@levra/shared/calendar";
+import { addDays, etParts, isTradingDay, regularCloseAt } from "@levra/shared/calendar";
 
 /** The US trading day in Eastern time, as shown on the session bar. Hours are ET, from 04:00 to 04:00 the next day. */
 export const sessionSegments = [
