@@ -596,10 +596,11 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Note (23 November 2026): Wangsit added the TapeOut addresses to `xlayerExternal` (blocker closed); the fork test reads them. Left: the funded key (about 0.15 OKB and 0.2 BEM, more if the clock of BE-86 is taped out with it: 4,850 NAND cost only the 0.01 BEM mint fee at mint price 0) and the mainnet run. Paused by Dharu on 23 November 2026.
   - Done when: findings in 05 and the circuit and message are readable onchain.
 
-- [ ] **BE-83 · Risk circuit**
+- [~] **BE-83 · Risk circuit**
   - Needs: BE-82.
   - Do: health factor, liquidation price and session limit from `math.ts` as a TapeOut circuit. A test compares its output with `math.ts` on many inputs. The API and the agent show the circuit result next to ours and flag any difference. The circuit answers for any Morpho xStocks borrower on X Layer, not only Levra users (D-66).
   - Done when: the test passes and the agent answers "my health" with the circuit result.
+  - Note (24 November 2026): circuit built and tested without waiting for BE-82 (D-112). `riskCircuit(limits)` in `packages/tapeout/src/risk.ts`: healthy, closed regime, and at or under each soft limit, exact against `math.ts` and `morphoIsHealthy` in the unit test; 8,522 NAND for aQQQ, taped out and read onchain on the X Layer fork (05). Liquidation price and a numeric health factor are not in the circuit (a full division is too large); they stay in `math.ts`. Left: tape out on mainnet with the BE-82 processor (one circuit per limit set on X Layer, plus the Morpho xStocks LLTVs), the circuit IDs in 05 and 03 (interface change with Nabil), then the API and the agent (BE-77) show the circuit answer next to ours and flag a difference.
 
 - [ ] **BE-84 · PnL proofs through TapeSend**
   - Needs: BE-82, BE-80.
