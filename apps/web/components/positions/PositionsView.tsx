@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n";
 import { formatToken, formatUsd, formatUsdSigned } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
 import { useRouterUpgrade } from "@/lib/useRouterUpgrade";
+import { fractionFromParam } from "@/lib/prepared";
 import { NoticeRow } from "../ui/NoticeRow";
 import { PreCloseCard } from "../protection/PreCloseCard";
 import { ProtectionToggle } from "../protection/ProtectionToggle";
@@ -55,6 +56,13 @@ export function PositionsView() {
   const upgrade = useRouterUpgrade(address);
   const markets = useMarkets();
   const openSoft = (marketId: string) => markets.data?.markets.find((x) => x.marketId === marketId)?.softLtvOpenWad;
+
+  /** Only the sheet the link asked for gets its prefill; closing it drops the link's parameters. */
+  const fromLink = !!manage && manage.marketId === search.get("manage");
+  const closeManage = () => {
+    setManage(null);
+    if (search.get("manage")) router.replace(tab === "history" ? `${pathname}?tab=history` : pathname, { scroll: false });
+  };
 
   const header = (
     <div className="flex flex-wrap items-center gap-4 pt-2 pb-4">
@@ -168,7 +176,7 @@ export function PositionsView() {
         ))
       )}
 
-      {managed && manage && <ManageSheet key={`${manage.marketId}`} position={managed} tab={manage.tab} onTab={(t) => setManage({ ...manage, tab: t })} onClose={() => setManage(null)} user={address} agentId={agentId} initialAmountRaw={search.get("amountRaw")} initialFraction={Number(search.get("fraction")) || undefined} />}
+      {managed && manage && <ManageSheet key={`${manage.marketId}`} position={managed} tab={manage.tab} onTab={(t) => setManage({ ...manage, tab: t })} onClose={closeManage} user={address} {...(fromLink ? { agentId, initialAmountRaw: search.get("amountRaw"), initialFraction: fractionFromParam(search.get("fraction")) } : {})} />}
     </div>
   );
 }

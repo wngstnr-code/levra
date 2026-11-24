@@ -25,6 +25,7 @@ import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
 import { noticeFor } from "@/lib/warnings";
 import { NoticeRow } from "../ui/NoticeRow";
+import { useAgentRequest } from "@/lib/useAgentRequest";
 import { hasNoPrice, manageTabs, noPriceNotice } from "@/lib/marketState";
 
 const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
@@ -67,13 +68,14 @@ export function ManageSheet({
   const [amountText, setAmountText] = useState(() => (initialAmountRaw && /^\d+$/.test(initialAmountRaw) ? formatUnits(BigInt(initialAmountRaw), amountToken.decimals) : ""));
   const [fraction, setFraction] = useState(initialFraction ?? 50);
   const pct = tab === "close" ? 100 : fraction;
+  const agent = useAgentRequest(agentId, user, (p) => p.kind !== "open" && p.request.marketId.toLowerCase() === position.marketId.toLowerCase());
   const amountRaw = parseAmount(amountText, amountToken.decimals);
 
   const balance = useReadContract({ address: amountToken.address, abi: erc20Abi, functionName: "balanceOf", args: [user], chainId: chain.id, query: { enabled: isAmount } });
   const available = tab === "remove" ? BigInt(position.collateralRaw) : tab === "repay" ? BigInt(position.debtRaw) : (balance.data ?? null);
 
   const collKey = useDebounced(isAmount && amountRaw && amountRaw > 0n ? JSON.stringify({ marketId: position.marketId, action: tab, amountRaw: amountRaw.toString() }) : null);
-  const closeKey = !isAmount ? JSON.stringify({ marketId: position.marketId, fractionWad: ((WAD * BigInt(pct)) / 100n).toString(), slippageBps: SLIPPAGE_BPS }) : null;
+  const closeKey = !isAmount ? JSON.stringify({ marketId: position.marketId, fractionWad: ((WAD * BigInt(Math.round(pct * 100))) / 10_000n).toString(), slippageBps: SLIPPAGE_BPS }) : null;
   const [signatures, setSignatures] = useState<SignatureInput[]>([]);
   const coll = useQuote("quoteCollateral", user, collKey ? JSON.parse(collKey) : null, signatures);
   const close = useQuote("quoteClose", user, closeKey ? JSON.parse(closeKey) : null);
@@ -133,12 +135,15 @@ export function ManageSheet({
       <Sheet open={flow.state.phase === "idle"} onClose={onClose} title={m.positions.manageTitle(stock.tokenSymbol, long ? m.trade.long : m.trade.short)}>
         <div role="tablist" className="flex gap-1 rounded-full bg-surface-1 p-1">
           {tabs.map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => onTab(t)} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", tab === t ? "bg-surface-3 font-semibold" : "text-fg-2 hover:text-fg")}>
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => {
+              if (t !== tab) setAmountText("");
+              onTab(t);
+            }} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", tab === t ? "bg-surface-3 font-semibold" : "text-fg-2 hover:text-fg")}>
               {m.positions.tabs[t]}
             </button>
           ))}
         </div>
-        {agentId && <NoticeRow notice={{ icon: "verified", blocks: false, title: m.agent.title, body: m.agent.body }} />}
+        {agent && <NoticeRow notice={{ icon: "verified", blocks: false, title: m.agent.title, body: m.agent.body }} />}
         {noPrice && <NoticeRow notice={noPriceNotice(m)} />}
 
         {isAmount ? (
