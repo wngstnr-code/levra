@@ -7,13 +7,14 @@ import { useState } from "react";
 import { erc20Abi, type Address } from "viem";
 import { useReadContract } from "wagmi";
 import { queryKeys } from "@/lib/api/hooks";
+import { useUiMultiplier } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
 import { splitRequirements } from "@/lib/typedData";
-import { formatToken, formatUsd, formatUsdSigned, formatWadPercent, parseAmount } from "@/lib/units";
+import { formatToken, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, sharesRaw } from "@/lib/units";
 import { useDebounced } from "@/lib/useDebounced";
 import { useQuote } from "@/lib/useQuote";
 import { useTxFlow } from "@/lib/useTxFlow";
@@ -33,6 +34,7 @@ const SLIPPAGE_BPS = 50;
 
 export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
   const noPrice = hasNoPrice(position.oraclePriceE8);
+  const mult = useUiMultiplier(position.symbol);
   const { tabs, tab } = manageTabs(TABS, noPrice, asked);
   const chain = useChain();
   const m = useT();
@@ -74,7 +76,7 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
     ? m.positions.sentences[tab as "add" | "remove" | "repay"](amountLabel)
     : close.data
       ? m.positions.sentences.reduce(
-          `${formatToken(close.data.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}`,
+          `${formatToken(sharesRaw(close.data.preview.stockAmountRaw, mult), stock.decimals)} ${stock.tokenSymbol}`,
           formatToken(close.data.preview.debtRepaidRaw, loanToken.decimals, loanToken.decimals === 6 ? 2 : 4) + ` ${loanToken.symbol}`,
           formatUsd(close.data.preview.returnedRaw),
         )
@@ -165,12 +167,12 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
             </>
           ) : !isAmount && close.data ? (
             <>
-              <Line k={long ? m.positions.sold : m.positions.boughtBack} v={`${formatToken(close.data.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol} · ${formatUsdE8(BigInt(close.data.preview.execPriceE8))}`} />
+              <Line k={long ? m.positions.sold : m.positions.boughtBack} v={`${formatToken(sharesRaw(close.data.preview.stockAmountRaw, mult), stock.decimals)} ${stock.tokenSymbol} · ${formatUsdE8(BigInt(close.data.preview.execPriceE8))}`} />
               <Line k={m.positions.repaid} v={`${formatToken(close.data.preview.debtRepaidRaw, loanToken.decimals, 4)} ${loanToken.symbol}`} />
               <Line k={m.positions.withdrawn} v={`${formatToken(close.data.preview.collateralWithdrawnRaw, collateralToken.decimals, 4)} ${collateralToken.symbol}`} />
               <Line k={m.positions.youReceive} v={formatUsd(close.data.preview.returnedRaw)} />
               {!long && BigInt(close.data.preview.stockAmountRaw) > BigInt(close.data.preview.debtRepaidRaw) && (
-                <Line k={m.positions.stockBack} v={`${formatToken(BigInt(close.data.preview.stockAmountRaw) - BigInt(close.data.preview.debtRepaidRaw), stock.decimals)} ${stock.tokenSymbol}`} />
+                <Line k={m.positions.stockBack} v={`${formatToken(sharesRaw(BigInt(close.data.preview.stockAmountRaw) - BigInt(close.data.preview.debtRepaidRaw), mult), stock.decimals)} ${stock.tokenSymbol}`} />
               )}
               <Line k={m.positions.realized} v={formatUsdSigned(close.data.preview.realizedPnlUsdRaw)} tone={BigInt(close.data.preview.realizedPnlUsdRaw) < 0n ? "text-down" : "text-up"} />
               <Line k={m.positions.fee} v={formatUsd(close.data.preview.feeRaw)} />

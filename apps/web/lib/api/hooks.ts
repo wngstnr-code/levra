@@ -124,6 +124,12 @@ export function useServiceStatus() {
   });
 }
 
+/** The share multiplier of a stock on the current chain (Base B20 tokens), or null. */
+export function useUiMultiplier(symbol: string | undefined): string | null {
+  const markets = useMarkets();
+  return markets.data?.markets.find((x) => x.symbol === symbol)?.uiMultiplierWad ?? null;
+}
+
 export function useEarnOptions() {
   const chain = useChain();
   return useQuery({ queryKey: [...queryKeys.earn, chain.id], queryFn: ({ signal }) => api("earn", { chainId: chain.id, signal }), enabled: apiConfigured, refetchInterval: 60_000, retry: shouldRetry });
