@@ -134,7 +134,7 @@ On the VPS the backup runs by itself (`docs/hosting.md`, section Backups): `depl
 
 ```bash
 cd /opt/levra/app
-docker compose -f deploy/compose.yml stop api indexer-monad keeper-monad keeper-base keeper-xlayer
+docker compose -f deploy/compose.yml stop api indexer-monad indexer-base indexer-xlayer keeper-monad keeper-base keeper-xlayer
 docker compose -f deploy/compose.yml exec -T postgres psql -U levra -d postgres -c "drop database levra" -c "create database levra"
 docker compose -f deploy/compose.yml exec -T postgres pg_restore -U levra -d levra --no-owner --no-privileges --exit-on-error --single-transaction </opt/levra/backups/<file>.dump
 docker compose -f deploy/compose.yml up -d

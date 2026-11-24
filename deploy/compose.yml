@@ -74,6 +74,22 @@ services:
     volumes:
       - ${LEVRA_HOME:-/opt/levra}/secrets/indexer-monad:/run/secrets:ro
 
+  indexer-base:
+    <<: *app
+    working_dir: /app/apps/indexer
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/indexer-base.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/indexer-base:/run/secrets:ro
+
+  indexer-xlayer:
+    <<: *app
+    working_dir: /app/apps/indexer
+    command: ["node_modules/.bin/tsx", "src/index.ts"]
+    env_file: ${LEVRA_HOME:-/opt/levra}/env/indexer-xlayer.env
+    volumes:
+      - ${LEVRA_HOME:-/opt/levra}/secrets/indexer-xlayer:/run/secrets:ro
+
   keeper-monad:
     <<: *app
     working_dir: /app/apps/keeper

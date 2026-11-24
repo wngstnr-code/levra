@@ -103,7 +103,7 @@ install -d -m 0755 -o levra -g levra "$home" "$home/app"
 install -d -m 0750 -o levra -g levra "$home/env"
 install -d -m 0711 -o root -g root "$home/secrets"
 install -d -m 0700 -o levra -g levra "$home/backups"
-for service in postgres migrate api indexer-monad keeper-monad keeper-base keeper-xlayer; do
+for service in postgres migrate api indexer-monad indexer-base indexer-xlayer keeper-monad keeper-base keeper-xlayer; do
   install -d -m 0700 -o "$secret_uid" -g "$secret_uid" "$home/secrets/$service"
 done
 
