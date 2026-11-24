@@ -105,6 +105,32 @@ export function LandingHero() {
     gsap.fromTo(el.querySelectorAll("[data-fade]"), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.06, delay: 0.1, ease: "power2.out" });
   }, [slide]);
 
+  // The background and the tilt follow the pointer anywhere over the hero, the floating nav included.
+  useEffect(() => {
+    let last: { x: number; y: number } | null = null;
+    const onMove = (e: PointerEvent) => {
+      const rect = section.current?.getBoundingClientRect();
+      if (!rect || e.clientY > rect.bottom || e.clientY < rect.top) {
+        last = null;
+        return;
+      }
+      const dx = last ? (e.clientX - last.x) / rect.width : 0;
+      const dy = last ? (e.clientY - last.y) / rect.height : 0;
+      last = { x: e.clientX, y: e.clientY };
+      scene.current?.pointer((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height, dx, dy);
+    };
+    const onLeave = () => {
+      last = null;
+      scene.current?.pointer(0.5, 0.5);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    document.documentElement.addEventListener("pointerleave", onLeave);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      document.documentElement.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
+
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = window.setInterval(() => {
@@ -129,8 +155,6 @@ export function LandingHero() {
     }
   };
   const onMove = (e: React.PointerEvent) => {
-    const rect = section.current?.getBoundingClientRect();
-    if (rect) scene.current?.pointer((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height, Math.abs(e.movementX) + Math.abs(e.movementY));
     if (!drag.current) return;
     apply(drag.current.start - (e.clientX - drag.current.x) / (window.innerWidth * 0.6));
   };
@@ -168,7 +192,6 @@ export function LandingHero() {
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={onUp}
-        onPointerLeave={() => scene.current?.pointer(0.5, 0.5, 0)}
       />
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-b from-transparent to-black/75" />
