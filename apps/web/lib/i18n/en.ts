@@ -692,6 +692,7 @@ export const en = {
   footer: {
     help: "Help and risks",
     contracts: "Contract addresses",
+    exit: "Close without Levra",
     rights: "Your funds stay in your name. Levra never holds them.",
   },
   gate: {
@@ -776,6 +777,7 @@ export const en = {
       { q: "Why is the price different on the exchange?", a: "Only parties registered with the issuer can swap tokens for real shares, so the token can trade above or below the stock price." },
     ],
     revoke: "Revoke access without the app",
+    exitGuide: "Step by step guide for every network",
     revokeBody: "Open Morpho on the block explorer, connect your wallet under Write contract, and call setAuthorization with the router address and false. Your positions stay where they are and can be managed on Morpho directly.",
     contracts: "Contract addresses",
     contractsBody: "Every address comes from packages/shared, the same list the app uses. Check them on the explorer.",

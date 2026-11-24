@@ -117,6 +117,15 @@ test("trade stops opening on a halted market", async ({ page }) => {
   await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
 });
 
+test("the footer opens the static guide to close without Levra", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Close without Levra" }).click();
+  await expect(page.getByRole("heading", { name: "Close a Levra position without Levra" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "X Layer" })).toBeVisible();
+  expect(await page.locator("script").count()).toBe(0);
+});
+
 test("an agent's prepared close shows what it does and asks to sign in", async ({ page }) => {
   await mockService(page);
   await page.route("http://api.levra.test/v1/prepared/**", (r) => {

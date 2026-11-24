@@ -279,11 +279,12 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Note (24 November 2026, D-113): TapeSend receipts are private, so the public "verified onchain" link is dropped. The share card links the close transaction instead; the receipt stays in the user's wallet.
   - Note: 24 November 2026 (`fe/FE-81-share-close`): every closed trade in History has a Share button; the picture leads with the realized PnL, shows the exit price and day, and the X post links the close transaction on the block explorer. The leaderboard is not built.
 
-- [ ] **FE-82 · DeWEB mirror**
+- [~] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
   - Do: publish the stats page and a light landing page on X Layer DeWEB. Required since D-66.
   - Done when: the page loads from DeWEB and its address is in 05. If the tools cannot export it, raise it to the team the same day.
   - Note (24 November 2026, D-113): the page on DeWEB is the "close without Levra" guide from `docs/public/contracts.md` (revoke, repay, withdraw collateral on Morpho), linked from the app footer and the help page. The stats page can follow.
+  - Note: built on 24 November 2026 (`fe/FE-82-exit-page`): `/exit` is one static HTML file (no script, nothing loaded from our servers) built from `packages/shared` at build time: per chain the Morpho, USDC and router addresses, how to revoke, remove the allowance and close with `repay` and `withdrawCollateral`, and the market IDs. Linked from the footer and the help page. Left: upload `/exit` to X Layer DeWEB (needs the team's DeWEB access) and put its address in 05; then point the links at it.
 
 - [~] **FE-83 · Show the risk circuit**
   - Needs: BE-83.
