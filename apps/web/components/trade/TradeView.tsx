@@ -63,9 +63,13 @@ export function TradeView() {
   const snap = oracle.snapshots[symbol];
   const chainLimits = useChainLimits(symbol, side);
 
-  const [marginText, setMarginText] = useState("100");
-  const [leverageBySide, setLeverageBySide] = useState<Record<Side, number>>({ long: 200, short: 50 });
-  const [slippageBps, setSlippageBps] = useState(50);
+  const agentId = search.get("agent");
+  const [marginText, setMarginText] = useState(() => search.get("margin") ?? "100");
+  const [leverageBySide, setLeverageBySide] = useState<Record<Side, number>>(() => {
+    const lev = Number(search.get("leverage"));
+    return { long: 200, short: 50, ...(lev > 0 ? { [side]: lev } : {}) };
+  });
+  const [slippageBps, setSlippageBps] = useState(() => Number(search.get("slippage")) || 50);
   const [signatures, setSignatures] = useState<SignatureInput[]>([]);
   const [details, setDetails] = useState(false);
   const flow = useTxFlow();
@@ -207,7 +211,7 @@ export function TradeView() {
           capShare={capRaw ? Number((positionUsd * 1000n) / capRaw) / 1000 : null}
           capText={capRaw ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(capRaw, 0)) : null}
           firstTimeSignatures={pending.toSign.length}
-          notes={[...(marketBlock ? [marketBlock] : []), ...(q?.warnings.map((w) => noticeFor(w, m)) ?? [])]}
+          notes={[...(agentId ? [{ icon: "verified" as const, blocks: false, title: m.agent.title, body: m.agent.body }] : []), ...(marketBlock ? [marketBlock] : []), ...(q?.warnings.map((w) => noticeFor(w, m)) ?? [])]}
           action={action}
         />
       </div>

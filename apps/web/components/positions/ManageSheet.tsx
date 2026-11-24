@@ -4,7 +4,7 @@ import { morphoAbi } from "@levra/shared/abis";
 import type { Position, SignatureInput } from "@levra/shared/api";
 import { WAD } from "@levra/shared/math";
 import { useState } from "react";
-import { erc20Abi, type Address } from "viem";
+import { erc20Abi, formatUnits, type Address } from "viem";
 import { useReadContract } from "wagmi";
 import { queryKeys } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
@@ -31,7 +31,25 @@ const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
 const FRACTIONS = [25, 50, 75, 100];
 const SLIPPAGE_BPS = 50;
 
-export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
+export function ManageSheet({
+  position,
+  tab: asked,
+  onTab,
+  onClose,
+  user,
+  agentId = null,
+  initialAmountRaw = null,
+  initialFraction,
+}: {
+  position: Position;
+  tab: ManageTab;
+  onTab: (t: ManageTab) => void;
+  onClose: () => void;
+  user: Address;
+  agentId?: string | null;
+  initialAmountRaw?: string | null;
+  initialFraction?: number;
+}) {
   const noPrice = hasNoPrice(position.oraclePriceE8);
   const { tabs, tab } = manageTabs(TABS, noPrice, asked);
   const chain = useChain();
@@ -46,8 +64,8 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
   const amountToken = tab === "repay" ? loanToken : collateralToken;
   const isAmount = tab === "add" || tab === "remove" || tab === "repay";
 
-  const [amountText, setAmountText] = useState("");
-  const [fraction, setFraction] = useState(50);
+  const [amountText, setAmountText] = useState(() => (initialAmountRaw && /^\d+$/.test(initialAmountRaw) ? formatUnits(BigInt(initialAmountRaw), amountToken.decimals) : ""));
+  const [fraction, setFraction] = useState(initialFraction ?? 50);
   const pct = tab === "close" ? 100 : fraction;
   const amountRaw = parseAmount(amountText, amountToken.decimals);
 
@@ -120,6 +138,7 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
             </button>
           ))}
         </div>
+        {agentId && <NoticeRow notice={{ icon: "verified", blocks: false, title: m.agent.title, body: m.agent.body }} />}
         {noPrice && <NoticeRow notice={noPriceNotice(m)} />}
 
         {isAmount ? (

@@ -29,6 +29,8 @@ import { PositionCard, type ManageTab } from "./PositionCard";
 import { useChain, useChainHref } from "@/lib/useChain";
 import { stockOn } from "@/lib/chains";
 
+const MANAGE_TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
+
 export function PositionsView() {
   const chain = useChain();
   const href = useChainHref();
@@ -40,7 +42,12 @@ export function PositionsView() {
   const { address } = useAccount();
   const signIn = useSignIn();
   const account = useAccountData(address);
-  const [manage, setManage] = useState<{ marketId: string; tab: ManageTab } | null>(null);
+  const agentId = search.get("agent");
+  const [manage, setManage] = useState<{ marketId: string; tab: ManageTab } | null>(() => {
+    const marketId = search.get("manage");
+    const action = search.get("action") as ManageTab | null;
+    return marketId && action && MANAGE_TABS.includes(action) ? { marketId, tab: action } : null;
+  });
   const usdc = useReadContract({ address: chain.usdc.address, abi: erc20Abi, functionName: "balanceOf", args: address ? [address] : undefined, chainId: chain.id, query: { enabled: !!address } });
   const mon = useBalance({ address, chainId: chain.id, query: { enabled: !!address } });
   const managed = account.data?.positions.find((p) => p.marketId === manage?.marketId) ?? null;
@@ -161,7 +168,7 @@ export function PositionsView() {
         ))
       )}
 
-      {managed && manage && <ManageSheet key={`${manage.marketId}`} position={managed} tab={manage.tab} onTab={(t) => setManage({ ...manage, tab: t })} onClose={() => setManage(null)} user={address} />}
+      {managed && manage && <ManageSheet key={`${manage.marketId}`} position={managed} tab={manage.tab} onTab={(t) => setManage({ ...manage, tab: t })} onClose={() => setManage(null)} user={address} agentId={agentId} initialAmountRaw={search.get("amountRaw")} initialFraction={Number(search.get("fraction")) || undefined} />}
     </div>
   );
 }
