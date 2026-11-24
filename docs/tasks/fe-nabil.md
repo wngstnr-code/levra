@@ -249,11 +249,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Note: built on 20 November 2026 (`fe/FE-88-d-flows`): a Share button on every position draws a 1200×630 picture in the browser (stock, side, chain, price move since entry in the trade's favour, entry, now, P&L in dollars) and links to an X post. PnL in percent waits for a shared formula (blocker for Dharu).
   - Note (23 November 2026, Dharu): unblocked by BE-101. Open positions carry `Position.pnlBps`; for other cases use `pnlBps(pnl, invested)` from `@levra/shared/math`.
 
-- [ ] **FE-77 · Agent entry in the app**
+- [~] **FE-77 · Agent entry in the app**
   - Needs: BE-77.
   - Do: link and short guide to the Bankr and Telegram agent; show prepared transactions from the agent for signing.
   - Done when: a close prepared in chat is signed in the app.
   - Note (24 November 2026, Dharu): BE-77 is built, waiting for your review of "Prepared actions for AI agents" in 03. The page is `/prepared/:id`: `GET /v1/prepared/:id` (schemas in `@levra/shared/api`, `preparedResponse`), check the connected wallet is `user` and the chain is `chainId`, then quote `request` again with `POST /v1/:chainId/quote/<kind>` and sign as usual. 404 means unknown, 409 `QUOTE_EXPIRED` means ask the agent again. Show that an agent prepared it. MCP address for the guide: `https://api.levra.finance/mcp` once deployed.
+  - Note: built on 24 November 2026 (`fe/FE-77-prepared`): `/prepared/:id` loads the action, shows the agent's summary, the chain and the expiry, checks the signed in wallet is `user`, and opens the usual trade or manage screen filled with the request (`?agent=`), which quotes it again and shows "Prepared by your agent". 404 and `QUOTE_EXPIRED` have their own messages. The 03 section reads fine from the web side. Left: the link and short guide to the Bankr and Telegram agent (needs the MCP address live), and a close prepared in chat signed for real.
 
 
 ---
