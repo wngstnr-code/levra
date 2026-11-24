@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
+    "@levra/cctp": "workspace:*",
     "@levra/db": "workspace:*",
     "@levra/intents": "workspace:*",
     "@levra/shared": "workspace:*",

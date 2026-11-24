@@ -9,6 +9,8 @@
 /packages/db/                        @dharumahendra
 /packages/swap/                      @dharumahendra
 /packages/intents/                   @dharumahendra
+/packages/tapeout/                   @dharumahendra
+/packages/cctp/                      @dharumahendra
 
 /packages/shared/                    @wngstnr-code @dharumahendra
 /packages/shared/abis/               @wngstnr-code

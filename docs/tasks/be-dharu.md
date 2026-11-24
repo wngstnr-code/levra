@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `apps/agent/`, `packages/db/`, `packages/swap/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `apps/agent/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/cctp/`, `packages/tapeout/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -542,6 +542,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: replace Aurora Intents / 1Click (D-50) for deposits and withdrawals on both chains. Gas top-up on Base is not needed if the paymaster covers it (Q-34).
   - Done when: a real deposit from another chain into Base and into Monad, hashes in PROGRESS.
   - Note (20 November 2026): planned after the submissions, from 7 December. Until then the 1Click routes stay up on Monad (BE-40).
+  - Note (24 November 2026): the CCTP half is built in BE-85 for every live chain (D-110). Left here: Across (Monad only, since Across does not list X Layer), the arrival alert, retiring the 1Click routes, and the real deposits into Base and Monad.
 
 - [~] **BE-77 · Agent API and MCP server**
   - Do: read and prepare endpoints for the agent (positions, health, quotes, prepared transactions) and an MCP server that wraps them. No keys held. Shape written in 03.
@@ -606,10 +607,11 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Done when: a real close produces a proof that FE-81 can verify.
   - Note (20 November 2026): D-87 extends the proofs to closes on every chain. They are posted from their own funded key on X Layer (one more key in BE-55), and Levra pays the OKB.
 
-- [ ] **BE-85 · CCTP deposits into X Layer**
+- [~] **BE-85 · CCTP deposits into X Layer**
   - Needs: BE-76.
   - Do: deposits and withdrawals for X Layer through CCTP V2 with native USDC.
   - Done when: a real deposit from another chain into X Layer, hash in PROGRESS.
+  - Note (24 November 2026): built without waiting for BE-76, since CCTP does not depend on the 1Click work (D-110). New `packages/cctp` (Circle's contracts and domains, the Iris client, the burn plan and the status reader) and `/v1/:chainId/bridge/chains`, `bridge/deposit`, `bridge/withdraw` and `/v1/bridge/status` (03). The burn carries the Forwarding Service hook, so Circle mints on X Layer and the user needs no OKB. Fork test: a 5 USDC burn from X Layer to Base with the planned calls passes on Circle's real contracts (05). The routes serve every live chain, so the CCTP half of BE-76 is done too. The rate limit now counts paths with a chain ID like the Monad ones (quotes on Base and X Layer were not counted as quotes before). Left: FE-94 (Nabil), then a real deposit of a few USDC from Base into X Layer and its hashes and time in PROGRESS and 05.
 
 - [~] **BE-86 · Wall Street Clock circuit**
   - Needs: BE-82.

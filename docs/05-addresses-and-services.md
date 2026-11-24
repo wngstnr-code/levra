@@ -613,6 +613,21 @@ OKX DEX API v6 on chain 196, 20 November 2026 around 03:00 UTC, against the xSto
 
 The API needs a key, secret and passphrase, and no project ID; v5 is retired. Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS, so scripts resolve it through 1.1.1.1. Verified by quote only on this date.
 
+### Circle CCTP V2 (BE-85)
+
+Deposits into and withdrawals out of every Levra chain (D-54, D-110). Client in `packages/cctp`, routes in 03 "Deposits and withdrawals through CCTP".
+
+| Fact | Value | Status |
+|---|---|---|
+| Contracts, the same on every EVM chain we list | TokenMessengerV2 `0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d`, MessageTransmitterV2 `0x81D40F21F12A8F0E3252Bccb954D722d4c464B64`, TokenMinterV2 `0xfd78EE919681417d192449715b2594ab58f5D002` | Circle's docs, 24 November 2026. On X Layer read onchain the same day: `localDomain()` 37, `localMinter()` the TokenMinterV2 |
+| Domains | Monad 15, Base 6, X Layer 37. Sources listed in `packages/cctp/src/chains.ts`: Ethereum, Avalanche, OP, Arbitrum, Base, Polygon, Unichain, Linea, Sonic, World Chain, Monad, Sei, HyperEVM, Ink, X Layer | Circle's docs, 24 November 2026 |
+| Fast Transfer as a source | Yes on X Layer, Base, Ethereum, Arbitrum, OP, Unichain, Linea, World Chain, Ink. Not needed (standard is already fast) on Monad, Avalanche, Polygon, Sonic, Sei, HyperEVM | Circle's docs |
+| Forwarding Service | Every listed chain is a destination: Circle mints on arrival, the user needs no gas there. Hook `cctp-forward`, version 0. Circle's service fee $0.05 per transfer, included in its `forwardFee` | Circle's docs |
+| Live fees, 24 November 2026 | Base to X Layer: Fast 1.3 bps, forwarding 0.050489 to 0.050583 USDC. X Layer to Base: Fast 1.4 bps, forwarding 0.054022 to 0.055492 USDC. Standard 0 bps on both | Read from Iris `/v2/burn/USDC/fees` |
+| Burn on an X Layer fork | 5 USDC to Base with the planned calls: approve, then `depositForBurnWithHook` 112,668 gas; `DepositForBurn` names domain 6, the recipient, max fee 56,332, finality 1000 and the hook | Fork test, 24 November 2026 |
+| Iris limit | Above 35 requests a second Circle blocks the caller for 5 minutes. The API reuses fees for 30 s and a status for 5 s | Circle's docs; not hit |
+| Time to arrive | 60 s shown in the app | Initial proposal, not measured. The first real transfer (BE-85 "Done when") measures it |
+
 ### Levra deployment on X Layer (SC-83)
 
 Deployed on 22 November 2026 from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` (`forge script script/Deploy.s.sol` with `config/xlayer.json`): 41 transactions, all status 1, blocks 76536643 to 76536721, about 0.00036 OKB. Same addresses as on Base (same deployer and nonce): router `0xf5585feA7aeDC5e148201052f73139111810aA88`, risk manager `0x8354ff472d87C942f9186acc83e0600424272594`, liquidator `0x92Da4B8c28FE980aAd902b0824aef5D90d6BCBF7`, lens `0xa8d15000992Cd055E7731E884D91b16F2123A327`. 8 markets (long and short for GOOGL, NVDA, QQQ, SPY), one `ChainlinkSessionOracle` each. Read on chain the same day: code at all four, owner the deployer until SC-55, router keeper `0x4C180407D6F186DAd38c2258D3283C270403F875`, liquidator keeper `0x7DDdBE1bc0380451Cc97055C3B21f35219bcf399`, calendar poster `0x96ddD13205f48d2C975eC383fae579eE54Fbf99A`, oracle age poster `0x43A4C2ebc4fb9F8b21A03CC50EB57a62A62622cb`, fee recipient the team Safe, the GOOGL oracle returns a price. No vault (D-84). Sourcify 12 of 12 exact match; the OKX explorer is not checked yet. The binding list is `contracts/deployments/xlayer.json`, bundled as `@levra/shared/deployments/xlayer` (PR #115).

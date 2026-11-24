@@ -37,7 +37,7 @@ export type RateLimitOptions = {
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 /** Quotes outside /v1/quote/ that also call an outside service. A prepared action runs a quote first (BE-77). */
-const QUOTE_PATHS = new Set(["/v1/deposit/quote", "/v1/withdraw/quote", "/v1/agent/prepare"]);
+const QUOTE_PATHS = new Set(["/v1/deposit/quote", "/v1/withdraw/quote", "/v1/bridge/deposit", "/v1/bridge/withdraw", "/v1/agent/prepare"]);
 
 /** Our proxy appends the address it saw to x-forwarded-for, so the last entry is the one we can trust. */
 export function clientIp(c: Context, trustProxyHeader: string | undefined): string {
@@ -85,7 +85,8 @@ export function rateLimit({ rules = defaultRateLimitRules, trustProxyHeader, now
   const accountWallet = createBucketStore(rules.accountWallet, now);
 
   return async (c, next) => {
-    const path = c.req.path;
+    // `/v1/196/quote/open` counts like `/v1/quote/open`: the limits are the same on every chain (BE-70).
+    const path = c.req.path.replace(/^\/v1\/[0-9]+\//, "/v1/");
     if (path === "/v1/health") return next();
 
     const address = clientIp(c, trustProxyHeader);

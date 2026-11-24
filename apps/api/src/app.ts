@@ -14,6 +14,8 @@ import { alertRoutes } from "./routes/alerts";
 import { depositRoutes } from "./routes/deposit";
 import { complianceRoutes, createCompliance, type ComplianceOptions } from "./routes/compliance";
 import type { IntentsSource } from "@levra/intents";
+import type { IrisSource } from "@levra/cctp";
+import { bridgeRoutes, bridgeStatusRoutes, irisFees } from "./routes/bridge";
 import { authRoutes } from "./routes/auth";
 import { agentRoutes, preparedRoutes, type QuoteThrough } from "./routes/agent";
 import { earnRoutes } from "./routes/earn";
@@ -50,6 +52,8 @@ export type AppDeps = {
   intents?: IntentsSource;
   /** Region and terms (BE-52). Needs `db` and `reader`. Without it, opening and depositing are not gated. */
   compliance?: ComplianceOptions;
+  /** Circle's CCTP attestation API, for deposits and withdrawals on every live chain (BE-85). */
+  iris?: IrisSource;
   /** Actions an agent prepares for the wallet to sign in the web app (BE-77). Needs `db`. */
   agent?: { webAppUrl: string };
 };
@@ -66,7 +70,7 @@ function haltsFromDb(db: Db, chainId: number): Halts {
   return () => cached("halts", 30_000, () => activeGates(db, chainId));
 }
 
-export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, agent, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
+export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, iris, agent, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
   const app = new Hono();
   if (corsOrigins.length > 0) {
     app.use(
@@ -102,6 +106,8 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     } satisfies ChainsResponse),
   );
 
+  const fees = iris ? irisFees(iris) : undefined;
+
   /** The routes of one chain (BE-70), served at `/v1/:chainId/...` and, for the main reader, without the chain ID. */
   const chainApp = (r: ChainReader, store: EventStore, chainSwap: SwapSource | undefined) => {
     const id = r.deployment.chainId;
@@ -116,6 +122,7 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     // Quotes need a swap route for the chain (BE-96): KyberSwap on Monad, the best of three on Base, X Layer with BE-81.
     // Region and terms belong to the wallet, so the same gate applies on every chain.
     if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance));
+    if (fees) sub.route("/", bridgeRoutes(id, fees, compliance));
     // The agent prepares only what this chain can quote (BE-77), through the same quote route and gate.
     if (chainSwap && db && agent) {
       const quoteThrough: QuoteThrough = (path, body, headers) => {
@@ -156,6 +163,7 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
   }
 
   if (db && intents) app.route("/", depositRoutes(db, intents, compliance));
+  if (iris) app.route("/", bridgeStatusRoutes(iris));
   if (db && agent) app.route("/", preparedRoutes(db));
 
   app.notFound(notFound);

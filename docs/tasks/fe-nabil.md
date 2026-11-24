@@ -283,6 +283,11 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: on the position page, show health and liquidation price with a "checked by TapeOut circuit" mark and a link to the circuit.
   - Done when: it shows for a real X Layer position.
 
+- [ ] **FE-94 · USDC in and out through CCTP**
+  - Needs: BE-85 (built, 24 November 2026).
+  - Do: on each chain's deposit page, pick the source chain from `/v1/:chainId/bridge/chains` and the amount; get the plan from `bridge/deposit`; switch the wallet to `fromChainId`; send `approve` only when the USDC allowance for `approve.spender` is below `amountRaw`, then `burn`; poll `/v1/bridge/status` with the burn hash until `COMPLETE`, and show `minReceivedRaw`, the fee and the time. The same for withdrawals with `bridge/withdraw`. On `FAILED`, offer to send `manualMint` on the destination chain. Shapes in 03 "Deposits and withdrawals through CCTP".
+  - Done when: a real deposit from Base into X Layer is made from the app (BE-85 "Done when").
+
 ---
 
 ## R. Redesign (Pencil design, 20 November 2026)
