@@ -22,6 +22,8 @@ const envSchema = z
     /** Envio HyperSync is the log source when a token and a HyperSync address for the chain are set; otherwise the RPC endpoint is. */
     ENVIO_API_TOKEN: z.string().optional(),
     HYPERSYNC_URL: z.url().optional(),
+    /** Blocks per eth_getLogs call when the RPC endpoint is the source: 100 for rpc.xlayer.tech. */
+    LOG_BLOCK_RANGE: z.coerce.number().int().positive().default(10_000),
     POLL_MS: z.coerce.number().int().positive().default(2_000),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   })

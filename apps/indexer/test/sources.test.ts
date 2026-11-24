@@ -1,8 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { toEventSelector } from "viem";
+import { toEventSelector, type PublicClient } from "viem";
 import { routerTopics, toRouterRow } from "../src/router";
+import { loadEnv } from "../src/env";
 import { hyperSyncSource, parseHyperSyncPage } from "../src/sources/hypersync";
+import { rpcSource } from "../src/sources/rpc";
 import { marketId, openedLog, user } from "./fixtures";
+
+describe("RPC log source", () => {
+  const calls: { fromBlock: string; toBlock: string }[] = [];
+  const client = {
+    getBlockNumber: async () => 1_000n,
+    request: async ({ params }: { params: [{ fromBlock: string; toBlock: string }] }) => {
+      calls.push(params[0]);
+      return [];
+    },
+  } as unknown as PublicClient;
+
+  it("asks for at most the given number of blocks, for an endpoint like rpc.xlayer.tech", async () => {
+    calls.length = 0;
+    const page = await rpcSource(client, 100n).logs({ address: user, topic0: ["0x01"], fromBlock: 200n, toBlock: 900n });
+    expect(calls[0]).toMatchObject({ fromBlock: "0xc8", toBlock: "0x12b" });
+    expect(page.nextBlock).toBe(300n);
+  });
+
+  it("keeps 10,000 blocks by default and stops at the requested end", async () => {
+    calls.length = 0;
+    const page = await rpcSource(client).logs({ address: user, topic0: ["0x01"], fromBlock: 0n, toBlock: 20_000n });
+    expect(calls[0]).toMatchObject({ toBlock: "0x270f" });
+    expect(page.nextBlock).toBe(10_000n);
+    expect((await rpcSource(client, 100n).logs({ address: user, topic0: ["0x01"], fromBlock: 950n, toBlock: 960n })).nextBlock).toBe(961n);
+  });
+
+  it("refuses a range below one block", () => {
+    expect(() => rpcSource(client, 0n)).toThrow("blockRange");
+  });
+
+  it("reads LOG_BLOCK_RANGE from the environment, 10,000 when unset", () => {
+    const base = { DATABASE_URL: "postgres://u:p@localhost/db", DEPLOYMENT_FILE: "x.json", CHAIN_ID: "196", RPC_URL: "https://rpc.xlayer.tech" };
+    expect(loadEnv(base).LOG_BLOCK_RANGE).toBe(10_000);
+    expect(loadEnv({ ...base, LOG_BLOCK_RANGE: "100" }).LOG_BLOCK_RANGE).toBe(100);
+    expect(() => loadEnv({ ...base, LOG_BLOCK_RANGE: "0" })).toThrow();
+  });
+});
 
 describe("router events", () => {
   it("follows every router event the API shows, including DebtRepaid", () => {

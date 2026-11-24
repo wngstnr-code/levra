@@ -22,7 +22,10 @@ const source =
   env.ENVIO_API_TOKEN && env.hyperSyncUrl
     ? hyperSyncSource({ url: env.hyperSyncUrl, token: env.ENVIO_API_TOKEN })
     : // Base's OP stack formatters widen the block type; the indexer reads only logs and block times.
-      rpcSource(createPublicClient({ chain: viemChains[env.CHAIN_ID], transport: http(env.rpcUrl, { retryCount: 3, timeout: 20_000 }) }) as PublicClient);
+      rpcSource(
+        createPublicClient({ chain: viemChains[env.CHAIN_ID], transport: http(env.rpcUrl, { retryCount: 3, timeout: 20_000 }) }) as PublicClient,
+        BigInt(env.LOG_BLOCK_RANGE),
+      );
 
 const streams = [routerStream(deployment), morphoStream(deployment), vaultStream(deployment)].filter((s): s is Stream => s !== null);
 let stopping = false;
