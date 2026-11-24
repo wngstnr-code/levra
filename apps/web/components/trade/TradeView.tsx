@@ -58,7 +58,6 @@ export function TradeView() {
   };
 
   const { address } = useAccount();
-  const agentRequest = useAgentRequest(search.get("agent"), address, (p) => p.kind === "open" && p.request.symbol === symbol && p.request.side === side);
   const signIn = useSignIn();
   const markets = useMarkets();
   const oracle = useOracleSnapshots();
@@ -83,6 +82,12 @@ export function TradeView() {
   const capRaw = market ? BigInt(market.maxPositionUsdRaw) : chainLimits.maxPositionUsdRaw;
   const leverageE2 = Math.min(maxE2, Math.max(minE2, leverageBySide[side]));
   const marginRaw = parseAmount(marginText, USDC_DECIMALS);
+  // The mark shows only while the screen quotes exactly what the agent prepared.
+  const agentRequest = useAgentRequest(
+    search.get("agent"),
+    address,
+    (p) => p.kind === "open" && p.request.symbol === symbol && p.request.side === side && p.request.marginRaw === marginRaw?.toString() && p.request.leverageE2 === leverageE2 && p.request.slippageBps === slippageBps,
+  );
   const positionUsd = marginRaw ? (marginRaw * BigInt(leverageE2)) / 100n : 0n;
 
   const balance = useReadContract({
