@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBps, formatDuration, formatLeverage, formatToken, formatTokenSigned, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, wadRatio } from "./units";
+import { formatBps, formatDuration, formatLeverage, formatToken, formatTokenSigned, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, sharesRaw, wadRatio } from "./units";
 
 describe("formatUsd", () => {
   it("formats USDC base units", () => {
@@ -89,5 +89,16 @@ describe("stockValueUsd", () => {
   it("values 0.2691 aQQQ at $741.45", async () => {
     const { stockValueUsd } = await import("./units");
     expect(stockValueUsd(269_100_000_000_000_000n, 74_145_000_000n, 18)).toBe(199_524_195n);
+  });
+});
+
+describe("sharesRaw", () => {
+  it("multiplies by the WAD multiplier and rounds down", () => {
+    expect(sharesRaw("100000000", "1000500389301980219")).toBe(100050038n);
+    expect(sharesRaw(5n, "1500000000000000000")).toBe(7n);
+  });
+  it("keeps the raw amount without a multiplier", () => {
+    expect(sharesRaw("123", null)).toBe(123n);
+    expect(sharesRaw("123", undefined)).toBe(123n);
   });
 });
