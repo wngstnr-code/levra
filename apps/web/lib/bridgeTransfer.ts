@@ -1,5 +1,5 @@
 import type { BridgePlan, BridgeState, Call } from "@levra/shared/api";
-import { cctpChain, MESSAGE_TRANSMITTER_V2, messageTransmitterAbi, TOKEN_MESSENGER_V2, tokenMessengerAbi } from "@levra/cctp";
+import { cctpChain, FORWARD_HOOK, MESSAGE_TRANSMITTER_V2, messageTransmitterAbi, TOKEN_MESSENGER_V2, tokenMessengerAbi } from "@levra/cctp";
 import { decodeFunctionData, erc20Abi, pad, type Address, type Hex } from "viem";
 import type { Config } from "wagmi";
 import { readContract, sendTransaction, switchChain, waitForTransactionReceipt } from "wagmi/actions";
@@ -67,7 +67,10 @@ export function checkBridgePlan(plan: BridgePlan, want: { fromChainId: number; t
   if (approve.functionName !== "approve" || !same(approve.args[0], TOKEN_MESSENGER_V2) || approve.args[1] !== want.amountRaw) fail("approve call");
   if (!same(plan.burn.to, TOKEN_MESSENGER_V2)) fail("burn target");
   const burn = decodeFunctionData({ abi: tokenMessengerAbi, data: plan.burn.data });
-  const [amount, domain, mintRecipient, burnToken, , maxFee] = burn.args;
+  if (burn.functionName !== "depositForBurnWithHook") fail("burn call");
+  const [amount, domain, mintRecipient, burnToken, destinationCaller, maxFee, , hookData] = burn.args;
+  // Any caller may mint, so the user can always finish a failed delivery; Circle's forwarding hook mints for them.
+  if (!same(destinationCaller, pad("0x", { size: 32 })) || hookData.toLowerCase() !== FORWARD_HOOK.toLowerCase()) fail("burn hook");
   if (amount !== want.amountRaw || domain !== to.domain || !same(burnToken, from.usdc)) fail("burn call");
   if (!same(mintRecipient, pad(want.recipient, { size: 32 }))) fail("recipient");
   if (maxFee >= want.amountRaw || BigInt(plan.maxFeeRaw) !== maxFee) fail("fee");

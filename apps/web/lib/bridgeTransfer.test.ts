@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cctpChain, MESSAGE_TRANSMITTER_V2, messageTransmitterAbi, TOKEN_MESSENGER_V2, tokenMessengerAbi } from "@levra/cctp";
+import { cctpChain, FORWARD_HOOK, MESSAGE_TRANSMITTER_V2, messageTransmitterAbi, TOKEN_MESSENGER_V2, tokenMessengerAbi } from "@levra/cctp";
 import { encodeFunctionData, erc20Abi, pad, type Address } from "viem";
 import { bridgeDone, checkBridgePlan, checkManualMint, needsApprove } from "./bridgeTransfer";
 
@@ -25,7 +25,7 @@ const to = cctpChain(196)!;
 const amount = 5_000_000n;
 const fee = 10_000n;
 
-function plan(over: { spender?: Address; recipient?: Address; burnAmount?: bigint; domain?: number } = {}) {
+function plan(over: { spender?: Address; recipient?: Address; burnAmount?: bigint; domain?: number; caller?: Address; hook?: `0x${string}` } = {}) {
   return {
     fromChainId: 8453,
     toChainId: 196,
@@ -40,7 +40,7 @@ function plan(over: { spender?: Address; recipient?: Address; burnAmount?: bigin
       data: encodeFunctionData({
         abi: tokenMessengerAbi,
         functionName: "depositForBurnWithHook",
-        args: [over.burnAmount ?? amount, over.domain ?? to.domain, pad(over.recipient ?? user, { size: 32 }), from.usdc, pad("0x", { size: 32 }), fee, 1000, "0x"],
+        args: [over.burnAmount ?? amount, over.domain ?? to.domain, pad(over.recipient ?? user, { size: 32 }), from.usdc, pad(over.caller ?? "0x", { size: 32 }), fee, 1000, over.hook ?? FORWARD_HOOK],
       }),
     },
   };
@@ -56,6 +56,10 @@ describe("checkBridgePlan", () => {
   });
   it("refuses an approval to another spender", () => {
     expect(() => checkBridgePlan(plan({ spender: evil }), want)).toThrow(/approve/);
+  });
+  it("refuses a burn only someone else can mint, or without the forwarding hook", () => {
+    expect(() => checkBridgePlan(plan({ caller: evil }), want)).toThrow(/hook/);
+    expect(() => checkBridgePlan(plan({ hook: "0x" }), want)).toThrow(/hook/);
   });
   it("refuses another amount or destination", () => {
     expect(() => checkBridgePlan(plan({ burnAmount: amount + 1n }), want)).toThrow(/burn/);
