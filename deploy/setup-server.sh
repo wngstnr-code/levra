@@ -17,6 +17,7 @@ docker_repo="https://download.docker.com/linux/$ID"
 home=/opt/levra
 keys_from="${LEVRA_SSH_KEYS_FROM:-/root/.ssh/authorized_keys}"
 secret_uid=1000
+rclone_version=v1.76.0
 
 echo "== packages"
 timedatectl set-timezone UTC
@@ -25,7 +26,24 @@ export DEBIAN_FRONTEND=noninteractive
 apt_get() { apt-get -o DPkg::Lock::Timeout=600 "$@"; }
 apt_get update
 apt_get -y upgrade
-apt_get install -y ca-certificates curl git ufw unattended-upgrades rclone cron
+apt_get install -y ca-certificates curl git ufw unattended-upgrades cron
+
+echo "== rclone $rclone_version (off-site backup copy)"
+# Not the distribution's package: Debian 13 and Ubuntu 24.04 ship 1.60, whose uploads Cloudflare R2 answers
+# with 501 NotImplemented (BE-53). Pinned with the checksums from downloads.rclone.org/$rclone_version/SHA256SUMS.
+if [ "$(rclone version 2>/dev/null | head -n 1)" != "rclone $rclone_version" ]; then
+  arch=$(dpkg --print-architecture)
+  case "$arch" in
+    amd64) sum=9db7ee9b725bce7cdd195b9183449a4c6fb93cad3e6578e70b87c0bc7f6062e9 ;;
+    arm64) sum=c486d404ecbc4bb3d54052a0efaf9e652cf0d2c645e4523f7a2aefa112fe029c ;;
+    *) echo "No pinned rclone checksum for $arch." >&2; exit 1 ;;
+  esac
+  deb=$(mktemp --suffix=.deb)
+  curl -fsSL -o "$deb" "https://downloads.rclone.org/$rclone_version/rclone-$rclone_version-linux-$arch.deb"
+  echo "$sum  $deb" | sha256sum -c --quiet
+  apt_get install -y "$deb"
+  rm -f "$deb"
+fi
 
 echo "== automatic security updates"
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'

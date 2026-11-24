@@ -173,5 +173,8 @@ Results so far:
 | 13 October 2026 | Dharu's machine, docker Postgres, `levra_staging` (7 tables, 11 router events, 32 Morpho events) | Passed, 2.1 s with host tools, 5.4 s inside the container |
 | 13 October 2026 | Dharu's machine, docker Postgres, `levra` (4,621 oracle updates) | Passed, 1.1 s |
 | 14 October 2026 | Dharu's machine, docker Postgres in the container, `levra_test` with every table up to migration 0007 | Passed |
+| 24 November 2026 | VPS, first `deploy/restore-check.sh` run by Dharu on `levra-20261124T062703Z.dump` (2.1 MB, 17 tables, 13 migrations, 68,432 oracle updates) at deploy `90b1d608d370` | Passed, 2 s. Every table and migration present, every row count equal except `backup_runs` (the backup's own row is written after the dump). No off-site copy yet |
 
-On the VPS, the weekly results are rows in `backup_runs` (`select * from backup_runs order by finished_at desc limit 10`) and lines in `/opt/levra/backups/restore-check.log`. Add a row above for each monthly drill. **Not done yet:** the off-site copy (`LEVRA_BACKUP_REMOTE` is not set, so every backup is recorded as failed until it is) and the first restore check on the VPS.
+On the VPS, the weekly results are rows in `backup_runs` (`select * from backup_runs order by finished_at desc limit 10`) and lines in `/opt/levra/backups/restore-check.log`. Add a row above for each monthly drill. The off-site copy goes to Cloudflare R2 since 24 November 2026 (`hosting.md`, section Backups); the second run that day, on `levra-20261124T073113Z.dump`, passed with `off-site copy: true`. **Not done yet:** the drill by all three.
+
+To restore from the off-site copy when the server's own dumps are gone, on the new server as `levra` with the same rclone remote: `rclone copy r2:levra-backups/<file>.dump /opt/levra/backups/`, then the steps above.
