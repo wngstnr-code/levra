@@ -1,10 +1,11 @@
 "use client";
 
+import { useUiMultiplier } from "@/lib/api/hooks";
 import type { Position } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
-import { formatBps, formatToken, formatUsd, formatUsdSigned, formatWadPercent, wadRatio } from "@/lib/units";
+import { formatBps, formatToken, formatUsd, formatWadPercent, sharesRaw, wadRatio } from "@/lib/units";
 import { GapTry } from "../GapTry";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -15,19 +16,21 @@ import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
 import { Share2 } from "lucide-react";
 import { useState } from "react";
-import { ShareSheet } from "./ShareSheet";
+import { PositionShareSheet } from "./ShareSheet";
 import { hasNoPrice } from "@/lib/marketState";
+import { pnlWithPercent } from "@/lib/shareCard";
 
 export type ManageTab = "add" | "remove" | "repay" | "reduce" | "close";
 
 export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { p: Position; onManage: (tab: ManageTab) => void; protectionControl: React.ReactNode; openSoftWad?: string }) {
+  const mult = useUiMultiplier(p.symbol);
   const chain = useChain();
   const m = useT();
   const stock = stockOn(chain, p.symbol);
   const long = p.side === "long";
   const ltvShare = wadRatio(p.ltvWad, p.lltvWad);
   const tone = p.overSoftLimit ? (ltvShare > 0.95 ? "down" : "caution") : "up";
-  const stockAmt = stock ? `${formatToken(p.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}` : p.stockAmountRaw;
+  const stockAmt = stock ? `${formatToken(sharesRaw(p.stockAmountRaw, mult), stock.decimals)} ${stock.tokenSymbol}` : p.stockAmountRaw;
   const pnl = BigInt(p.unrealizedPnlUsdRaw);
   const noPrice = hasNoPrice(p.oraclePriceE8);
   const worst = p.gapScenarios[0];
@@ -36,7 +39,7 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
 
   return (
     <Card className={cn("flex flex-col gap-6", p.overSoftLimit && "ring-2 ring-caution/60")}>
-      <ShareSheet position={p} open={sharing} onClose={() => setSharing(false)} />
+      <PositionShareSheet position={p} open={sharing} onClose={() => setSharing(false)} />
       <div className="flex flex-wrap items-center gap-3.5">
         <TokenIcon symbol={p.symbol} size={44} />
         <div>
@@ -67,7 +70,7 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
             <Stat k={long ? m.positions.debt : m.positions.collateral} v={`${formatToken(long ? p.debtRaw : p.collateralRaw, 6, 2)} USDC`} />
             <Stat k={m.positions.equity} v={noPrice ? m.noPrice.title : formatUsd(p.equityUsdRaw)} />
             <Stat k={m.positions.entry} v={BigInt(p.entryPriceE8) > 0n ? formatUsdE8(BigInt(p.entryPriceE8)) : "—"} />
-            <Stat k={m.positions.pnl} v={noPrice ? m.noPrice.title : formatUsdSigned(pnl)} tone={noPrice ? undefined : pnl > 0n ? "text-up" : pnl < 0n ? "text-down" : undefined} />
+            <Stat k={m.positions.pnl} v={noPrice ? m.noPrice.title : pnlWithPercent(p)} tone={noPrice ? undefined : pnl > 0n ? "text-up" : pnl < 0n ? "text-down" : undefined} />
           </dl>
           <div className="grid gap-3 sm:grid-cols-3">
             <StatBox label={m.positions.liqPrice} value={formatUsdE8(BigInt(p.liqPriceE8))} sub={(long ? m.positions.below : m.positions.above)(formatBps(Math.abs(p.liqDistanceBps), { fractionDigits: 0 }))} />

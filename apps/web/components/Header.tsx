@@ -20,6 +20,7 @@ export const routes = [
   { href: "/trade", key: "trade" },
   { href: "/positions", key: "positions" },
   { href: "/earn", key: "earn" },
+  { href: "/stats", key: "stats" },
   { href: "/deposit", key: "deposit" },
   { href: "/settings", key: "settings" },
 ] as const;
@@ -29,7 +30,7 @@ const tabs = [
   { href: "/trade", key: "trade", icon: ArrowLeftRight, also: [] },
   { href: "/positions", key: "positions", icon: Layers, also: [] },
   { href: "/earn", key: "earn", icon: PiggyBank, also: [] },
-  { href: "/settings", key: "account", icon: UserRound, also: ["/deposit", "/help"] },
+  { href: "/settings", key: "account", icon: UserRound, also: ["/deposit", "/help", "/stats"] },
 ] as const;
 
 export function Header() {

@@ -126,6 +126,38 @@ test("the footer opens the static guide to close without Levra", async ({ page }
   expect(await page.locator("script").count()).toBe(0);
 });
 
+test("an agent's prepared close shows what it does and asks to sign in", async ({ page }) => {
+  await mockService(page);
+  await page.route("http://api.levra.test/v1/prepared/**", (r) => {
+    const id = r.request().url().split("/").pop();
+    if (id !== "abc") return r.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "NOT_FOUND", message: "no" } }) });
+    const now = Math.floor(Date.now() / 1000);
+    return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "abc", chainId: 143, user: "0x00000000000000000000000000000000000000A1", summary: "Close your QQQ long in full.", createdAt: now, expiresAt: now + 3600, kind: "close", request: { user: "0x00000000000000000000000000000000000000A1", marketId: `0x${"11".repeat(32)}`, fractionWad: "1000000000000000000", slippageBps: 50 } }) });
+  });
+  await page.goto("/prepared/abc");
+  await expect(page.getByText("Close your QQQ long in full.")).toBeVisible();
+  await expect(page.getByText("Close or reduce a position")).toBeVisible();
+  await page.goto("/prepared/zzz");
+  await expect(page.getByText("This link is not known. Ask your agent again.")).toBeVisible();
+});
+
+test("stats shows the chain's public numbers", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/stats");
+  await expect(page.getByRole("heading", { name: "Stats" })).toBeVisible();
+  await expect(page.getByText("12", { exact: true })).toBeVisible();
+  await expect(page.getByText("$2,000.00")).toBeVisible();
+  await expect(page.getByText("$35,820.00")).toBeVisible();
+  await expect(page.getByText("41 trades")).toBeVisible();
+});
+
+test("the footer links to stats on every screen", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Stats" }).click();
+  await expect(page).toHaveURL(/\/monad\/stats$/);
+});
+
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere/markets");
@@ -151,7 +183,7 @@ test("phones get the tab bar instead of the top navigation", async ({ page, isMo
 });
 
 // The page must never be wider than the screen. Compared with the device width, not innerWidth, which grows with the page.
-for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help"]) {
+for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help", "/stats"]) {
   test(`${path} fits a phone screen`, async ({ page, isMobile }) => {
     test.skip(!isMobile, "phone layout only");
     await mockService(page);

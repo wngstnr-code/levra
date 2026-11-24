@@ -6,7 +6,7 @@ import { formatUsdE8 } from "@/lib/format";
 import { apiConfigured } from "@/lib/api/hooks";
 import { gapSteps, mergeGapScenarios } from "@/lib/gapSteps";
 import { useT } from "@/lib/i18n";
-import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio } from "@/lib/units";
+import { formatBps, formatToken, formatUsd, formatWadPercent, stockValueUsd, wadRatio, sharesRaw } from "@/lib/units";
 import { GapTry } from "../GapTry";
 import { Card } from "../ui/Card";
 import { InfoLink } from "../ui/InfoLink";
@@ -109,12 +109,12 @@ function AfterCard({ side, market, quote, loading, error, tokenSymbol, stockDeci
           <div>
             {side === "long" ? (
               <>
-                <Row k={m.trade.youGet} v={`${formatToken(pv.stockAmountRaw, stockDecimals)} ${tokenSymbol} · ${formatUsd(stockValueUsd(pv.stockAmountRaw, pv.oraclePriceE8, stockDecimals))}`} />
+                <Row k={m.trade.youGet} v={`${formatToken(sharesRaw(pv.stockAmountRaw, market?.uiMultiplierWad), stockDecimals)} ${tokenSymbol} · ${formatUsd(stockValueUsd(pv.stockAmountRaw, pv.oraclePriceE8, stockDecimals))}`} />
                 <Row k={m.trade.debt} v={`${formatToken(pv.debtRaw, 6, 2)} USDC`} />
               </>
             ) : (
               <>
-                <Row k={m.trade.youSell} v={`${formatToken(pv.stockAmountRaw, stockDecimals)} ${tokenSymbol}`} />
+                <Row k={m.trade.youSell} v={`${formatToken(sharesRaw(pv.stockAmountRaw, market?.uiMultiplierWad), stockDecimals)} ${tokenSymbol}`} />
                 <Row k={m.trade.collateralAfter} v={`${formatToken(pv.collateralRaw, 6, 2)} USDC`} />
               </>
             )}

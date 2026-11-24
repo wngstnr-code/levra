@@ -6,7 +6,7 @@ import { apiConfigured, usePriceHistory } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
-import { formatBps, formatToken, formatUsd, formatWadPercent } from "@/lib/units";
+import { formatBps, formatToken, formatUsd, formatWadPercent, sharesRaw } from "@/lib/units";
 import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
 import { changeBps, chartValues } from "@/lib/priceSeries";
@@ -85,7 +85,7 @@ export function PriceCard({
           sub={market?.dexDeviationBps != null ? m.trade.vsOracle(formatBps(market.dexDeviationBps, { signed: true, fractionDigits: 1 })) : undefined}
         />
         {market?.side === "short" && stock ? (
-          <StatBox label={m.trade.shortRoom} value={formatToken(market.availableLiquidityRaw, stock.decimals)} sub={m.trade.shortRoomSub(stock.tokenSymbol)} />
+          <StatBox label={m.trade.shortRoom} value={formatToken(sharesRaw(market.availableLiquidityRaw, market.uiMultiplierWad), stock.decimals)} sub={m.trade.shortRoomSub(stock.tokenSymbol)} />
         ) : (
           <StatBox label={m.trade.canBorrow} value={market ? formatUsd(market.availableLiquidityRaw, 0) : DASH} sub="USDC" />
         )}

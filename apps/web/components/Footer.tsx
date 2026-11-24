@@ -12,6 +12,9 @@ export function Footer() {
       <Link href={href("/help")} className="hover:text-fg-2">
         {m.footer.help}
       </Link>
+      <Link href={href("/stats")} className="hover:text-fg-2">
+        {m.nav.stats}
+      </Link>
       <Link href="/exit" prefetch={false} className="hover:text-fg-2">
         {m.footer.exit}
       </Link>
