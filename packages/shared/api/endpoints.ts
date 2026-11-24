@@ -1,6 +1,7 @@
 import { account, historyQuery, historyResponse } from "./accounts";
 import { alertSettings, alertSettingsUpdate, telegramLinkResponse } from "./alerts";
 import { authNonceResponse, siweRequest, siweResponse } from "./auth";
+import { bridgeChainsResponse, bridgeDepositRequest, bridgePlan, bridgeStatusQuery, bridgeStatusResponse, bridgeWithdrawRequest } from "./bridge";
 import { chainsResponse } from "./chains";
 import { configResponse } from "./config";
 import { eligibilityQuery, eligibilityResponse, termsAcceptRequest, termsAcceptResponse } from "./compliance";
@@ -70,6 +71,11 @@ export const endpoints = {
     body: withdrawQuoteRequest,
     response: withdrawQuoteResponse,
   },
+
+  bridgeChains: { method: "GET", path: "/v1/bridge/chains", response: bridgeChainsResponse },
+  bridgeDeposit: { method: "POST", path: "/v1/bridge/deposit", body: bridgeDepositRequest, response: bridgePlan },
+  bridgeWithdraw: { method: "POST", path: "/v1/bridge/withdraw", body: bridgeWithdrawRequest, response: bridgePlan },
+  bridgeStatus: { method: "GET", path: "/v1/bridge/status", query: bridgeStatusQuery, response: bridgeStatusResponse },
 
   eligibility: { method: "GET", path: "/v1/eligibility", query: eligibilityQuery, response: eligibilityResponse },
   termsAccept: { method: "POST", path: "/v1/terms/accept", body: termsAcceptRequest, response: termsAcceptResponse },

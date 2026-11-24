@@ -405,7 +405,7 @@ Status: proposed by Dharu on 20 November 2026 and built the same day as addition
 - Routes that depend on a chain take its ID as the first path part: `/v1/:chainId/...`, with `chainId` one of `143` (Monad), `8453` (Base) and `196` (X Layer), the IDs in `chains.ts` and the ones wagmi reports. The shapes inside are the same on every chain.
 - An ID outside that list answers 404 `NOT_FOUND`. A listed chain that this API does not serve yet (no deployment loaded, for example Base before SC-76) answers 404 `NOT_FOUND` with `details: { chainId, live: false }`, so the error code list stays the same. `GET /v1/chains` tells the web app which chains are live.
 - The routes without a chain ID stay as they are and serve Monad (143). They are aliases until the web app has moved (FE-70); removing them is a separate change, agreed first.
-- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, `stats`, and later `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
+- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, `stats`, `bridge/chains`, `bridge/deposit`, `bridge/withdraw` (BE-85), and later `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
 - Quotes (`quote/*`) on a chain answer only when the API has a swap provider for it: Monad now, Base with BE-72. Before that they answer 404 `NOT_FOUND`. The region and terms gate applies on every chain.
 - Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/quote`, `withdraw/quote`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain. Deposits and withdrawals go to and from Monad only until BE-76 (after the submissions); then the two quotes move under the chain path.
 - Sign-in: the SIWE message may name any chain this API serves (`live` in `/v1/chains`), the chain the wallet is on. The signature is checked on that chain, so a smart wallet deployed only there still signs in. The token is the same for every chain.
@@ -452,6 +452,10 @@ Every chain route (list above) also exists as `/v1/:chainId/<path>` (BE-70); the
 | POST | `/v1/deposit/quote` | Cross-chain deposit quote and its deposit address | M4 |
 | GET | `/v1/deposit/:id` | Deposit status | M4 |
 | POST | `/v1/withdraw/quote` | Quote to withdraw to another network | M4 |
+| GET | `/v1/:chainId/bridge/chains` | Chains USDC can come from and go to through CCTP (BE-85) | M7 |
+| POST | `/v1/:chainId/bridge/deposit` | Calls to sign on another chain that bring USDC here through CCTP (BE-85) | M7 |
+| POST | `/v1/:chainId/bridge/withdraw` | Calls to sign here that send USDC to another chain through CCTP (BE-85) | M7 |
+| GET | `/v1/bridge/status` | Where one CCTP burn is, by source chain and transaction hash (BE-85) | M7 |
 | GET | `/v1/eligibility` | Allowed to use or not, based on region. Query: `address` (optional, adds `termsAccepted`), `chainId` (optional, adds that chain's own country list, D-73) | M5 |
 | POST | `/v1/terms/accept` | Records acceptance of the terms, with a wallet signature | M5 |
 | GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
@@ -692,6 +696,50 @@ type DepositStatus = {
 // `/v1/deposit/:id` also serves withdrawals and the gas transfer. The service is asked at most every 10 seconds per
 // transfer, and a keeper (`transfers`) follows open transfers even when nobody has the app open. EXPIRED means the
 // service's deadline passed with nothing deposited.
+```
+
+### Deposits and withdrawals through CCTP (BE-85, D-54)
+
+Status: proposed by Dharu on 24 November 2026 and built the same day as additions (06), waiting for Nabil's review. Nothing existing changed: the 1Click routes above stay on Monad until BE-76 retires them.
+
+- `GET /v1/:chainId/bridge/chains`, `POST /v1/:chainId/bridge/deposit`, `POST /v1/:chainId/bridge/withdraw` on every live chain, and `GET /v1/bridge/status` without a chain ID.
+- The API answers with the calls only. The wallet signs them on the source chain: `approve` (skip it when the USDC allowance for `approve.spender` already covers `amountRaw`), then `burn`. Before signing, the web app switches the wallet to `fromChainId`.
+- The burn carries Circle's Forwarding Service hook, so Circle mints on the destination and the user needs no gas there. No Levra contract or key is involved and no funds pass through us.
+- Fees come out of the amount: up to `maxFeeRaw` (Circle's Fast Transfer percentage, with a 20% margin, plus the forwarding fee, about 0.05 USDC on 24 November 2026). Fast Transfer where the source has it; elsewhere Circle's standard transfer is already fast. Smallest transfer 1 USDC. All initial proposals.
+- Polling `bridge/status` with the burn's hash: `NOT_FOUND` until Circle sees the burn, then `ATTESTING`, `MINTING`, `COMPLETE` (with `mintTxHash` on the destination). On `FAILED` the web app offers `manualMint`, a call any wallet can send on the destination chain that still mints to the recipient. Answers are reused for 5 seconds.
+- Region and terms apply to a deposit's `recipient` on the chain in the path, as for 1Click. A withdrawal is never gated.
+- `bridge/deposit` and `bridge/withdraw` count as quotes for the rate limit, per wallet through `user` or `recipient`. Since BE-85 every limit counts a path with a chain ID like its Monad alias.
+
+```ts
+type BridgeChain = { chainId: number; name: string; domain: number; usdc: Address; fast: boolean };
+type BridgeChainsResponse = { chains: BridgeChain[] };   // every CCTP chain except the one in the path
+type BridgeDepositRequest = { fromChainId: number; amountRaw: string; recipient: Address };
+type BridgeWithdrawRequest = { toChainId: number; amountRaw: string; user: Address; recipient: Address };
+type Call = { to: Address; data: Hex };
+type BridgePlan = {
+  fromChainId: number;
+  toChainId: number;
+  amountRaw: string;          // USDC burned on fromChainId
+  maxFeeRaw: string;          // the most Circle can take, out of amountRaw
+  minReceivedRaw: string;     // amountRaw - maxFeeRaw
+  finality: "fast" | "standard";
+  estimatedSeconds: number;   // 60, not measured yet
+  approve: Call & { token: Address; spender: Address };
+  burn: Call;
+};
+// GET /v1/bridge/status?fromChainId=8453&txHash=0x...
+type BridgeStatusResponse = {
+  state: "NOT_FOUND" | "ATTESTING" | "MINTING" | "COMPLETE" | "FAILED";
+  fromChainId: number;
+  toChainId: number | null;
+  txHash: Hex;
+  amountRaw: string | null;
+  feeRaw: string | null;      // what Circle took
+  receivedRaw: string | null; // on COMPLETE
+  mintTxHash: Hex | null;
+  delayReason: string | null; // Circle's words, for example "insufficient_fee"
+  manualMint: Call | null;    // on FAILED
+};
 ```
 
 ### A market without an oracle price (BE-99, D-100)
