@@ -36,12 +36,14 @@ precision highp float;
 uniform sampler2D tMap;
 uniform float uImageAspect;
 uniform float uCardAspect;
+uniform vec2 uShift;
 varying vec2 vUv;
 varying float vFront;
 void main() {
   vec2 uv = vUv;
   float r = uCardAspect / uImageAspect;
   if (r < 1.0) uv.x = (uv.x - 0.5) * r + 0.5; else uv.y = (uv.y - 0.5) / r + 0.5;
+  uv = (uv - 0.5) * 0.92 + 0.5 + uShift;
   vec3 c = texture2D(tMap, uv).rgb;
   float light = mix(0.28, 1.0, smoothstep(-0.3, 0.95, vFront));
   gl_FragColor = vec4(c * light, 1.0);
@@ -117,6 +119,9 @@ const FOV = 35;
 const FRONT_SHARE = 0.72;
 const MARGIN = 0.1;
 const CARD_HEIGHT = 0.6;
+/** Ring pose of the reference: the right side higher, the top leaning away as if seen from below. */
+const BASE_TILT_Z = 0.075;
+const BASE_TILT_X = -0.16;
 
 export class HeroScene {
   private renderer: Renderer;
@@ -133,6 +138,9 @@ export class HeroScene {
   private colorTo: Palette;
   private colorT = 1;
   private mouse = { x: 0.5, y: 0.5, force: 0 };
+  /** Pointer position for the hover parallax, eased toward \`aim\` every frame. */
+  private tilt = { x: 0, y: 0 };
+  private aim = { x: 0, y: 0 };
   private count: number;
   progress = 0;
   sway = 0;
@@ -178,6 +186,7 @@ export class HeroScene {
           uMargin: { value: MARGIN },
           uImageAspect: { value: 16 / 9 },
           uCardAspect: { value: cardAspect },
+          uShift: { value: [0, 0] },
         },
       });
       const img = new Image();
@@ -193,8 +202,8 @@ export class HeroScene {
       this.cards.push(mesh);
     });
     this.ring.setParent(this.scene);
-    this.ring.rotation.z = -0.07;
-    this.ring.rotation.x = 0.1;
+    this.ring.rotation.z = BASE_TILT_Z;
+    this.ring.rotation.x = BASE_TILT_X;
     this.resize();
   }
 
@@ -207,7 +216,7 @@ export class HeroScene {
     const frontWidth = (1 - MARGIN) * ((2 * Math.PI * (1 / (2 * Math.sin(Math.PI / this.count)))) / this.count);
     const distance = frontWidth / (FRONT_SHARE * 2 * Math.tan(((FOV / 2) * Math.PI) / 180) * (w / h));
     const radius = 1 / (2 * Math.sin(Math.PI / this.count));
-    this.ring.position.set(0, 0.02, -(distance + radius * 0.5));
+    this.ring.position.set(0.02, -0.045, -(distance + radius * 0.5));
     this.bgProgram.uniforms.uRes!.value = [w, h];
     if (!this.running) this.render(0);
   }
@@ -222,6 +231,7 @@ export class HeroScene {
   pointer(x: number, y: number, speed: number) {
     this.mouse.x = x;
     this.mouse.y = 1 - y;
+    if (!this.still) this.aim = { x: x - 0.5, y: y - 0.5 };
     this.mouse.force = Math.min(1, this.mouse.force + speed * 0.004);
   }
 
@@ -241,8 +251,16 @@ export class HeroScene {
     this.mouse.force *= 0.94;
     u.uMouse!.value = [this.mouse.x, this.mouse.y];
     u.uForce!.value = this.mouse.force;
+    this.tilt.x += (this.aim.x - this.tilt.x) * 0.06;
+    this.tilt.y += (this.aim.y - this.tilt.y) * 0.06;
+    this.ring.rotation.y = this.tilt.x * 0.16;
+    this.ring.rotation.x = BASE_TILT_X + this.tilt.y * 0.1;
     const turns = (this.progress + this.sway) / this.count;
-    for (const c of this.cards) c.program.uniforms.uProgress!.value = turns;
+    const shift = [-this.tilt.x * 0.05, this.tilt.y * 0.04];
+    for (const c of this.cards) {
+      c.program.uniforms.uProgress!.value = turns;
+      c.program.uniforms.uShift!.value = shift;
+    }
     this.renderer.render({ scene: this.bg, clear: true });
     this.renderer.render({ scene: this.scene, camera: this.camera, clear: false });
   }
