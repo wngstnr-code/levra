@@ -286,10 +286,11 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Done when: it shows for a real X Layer position.
   - Note (24 November 2026, D-113): also in the long and short confirmation: a weekend gap check line ("after a Monday gap like the worst one, this position stays healthy / would be liquidated") with the "checked by TapeOut circuit" mark, and the market session shown from the clock circuit on X Layer.
 
-- [ ] **FE-94 · USDC in and out through CCTP**
+- [~] **FE-94 · USDC in and out through CCTP**
   - Needs: BE-85 (built, 24 November 2026).
   - Do: on each chain's deposit page, pick the source chain from `/v1/:chainId/bridge/chains` and the amount; get the plan from `bridge/deposit`; switch the wallet to `fromChainId`; send `approve` only when the USDC allowance for `approve.spender` is below `amountRaw`, then `burn`; poll `/v1/bridge/status` with the burn hash until `COMPLETE`, and show `minReceivedRaw`, the fee and the time. The same for withdrawals with `bridge/withdraw`. On `FAILED`, offer to send `manualMint` on the destination chain. Shapes in 03 "Deposits and withdrawals through CCTP".
   - Done when: a real deposit from Base into X Layer is made from the app (BE-85 "Done when").
+  - Note: built on 24 November 2026 (`fe/FE-94-cctp`): the deposit page has a USDC (Circle) method on every chain (Monad keeps "Other tokens" through 1Click). Pick the network, amount (at least 1 USDC, balance shown), review the plan (least received, most fee, time), then the wallet switches, approves only when the allowance is short, burns, and the page polls the status until it arrives; on `FAILED` it offers `manualMint`. The wallet knows the 15 CCTP chains viem has. Left: `bridge/deposit` and `bridge/withdraw` on the VPS answer 500 `INTERNAL` (checked 24 November), then a real Base to X Layer deposit.
 
 ---
 
