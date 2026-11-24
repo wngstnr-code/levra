@@ -155,12 +155,12 @@ for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn",
 
 test("the landing hero has its own nav and turns the carousel", async ({ page }) => {
   await page.goto("/landing");
-  await expect(page.getByRole("link", { name: "LEVRA" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Levra home" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Change network/ })).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("NVIDIA");
   await page.getByRole("button", { name: "Next stock" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("TESLA");
   await page.getByRole("button", { name: "Show APPLE" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("APPLE");
-  await expect(page.getByRole("link", { name: "TRADE" })).toHaveAttribute("href", "/base/trade?symbol=AAPL");
+  await expect(page.getByRole("link", { name: "Trade", exact: true })).toHaveAttribute("href", "/base/trade?symbol=AAPL");
 });

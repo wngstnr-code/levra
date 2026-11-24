@@ -4,6 +4,7 @@ import gsap from "gsap";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HeroScene, palette, webglAvailable, type Palette } from "./heroScene";
+import { GlowButton, GlowRound } from "./GlowButton";
 import { stockMarks } from "./marks";
 
 type Slide = { symbol: string; name: string; chain: "monad" | "base" | "xlayer"; chainName: string; line: string; image: string; tile: string; colors: Palette };
@@ -20,7 +21,6 @@ const slides: Slide[] = [
 const N = slides.length;
 /** Seconds between automatic turns while nobody touches the carousel. */
 const AUTOPLAY = 7;
-const POINTER = "cursor-[url(/cursor/pointer.svg)_28_28,pointer]";
 
 const wrap = (i: number) => ((i % N) + N) % N;
 
@@ -99,7 +99,10 @@ export function LandingHero() {
   useEffect(() => {
     scene.current?.setPalette(slide.colors);
     if (!copy.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    gsap.fromTo(copy.current.children, { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.07, ease: "power3.out" });
+    const el = copy.current;
+    // The title rises out of its own mask; the lines around it fade up a moment later, like the reference.
+    gsap.fromTo(el.querySelectorAll("[data-reveal]"), { yPercent: 105 }, { yPercent: 0, duration: 0.8, ease: "power3.out" });
+    gsap.fromTo(el.querySelectorAll("[data-fade]"), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.06, delay: 0.1, ease: "power2.out" });
   }, [slide]);
 
   useEffect(() => {
@@ -152,11 +155,11 @@ export function LandingHero() {
   };
 
   return (
-    <section ref={section} className="relative h-[calc(100svh-96px)] min-h-[720px] overflow-hidden bg-black" aria-roledescription="carousel" aria-label="Featured stocks">
+    <section ref={section} className="relative h-svh min-h-[720px] overflow-hidden bg-black" aria-roledescription="carousel" aria-label="Featured stocks">
       <canvas ref={canvas} aria-hidden className="absolute inset-0 h-full w-full" />
       {!gl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={slide.image} alt="" className="absolute inset-x-[12%] top-[8%] h-[70%] w-[76%] -rotate-3 rounded-[6px] object-cover" />
+        <img src={slide.image} alt="" className="absolute inset-x-[12%] top-[20%] h-[64%] w-[72%] -rotate-3 rounded-[6px] object-cover" />
       )}
 
       <div
@@ -168,52 +171,59 @@ export function LandingHero() {
         onPointerLeave={() => scene.current?.pointer(0.5, 0.5, 0)}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-b from-transparent to-black/80" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-b from-transparent to-black/75" />
 
-      <div ref={copy} className="pointer-events-none absolute bottom-[7%] left-[10%] z-10 flex max-w-[680px] flex-col items-start gap-3" aria-live="polite">
-        <div className="flex items-center gap-3">
-          <span className="font-[family-name:var(--font-league)] text-[40px] leading-none text-white">FEATURED</span>
-          <span className="flex items-center gap-2 rounded-[8px] bg-white/20 px-3 py-1.5 font-[family-name:var(--font-dm-mono)] text-[15px] tracking-[0.15em] text-white">
+      <div ref={copy} className="pointer-events-none absolute top-[62.3%] left-[10.3%] z-10 flex flex-col items-start" aria-live="polite">
+        <div data-fade className="flex h-9 items-center gap-3">
+          <span className="flex items-center gap-2">
+            <span className="size-7">
+              <Mark symbol={slide.symbol} className="size-full" />
+            </span>
+            <span className="font-[family-name:var(--font-league)] text-[32px] leading-none text-white">FEATURED</span>
+          </span>
+          <span className="flex h-6 items-center gap-1.5 rounded-[6px] bg-white/25 px-2 font-[family-name:var(--font-dm-mono)] text-[12px] tracking-[0.1em] text-white uppercase backdrop-blur-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/landing/chains/${slide.chain}.png`} alt="" className="size-[18px] rounded-[4px]" />
+            <img src={`/landing/chains/${slide.chain}.png`} alt="" className="size-3.5 rounded-[3px]" />
             {slide.chainName}
           </span>
         </div>
-        <h1 className="font-[family-name:var(--font-league)] text-[clamp(96px,12vw,176px)] leading-[0.85] text-white">{slide.name}</h1>
-        <p className="font-[family-name:var(--font-dm-mono)] text-[16px] tracking-[0.06em] text-white">{slide.line}</p>
-        <Link href={`/${slide.chain}/trade?symbol=${slide.symbol}`} className={`pointer-events-auto mt-3 rounded-full bg-gradient-to-r from-[#d4ee8c] via-[#c7b6f2] to-[#a9b8ff] p-[2px] ${POINTER}`}>
-          <span className="block rounded-full bg-white px-16 py-4 font-[family-name:var(--font-dm-mono)] text-[15px] tracking-[0.2em] text-[#0a0a0b]">TRADE</span>
-        </Link>
+        <h1 className="mt-[1.6vh] overflow-hidden">
+          <span data-reveal className="block font-[family-name:var(--font-league)] text-[120px] leading-[0.785] text-white uppercase">
+            {slide.name}
+          </span>
+        </h1>
+        <p data-fade className="mt-[2.4vh] max-w-[300px] font-[family-name:var(--font-dm-sans)] text-[12px] leading-[1.3] tracking-[0.02em] text-white uppercase">
+          {slide.line}
+        </p>
+        <div data-fade className="pointer-events-auto mt-[3vh]">
+          <GlowButton href={`/${slide.chain}/trade?symbol=${slide.symbol}`} label="Trade" />
+        </div>
       </div>
 
-      <div className="absolute top-1/2 right-[2.5%] z-10 flex -translate-y-1/2 flex-col gap-5">
-        {(
-          [
-            ["Next", 1, "M9 6l7 6-7 6z"],
-            ["Previous", -1, "M15 6l-7 6 7 6z"],
-          ] as const
-        ).map(([label, dir, path]) => (
-          <button
-            key={label}
-            type="button"
-            aria-label={`${label} stock`}
-            onClick={() => step(dir)}
-            className={`rounded-full bg-gradient-to-br from-[#a9b8ff] via-[#c7b6f2] to-[#f5a98a] p-[3px] ${POINTER}`}
-          >
-            <span className="flex size-[82px] items-center justify-center rounded-full bg-[#0a0a0b]">
-              <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-                <path d={path} fill="#fff" />
-              </svg>
-            </span>
-          </button>
-        ))}
+      <div className="absolute top-[44.9%] right-8 z-10 flex flex-col gap-4">
+        <GlowRound label="Next stock" onClick={() => step(1)}>
+          <svg viewBox="0 0 24 24" className="size-3.5" aria-hidden>
+            <path d="M7 4l12 8-12 8z" fill="currentColor" />
+          </svg>
+        </GlowRound>
+        <GlowRound label="Previous stock" onClick={() => step(-1)}>
+          <svg viewBox="0 0 24 24" className="size-3.5" aria-hidden>
+            <path d="M17 4L5 12l12 8z" fill="currentColor" />
+          </svg>
+        </GlowRound>
       </div>
 
-      <div className="absolute right-[10%] bottom-[7%] z-10 flex flex-col items-end gap-4">
-        <Link href="/monad/markets" className={`font-[family-name:var(--font-dm-mono)] text-[16px] tracking-[0.2em] text-white ${POINTER}`}>
-          SEE ALL MARKETS ▶
+      <div className="absolute top-[83.1%] right-[10.4%] z-10 flex flex-col items-end gap-[2.4vh]">
+        <Link
+          href="/monad/markets"
+          className="flex items-center gap-2 font-[family-name:var(--font-dm-mono)] text-[12px] leading-none tracking-[0.1em] text-white uppercase transition-opacity duration-300 hover:opacity-70 cursor-[url(/cursor/pointer.svg)_28_28,pointer]"
+        >
+          See all markets
+          <svg viewBox="0 0 10 10" className="size-2.5" aria-hidden>
+            <path d="M1 0l8 5-8 5z" fill="currentColor" />
+          </svg>
         </Link>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           {slides.map((s, i) => (
             <button
               key={s.symbol}
@@ -221,10 +231,11 @@ export function LandingHero() {
               aria-label={`Show ${s.name}`}
               aria-current={i === active}
               onClick={() => show(i)}
-              className={`flex size-[64px] items-center justify-center rounded-[8px] p-3.5 transition-[border-color] ${POINTER}`}
-              style={{ background: s.tile, border: `${i === active ? 3 : 1}px solid ${i === active ? "#fff" : "rgba(255,255,255,0.2)"}` }}
+              className={`relative size-12 overflow-hidden rounded-[8px] transition-[opacity,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] cursor-[url(/cursor/pointer.svg)_28_28,pointer] ${i === active ? "opacity-100 shadow-[0_0_0_2px_#fff]" : "opacity-55 hover:opacity-100"}`}
             >
-              <Mark symbol={s.symbol} className="size-full" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.image} alt="" className="h-full w-full object-cover" />
+              {i === active && <span aria-hidden className="absolute inset-x-3 bottom-1 h-[2px] rounded-full bg-white" />}
             </button>
           ))}
         </div>
