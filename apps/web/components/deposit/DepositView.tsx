@@ -27,6 +27,7 @@ import { Money } from "../ui/Money";
 import { Skeleton } from "../ui/Skeleton";
 import { Switch } from "../ui/Switch";
 import { QrCode } from "./QrCode";
+import { BridgeForm } from "./BridgeForm";
 import { TransferStatus } from "./TransferStatus";
 import { useChain } from "@/lib/useChain";
 
@@ -43,6 +44,11 @@ export function DepositView() {
   const list = useDepositTokens();
   const saved = useSavedTransfers(address);
   const gateStatus = useGate().status;
+  const web = useChain();
+  /** 1Click (other tokens) serves Monad only until BE-76; USDC through Circle works on every chain. */
+  const hasOther = web.id === 143;
+  const [method, setMethod] = useState<"usdc" | "other">("usdc");
+  const useBridge = !hasOther || method === "usdc";
 
   return (
     <div className="space-y-4">
@@ -64,7 +70,22 @@ export function DepositView() {
                 </button>
               ))}
             </div>
-            {list.isPending ? (
+            {hasOther && (
+              <div role="radiogroup" className="flex gap-1 self-start rounded-full bg-ink/8 p-1 text-[13px]">
+                {(["usdc", "other"] as const).map((x) => (
+                  <button key={x} role="radio" aria-checked={method === x} onClick={() => setMethod(x)} className={cn("rounded-full px-3.5 py-1.5 font-semibold transition-colors", method === x ? "bg-ink text-lilac" : "text-ink/70")}>
+                    {x === "usdc" ? m.bridge.methodUsdc : m.bridge.methodOther}
+                  </button>
+                ))}
+              </div>
+            )}
+            {useBridge ? (
+              tab === "deposit" && gateStatus === "blocked" ? (
+                <p className="text-sm">{m.gate.blockedBody}</p>
+              ) : (
+                <BridgeForm key={`${web.id}-${tab}`} user={address} direction={tab} />
+              )
+            ) : list.isPending ? (
               <Skeleton className="h-64 w-full rounded-panel bg-ink/10" />
             ) : list.isError ? (
               <p className="text-sm">{describeError(list.error, m)}</p>
