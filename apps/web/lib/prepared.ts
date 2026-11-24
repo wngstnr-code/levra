@@ -20,9 +20,10 @@ export function preparedPath(p: PreparedResponse): string {
   }
   q.set("manage", p.request.marketId);
   if (p.kind === "close") {
-    const pct = Number((BigInt(p.request.fractionWad) * 100n) / WAD);
+    // Percent with two decimals, so 33.33% stays 33.33%.
+    const pct = Number((BigInt(p.request.fractionWad) * 10_000n) / WAD) / 100;
     q.set("action", pct >= 100 ? "close" : "reduce");
-    q.set("fraction", String(Math.max(1, Math.min(100, pct))));
+    q.set("fraction", String(pct));
   } else {
     q.set("action", p.request.action);
     q.set("amountRaw", p.request.amountRaw);
@@ -33,4 +34,19 @@ export function preparedPath(p: PreparedResponse): string {
 /** The connected wallet must be the one the agent prepared for. */
 export function sameWallet(a: string | undefined, b: string): boolean {
   return !!a && a.toLowerCase() === b.toLowerCase();
+}
+
+/** Slippage choices the trade screen offers (basis points). A link can only pick one of them. */
+export const SLIPPAGE_CHOICES = [30, 50, 100] as const;
+
+export function slippageFromParam(value: string | null): number {
+  const n = Number(value);
+  return (SLIPPAGE_CHOICES as readonly number[]).includes(n) ? n : 50;
+}
+
+/** A close fraction from a link, in percent with two decimals, kept between 1 and 100. */
+export function fractionFromParam(value: string | null): number | undefined {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return Math.min(100, Math.max(1, Math.round(n * 100) / 100));
 }
