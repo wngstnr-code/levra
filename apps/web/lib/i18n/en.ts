@@ -22,6 +22,10 @@ export const en = {
     download: "Download image",
     postX: "Post on X",
     post: (stock: string, side: string, move: string) => `${move} on my ${stock} ${side.toLowerCase()} with Levra.`,
+    exit: "Exit",
+    closedOn: "Closed",
+    closedNote: "The result of this trade. The link opens the close transaction on the block explorer.",
+    closedPost: (stock: string, side: string, pnl: string) => `Closed my ${stock} ${side.toLowerCase()} with Levra: ${pnl}.`,
   },
   signIn: {
     title: "Sign in to Levra",
@@ -55,6 +59,7 @@ export const en = {
   clock: {
     closesIn: (t: string) => `Closes in ${t}`,
     opensIn: (t: string) => `Opens in ${t}`,
+    pricePaused: "Price paused. Session from the exchange calendar.",
     weekendNote: "Limits are lower until the market opens. Levra never pauses closing. Closing needs a valid price, so it may wait for the price to return.",
   },
   network: {
@@ -66,7 +71,7 @@ export const en = {
     note: "The whole app follows this network.",
     noData: "Prices and positions from our service come soon",
   },
-  nav: { markets: "Markets", trade: "Trade", positions: "Positions", earn: "Earn", deposit: "Deposit", settings: "Settings", account: "Account", help: "Help" },
+  nav: { markets: "Markets", trade: "Trade", positions: "Positions", earn: "Earn", stats: "Stats", deposit: "Deposit", settings: "Settings", account: "Account", help: "Help" },
   session: {
     UNKNOWN: "Unknown",
     PRE_MARKET: "Pre-market",
@@ -485,6 +490,26 @@ export const en = {
   noPrice: {
     title: "No price",
     body: "We can't read this stock's price right now. You can add funds, repay or close in full.",
+  },
+  stats: {
+    title: "Stats",
+    sub: (chain: string) => `Levra on ${chain}, counted from the chain.`,
+    wallets: "Wallets",
+    traders: "Traded",
+    lenders: "Lent",
+    openInterest: "Open positions",
+    long: "Long",
+    short: "Short",
+    positions: (n: number) => `${n} position${n === 1 ? "" : "s"}`,
+    volume: "Volume",
+    day: "24 hours",
+    week: "7 days",
+    total: "All time",
+    trades: (n: number) => `${n} trade${n === 1 ? "" : "s"}`,
+    earn: "Lent in Earn",
+    updated: (t: string) => `Updated ${t} ago`,
+    loadError: "Can't load the stats right now.",
+    note: "Values use the current price. Volume counts the stock bought or sold in each trade, liquidations left out.",
   },
   upgrade: {
     protectionTitle: "Turn protection on again",

@@ -222,6 +222,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: Coinbase stocks with Chainlink price, session, feed frozen and halted states, share units through the multiplier.
   - Done when: real Base prices show next to Monad ones.
   - Note: 22 November 2026: Base markets list from the deployment, prices from each market's `snapshot()`, the halt notice from `haltReasons` and `tokenPaused`. Not done: share units through `uiMultiplierWad`.
+  - Note: 24 November 2026 (`fe/FE-71-ui-multiplier`): stock amounts on trade, positions, history, the close sheet, short room and lending show share units through `Market.uiMultiplierWad` (raw x multiplier / 1e18, rounded down).
 
 - [~] **FE-72 · Long, short and close on Base**
   - Needs: BE-72, SC-76.
@@ -238,16 +239,18 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a new user opens a first position with no ETH.
   - Note: our own sign-in sheet on top of Privy is built (Base Account first, email with code, passkey, external wallet). Privy 3.48 takes no wallet list in `login()`, so Base Account opens Privy's wallet list with Base Account first; a direct Base Account login is not verified. The paymaster is not started (budget Q-34).
 
-- [ ] **FE-75 · Public stats page**
+- [x] **FE-75 · Public stats page**
   - Needs: BE-79.
   - Do: wallets, open interest, volume, Earn supplied, per chain.
   - Done when: live numbers show from the API.
+  - Note: done on 23 November 2026 (`fe/FE-75-stats`): `/[chain]/stats` reads `GET /v1/:chainId/stats` (BE-79, D-109) for the chain in the picker: wallets, open positions long and short, volume (24 hours, 7 days, all time), Earn supplied. Live answers checked for Monad, Base and X Layer.
 
 - [~] **FE-76 · Shareable position card**
   - Do: image card for X after open or close (market, side, leverage, PnL in percent), with a link to the app.
   - Done when: a card is generated from a real position.
   - Note: built on 20 November 2026 (`fe/FE-88-d-flows`): a Share button on every position draws a 1200×630 picture in the browser (stock, side, chain, price move since entry in the trade's favour, entry, now, P&L in dollars) and links to an X post. PnL in percent waits for a shared formula (blocker for Dharu).
   - Note (23 November 2026, Dharu): unblocked by BE-101. Open positions carry `Position.pnlBps`; for other cases use `pnlBps(pnl, invested)` from `@levra/shared/math`.
+  - Note: 23 November 2026 (`fe/FE-76-pnl-percent`): the position card and the share picture show PnL as dollars and percent of the margin put in (`Position.pnlBps`, BE-101); without it only dollars.
 
 - [ ] **FE-77 · Agent entry in the app**
   - Needs: BE-77.
@@ -273,6 +276,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: the share card and leaderboard show "verified onchain" with a link to the TapeSend proof, checked in the browser against the chain.
   - Done when: a real proof is shown and checked.
   - Note (24 November 2026, D-113): TapeSend receipts are private, so the public "verified onchain" link is dropped. The share card links the close transaction instead; the receipt stays in the user's wallet.
+  - Note: 24 November 2026 (`fe/FE-81-share-close`): every closed trade in History has a Share button; the picture leads with the realized PnL, shows the exit price and day, and the X post links the close transaction on the block explorer. The leaderboard is not built.
 
 - [ ] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
@@ -338,7 +342,18 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Done when: the state is read for every old router and has a unit test.
   - Note: done on 22 November 2026 (`fe/FE-80-g-live-chains`).
 
-- [ ] **FE-93 · Builder Code on the Base transactions the web app builds**
+- [~] **FE-93 · Builder Code on the Base transactions the web app builds**
   - Needs: BE-74.
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
   - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
+  - Note: built on 23 November 2026 (`fe/FE-93-builder-code`): every approval and direct call in `useTxFlow` sends `dataSuffix` from `withBuilderCode`; API transactions go out unchanged. Left: a real Base transaction checked on the Base Dashboard.
+
+- [x] **FE-95 · Local development against the live API**
+  - Do: a dev server proxy so `localhost` reaches the API, which allows only the app's origin (CORS).
+  - Done when: the dev server shows live data with `NEXT_PUBLIC_API_URL=http://localhost:3000/api-proxy` and `API_PROXY_TARGET` set, and production builds ignore the proxy.
+  - Note: done on 23 November 2026 (`fe/FE-95-dev-api-proxy`, PR #152). Sign-in with wallet (SIWE) for alerts still names the app's host, so it is tested on a preview or `app.levra.finance`.
+
+- [x] **FE-96 · Market clock session from the calendar when the price is stale**
+  - Do: when every market's oracle is stale, take the clock label from the exchange calendar (`calendar.ts`) and say the price is paused (blocker from Wangsit, 24 November 2026).
+  - Done when: the label follows the calendar on a stale chain, with unit tests for weekdays, the weekend and Thanksgiving.
+  - Note: done on 24 November 2026 (`fe/FE-96-clock-label`).
