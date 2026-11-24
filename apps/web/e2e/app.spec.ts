@@ -1,7 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { expect, mockService, test } from "./fixtures";
 
-const monadRouter = readDeployment(new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname).router;
+const monadRouter = readDeployment(fileURLToPath(new URL("../../../contracts/deployments/monad.json", import.meta.url))).router;
 
 test("markets shows prices, limits and leverage from the service", async ({ page }) => {
   await mockService(page);
@@ -114,6 +115,15 @@ test("trade stops opening on a halted market", async ({ page }) => {
   await mockService(page, { haltReasons: ["The issuer paused QQQ."] });
   await page.goto("/monad/trade?symbol=QQQ");
   await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
+});
+
+test("the footer opens the static guide to close without Levra", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Close without Levra" }).click();
+  await expect(page.getByRole("heading", { name: "Close a Levra position without Levra" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "X Layer" })).toBeVisible();
+  expect(await page.locator("script").count()).toBe(0);
 });
 
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {
