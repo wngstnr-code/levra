@@ -273,6 +273,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: the share card and leaderboard show "verified onchain" with a link to the TapeSend proof, checked in the browser against the chain.
   - Done when: a real proof is shown and checked.
   - Note (24 November 2026, D-113): TapeSend receipts are private, so the public "verified onchain" link is dropped. The share card links the close transaction instead; the receipt stays in the user's wallet.
+  - Note: 24 November 2026 (`fe/FE-81-share-close`): every closed trade in History has a Share button; the picture leads with the realized PnL, shows the exit price and day, and the X post links the close transaction on the block explorer. The leaderboard is not built.
 
 - [ ] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
