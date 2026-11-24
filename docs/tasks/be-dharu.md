@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/cctp/`, `packages/tapeout/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `apps/agent/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/cctp/`, `packages/tapeout/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -545,10 +545,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Note (20 November 2026): planned after the submissions, from 7 December. Until then the 1Click routes stay up on Monad (BE-40).
   - Note (24 November 2026): the CCTP half is built in BE-85 for every live chain (D-110). Left here: Across (Monad only, since Across does not list X Layer), the arrival alert, retiring the 1Click routes, and the real deposits into Base and Monad.
 
-- [ ] **BE-77 · Agent API and MCP server**
+- [~] **BE-77 · Agent API and MCP server**
   - Do: read and prepare endpoints for the agent (positions, health, quotes, prepared transactions) and an MCP server that wraps them. No keys held. Shape written in 03.
   - Done when: an agent session can read a real position and prepare a close that a wallet signs.
   - Note (20 November 2026), proposal for 03: `POST /v1/:chainId/agent/prepare` stores a prepared action and returns an id and a link; the web app loads `GET /v1/prepared/:id` and asks the wallet to sign (FE-77). The MCP server is a new `apps/agent` that holds no keys.
+  - Note (24 November 2026): built (D-111). API: `POST /v1/:chainId/agent/prepare` and `GET /v1/prepared/:id`, table `prepared_actions` (migration 0011), counted as a quote in the rate limit. `apps/agent`: 11 MCP tools over stdio and stateless Streamable HTTP, quote answers without `tx`; tested with a real MCP client in memory and over HTTP, and the prepare routes against Postgres. Deploy: `agent` service in `compose.yml`, `/mcp` in the Caddyfile, `deploy/env/agent.env.example`, `WEB_APP_URL` in api.env. Left: Nabil's review of the 03 section and FE-77 (the `/prepared/:id` page), then on the VPS create `agent.env` and set `WEB_APP_URL`, deploy, and do the "Done when" run: read a real position from an MCP client and sign a prepared close in the app.
 
 - [ ] **BE-78 · Bankr and Telegram agent**
   - Needs: BE-77.

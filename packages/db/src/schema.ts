@@ -245,6 +245,25 @@ export const deposits = pgTable(
   (t) => [index("deposits_open").on(t.status, t.checkedAt), index("deposits_user").on(t.user)],
 );
 
+/**
+ * Actions an agent prepared for a wallet to sign in the app (BE-77). `request` is the quote request, validated against
+ * the shared schema of its `kind`; the app quotes it again when the link is opened.
+ */
+export const preparedActions = pgTable(
+  "prepared_actions",
+  {
+    id: text("id").primaryKey(),
+    chainId: chainId(),
+    kind: text("kind").notNull(),
+    user: text("user").notNull(),
+    request: jsonb("request").notNull(),
+    summary: text("summary").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("prepared_actions_expires").on(t.expiresAt)],
+);
+
 /** Signed acceptance of a terms version per wallet (BE-52). */
 export const termsAcceptances = pgTable(
   "terms_acceptances",
