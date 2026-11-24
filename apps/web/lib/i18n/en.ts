@@ -538,6 +538,10 @@ export const en = {
     connect: "Sign in to see your settings.",
     methods: { email: "Email", passkey: "Passkey", wallet: "Wallet" },
   },
+  gapCheck: {
+    healthy: (move: string) => `After a Monday gap like the worst one so far (${move}), this position stays open`,
+    liquidated: (move: string) => `After a Monday gap like the worst one so far (${move}), this position would be liquidated`,
+  },
   deposit: {
     title: "Deposit",
     subtitle: "Move USDC from any network into your wallet.",
