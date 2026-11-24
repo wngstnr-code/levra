@@ -14,7 +14,7 @@ Status on 20 November 2026: the files in `deploy/` are written. Verified in a lo
 | `new-secrets.sh` | Makes the database password, every `DATABASE_URL` and `AUTH_SECRET` on the server, without showing them |
 | `keys.sh` | Makes role keys on the server (BE-55, `docs/keys.md`) |
 | `deploy.sh` | Builds, migrates, starts and checks a commit |
-| `backup.sh`, `cron/levra-backup` | The daily backup (BE-53) |
+| `backup.sh`, `restore-check.sh`, `backup-common.sh`, `cron/levra-backup` | The daily backup and the weekly restore check (BE-53) |
 
 Known limit: the image is about 2.5 GB unpacked, because it carries the dev tools (`tsx` runs the TypeScript directly, as on Railway). Fine for one server; to trim later with BE-60.
 
@@ -110,9 +110,12 @@ Later (BE-60): GitHub Actions builds the image for every `main` commit, pushes i
 
 ## Backups (BE-53)
 
-- Every day at 03:00 UTC, `packages/db/scripts/backup.ts` runs in a one-shot container and keeps 14 dumps in `/opt/levra/backups`.
-- Each dump is copied off the server to a storage bucket (provider chosen in BE-53). A backup that lives only on the same server does not count.
-- A restore check (`restore-check.ts`) every week, and a restore drill once a month. Results go in the runbook.
+- Every day at 03:00 UTC, cron runs `deploy/backup.sh` as `levra`: `pg_dump` inside the Postgres container, 14 dumps kept in `/opt/levra/backups`, log in `backups/backup.log`.
+- Each dump is copied off the server with rclone to `LEVRA_BACKUP_REMOTE` (set in `/opt/levra/env/backup.env`, provider still to choose). A backup that lives only on the same server does not count: the script records it as failed.
+- Every Sunday at 04:00 UTC, `deploy/restore-check.sh` restores the newest dump into a scratch database in the same container and checks it (age, off-site copy, every table and migration present). Log in `backups/restore-check.log`.
+- Both scripts write one row per run in the `backup_runs` table. The team monitor in the `KEEPER_GLOBAL` keeper alerts the team on a failed run, a backup older than 26 hours or a restore check older than 7 days and 2 hours (D-113).
+- A restore drill once a month by a person, following the runbook. Results go in the runbook.
+- After a change to `cron/levra-backup`, install it again as root: `su -c "install -m 0644 /opt/levra/app/deploy/cron/levra-backup /etc/cron.d/levra-backup"`.
 - What can be rebuilt without a backup: our events (the indexer replays from the deployment block) and oracle prices (the recorder reads logs back). What cannot: DEX depth runs, rate snapshots, cross-chain transfers, alert settings, Telegram links and terms acceptances.
 
 ## Monitoring

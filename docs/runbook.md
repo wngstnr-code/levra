@@ -130,7 +130,19 @@ User funds are not at risk. Positions sit in Morpho and can be closed without us
 
 The database is a copy of the chain plus our own records (history, oracle log, depth, alert settings). The chain is the source of truth, so losing the database loses no funds. It does lose the oracle log and history until the indexer replays, and the alert settings and terms acceptances for good.
 
-Scripts live in `packages/db/scripts/`. They need `pg_dump`, `pg_restore` and `psql` version 17 or newer on PATH (or in the folder `PG_BIN`). With `PG_DOCKER_SERVICE=postgres` they run inside the docker compose Postgres container instead, and the file stays on the host. The password is passed through `PGPASSWORD` and never shows on the command line.
+On the VPS the backup runs by itself (`docs/hosting.md`, section Backups): `deploy/backup.sh` daily, `deploy/restore-check.sh` weekly, each run recorded in `backup_runs`, and the team monitor alerts on a failed or late run. To restore there, stop the services that write, then restore the chosen dump inside the container:
+
+```bash
+cd /opt/levra/app
+docker compose -f deploy/compose.yml stop api indexer-monad keeper-monad keeper-base keeper-xlayer
+docker compose -f deploy/compose.yml exec -T postgres psql -U levra -d postgres -c "drop database levra" -c "create database levra"
+docker compose -f deploy/compose.yml exec -T postgres pg_restore -U levra -d levra --no-owner --no-privileges --exit-on-error --single-transaction </opt/levra/backups/<file>.dump
+docker compose -f deploy/compose.yml up -d
+```
+
+Then check `/v1/status`: the indexer catches up from the cursor in the dump, and every keeper is healthy again.
+
+The scripts below are for a machine with the repo and a database URL (local, staging). They live in `packages/db/scripts/`. They need `pg_dump`, `pg_restore` and `psql` version 17 or newer on PATH (or in the folder `PG_BIN`). With `PG_DOCKER_SERVICE=postgres` they run inside the docker compose Postgres container instead, and the file stays on the host. The password is passed through `PGPASSWORD` and never shows on the command line.
 
 ```bash
 # Backup. Keeps the newest BACKUP_KEEP files (default 14) in BACKUP_DIR (default packages/db/backups, ignored by git).
@@ -162,4 +174,4 @@ Results so far:
 | 13 October 2026 | Dharu's machine, docker Postgres, `levra` (4,621 oracle updates) | Passed, 1.1 s |
 | 14 October 2026 | Dharu's machine, docker Postgres in the container, `levra_test` with every table up to migration 0007 | Passed |
 
-**Not available yet:** scheduled backups and off-site copies on the hosted database (needs hosting, BE-15). When hosting is chosen, run `backup.ts` on a daily schedule, copy each file to storage outside that host, and run `restore-check.ts` once a month.
+On the VPS, the weekly results are rows in `backup_runs` (`select * from backup_runs order by finished_at desc limit 10`) and lines in `/opt/levra/backups/restore-check.log`. Add a row above for each monthly drill. **Not done yet:** the off-site copy (`LEVRA_BACKUP_REMOTE` is not set, so every backup is recorded as failed until it is) and the first restore check on the VPS.
