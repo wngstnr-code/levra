@@ -208,7 +208,7 @@ Four rules for the frontend:
 
 ## B. Base (Stocks Maxxing)
 
-Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 12 December 2026, 23:59 UTC (moved from 5 December by the quest page; the internal plan of D-58 stays until the team changes it).
 
 - [~] **FE-70 · Chain picker and chain in the URL**
   - Needs: SC-73 for the final shape; can start on Monad first.
@@ -238,21 +238,24 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Done when: a new user opens a first position with no ETH.
   - Note: our own sign-in sheet on top of Privy is built (Base Account first, email with code, passkey, external wallet). Privy 3.48 takes no wallet list in `login()`, so Base Account opens Privy's wallet list with Base Account first; a direct Base Account login is not verified. The paymaster is not started (budget Q-34).
 
-- [ ] **FE-75 · Public stats page**
+- [x] **FE-75 · Public stats page**
   - Needs: BE-79.
   - Do: wallets, open interest, volume, Earn supplied, per chain.
   - Done when: live numbers show from the API.
+  - Note: done on 23 November 2026 (`fe/FE-75-stats`): `/[chain]/stats` reads `GET /v1/:chainId/stats` (BE-79, D-109) for the chain in the picker: wallets, open positions long and short, volume (24 hours, 7 days, all time), Earn supplied. Live answers checked for Monad, Base and X Layer.
 
 - [~] **FE-76 · Shareable position card**
   - Do: image card for X after open or close (market, side, leverage, PnL in percent), with a link to the app.
   - Done when: a card is generated from a real position.
   - Note: built on 20 November 2026 (`fe/FE-88-d-flows`): a Share button on every position draws a 1200×630 picture in the browser (stock, side, chain, price move since entry in the trade's favour, entry, now, P&L in dollars) and links to an X post. PnL in percent waits for a shared formula (blocker for Dharu).
   - Note (23 November 2026, Dharu): unblocked by BE-101. Open positions carry `Position.pnlBps`; for other cases use `pnlBps(pnl, invested)` from `@levra/shared/math`.
+  - Note: 23 November 2026 (`fe/FE-76-pnl-percent`): the position card and the share picture show PnL as dollars and percent of the margin put in (`Position.pnlBps`, BE-101); without it only dollars.
 
 - [ ] **FE-77 · Agent entry in the app**
   - Needs: BE-77.
   - Do: link and short guide to the Bankr and Telegram agent; show prepared transactions from the agent for signing.
   - Done when: a close prepared in chat is signed in the app.
+  - Note (24 November 2026, Dharu): BE-77 is built, waiting for your review of "Prepared actions for AI agents" in 03. The page is `/prepared/:id`: `GET /v1/prepared/:id` (schemas in `@levra/shared/api`, `preparedResponse`), check the connected wallet is `user` and the chain is `chainId`, then quote `request` again with `POST /v1/:chainId/quote/<kind>` and sign as usual. 404 means unknown, 409 `QUOTE_EXPIRED` means ask the agent again. Show that an agent prepared it. MCP address for the guide: `https://api.levra.finance/mcp` once deployed.
 
 
 ---
@@ -271,16 +274,24 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-84, FE-76.
   - Do: the share card and leaderboard show "verified onchain" with a link to the TapeSend proof, checked in the browser against the chain.
   - Done when: a real proof is shown and checked.
+  - Note (24 November 2026, D-113): TapeSend receipts are private, so the public "verified onchain" link is dropped. The share card links the close transaction instead; the receipt stays in the user's wallet.
 
 - [ ] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
   - Do: publish the stats page and a light landing page on X Layer DeWEB. Required since D-66.
   - Done when: the page loads from DeWEB and its address is in 05. If the tools cannot export it, raise it to the team the same day.
+  - Note (24 November 2026, D-113): the page on DeWEB is the "close without Levra" guide from `docs/public/contracts.md` (revoke, repay, withdraw collateral on Morpho), linked from the app footer and the help page. The stats page can follow.
 
 - [ ] **FE-83 · Show the risk circuit**
   - Needs: BE-83.
   - Do: on the position page, show health and liquidation price with a "checked by TapeOut circuit" mark and a link to the circuit.
   - Done when: it shows for a real X Layer position.
+  - Note (24 November 2026, D-113): also in the long and short confirmation: a weekend gap check line ("after a Monday gap like the worst one, this position stays healthy / would be liquidated") with the "checked by TapeOut circuit" mark, and the market session shown from the clock circuit on X Layer.
+
+- [ ] **FE-94 · USDC in and out through CCTP**
+  - Needs: BE-85 (built, 24 November 2026).
+  - Do: on each chain's deposit page, pick the source chain from `/v1/:chainId/bridge/chains` and the amount; get the plan from `bridge/deposit`; switch the wallet to `fromChainId`; send `approve` only when the USDC allowance for `approve.spender` is below `amountRaw`, then `burn`; poll `/v1/bridge/status` with the burn hash until `COMPLETE`, and show `minReceivedRaw`, the fee and the time. The same for withdrawals with `bridge/withdraw`. On `FAILED`, offer to send `manualMint` on the destination chain. Shapes in 03 "Deposits and withdrawals through CCTP".
+  - Done when: a real deposit from Base into X Layer is made from the app (BE-85 "Done when").
 
 ---
 
@@ -328,10 +339,11 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Done when: the state is read for every old router and has a unit test.
   - Note: done on 22 November 2026 (`fe/FE-80-g-live-chains`).
 
-- [ ] **FE-93 · Builder Code on the Base transactions the web app builds**
+- [~] **FE-93 · Builder Code on the Base transactions the web app builds**
   - Needs: BE-74.
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
   - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
+  - Note: built on 23 November 2026 (`fe/FE-93-builder-code`): every approval and direct call in `useTxFlow` sends `dataSuffix` from `withBuilderCode`; API transactions go out unchanged. Left: a real Base transaction checked on the Base Dashboard.
 
 - [x] **FE-95 · Local development against the live API**
   - Do: a dev server proxy so `localhost` reaches the API, which allows only the app's origin (CORS).

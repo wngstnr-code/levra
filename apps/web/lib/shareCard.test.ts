@@ -1,6 +1,6 @@
 import type { Position } from "@levra/shared/api";
 import { describe, expect, it } from "vitest";
-import { postOnXUrl, shareCardData } from "./shareCard";
+import { pnlWithPercent, postOnXUrl, shareCardData } from "./shareCard";
 
 const base = {
   marketId: `0x${"11".repeat(32)}`,
@@ -40,5 +40,16 @@ describe("share card", () => {
 
   it("builds an X post link", () => {
     expect(postOnXUrl("a b", "https://x.test/p")).toBe("https://x.com/intent/post?text=a%20b&url=https%3A%2F%2Fx.test%2Fp");
+  });
+});
+
+describe("pnlWithPercent", () => {
+  it("adds the percent when the service sends it", () => {
+    expect(pnlWithPercent({ unrealizedPnlUsdRaw: "4200000", pnlBps: 1250 })).toMatch(/^\+\$4\.20 \(\+12\.5%\)$/);
+    expect(pnlWithPercent({ unrealizedPnlUsdRaw: "-4200000", pnlBps: -1250 })).toMatch(/\(−12\.5%\)$/);
+  });
+  it("shows dollars only without it", () => {
+    expect(pnlWithPercent({ unrealizedPnlUsdRaw: "4200000", pnlBps: null })).not.toContain("%");
+    expect(pnlWithPercent({ unrealizedPnlUsdRaw: "4200000" })).not.toContain("%");
   });
 });

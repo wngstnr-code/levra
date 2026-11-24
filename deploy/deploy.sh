@@ -56,6 +56,19 @@ main() {
       exit 1
       ;;
   esac
+  # The agent passes the caller's address on under the header the API trusts (BE-77).
+  agent_ip=$(env_value agent.env CLIENT_IP_HEADER)
+  if [ "$agent_ip" != "$trust" ]; then
+    echo "CLIENT_IP_HEADER in agent.env ($agent_ip) must equal TRUST_PROXY_HEADER in api.env ($trust); otherwise every agent caller shares one rate limit." >&2
+    exit 1
+  fi
+  case "$(env_value agent.env LEVRA_API_URL)" in
+    http://api:*) ;;
+    *)
+      echo "LEVRA_API_URL in agent.env must be the internal http://api:8787, never the public address (D-111)." >&2
+      exit 1
+      ;;
+  esac
 
   APP_VERSION=$(git rev-parse --short=12 HEAD)
   export APP_VERSION

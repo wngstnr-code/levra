@@ -32,7 +32,12 @@ export const LIMITS = {
   depthMaxAgeSeconds: 2 * 86_400,
   /** Bad debt and risk-value events older than this are not reported on a first start. */
   eventLookbackSeconds: 86_400,
+  /** The backup runs daily at 03:00 UTC and the restore check weekly (BE-53): a day or a week plus two hours of slack. */
+  backupMaxAgeSeconds: { backup: 26 * 3_600, restore_check: 7 * 86_400 + 2 * 3_600 },
 } as const;
+
+export type BackupKind = keyof typeof LIMITS.backupMaxAgeSeconds;
+export const BACKUP_KINDS = Object.keys(LIMITS.backupMaxAgeSeconds) as BackupKind[];
 
 /** A condition to watch: `active` now, alert after `forSeconds`, resolve when it ends. */
 export type Condition = { kind: "condition"; key: string; active: boolean; forSeconds: number; message: string };
@@ -79,6 +84,8 @@ export type Snapshot = {
   lossBudgets: { token: string; label: string; budget: bigint }[];
   /** Issuer pauses and blocklists that can block a market (BE-75). `blocked` is null when the control could not be read. */
   gates: { key: string; blocked: boolean | null; message: string }[];
+  /** The newest backup and restore check run of each kind (BE-53). Absent in a monitor that does not watch backups. */
+  backups?: { kind: BackupKind; finishedAt: number; ok: boolean; error: string | null }[];
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
@@ -224,6 +231,26 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
       forSeconds: LIMITS.apiForSeconds,
       message: s.api.ok ? `The API answered in ${s.api.ms} ms, above ${LIMITS.apiSlowMs} ms.` : `The API failed: ${s.api.detail}`,
     });
+  }
+
+  if (s.backups) {
+    for (const kind of BACKUP_KINDS) {
+      const run = s.backups.find((b) => b.kind === kind);
+      const name = kind === "backup" ? "database backup" : "restore check";
+      const limit = LIMITS.backupMaxAgeSeconds[kind];
+      const late = !run || s.now - run.finishedAt > limit;
+      out.push({
+        kind: "condition",
+        key: `backup:${kind}`,
+        active: late || !run.ok,
+        forSeconds: 0,
+        message: !run
+          ? `No ${name} has been recorded yet.`
+          : late
+            ? `The last ${name} was ${Math.floor((s.now - run.finishedAt) / 3_600)} h ago, above the ${Math.floor(limit / 3_600)} h limit.`
+            : `The last ${name} failed: ${run.error ?? "no reason recorded"}`,
+      });
+    }
   }
   return out;
 }

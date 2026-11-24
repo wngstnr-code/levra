@@ -1,9 +1,9 @@
 import { externalByChain } from "@levra/shared/addresses";
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { ChainId } from "@levra/shared/chains";
-import { bestRoute, createAero, createKyber, createOneInch, KYBER_BASE_URL, KYBER_MONAD_URL, SwapError, type SwapProvider, type SwapSource } from "@levra/swap";
+import { bestRoute, createAero, createKyber, createOkx, createOneInch, createUniswapV3, KYBER_BASE_URL, KYBER_MONAD_URL, SwapError, type SwapProvider, type SwapSource } from "@levra/swap";
 import type { Address, PublicClient } from "viem";
-import { budgetedProvider, defaultSwapBudget, KYBER_COST, ONEINCH_COST, oneInchBudget } from "../rate-limit/swap-budget";
+import { budgetedProvider, defaultSwapBudget, KYBER_COST, OKX_COST, okxBudget, ONEINCH_COST, oneInchBudget } from "../rate-limit/swap-budget";
 
 export type SwapKeys = {
   kyberClientId: string;
@@ -12,11 +12,14 @@ export type SwapKeys = {
   kyberMonadUrl?: string;
   /** Without it 1inch is left out. */
   oneInchApiKey?: string;
+  /** Without it X Layer quotes through Uniswap only, which has no pool for every stock (05). */
+  okx?: { apiKey: string; secretKey: string; passphrase: string };
 };
 
 /**
- * Every swap provider the API knows on a chain (BE-96, D-80): KyberSwap on Monad (D-81); KyberSwap, 1inch and the Aero
- * SwapRouter on Base. X Layer gets the OKX DEX API with BE-81, so it has none yet. Each HTTP provider has its own budget.
+ * Every swap provider the API knows on a chain (BE-96, BE-81, D-80, D-85): KyberSwap on Monad (D-81); KyberSwap, 1inch
+ * and the Aero SwapRouter on Base; the OKX DEX API and the Uniswap SwapRouter02 fallback on X Layer. Each HTTP provider
+ * has its own budget.
  */
 export function swapProviders(chainId: ChainId, client: PublicClient, keys: SwapKeys): SwapProvider[] {
   const kyber = (baseUrl: string) => budgetedProvider(createKyber({ baseUrl, clientId: keys.kyberClientId, apiKey: keys.kyberApiKey }), defaultSwapBudget, KYBER_COST);
@@ -29,7 +32,11 @@ export function swapProviders(chainId: ChainId, client: PublicClient, keys: Swap
       createAero({ client, factory: ext.aeroClFactory, swapRouter: ext.aeroSwapRouter, metaQuoter: ext.aeroMetaQuoter }),
     ];
   }
-  return [];
+  const ext = externalByChain[196];
+  return [
+    ...(keys.okx ? [budgetedProvider(createOkx({ chainId, ...keys.okx, router: ext.okxDexRouter, approve: ext.okxDexApprove }), okxBudget, OKX_COST)] : []),
+    createUniswapV3({ client, swapRouter02: ext.uniswapSwapRouter02, quoterV2: ext.uniswapQuoterV2 }),
+  ];
 }
 
 const same = (a: Address, b: Address) => a.toLowerCase() === b.toLowerCase();

@@ -110,6 +110,8 @@ What Levra builds on TapeOut:
 5. **Open risk circuit.** The risk circuit answers for any Morpho xStocks borrower on X Layer, not only Levra users (D-66).
 6. **Agent checked by circuits.** The agent checks each action it prepares against circuits 4 and 5 before offering it. The user still signs, and the contracts check again. If time allows (D-66).
 
+**Since D-113 (24 November 2026) TapeOut is built into the product, not next to it.** The clock circuit sets Levra's market hours on X Layer: the keeper posts the next close from it, and the app shows the session from it. Every long and short confirmation shows a weekend gap check answered by the risk circuit. The "close without Levra" page lives on DeWEB. TapeSend delivers a private receipt for each close and the pre-close alert to the user's wallet, instead of a public PnL commitment (items 2 and 6 above change accordingly). Pitch line: *"On X Layer, Levra's clock runs on TapeOut, every trade is checked by a circuit before you sign, and your way out lives onchain."*
+
 Since D-87 these features show on every chain: the clock and PnL proofs for every market, and the risk circuit for every position, labelled "calculation verified" on Monad and Base because a circuit on X Layer cannot read their state.
 
 Not used: a circuit that triggers auto-deleverage (it touches a path that moves funds) and FabX (D-74). The pitch presents this split as a design choice (D-67).

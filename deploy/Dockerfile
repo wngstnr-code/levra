@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# One image for every backend service (api, indexer, keeper, migrate). Build from the repo root:
+# One image for every backend service (api, indexer, keeper, agent, migrate). Build from the repo root:
 #   docker build -f deploy/Dockerfile --build-arg APP_VERSION=$(git rev-parse --short=12 HEAD) .
 FROM node:24-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
@@ -14,7 +14,7 @@ FROM deps AS build
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --offline --frozen-lockfile \
-      --filter "@levra/api..." --filter "@levra/indexer..." --filter "@levra/keeper..." --filter "@levra/db..."
+      --filter "@levra/api..." --filter "@levra/indexer..." --filter "@levra/keeper..." --filter "@levra/db..." --filter "@levra/agent..." --filter "@levra/tapeout..."
 
 FROM node:24-bookworm-slim AS runtime
 ARG APP_VERSION=local

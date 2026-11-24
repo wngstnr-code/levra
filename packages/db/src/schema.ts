@@ -245,6 +245,25 @@ export const deposits = pgTable(
   (t) => [index("deposits_open").on(t.status, t.checkedAt), index("deposits_user").on(t.user)],
 );
 
+/**
+ * Actions an agent prepared for a wallet to sign in the app (BE-77). `request` is the quote request, validated against
+ * the shared schema of its `kind`; the app quotes it again when the link is opened.
+ */
+export const preparedActions = pgTable(
+  "prepared_actions",
+  {
+    id: text("id").primaryKey(),
+    chainId: chainId(),
+    kind: text("kind").notNull(),
+    user: text("user").notNull(),
+    request: jsonb("request").notNull(),
+    summary: text("summary").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("prepared_actions_expires").on(t.expiresAt)],
+);
+
 /** Signed acceptance of a terms version per wallet (BE-52). */
 export const termsAcceptances = pgTable(
   "terms_acceptances",
@@ -285,4 +304,20 @@ export const oracleUpdates = pgTable(
     uniqueIndex("oracle_updates_round").on(t.chainId, t.priceId, t.roundId).where(sql`${t.txHash} is null`),
     index("oracle_updates_symbol_time").on(t.chainId, t.symbol, t.blockTime),
   ],
+);
+
+/**
+ * One row per run of `deploy/backup.sh` (kind `backup`) and `deploy/restore-check.sh` (kind `restore_check`), written by
+ * the scripts with psql (BE-53). The team monitor alerts on a failed or missing run. Not chain data: no `chain_id`.
+ */
+export const backupRuns = pgTable(
+  "backup_runs",
+  {
+    kind: text("kind").notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }).notNull().defaultNow(),
+    ok: boolean("ok").notNull(),
+    error: text("error"),
+    details: jsonb("details"),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.finishedAt] })],
 );

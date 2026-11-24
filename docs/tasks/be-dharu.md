@@ -1,6 +1,6 @@
 # Backend tasks (Dharu)
 
-Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `packages/db/`, `packages/swap/`, `packages/intents/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
+Folder: `apps/api/`, `apps/indexer/`, `apps/keeper/`, `apps/agent/`, `packages/db/`, `packages/swap/`, `packages/intents/`, `packages/cctp/`, `packages/tapeout/`, plus `packages/shared/api/`, `math.ts`, `gaps.ts`. `deploy/` (BE-90).
 
 Marking: `- [ ]` not started, `- [~]` in progress, `- [x]` done. Tick the box in the same PR as the work.
 
@@ -353,6 +353,8 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
   - Done when: a restore from backup has been tried; the runbook has been read by all three of us and practiced once.
   - Note: backup, restore and restore-check scripts in `packages/db/scripts` (`pg_dump` custom format, restore in one transaction, the check compares every table's row count between the counts before and after the dump). The restore test passed on 13 October 2026 on `levra_staging` and `levra` (results in the runbook). Runbook: `docs/runbook.md`, the six situations in 07 plus backup and restore. Still to do: scheduled backups and off-site copies on the hosted database (BE-15), all three reading the runbook, and one drill.
   - Note (20 November 2026): on the VPS, a daily backup keeps 14 dumps and copies each one off the server, with a weekly restore check (`hosting.md`). The first backup runs on the day of the move (BE-90).
+  - Note (24 November 2026): the weekly restore check is built (`deploy/restore-check.sh`, Sunday 04:00 UTC) and both scripts record each run in `backup_runs`, which the team monitor alerts on (D-114). Tested against stand-ins for docker and rclone (every failure path) and the SQL on a real Postgres 18. Left, on the VPS: choose the off-site bucket and set `LEVRA_BACKUP_REMOTE` (until then every backup alerts as failed), install the new cron file, run `restore-check.sh` once by hand and record the result in the runbook; then all three read the runbook and run one drill.
+  - Note (24 November 2026, later): done on the VPS: the cron file is installed, the off-site copy goes to the Cloudflare R2 bucket `levra-backups`, and the first restore checks passed (runbook). `setup-server.sh` installs a pinned rclone v1.76.0, since Debian's 1.60 gets 501 from R2. Left: all three read the runbook and run one drill.
 
 - [~] **BE-54 · Load test**
   - Done when: the quote and account endpoints hold up at the target load without passing the limits of the RPC endpoint and outside services; the result is recorded.
@@ -496,7 +498,7 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
 
 ## B. Base (Stocks Maxxing)
 
-Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 12 December 2026, 23:59 UTC (moved from 5 December by the quest page; the internal plan of D-58 stays until the team changes it).
 
 - [~] **BE-70 · Chain in every API route**
   - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.
@@ -518,11 +520,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Note (23 November 2026): `apps/api/test/base-quotes.live.test.ts` (`BASE_LIVE=1`) runs the API on a virtual Base: its reads and gas estimates run in `eth_simulateV1` after setup calls, pinned to one block. Long, short and full close quotes for SPCX execute with the quoted calldata and gas limit and match the preview within 1 bp; the router ends empty; Earn shows a market supply and a vault deposit exactly. No API change was needed. Results in 05. Left: the final run after SC-76 against the finished Base deployment, the other stocks on a weekday (`BASE_LIVE_STOCK`), and 1inch with `ONEINCH_API_KEY`.
   - Note (23 November 2026, later): all 8 stocks run on a weekday, with 1inch competing, on the VPS. Long, short, close and Earn pass for every stock, within 8 bps of the preview. The short and Earn cases of AMZN, META, MSFT and TSLA first failed in the test's setup, because Morpho holds less than 5 of those shares; the test now takes the stock from its largest holder (Morpho or an Aero pool). Results in 05. Left: the final run after SC-76.
 
-- [ ] **BE-73 · Indexer and keeper on Base**
+- [~] **BE-73 · Indexer and keeper on Base**
   - Needs: SC-72, SC-76.
   - Do: run indexer and keeper per chain from config. Index `UIMultiplierUpdated`, `UIMultiplierUpdateCancelled`, `Announcement`, `EndAnnouncement` and the oracle adapter events. Liquidator bot and auto-deleverage on Base. Never act on a frozen feed.
   - Done when: both run on the VPS against Base mainnet and a test position shows in the API.
   - Note (20 November 2026): the Chainlink price recorder starts earlier as BE-97; the calendar rule for Chainlink chains is in BE-30; the keeper addresses go to Wangsit before SC-76 (BE-55). BE-88 and BE-89 must be done before the keeper acts on Base.
+  - Note (24 November 2026): started now that the Base deployment file exists (SC-76, 22 November). `indexer-base` is in `deploy/compose.yml` on `base-rpc.publicnode.com` (`mainnet.base.org` answers `eth_getLogs` with 429); a local run from the deployment block read about 10,000 blocks per query and kept up, no events yet since nothing has traded. `keeper-base.env` gets `DEPLOYMENT_FILE`, which turns on the calendar poster, the team monitor and the depth table for our markets. Read on chain the same day: all four Base role keys hold 0 ETH and `nextCloseAt` is 0, so the pre-close regime is off until the calendar poster is funded and posts. Protector and liquidator stay off on Base for now. Left: fund the keys, deploy, a test position in the API, then the protector and liquidator on Base.
 
 - [~] **BE-74 · Builder Codes**
   - Do: attach Levra's Builder Code to every Base transaction the API builds.
@@ -542,11 +545,13 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: replace Aurora Intents / 1Click (D-50) for deposits and withdrawals on both chains. Gas top-up on Base is not needed if the paymaster covers it (Q-34).
   - Done when: a real deposit from another chain into Base and into Monad, hashes in PROGRESS.
   - Note (20 November 2026): planned after the submissions, from 7 December. Until then the 1Click routes stay up on Monad (BE-40).
+  - Note (24 November 2026): the CCTP half is built in BE-85 for every live chain (D-110). Left here: Across (Monad only, since Across does not list X Layer), the arrival alert, retiring the 1Click routes, and the real deposits into Base and Monad.
 
-- [ ] **BE-77 · Agent API and MCP server**
+- [~] **BE-77 · Agent API and MCP server**
   - Do: read and prepare endpoints for the agent (positions, health, quotes, prepared transactions) and an MCP server that wraps them. No keys held. Shape written in 03.
   - Done when: an agent session can read a real position and prepare a close that a wallet signs.
   - Note (20 November 2026), proposal for 03: `POST /v1/:chainId/agent/prepare` stores a prepared action and returns an id and a link; the web app loads `GET /v1/prepared/:id` and asks the wallet to sign (FE-77). The MCP server is a new `apps/agent` that holds no keys.
+  - Note (24 November 2026): built (D-111). API: `POST /v1/:chainId/agent/prepare` and `GET /v1/prepared/:id`, table `prepared_actions` (migration 0011), counted as a quote in the rate limit. `apps/agent`: 11 MCP tools over stdio and stateless Streamable HTTP, quote answers without `tx`; tested with a real MCP client in memory and over HTTP, and the prepare routes against Postgres. Deploy: `agent` service in `compose.yml`, `/mcp` in the Caddyfile, `deploy/env/agent.env.example`, `WEB_APP_URL` in api.env. Left: Nabil's review of the 03 section and FE-77 (the `/prepared/:id` page), then on the VPS create `agent.env` and set `WEB_APP_URL`, deploy, and do the "Done when" run: read a real position from an MCP client and sign a prepared close in the app.
 
 - [ ] **BE-78 · Bankr and Telegram agent**
   - Needs: BE-77.
@@ -567,43 +572,65 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 
 Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for the submission: 7 December 2026, 23:59 UTC.
 
-- [ ] **BE-80 · X Layer in the API, indexer and keeper**
+- [~] **BE-80 · X Layer in the API, indexer and keeper**
   - Needs: BE-70, SC-80, SC-83.
   - Do: serve chain 196 under the chain routes; run the indexer and keeper for X Layer; liquidator bot and auto-deleverage there.
   - Done when: a test position on X Layer shows in the API and the keeper runs on the VPS.
   - Note (20 November 2026): needs BE-95 and BE-81 too. The recorder for the xStocks feeds starts earlier (BE-97). Earn on X Layer is direct supply to our markets (`market:<id>` options, D-84), so it needs no vault code.
+  - Note (24 November 2026): started with the X Layer deployment file (SC-83, 22 November). Chain 196 is already served under the chain routes (BE-70). `indexer-xlayer` is in `deploy/compose.yml` with `LOG_BLOCK_RANGE=100`, since `rpc.xlayer.tech` refuses wider log queries; a local run read about 8,600 blocks a minute, with "over rate limit" answers during the backfill burst that the next round retries (about 25 minutes from the deployment block, then one query per round). `keeper-xlayer.env` gets `DEPLOYMENT_FILE` like Base. All four X Layer role keys hold 0 OKB and `nextCloseAt` is 0 (read the same day). Left: fund the keys, deploy, a test position in the API, then the protector and liquidator on X Layer.
 
-- [ ] **BE-81 · OKX DEX API spike and swap provider**
+- [x] **BE-81 · OKX DEX API spike and swap provider**
   - Do: quote and build swaps for each wrapped xStock with a contract sender and recipient; measure price, depth and rate limits; check 1inch on X Layer too. Put the provider behind the shared aggregator interface (D-53).
   - Done when: results in 05, router address sent to Wangsit (SC-83), long and short quotes work on X Layer.
   - Note from Wangsit (20 November 2026, SC-82 and SC-83): the v6 API works on chain 196 with key, secret and passphrase, no project ID (v5 is retired). Our ISPs (XL, Telkomsel) redirect `web3.okx.com` by DNS; resolve it through 1.1.1.1 or call from a server. Send a plain User-Agent. The swap `tx.to` is the router `0x7c5b...AEaF`, but tokens must be approved to `0x8b77...F000`; our contracts handle that since D-88. Swap costs per size are in 05, and `make xlayer-fork-e2e` runs a long and a short through OKX on a fork.
   - Note (20 November 2026): split with BE-96. This task adds the OKX DEX API (v6, key, secret and passphrase) and the Uniswap v3 router (D-85) as providers behind the BE-96 interface. Calls go from the VPS, which avoids the ISP DNS block.
+  - Note (23 November 2026): `packages/swap` has `createOkx` (signed v6 requests, router and approve contract checked) and `createUniswapV3` (QuoterV2 per fee tier, `exactInputSingle` on SwapRouter02), with unit tests. The API quotes X Layer through OKX when the three `OKX_*` secrets are set (on the VPS since 21 November). `packages/swap/test/xlayer-fork.test.ts` runs each provider's buy and sell by our router on an anvil fork (no `eth_simulateV1` on X Layer): Uniswap delivers its quote exactly for wQQQx and wGOOGLx, the only stocks with a Uniswap USDC pool (05). Left: (1) Wangsit adds QuoterV2 to `xlayerExternal`, then the Uniswap fallback joins the API; (2) the fork run with the OKX keys on the VPS; (3) long and short quotes through the API on an X Layer fork; (4) the keeper's depth job on X Layer. The router address went to Wangsit with SC-83 (done).
+  - Note (23 November 2026): step (2) done on the VPS. OKX delivers its quote within 5 bps for wNVDAx, wQQQx and wSPYx, both ways; Uniswap exact for wQQQx and wGOOGLx. OKX wGOOGLx reverts on the fork with `StalePrices()` from its JIT Router venue, most likely a fork artifact (05); Uniswap covers wGOOGLx once it joins the API. Left: (1), (3) and (4).
+  - Note (23 November 2026): step (3) started. `apps/api/test/xlayer-quotes.fork.test.ts` runs the API's long and short quotes and closes on an X Layer fork. With Uniswap only, wQQQx long and short open and close exactly at the preview (05). Left for (3): the same run with the OKX keys on the VPS for wNVDAx.
+  - Note (23 November 2026): step (1) done. Wangsit added `xlayerExternal.uniswapQuoterV2`; `swapProviders(196)` lists Uniswap always and OKX first with its keys, and the Uniswap provider reads its factory from SwapRouter02. Left: (3) the OKX run on the VPS, (4) the keeper's depth job on X Layer.
+  - Note (23 November 2026): OKX run on the VPS for wNVDAx: short open (-9 bps) and close (0 bps) pass. The long failed on `DeadlineExpired`, most likely because the first quote on a cold fork took longer than the 120 s deadline (05); the test now warms the fork first. Left for (3): the wNVDAx long.
+  - Note (23 November 2026): step (3) as far as a fork allows. The cold fork's first quote took 189 to 192 s on the VPS (cause confirmed). The wNVDAx long then answered `HIGH_DEVIATION` three times: the fork freezes the feed while OKX quotes a market that moved about +16% that hour; production previewed the same long inside the 2% limit (05). Verified: Uniswap long and short (wQQQx), OKX short (wNVDAx), OKX buy and sell calldata (all four stocks but wGOOGLx). Not verified: an OKX long end to end, which needs USDC in our X Layer markets (seed funds) for a real transaction. Left: (4) the keeper's depth job on X Layer.
+  - Note (23 November 2026): step (4) built. The X Layer keeper's depth job measures the better of OKX and Uniswap (`apps/keeper/src/dex/swap.ts`), OKX spaced 3 s apart; without the OKX keys it measures Uniswap only and logs a warning. Live check with Uniswap only: wQQQx sound, wNVDAx and wSPYx no route, the wGOOGLx pool mispriced 44.7% under the feed (05), so `keeper-xlayer` needs copies of the API's three `OKX_*` secrets. Left: copy them on the VPS, deploy, and read the first X Layer rows of `dex_quotes`.
+  - Note (23 November 2026): done. Deployed `8b7226c` with the OKX secrets in `keeper-xlayer`; the first X Layer depth run finished at 14:41 UTC and `/v1/196/markets` shows a DEX mid for all four stocks within 77 bps of the feed (05). Results are in 05, the router address went with SC-83, and long and short quotes work on X Layer: through Uniswap end to end on a fork, through OKX for the short on a fork and for the long as a production preview. The first real X Layer long and short through OKX are SC-84 (Wangsit, after the seed funds of X-35).
 
-- [ ] **BE-82 · TapeOut spike**
+- [x] **BE-82 · TapeOut spike**
   - Do: with TapeKit, deploy or reuse a processor on X Layer, tape out a small circuit, call it, and send one message through TapeSend. Record addresses, costs and limits. First answer Q-40: does a tape out need FabX transistors, and can we get them? If not, raise it to the team the same day, since it blocks BE-83 and BE-86.
   - Note: research on 19 November 2026 (05, TapeOut transistors): FAB-Genesis transistors are sold out; OrderGuard has 9,215 left at 0.0001 OKB each. Still to do: buy enough early, check whether our own processor via the factory gets its own supply, and measure the gate count of the risk and clock circuits.
+  - Note (23 November 2026): Q-40 answered, our own processor works. `packages/tapeout` holds the netlist builder (NAND gates, local simulation, bit packing) and the chain calls (processor, mint, tape out, `eval`, container, TapeSend). The fork run in `test/xlayer-fork.test.ts` passes end to end with an 8-bit `a < b` circuit (05). Found on the way: since 8 November 2026 the factory and the new transistor contracts take BEM, not OKB. Left: the mainnet run from a funded key on the VPS (about 0.15 OKB and 0.2 BEM), which needs the TapeOut addresses in `xlayerExternal` (Wangsit, PROGRESS blocker), then the addresses, hashes and circuit ID in 05.
+  - Note (23 November 2026): Wangsit added the TapeOut addresses to `xlayerExternal` (blocker closed); the fork test reads them. Left: the funded key (about 0.15 OKB and 0.2 BEM, more if the clock of BE-86 is taped out with it: 4,850 NAND cost only the 0.01 BEM mint fee at mint price 0) and the mainnet run. Paused by Dharu on 23 November 2026.
+  - Note (24 November 2026, D-113): the mainnet run is ready as `packages/tapeout/scripts/xlayer-run.ts` (plan without `--confirm`, a state file so a second run skips what is done and stops if a sent transaction was not saved). It makes the "Levra" processor (60,000 transistors, mint price 0, all minted to the signer in one call), tapes out the clock and one risk circuit per limit set read from the X Layer `RiskManager` (77/73/70 and 62.5/58/50), checks each with `eval` against `calendar.ts` and `math.ts`, opens the clock circuit's container and sends one TapeSend message. Passed on an X Layer fork from a fresh signer with 0.15 BEM: 0.11 BEM, 0.0839 OKB in fees and about 63 million gas (about 0.0013 OKB at 0.02 gwei). Left: a funded key (Wangsit), then `--confirm`, then the addresses, hashes and circuit IDs in 05. The signer holds the circuit NFTs, and TapeSend sends only from the NFT holder, so a run from the deployer must hand the clock circuit NFT to the key that sends receipts (BE-84).
+  - Note (24 November 2026): the run uses a new key made on the VPS, `secrets/tapeout/TAPEOUT_KEY` (`0x5A04bBda155BF83a4675f7561aa2015b442DC5e5`), not the deployer and not a keeper role key (a keeper sends its own transactions, and two senders on one key race for nonces). Wangsit funds it from the deployer, and it keeps the circuit NFTs for BE-84. The image now installs `@levra/tapeout`, and `deploy/tapeout.sh` runs the script in a one-off container with the key mounted read-only and the state file in `/opt/levra/tapeout`.
+  - Note (24 November 2026): done. Wangsit funded the key with 0.12 OKB and 0.15718187 BEM, and Dharu ran `deploy/tapeout.sh --confirm` on the VPS (image `33f9b40`, built without a deploy). The Levra processor (circuits NFT `0x4D5Bf68e1362046B0281b9bA678345b7FD2aAa5c`) holds circuit 1, the clock, and circuits 2 and 3, the two X Layer risk limit sets. Every `eval` reading matched, the clock circuit's container `0xd2738E919bCE30a7EF36b26f51c8297352a41Ed4` is open and holds message 0, and the key owns the three NFTs. Cost 0.11 BEM and 0.085159 OKB. Addresses, hashes and cost in 05.
   - Done when: findings in 05 and the circuit and message are readable onchain.
 
-- [ ] **BE-83 · Risk circuit**
+- [~] **BE-83 · Risk circuit**
   - Needs: BE-82.
   - Do: health factor, liquidation price and session limit from `math.ts` as a TapeOut circuit. A test compares its output with `math.ts` on many inputs. The API and the agent show the circuit result next to ours and flag any difference. The circuit answers for any Morpho xStocks borrower on X Layer, not only Levra users (D-66).
   - Done when: the test passes and the agent answers "my health" with the circuit result.
+  - Note (24 November 2026): circuit built and tested without waiting for BE-82 (D-112). `riskCircuit(limits)` in `packages/tapeout/src/risk.ts`: healthy, closed regime, and at or under each soft limit, exact against `math.ts` and `morphoIsHealthy` in the unit test; 8,522 NAND for aQQQ, taped out and read onchain on the X Layer fork (05). Liquidation price and a numeric health factor are not in the circuit (a full division is too large); they stay in `math.ts`. Left: tape out on mainnet with the BE-82 processor (one circuit per limit set on X Layer, plus the Morpho xStocks LLTVs), the circuit IDs in 05 and 03 (interface change with Nabil), then the API and the agent (BE-77) show the circuit answer next to ours and flag a difference.
+  - Note (24 November 2026, D-113): the API answers a weekend gap check for each quote: the risk circuit's verdict at the price after the historical worst gap of that stock (the gap tables of 04), for FE's trade confirmation.
+  - Note (24 November 2026): on mainnet with BE-82 as circuits 2 (77% / 73% / 70%) and 3 (62.5% / 58% / 50%) of the Levra processor (05). Left: the Morpho xStocks LLTV circuits if we keep them, the circuit IDs in 03 (interface change with Nabil), then the API and the agent.
 
 - [ ] **BE-84 · PnL proofs through TapeSend**
   - Needs: BE-82, BE-80.
   - Do: on every closed position on X Layer, post a commitment (market, side, entry, exit, PnL percent, close transaction hash) through TapeSend from a keeper key. Expose `GET /v1/:chainId/proofs/:positionId`. Shape written in 03.
   - Done when: a real close produces a proof that FE-81 can verify.
   - Note (20 November 2026): D-87 extends the proofs to closes on every chain. They are posted from their own funded key on X Layer (one more key in BE-55), and Levra pays the OKB.
+  - Note (24 November 2026, D-113): changed: no public commitment. TapeSend sends each user a private receipt of a closed position (market, side, entry, exit, PnL percent, close hash) and the pre-close alert, from the processor's circuit with the one open container. Done when a real close on X Layer delivers a receipt the user can read.
 
-- [ ] **BE-85 · CCTP deposits into X Layer**
+- [~] **BE-85 · CCTP deposits into X Layer**
   - Needs: BE-76.
   - Do: deposits and withdrawals for X Layer through CCTP V2 with native USDC.
   - Done when: a real deposit from another chain into X Layer, hash in PROGRESS.
+  - Note (24 November 2026): built without waiting for BE-76, since CCTP does not depend on the 1Click work (D-110). New `packages/cctp` (Circle's contracts and domains, the Iris client, the burn plan and the status reader) and `/v1/:chainId/bridge/chains`, `bridge/deposit`, `bridge/withdraw` and `/v1/bridge/status` (03). The burn carries the Forwarding Service hook, so Circle mints on X Layer and the user needs no OKB. Fork test: a 5 USDC burn from X Layer to Base with the planned calls passes on Circle's real contracts (05). The routes serve every live chain, so the CCTP half of BE-76 is done too. The rate limit now counts paths with a chain ID like the Monad ones (quotes on Base and X Layer were not counted as quotes before). Left: FE-94 (Nabil), then a real deposit of a few USDC from Base into X Layer and its hashes and time in PROGRESS and 05.
 
-- [ ] **BE-86 · Wall Street Clock circuit**
+- [~] **BE-86 · Wall Street Clock circuit**
   - Needs: BE-82.
   - Do: the market sessions from `calendar.ts` (regular, pre, after, overnight, weekend, holiday) as a TapeOut circuit on X Layer that any app can read (D-66). A test compares it with `calendar.ts` across a year of times, including holidays and daylight saving changes. Soft layer only: no contract and no hard limit reads it.
   - Done when: the test passes, the circuit address and ID are in 05 and 03, and the agent and the stats page read it.
+  - Note (23 November 2026): circuit built and tested without waiting for BE-82. `wallStreetClock(2026, 2030)` in `packages/tapeout/src/clock.ts`, 4,850 NAND, built from `calendar.ts`; `clockAt` is the same rules on `calendar.ts` and the test compares the two over five years and around every holiday, early close and daylight saving change. On the fork it tapes out (14.1 million gas) and `eval` (11.2 million gas) matches `calendar.ts` onchain (05). Left: tape out on mainnet with the BE-82 processor, the circuit ID in 05 and 03 (interface change with Nabil for the stats page), then the agent (BE-77) and the stats page read it. The holiday evening overnight session and the 17:00 end of after-hours on an early close are initial proposals (05).
+  - Note (24 November 2026, D-113): the X Layer calendar poster takes `nextCloseAt` from this circuit on mainnet, and `/v1/196/...` returns the session read from it, so the app shows the same session. A mismatch with `calendar.ts` alerts the team and the poster falls back to `calendar.ts` (opening is the only thing a wrong close can affect).
+  - Note (24 November 2026): on mainnet with BE-82 as circuit 1 of the Levra processor (`0x4D5Bf68e1362046B0281b9bA678345b7FD2aAa5c`), 9 moments read back equal to `calendar.ts` (05). Left: the circuit ID in 03 (interface change with Nabil), then the poster, the agent and the stats page read it.
 
 - [ ] **BE-87 · Agent checked by circuits**
   - Needs: BE-83, BE-86, BE-77.

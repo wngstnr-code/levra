@@ -126,7 +126,7 @@ Without these the product can be built but cannot be opened to the public.
 
 ## B. Base (Stocks Maxxing)
 
-Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 12 December 2026, 23:59 UTC (moved from 5 December by the quest page; the internal plan of D-58 stays until the team changes it).
 
 - [ ] **X-30 · Build in public** (driver: Nabil)
   - Do: one X post a day from the team account, taken from the PROGRESS daily log, with screenshots and real hashes, tagging @buildonbase.
@@ -149,7 +149,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
 - [ ] **X-34 · Stocks Maxxing submission** (driver: Nabil)
   - Needs: I-B1.
   - Do: fill the Stocks Maxxing application form first (it is the registration, not the submission: project, stage, track, partners, demo URL); then the demo video with real Base transactions (D-65), the X post tagging @buildonbase, the submission form for Programmable Stock Markets (D-61), the list of what was built in the quest period, root README updated (Base addresses, hashes; the AI tool disclosure stays team written).
-  - Done when: the submission is confirmed received before 5 December 2026.
+  - Done when: the submission is confirmed received before 12 December 2026, 23:59 UTC.
 
 
 ---

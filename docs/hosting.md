@@ -14,7 +14,7 @@ Status on 20 November 2026: the files in `deploy/` are written. Verified in a lo
 | `new-secrets.sh` | Makes the database password, every `DATABASE_URL` and `AUTH_SECRET` on the server, without showing them |
 | `keys.sh` | Makes role keys on the server (BE-55, `docs/keys.md`) |
 | `deploy.sh` | Builds, migrates, starts and checks a commit |
-| `backup.sh`, `cron/levra-backup` | The daily backup (BE-53) |
+| `backup.sh`, `restore-check.sh`, `backup-common.sh`, `cron/levra-backup` | The daily backup and the weekly restore check (BE-53) |
 
 Known limit: the image is about 2.5 GB unpacked, because it carries the dev tools (`tsx` runs the TypeScript directly, as on Railway). Fine for one server; to trim later with BE-60.
 
@@ -47,9 +47,9 @@ All app services use one image built from the repo (`deploy/Dockerfile`, BE-90):
 | `indexer-monad` | `pnpm --filter @levra/indexer start` for chain 143 | BE-90 | `DATABASE_URL`, `ENVIO_API_TOKEN` |
 | `keeper-monad` | `pnpm --filter @levra/keeper start` for chain 143, plus the jobs that run once for all chains (`KEEPER_GLOBAL=1`, BE-95) | BE-90 | `DATABASE_URL`, the four Monad role keys, `TELEGRAM_BOT_TOKEN`, swap API keys |
 | `keeper-base`, `keeper-xlayer` | Same code for chains 8453 and 196. They start without keys, for the Chainlink price recorder only (BE-97), and get role keys with our deployments | BE-97, then BE-73 and BE-80 | The role keys of that chain |
-| `indexer-base`, `indexer-xlayer` | Same code for chains 8453 and 196 | BE-73, BE-80 | `DATABASE_URL`, `ENVIO_API_TOKEN` |
-| `agent` | MCP server and the Telegram bot updates. Holds no keys | BE-77, BE-78 | `TELEGRAM_BOT_TOKEN` (moves from the keeper) |
-| `caddy` | HTTPS and the reverse proxy to `api` | BE-90 | None |
+| `indexer-base`, `indexer-xlayer` | Same code for chains 8453 and 196, from the deployment block. On the public endpoints until a paid RPC or HyperSync: `base-rpc.publicnode.com` (10,000 blocks per log query; `mainnet.base.org` answers 429) and `rpc.xlayer.tech` (`LOG_BLOCK_RANGE=100`) | BE-73, BE-80 | `DATABASE_URL`, `ENVIO_API_TOKEN` |
+| `agent` | `apps/agent` MCP server at `api.levra.finance/mcp` (stateless Streamable HTTP, port 8790, no public port). Calls the API at `http://api:8787` and passes on only the caller's address (`CLIENT_IP_HEADER`, D-111). Holds no keys. Later also the Telegram bot updates (BE-78) | BE-77, BE-78 | None now; `TELEGRAM_BOT_TOKEN` with BE-78 (moves from the keeper) |
+| `caddy` | HTTPS and the reverse proxy: `/mcp` to `agent`, everything else to `api` | BE-90 | None |
 
 Each chain gets its own four role keys (BE-55), so a rotation on one chain does not touch the others.
 
@@ -69,7 +69,7 @@ Rules: a secret is never printed, pasted in chat or committed. The keeper's logg
 ## HTTPS and the API address
 
 1. First deploy: `api.levra.finance` (D-96) is an `A` record on Cloudflare pointing at the server's IPv4 address, **DNS only** (grey cloud), and `API_HOST=api.levra.finance` in `caddy.env`. Caddy then gets a Let's Encrypt certificate itself. Not verified: check that the certificate is issued (`curl https://api.levra.finance/v1/health`) before the address goes to Nabil. Until Cloudflare proxies it, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
-2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52). This is what lets the API refuse US users on Base (D-73).
+2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52), and `agent.env` sets `CLIENT_IP_HEADER=cf-connecting-ip` in the same deploy (`deploy.sh` refuses a mismatch). This is what lets the API refuse US users on Base (D-73).
 
 ### Cloudflare in front (BE-52)
 
@@ -110,9 +110,14 @@ Later (BE-60): GitHub Actions builds the image for every `main` commit, pushes i
 
 ## Backups (BE-53)
 
-- Every day at 03:00 UTC, `packages/db/scripts/backup.ts` runs in a one-shot container and keeps 14 dumps in `/opt/levra/backups`.
-- Each dump is copied off the server to a storage bucket (provider chosen in BE-53). A backup that lives only on the same server does not count.
-- A restore check (`restore-check.ts`) every week, and a restore drill once a month. Results go in the runbook.
+- Every day at 03:00 UTC, cron runs `deploy/backup.sh` as `levra`: `pg_dump` inside the Postgres container, 14 dumps kept in `/opt/levra/backups`, log in `backups/backup.log`.
+- Each dump is copied off the server with rclone to `LEVRA_BACKUP_REMOTE` (set in `/opt/levra/env/backup.env`). A backup that lives only on the same server does not count: the script records it as failed.
+- The off-site copy is the Cloudflare R2 bucket `levra-backups` on the levra.finance Cloudflare account (`LEVRA_BACKUP_REMOTE=r2:levra-backups`, since 24 November 2026). The bucket is private, a lifecycle rule deletes objects 30 days after upload, and the API token can only read and write objects in this one bucket, so the rclone remote `r2` of the `levra` user has `no_check_bucket = true`. The token lives only in `/home/levra/.config/rclone/rclone.conf`. Within R2's free tier (10 GB a month); a dump is about 2 MB.
+- rclone comes from downloads.rclone.org, pinned with its checksum in `setup-server.sh`: the 1.60 package of Debian 13 and Ubuntu 24.04 gets 501 NotImplemented from R2 on every upload. To update it on a running server, raise `rclone_version` and the checksums there, then run that section as root with `su -` (a plain `su -c` keeps the `levra` PATH, without `/usr/sbin`, and `dpkg` fails).
+- Every Sunday at 04:00 UTC, `deploy/restore-check.sh` restores the newest dump into a scratch database in the same container and checks it (age, off-site copy, every table and migration present). Log in `backups/restore-check.log`.
+- Both scripts write one row per run in the `backup_runs` table. The team monitor in the `KEEPER_GLOBAL` keeper alerts the team on a failed run, a backup older than 26 hours or a restore check older than 7 days and 2 hours (D-114).
+- A restore drill once a month by a person, following the runbook. Results go in the runbook.
+- After a change to `cron/levra-backup`, install it again as root: `su -c "install -m 0644 /opt/levra/app/deploy/cron/levra-backup /etc/cron.d/levra-backup"`.
 - What can be rebuilt without a backup: our events (the indexer replays from the deployment block) and oracle prices (the recorder reads logs back). What cannot: DEX depth runs, rate snapshots, cross-chain transfers, alert settings, Telegram links and terms acceptances.
 
 ## Monitoring

@@ -405,9 +405,9 @@ Status: proposed by Dharu on 20 November 2026 and built the same day as addition
 - Routes that depend on a chain take its ID as the first path part: `/v1/:chainId/...`, with `chainId` one of `143` (Monad), `8453` (Base) and `196` (X Layer), the IDs in `chains.ts` and the ones wagmi reports. The shapes inside are the same on every chain.
 - An ID outside that list answers 404 `NOT_FOUND`. A listed chain that this API does not serve yet (no deployment loaded, for example Base before SC-76) answers 404 `NOT_FOUND` with `details: { chainId, live: false }`, so the error code list stays the same. `GET /v1/chains` tells the web app which chains are live.
 - The routes without a chain ID stay as they are and serve Monad (143). They are aliases until the web app has moved (FE-70); removing them is a separate change, agreed first.
-- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, `stats`, and later `proofs` and the agent routes. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
+- Chain routes: `config`, `session`, `markets`, `markets/:symbol`, `markets/:symbol/prices`, `stream`, `quote/open`, `quote/close`, `quote/collateral`, `accounts/:address`, `accounts/:address/history`, `earn`, `earn/:address`, `stats`, `bridge/chains`, `bridge/deposit`, `bridge/withdraw` (BE-85), `agent/prepare` (BE-77), and later `proofs`. The list is `chainRoutes` in `packages/shared/api/chains.ts`.
 - Quotes (`quote/*`) on a chain answer only when the API has a swap provider for it: Monad now, Base with BE-72. Before that they answer 404 `NOT_FOUND`. The region and terms gate applies on every chain.
-- Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/quote`, `withdraw/quote`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain. Deposits and withdrawals go to and from Monad only until BE-76 (after the submissions); then the two quotes move under the chain path.
+- Global routes, no chain ID: `health`, `status`, `/status`, `chains`, `prepared/:id` (BE-77), `eligibility`, `terms/accept`, `auth/nonce`, `auth/siwe`, `alerts`, `alerts/telegram`, `deposit/tokens`, `deposit/quote`, `withdraw/quote`, `deposit/:id`. Terms, sign-in and alert settings belong to the wallet on every chain. Deposits and withdrawals go to and from Monad only until BE-76 (after the submissions); then the two quotes move under the chain path.
 - Sign-in: the SIWE message may name any chain this API serves (`live` in `/v1/chains`), the chain the wallet is on. The signature is checked on that chain, so a smart wallet deployed only there still signs in. The token is the same for every chain.
 - `Market` gains three fields for the Base and X Layer stocks: `oracleKind`, `uiMultiplierWad` and `tokenPaused` (main data shapes). On Chainlink chains `oracleFeedUpdatedAt` and `oraclePublishedAt` are both the feed round's `updatedAt` (D-97), and `session` comes from our oracle's market clock, so a feed held over the weekend shows as `CLOSED` or `UNKNOWN`, not as a new field.
 - Short capacity on Base (FE-72) is the existing `availableLiquidityRaw` of the short market.
@@ -448,10 +448,16 @@ Every chain route (list above) also exists as `/v1/:chainId/<path>` (BE-70); the
 | GET | `/v1/earn` | Earn options: rate, amount lent, part borrowed | M2 |
 | GET | `/v1/earn/:address` | Earn positions of one user | M2 |
 | GET | `/v1/stats` | Public numbers of the chain: wallets, open interest, volume, Earn supplied (BE-79). Needs the database | M2 |
+| POST | `/v1/agent/prepare` | Store an action an AI agent prepared, after quoting it once; returns the app link (BE-77). Agents use the chain path | M7 |
+| GET | `/v1/prepared/:id` | A prepared action, for the app to quote again and sign (BE-77) | M7 |
 | GET | `/v1/deposit/tokens` | Supported origin networks and tokens | M4 |
 | POST | `/v1/deposit/quote` | Cross-chain deposit quote and its deposit address | M4 |
 | GET | `/v1/deposit/:id` | Deposit status | M4 |
 | POST | `/v1/withdraw/quote` | Quote to withdraw to another network | M4 |
+| GET | `/v1/:chainId/bridge/chains` | Chains USDC can come from and go to through CCTP (BE-85) | M7 |
+| POST | `/v1/:chainId/bridge/deposit` | Calls to sign on another chain that bring USDC here through CCTP (BE-85) | M7 |
+| POST | `/v1/:chainId/bridge/withdraw` | Calls to sign here that send USDC to another chain through CCTP (BE-85) | M7 |
+| GET | `/v1/bridge/status` | Where one CCTP burn is, by source chain and transaction hash (BE-85) | M7 |
 | GET | `/v1/eligibility` | Allowed to use or not, based on region. Query: `address` (optional, adds `termsAccepted`), `chainId` (optional, adds that chain's own country list, D-73) | M5 |
 | POST | `/v1/terms/accept` | Records acceptance of the terms, with a wallet signature | M5 |
 | GET | `/v1/auth/nonce` | One-time nonce for the sign-in message | M3 |
@@ -694,6 +700,50 @@ type DepositStatus = {
 // service's deadline passed with nothing deposited.
 ```
 
+### Deposits and withdrawals through CCTP (BE-85, D-54)
+
+Status: proposed by Dharu on 24 November 2026 and built the same day as additions (06), waiting for Nabil's review. Nothing existing changed: the 1Click routes above stay on Monad until BE-76 retires them.
+
+- `GET /v1/:chainId/bridge/chains`, `POST /v1/:chainId/bridge/deposit`, `POST /v1/:chainId/bridge/withdraw` on every live chain, and `GET /v1/bridge/status` without a chain ID.
+- The API answers with the calls only. The wallet signs them on the source chain: `approve` (skip it when the USDC allowance for `approve.spender` already covers `amountRaw`), then `burn`. Before signing, the web app switches the wallet to `fromChainId`.
+- The burn carries Circle's Forwarding Service hook, so Circle mints on the destination and the user needs no gas there. No Levra contract or key is involved and no funds pass through us.
+- Fees come out of the amount: up to `maxFeeRaw` (Circle's Fast Transfer percentage, with a 20% margin, plus the forwarding fee, about 0.05 USDC on 24 November 2026). Fast Transfer where the source has it; elsewhere Circle's standard transfer is already fast. Smallest transfer 1 USDC. All initial proposals.
+- Polling `bridge/status` with the burn's hash: `NOT_FOUND` until Circle sees the burn, then `ATTESTING`, `MINTING`, `COMPLETE` (with `mintTxHash` on the destination). On `FAILED` the web app offers `manualMint`, a call any wallet can send on the destination chain that still mints to the recipient. Answers are reused for 5 seconds.
+- Region and terms apply to a deposit's `recipient` on the chain in the path, as for 1Click. A withdrawal is never gated.
+- `bridge/deposit` and `bridge/withdraw` count as quotes for the rate limit, per wallet through `user` or `recipient`. Since BE-85 every limit counts a path with a chain ID like its Monad alias.
+
+```ts
+type BridgeChain = { chainId: number; name: string; domain: number; usdc: Address; fast: boolean };
+type BridgeChainsResponse = { chains: BridgeChain[] };   // every CCTP chain except the one in the path
+type BridgeDepositRequest = { fromChainId: number; amountRaw: string; recipient: Address };
+type BridgeWithdrawRequest = { toChainId: number; amountRaw: string; user: Address; recipient: Address };
+type Call = { to: Address; data: Hex };
+type BridgePlan = {
+  fromChainId: number;
+  toChainId: number;
+  amountRaw: string;          // USDC burned on fromChainId
+  maxFeeRaw: string;          // the most Circle can take, out of amountRaw
+  minReceivedRaw: string;     // amountRaw - maxFeeRaw
+  finality: "fast" | "standard";
+  estimatedSeconds: number;   // 60, not measured yet
+  approve: Call & { token: Address; spender: Address };
+  burn: Call;
+};
+// GET /v1/bridge/status?fromChainId=8453&txHash=0x...
+type BridgeStatusResponse = {
+  state: "NOT_FOUND" | "ATTESTING" | "MINTING" | "COMPLETE" | "FAILED";
+  fromChainId: number;
+  toChainId: number | null;
+  txHash: Hex;
+  amountRaw: string | null;
+  feeRaw: string | null;      // what Circle took
+  receivedRaw: string | null; // on COMPLETE
+  mintTxHash: Hex | null;
+  delayReason: string | null; // Circle's words, for example "insufficient_fee"
+  manualMint: Call | null;    // on FAILED
+};
+```
+
 ### A market without an oracle price (BE-99, D-100)
 
 When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `snapshot()` reverts), `oraclePriceE8` is `"0"` everywhere it appears, and that is the flag. Clients never divide by it.
@@ -926,6 +976,41 @@ Server-Sent Events, one stream per chain (`/v1/:chainId/stream`, BE-70; `/v1/str
 | `session` | `SessionInfo` | Every time the market session changes |
 | `market` | `{ marketId, currentSoftLtvWad, borrowApyWad, availableLiquidityRaw }` | On every meaningful change |
 
+### Prepared actions for AI agents (BE-77, D-111)
+
+Status: proposed by Dharu on 24 November 2026 and built as additions (06), waiting for Nabil's review with FE-77. Nothing existing changed shape. The routes are on only when the API has a database and `WEB_APP_URL` is set.
+
+An agent (the MCP server in `apps/agent`, or any client) prepares an action; the user opens the link in the web app, which quotes it again and asks the wallet to sign. Nobody but the user's wallet signs. The schemas are in `packages/shared/api/agent.ts`.
+
+```ts
+type PreparedAction =
+  | { kind: "open"; request: Omit<QuoteOpenRequest, "signatures"> }
+  | { kind: "close"; request: QuoteCloseRequest }
+  | { kind: "collateral"; request: Omit<QuoteCollateralRequest, "signatures"> };
+
+// POST /v1/:chainId/agent/prepare, body: PreparedAction
+type PrepareResponse = {
+  id: string;        // UUID
+  url: string;       // `${WEB_APP_URL}/prepared/${id}`
+  expiresAt: number; // Unix seconds: one hour after preparing (initial proposal)
+  summary: string;   // one plain sentence from the quote made at preparation, for the chat
+};
+
+// GET /v1/prepared/:id
+type PreparedResponse = PreparedAction & {
+  id: string; chainId: number; user: string; // checksummed
+  summary: string; createdAt: number; expiresAt: number;
+};
+```
+
+- The API stores the quote request, not a quote: a quote lives 20 seconds and a user may open the link minutes later. Before storing, the request runs once through the chain's own quote route with the caller's headers, so a request that cannot be quoted is refused with the quote's own error, and an `open` meets the same region and terms gate as `POST /v1/quote/open`.
+- `GET /v1/prepared/:id` answers 404 `NOT_FOUND` for an unknown id and 409 `QUOTE_EXPIRED` after `expiresAt`. Rows are deleted a day after they expire.
+- `POST /v1/:chainId/agent/prepare` counts as a quote in the rate limit, per wallet through `request.user`.
+- The web app page `/prepared/:id` (FE-77, proposed): load the action, check that the connected wallet is `user` and the chain is `chainId`, send `request` to `POST /v1/:chainId/quote/<kind>` (with permit signatures as usual), show the fresh quote and that an agent prepared it, then sign. The stored `summary` is only what the agent saw; the screen shows the fresh quote.
+- Prepared permits are not stored: signatures are collected in the app.
+
+The MCP server (`apps/agent`, D-111) holds no keys and no secrets. Tools: `levra_chains`, `levra_markets`, `levra_market`, `levra_account`, `levra_session`, `levra_quote_open`, `levra_quote_close`, `levra_quote_collateral` (read only; the answer has no `tx` and no `requirements`, so the agent never hands out something to sign), and `levra_prepare_open`, `levra_prepare_close`, `levra_prepare_collateral` (return the link). Remote clients use Streamable HTTP at `https://api.levra.finance/mcp` (stateless, JSON answers); local clients run it over stdio.
+
 ### Quote rules
 
 - A quote is valid for a short time (initial proposal: 20 seconds). The frontend asks again when it is stale.
@@ -948,7 +1033,7 @@ Added by Nabil on 13 October 2026 with FE-50 and FE-31. Approved by Dharu on 14 
 
 Terms acceptance (`POST /v1/terms/accept`): the wallet signs this text with `personal_sign`, lines joined by a single newline. The API rebuilds it from `termsVersion` and `address` and checks the signature (smart wallets through ERC-1271 and ERC-6492). The shared source is `termsMessage` in `packages/shared/api/compliance.ts`, used by both the API and the web app.
 
-Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED`. Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. Base and X Layer refuse more countries than Monad (D-73, D-103): an open quote is checked against the list of its chain, a deposit quote against Monad's (deposits arrive on Monad), and `POST /v1/terms/accept` against the list shared by every chain, so a visitor allowed on Monad can accept the terms and is then refused only when opening on Base or X Layer. The web app sends `chainId` to `/v1/eligibility` for the chain it shows; without it the answer covers the shared list only. Regions inside a country (ISO 3166-2, for example `UA-43`) can be blocked too when the CDN sends a region header. The routes are off when no terms version is configured.
+Region and terms gate (BE-52): only `POST /v1/quote/open` and `POST /v1/deposit/quote` answer 403 `REGION_BLOCKED` or `TERMS_NOT_ACCEPTED` (and a prepared `open`, which runs the open quote, BE-77). Closing, reducing, collateral and withdrawals are never gated. With a block list set, a request without a country header is treated as blocked. Base and X Layer refuse more countries than Monad (D-73, D-103): an open quote is checked against the list of its chain, a deposit quote against Monad's (deposits arrive on Monad), and `POST /v1/terms/accept` against the list shared by every chain, so a visitor allowed on Monad can accept the terms and is then refused only when opening on Base or X Layer. The web app sends `chainId` to `/v1/eligibility` for the chain it shows; without it the answer covers the shared list only. Regions inside a country (ISO 3166-2, for example `UA-43`) can be blocked too when the CDN sends a region header. The routes are off when no terms version is configured.
 
 ```
 Levra terms of use
@@ -1029,6 +1114,9 @@ Shared names. Each app has its own `.env.example`, which lists every variable it
 | `INTENTS_JWT` | BE | Aurora Intents 1Click partner token. Optional: without it the service adds its own 0.2% fee to every transfer |
 | `ORACLE_AGE_POSTER_KEY`, `CALENDAR_POSTER_KEY`, `PROTECTOR_KEY`, `LIQUIDATOR_KEY` | BE (keeper) | Keeper keys, one per role and chain (BE-55). Each role job runs only when its key is set |
 | `DEPLOYER_PRIVATE_KEY` | SC | Deployer key, for staging only |
+| `WEB_APP_URL` | BE (API) | The web app's address, for the links of prepared actions (BE-77). Unset turns the agent routes off |
+| `LEVRA_API_URL` | BE (agent) | The API the MCP server calls: the internal `http://api:8787` on the server, never the public address (D-111) |
+| `CLIENT_IP_HEADER` | BE (agent) | The header with the caller's address, the same value as the API's `TRUST_PROXY_HEADER`; the agent passes it on so the API rate limits each caller |
 
 ## 8. Who needs what from whom
 

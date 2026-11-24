@@ -30,6 +30,10 @@ const envSchema = z.object({
   KYBER_API_KEY: optional(),
   /** 1inch Business API key (05). Base quotes leave 1inch out without it. Never commit it. */
   ONEINCH_API_KEY: optional(),
+  /** OKX DEX API v6 key, secret and passphrase (05). X Layer quotes have no route without all three. Never commit them. */
+  OKX_API_KEY: optional(),
+  OKX_SECRET_KEY: optional(),
+  OKX_API_PASSPHRASE: optional(),
   /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**
@@ -39,6 +43,8 @@ const envSchema = z.object({
   AUTH_DOMAIN: optional(),
   /** Web origins allowed to call the API from a browser, same pattern rules, for example https://app.levra.finance. */
   CORS_ORIGINS: optional(),
+  /** Base URL of the web app, for example https://app.levra.finance. Agent links point there; the agent routes are off without it (BE-77). */
+  WEB_APP_URL: optional().pipe(z.url().optional()),
   /** Username of the alert bot, without @. The Telegram link route is off without it. */
   TELEGRAM_BOT_USERNAME: optional(),
   /** Aurora Intents partner token (BE-40). Optional: without it the service adds its own 0.2% fee to every transfer. */

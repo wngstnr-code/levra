@@ -44,6 +44,10 @@ function healthy(): Snapshot {
     gaps: [{ symbol: "QQQ", table: { over2PctShareBps: 310, worstDropBps: -540, worstRiseBps: 390 }, fresh: { over2PctShareBps: 290, worstDropBps: -540, worstRiseBps: 390 } }],
     lossBudgets: [{ token: "0xUSDC", label: "USDC", budget: 0n }],
     gates: [{ key: "gate:anchored-denylist:Morpho", blocked: false, message: "Anchored compliance denylists Morpho" }],
+    backups: [
+      { kind: "backup", finishedAt: NOW - 3_600, ok: true, error: null },
+      { kind: "restore_check", finishedAt: NOW - 86_400, ok: true, error: null },
+    ],
   };
 }
 
@@ -70,6 +74,8 @@ describe("team monitor checks (08, one per row)", () => {
       ["gap-table:QQQ", (s) => (s.gaps[0]!.fresh = { over2PctShareBps: 320, worstDropBps: -610, worstRiseBps: 390 })],
       ["gate:anchored-denylist:Morpho", (s) => (s.gates[0]!.blocked = true)],
       ["gate:anchored-denylist:Morpho:unread", (s) => (s.gates[0]!.blocked = null)],
+      ["backup:backup", (s) => (s.backups![0]!.finishedAt = NOW - 26 * 3_600 - 1)],
+      ["backup:restore_check", (s) => (s.backups![1]!.ok = false)],
     ];
     for (const [key, change] of cases) {
       const s = healthy();
@@ -90,6 +96,28 @@ describe("team monitor checks (08, one per row)", () => {
       ["next-close-at", String(NOW + 86_400)],
       ["loss-budget:0xusdc", "0"],
     ]);
+  });
+
+  it("tells the team about a failed, late or missing backup, only in the monitor that watches them (BE-53)", () => {
+    const message = (s: Snapshot, kind: string) => evaluate(s).find((f) => f.key === `backup:${kind}`);
+    const failed = healthy();
+    failed.backups![0] = { kind: "backup", finishedAt: NOW - 60, ok: false, error: "the dump was not copied off the server" };
+    expect(message(failed, "backup")).toMatchObject({ active: true, message: "The last database backup failed: the dump was not copied off the server" });
+
+    const late = healthy();
+    late.backups![1]!.finishedAt = NOW - 8 * 86_400;
+    expect(message(late, "restore_check")).toMatchObject({ active: true, message: "The last restore check was 192 h ago, above the 170 h limit." });
+    late.backups![1]!.finishedAt = NOW - 7 * 86_400 - 2 * 3_600;
+    expect(message(late, "restore_check")).toMatchObject({ active: false });
+
+    const none = healthy();
+    none.backups = [];
+    expect(active(evaluate(none))).toEqual(["backup:backup", "backup:restore_check"]);
+    expect(message(none, "backup")).toMatchObject({ message: "No database backup has been recorded yet." });
+
+    const elsewhere = healthy();
+    delete elsewhere.backups;
+    expect(evaluate(elsewhere).filter((f) => f.key.startsWith("backup:"))).toEqual([]);
   });
 
   it("tells the team when the liquidator's loss budget is set or spent (BE-89)", () => {
