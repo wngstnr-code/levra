@@ -16,7 +16,7 @@ import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
 import { Share2 } from "lucide-react";
 import { useState } from "react";
-import { ShareSheet } from "./ShareSheet";
+import { PositionShareSheet } from "./ShareSheet";
 import { hasNoPrice } from "@/lib/marketState";
 import { pnlWithPercent } from "@/lib/shareCard";
 
@@ -39,7 +39,7 @@ export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { 
 
   return (
     <Card className={cn("flex flex-col gap-6", p.overSoftLimit && "ring-2 ring-caution/60")}>
-      <ShareSheet position={p} open={sharing} onClose={() => setSharing(false)} />
+      <PositionShareSheet position={p} open={sharing} onClose={() => setSharing(false)} />
       <div className="flex flex-wrap items-center gap-3.5">
         <TokenIcon symbol={p.symbol} size={44} />
         <div>

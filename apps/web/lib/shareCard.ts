@@ -1,4 +1,4 @@
-import type { Position } from "@levra/shared/api";
+import type { HistoryItem, Position } from "@levra/shared/api";
 import { signedDeviationBps } from "@levra/shared/math";
 import { formatUsdE8 } from "./format";
 import { formatBps, formatUsdSigned } from "./units";
@@ -13,6 +13,8 @@ export type ShareCardData = {
   pnlText: string;
   entryText: string;
   nowText: string;
+  /** Replaces entry, now and PnL under the headline, for a closed trade. */
+  stats?: [string, string][];
 };
 
 /** What the share card shows, from the position the service reports. Only shared formulas are used. */
@@ -28,6 +30,24 @@ export function shareCardData(p: Position, tokenSymbol: string, chainName: strin
     pnlText: pnlWithPercent(p),
     entryText: formatUsdE8(BigInt(p.entryPriceE8)),
     nowText: formatUsdE8(BigInt(p.oraclePriceE8)),
+  };
+}
+
+/** A closed trade from history: the realized PnL as the headline, the exit price and the close day below. */
+export function closedCardData(item: HistoryItem, tokenSymbol: string, chainName: string, labels: { exit: string; closed: string }, day: string): ShareCardData | null {
+  if (item.realizedPnlUsdRaw == null || item.side == null) return null;
+  const pnl = BigInt(item.realizedPnlUsdRaw);
+  const text = formatUsdSigned(pnl);
+  return {
+    tokenSymbol,
+    side: item.side,
+    chainName,
+    moveText: text,
+    moveUp: pnl >= 0n,
+    pnlText: text,
+    entryText: "",
+    nowText: "",
+    stats: [...(item.execPriceE8 ? ([[labels.exit, formatUsdE8(BigInt(item.execPriceE8))]] as [string, string][]) : []), [labels.closed, day]],
   };
 }
 
