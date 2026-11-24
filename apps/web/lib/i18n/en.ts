@@ -377,7 +377,7 @@ export const en = {
     borrowed: "Borrowed",
     canWithdraw: "Can withdraw now",
     fullyBorrowed: "Fully borrowed. You can withdraw as traders repay.",
-    nothingNow: "Nothing now",
+    nothingNow: "None",
     yourDeposits: "You lent",
     noDeposits: "Nothing lent yet.",
     earned: "earned",

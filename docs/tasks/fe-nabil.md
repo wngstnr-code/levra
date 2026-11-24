@@ -360,3 +360,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: when every market's oracle is stale, take the clock label from the exchange calendar (`calendar.ts`) and say the price is paused (blocker from Wangsit, 24 November 2026).
   - Done when: the label follows the calendar on a stale chain, with unit tests for weekdays, the weekend and Thanksgiving.
   - Note: done on 24 November 2026 (`fe/FE-96-clock-label`).
+
+- [x] **FE-97 · Fixes from the Chrome audit of 24 November**
+  - Do: status banners per chain (Base and X Layer showed Monad's stale prices), the `--color-base` token that turned every `text-base` blue, and a label that did not fit on Earn cards.
+  - Done when: each chain shows only its own price and service state, with unit tests.
+  - Note: done on 24 November 2026 (`fe/FE-97-audit-fixes`).

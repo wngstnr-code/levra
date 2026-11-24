@@ -13,7 +13,7 @@ import { formatToken } from "@/lib/units";
 import { switchChainPath, useChain } from "@/lib/useChain";
 import { Sheet } from "../ui/Sheet";
 
-export const chainMark: Record<WebChain["slug"], string> = { monad: "bg-monad", base: "bg-base", xlayer: "bg-xlayer" };
+export const chainMark: Record<WebChain["slug"], string> = { monad: "bg-monad", base: "bg-chain-base", xlayer: "bg-xlayer" };
 
 export function ChainMark({ chain, className }: { chain: Pick<WebChain, "slug">; className?: string }) {
   return <span aria-hidden className={cn("inline-block shrink-0 rounded-[30%]", chainMark[chain.slug], className)} />;
