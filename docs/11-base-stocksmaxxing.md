@@ -15,13 +15,13 @@ Source: the official page and rules, read on 19 November 2026. Items marked "pre
 | Item | Fact |
 |---|---|
 | Name and host | Stocks Maxxing, run by Base (Coinbase Technologies, Inc.) |
-| Dates | 5 November to 5 December 2026. Submit by **5 December 2026** |
+| Dates | 5 November to 12 December 2026. Submit by **12 December 2026, 23:59 UTC** (FAQ and rules read on 24 November 2026; this page said 5 December until then). Applications opened 5 November; "Didn't register? You can still submit", so the Apply Now form is optional |
 | Prizes | $100,000+ in USDC on Base. Pool per track plus partner prizes. $6,000 build in public award (press) |
 | Our track | **Programmable Stock Markets** only (D-61, replaces the track part of D-46). One prize per project. The agent is a product feature |
 | Judging | 50% traction (real onchain usage), 25% product quality, 25% build in public (press). The rules only say equal weights unless the quest page says otherwise. Not verified |
 | Submission | A public X post with a video demo that tags @buildonbase, plus the submission form with the post link and tracks. Must be built on or meaningfully integrate with Base |
 | Earlier code | Allowed if the form says clearly what was built during the quest period. We mark the line with the tag `pre-base` on the last `main` commit before this work |
-| Eligibility | 18+, not in an OFAC sanctioned region, teams up to 5. Manipulating traction gets a team disqualified |
+| Eligibility | 18+, not in an OFAC sanctioned region, teams up to 5, one Team Representative. Manipulating traction gets a team disqualified. The FAQ (24 November 2026): projects that enable trading for US users are not eligible, so the region gate (BE-52) must block the US |
 | Partners | o1 Exchange, Bankr, Stonks Exchange, BaseStonk, Feel.cash, Hydropump (Hydrex), each with a Telegram group |
 | Resources | Tokenized Stocks API, integration guide, Builder Codes, Builder Stack credits |
 | Earlier editions | None. This is the first one |

@@ -208,7 +208,7 @@ Four rules for the frontend:
 
 ## B. Base (Stocks Maxxing)
 
-Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 12 December 2026, 23:59 UTC (moved from 5 December by the quest page; the internal plan of D-58 stays until the team changes it).
 
 - [~] **FE-70 · Chain picker and chain in the URL**
   - Needs: SC-73 for the final shape; can start on Monad first.

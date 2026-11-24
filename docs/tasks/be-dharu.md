@@ -496,7 +496,7 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
 
 ## B. Base (Stocks Maxxing)
 
-Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 12 December 2026, 23:59 UTC (moved from 5 December by the quest page; the internal plan of D-58 stays until the team changes it).
 
 - [~] **BE-70 · Chain in every API route**
   - Do: propose `/v1/:chainId/...` (or another shape) in 03 first, through the process in 06. Keep the current routes as Monad aliases until FE moves.

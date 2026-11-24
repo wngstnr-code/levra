@@ -204,7 +204,7 @@ Tasks marked **(spike)** exist to prove an assumption. Write the result in the d
 
 ## B. Base (Stocks Maxxing)
 
-Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 5 December 2026.
+Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadline for the submission: 12 December 2026, 23:59 UTC (moved from 5 December by the quest page; the internal plan of D-58 stays until the team changes it).
 
 - [x] **SC-70 · Base addresses and facts**
   - Do: read and write into 05 a new "Base" section: Morpho core, IRM, vault factories and the existing stock markets (IDs, LLTV), USDC, every Coinbase B20 stock token, Chainlink feed per stock, Coinbase oracle registry, Permit2, Multicall3, Safe. Mark each verified or not.
