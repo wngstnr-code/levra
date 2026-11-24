@@ -1,10 +1,14 @@
 import { createConfig as createPrivyConfig } from "@privy-io/wagmi";
-import type { Chain, Transport } from "viem";
+import { http, type Chain, type Transport } from "viem";
 import { createConfig } from "wagmi";
+import { extraBridgeChains } from "./bridgeChains";
 import { webChains } from "./chains";
 
-const chains = webChains.map((c) => c.viem) as [Chain, ...Chain[]];
-const transports = Object.fromEntries(webChains.map((c) => [c.id, c.transport])) as Record<number, Transport>;
+const ours = webChains.map((c) => c.viem);
+/** Our chains first; the other CCTP chains only so the wallet can send a bridge transfer from them. */
+export const walletChains = [...ours, ...extraBridgeChains(ours)] as [Chain, ...Chain[]];
+const chains = walletChains;
+const transports = Object.fromEntries([...webChains.map((c) => [c.id, c.transport]), ...extraBridgeChains(ours).map((c) => [c.id, http()])]) as Record<number, Transport>;
 
 const params = { chains, transports } as const;
 

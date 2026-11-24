@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { externalByChain } from "@levra/shared/addresses";
 import { listedStocks, stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
@@ -100,6 +102,9 @@ export function HelpView() {
           <Card id="revoke" className="scroll-mt-28 space-y-2">
             <h2 className="text-xl font-semibold">{h.revoke}</h2>
             <p className="text-[15px] text-fg-2">{h.revokeBody}</p>
+            <Link href="/exit" prefetch={false} className="text-sm font-medium text-lime-text">
+              {h.exitGuide} ↗
+            </Link>
             <p className="text-sm">
               {h.names.morpho}: <a className="break-all text-lime" href={`${explorer}/address/${chain.morpho}`} target="_blank" rel="noreferrer">{chain.morpho}</a>
             </p>

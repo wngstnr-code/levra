@@ -211,7 +211,7 @@ For the previous router, use `0xa3F19ac30Be34028D9a0CaAcaF00c0b7295Fc2E6` in bot
 
 **Remove a token allowance.** If you approved USDC to the router, set it back to zero with `approve(0xf5585feA7aeDC5e148201052f73139111810aA88, 0)` (or the previous router's address) on the USDC token `0x754704Bc059F8C67012fEd69BC8A327a5aafb603`.
 
-**Close a position directly on Morpho.** Repay the debt with `repay`, then take the collateral out with `withdrawCollateral`, using the market parameters of your market. For a long you repay USDC and receive stock tokens. For a short you repay stock tokens and receive USDC.
+**Close a position directly on Morpho.** Read your market parameters with `idToMarketParams(marketId)` and your position with `position(marketId, yourAddress)`. Approve the token you owe (USDC for a long, the stock token for a short) to Morpho for a little more than the debt. Repay by shares, `repay(marketParams, 0, borrowShares, yourAddress, 0x)`, so the whole debt is cleared and no dust blocks the next step. Then take the collateral out with `withdrawCollateral(marketParams, collateral, yourAddress, yourAddress)`. For a long you receive stock tokens; for a short you receive USDC.
 
 ## Risks outside our contracts
 

@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n";
 import { formatToken, formatUsd, formatUsdSigned } from "@/lib/units";
 import { useProtection } from "@/lib/useProtection";
 import { useRouterUpgrade } from "@/lib/useRouterUpgrade";
+import { fractionFromParam } from "@/lib/prepared";
 import { NoticeRow } from "../ui/NoticeRow";
 import { PreCloseCard } from "../protection/PreCloseCard";
 import { ProtectionToggle } from "../protection/ProtectionToggle";
@@ -29,6 +30,8 @@ import { PositionCard, type ManageTab } from "./PositionCard";
 import { useChain, useChainHref } from "@/lib/useChain";
 import { stockOn } from "@/lib/chains";
 
+const MANAGE_TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
+
 export function PositionsView() {
   const chain = useChain();
   const href = useChainHref();
@@ -40,7 +43,12 @@ export function PositionsView() {
   const { address } = useAccount();
   const signIn = useSignIn();
   const account = useAccountData(address);
-  const [manage, setManage] = useState<{ marketId: string; tab: ManageTab } | null>(null);
+  const agentId = search.get("agent");
+  const [manage, setManage] = useState<{ marketId: string; tab: ManageTab } | null>(() => {
+    const marketId = search.get("manage");
+    const action = search.get("action") as ManageTab | null;
+    return marketId && action && MANAGE_TABS.includes(action) ? { marketId, tab: action } : null;
+  });
   const usdc = useReadContract({ address: chain.usdc.address, abi: erc20Abi, functionName: "balanceOf", args: address ? [address] : undefined, chainId: chain.id, query: { enabled: !!address } });
   const mon = useBalance({ address, chainId: chain.id, query: { enabled: !!address } });
   const managed = account.data?.positions.find((p) => p.marketId === manage?.marketId) ?? null;
@@ -48,6 +56,13 @@ export function PositionsView() {
   const upgrade = useRouterUpgrade(address);
   const markets = useMarkets();
   const openSoft = (marketId: string) => markets.data?.markets.find((x) => x.marketId === marketId)?.softLtvOpenWad;
+
+  /** Only the sheet the link asked for gets its prefill; closing it drops the link's parameters. */
+  const fromLink = !!manage && manage.marketId === search.get("manage");
+  const closeManage = () => {
+    setManage(null);
+    if (search.get("manage")) router.replace(tab === "history" ? `${pathname}?tab=history` : pathname, { scroll: false });
+  };
 
   const header = (
     <div className="flex flex-wrap items-center gap-4 pt-2 pb-4">
@@ -161,7 +176,7 @@ export function PositionsView() {
         ))
       )}
 
-      {managed && manage && <ManageSheet key={`${manage.marketId}`} position={managed} tab={manage.tab} onTab={(t) => setManage({ ...manage, tab: t })} onClose={() => setManage(null)} user={address} />}
+      {managed && manage && <ManageSheet key={`${manage.marketId}`} position={managed} tab={manage.tab} onTab={(t) => setManage({ ...manage, tab: t })} onClose={closeManage} user={address} {...(fromLink ? { agentId, initialAmountRaw: search.get("amountRaw"), initialFraction: fractionFromParam(search.get("fraction")) } : {})} />}
     </div>
   );
 }
