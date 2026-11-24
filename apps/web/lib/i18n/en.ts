@@ -55,6 +55,7 @@ export const en = {
   clock: {
     closesIn: (t: string) => `Closes in ${t}`,
     opensIn: (t: string) => `Opens in ${t}`,
+    pricePaused: "Price paused. Session from the exchange calendar.",
     weekendNote: "Limits are lower until the market opens. Levra never pauses closing. Closing needs a valid price, so it may wait for the price to return.",
   },
   network: {
