@@ -32,6 +32,8 @@ import { useChain, useChainHref } from "@/lib/useChain";
 import { deployedMarketOn, listedStocks, stockOn } from "@/lib/chains";
 import { noticeFor } from "@/lib/warnings";
 import { worstGap } from "@/lib/gapSteps";
+import { slippageFromParam } from "@/lib/prepared";
+import { useAgentRequest } from "@/lib/useAgentRequest";
 import { haltNotice, hasNoPrice, noPriceNotice } from "@/lib/marketState";
 
 
@@ -64,9 +66,13 @@ export function TradeView() {
   const snap = oracle.snapshots[symbol];
   const chainLimits = useChainLimits(symbol, side);
 
-  const [marginText, setMarginText] = useState("100");
-  const [leverageBySide, setLeverageBySide] = useState<Record<Side, number>>({ long: 200, short: 50 });
-  const [slippageBps, setSlippageBps] = useState(50);
+  const agentId = search.get("agent");
+  const [marginText, setMarginText] = useState(() => search.get("margin") ?? "100");
+  const [leverageBySide, setLeverageBySide] = useState<Record<Side, number>>(() => {
+    const lev = Math.round(Number(search.get("leverage")));
+    return { long: 200, short: 50, ...(Number.isFinite(lev) && lev > 0 && lev <= 10_000 ? { [side]: lev } : {}) };
+  });
+  const [slippageBps, setSlippageBps] = useState(() => slippageFromParam(search.get("slippage")));
   const [signatures, setSignatures] = useState<SignatureInput[]>([]);
   const [details, setDetails] = useState(false);
   const flow = useTxFlow();
@@ -77,6 +83,12 @@ export function TradeView() {
   const capRaw = market ? BigInt(market.maxPositionUsdRaw) : chainLimits.maxPositionUsdRaw;
   const leverageE2 = Math.min(maxE2, Math.max(minE2, leverageBySide[side]));
   const marginRaw = parseAmount(marginText, USDC_DECIMALS);
+  // The mark shows only while the screen quotes exactly what the agent prepared.
+  const agentRequest = useAgentRequest(
+    search.get("agent"),
+    address,
+    (p) => p.kind === "open" && p.request.symbol === symbol && p.request.side === side && p.request.marginRaw === marginRaw?.toString() && p.request.leverageE2 === leverageE2 && p.request.slippageBps === slippageBps,
+  );
   const positionUsd = marginRaw ? (marginRaw * BigInt(leverageE2)) / 100n : 0n;
 
   const balance = useReadContract({
@@ -95,6 +107,7 @@ export function TradeView() {
   const q = quote.data && params && quote.data.market.symbol === symbol && quote.data.market.side === side ? quote.data : undefined;
   const pending = q ? splitRequirements(q.requirements, signatures) : { toSign: [], toApprove: [] };
   const blocked = q?.warnings.find((w) => w.severity === "block");
+  const agentNoShort = !!agentId && search.get("side") === "short" && !shortAvailable;
   const marketBlock = haltNotice(market, m) ?? (market && hasNoPrice(market.oraclePriceE8) ? noPriceNotice(m) : null);
   const quoteError = quote.error ? describeError(quote.error, m) : null;
 
@@ -103,6 +116,7 @@ export function TradeView() {
     if (address && gated) return gated.onClick ? { kind: "ready", label: gated.label, onClick: gated.onClick } : { kind: "disabled", label: gated.label };
     if (!address) return signIn ? { kind: "signIn", onClick: signIn } : { kind: "disabled", label: m.wallet.unavailable };
     if (!apiConfigured) return { kind: "disabled", label: m.trade.serviceOffline };
+    if (agentNoShort) return { kind: "disabled", label: m.agent.noShort };
     if (marketBlock) return { kind: "disabled", label: marketBlock.title };
     if (side === "short" && !shortAvailable) return { kind: "disabled", label: m.trade.noShortMarket };
     if (!marginRaw || marginRaw === 0n) return { kind: "disabled", label: m.trade.enterAmount };
@@ -211,7 +225,7 @@ export function TradeView() {
           capShare={capRaw ? Number((positionUsd * 1000n) / capRaw) / 1000 : null}
           capText={capRaw ? m.trade.capUse(formatUsd(positionUsd, 0), formatUsd(capRaw, 0)) : null}
           firstTimeSignatures={pending.toSign.length}
-          notes={[...(marketBlock ? [marketBlock] : []), ...(q?.warnings.map((w) => noticeFor(w, m)) ?? [])]}
+          notes={[...(agentRequest ? [{ icon: "verified" as const, blocks: false, title: m.agent.title, body: m.agent.body }] : []), ...(agentNoShort ? [{ icon: "short" as const, blocks: true, title: m.agent.noShort, body: m.agent.noShortBody }] : []), ...(marketBlock ? [marketBlock] : []), ...(q?.warnings.map((w) => noticeFor(w, m)) ?? [])]}
           action={action}
         />
       </div>

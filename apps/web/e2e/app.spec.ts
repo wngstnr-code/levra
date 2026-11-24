@@ -117,6 +117,21 @@ test("trade stops opening on a halted market", async ({ page }) => {
   await expect(page.getByText("The issuer paused QQQ.")).toBeVisible();
 });
 
+test("an agent's prepared close shows what it does and asks to sign in", async ({ page }) => {
+  await mockService(page);
+  await page.route("http://api.levra.test/v1/prepared/**", (r) => {
+    const id = r.request().url().split("/").pop();
+    if (id !== "abc") return r.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "NOT_FOUND", message: "no" } }) });
+    const now = Math.floor(Date.now() / 1000);
+    return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "abc", chainId: 143, user: "0x00000000000000000000000000000000000000A1", summary: "Close your QQQ long in full.", createdAt: now, expiresAt: now + 3600, kind: "close", request: { user: "0x00000000000000000000000000000000000000A1", marketId: `0x${"11".repeat(32)}`, fractionWad: "1000000000000000000", slippageBps: 50 } }) });
+  });
+  await page.goto("/prepared/abc");
+  await expect(page.getByText("Close your QQQ long in full.")).toBeVisible();
+  await expect(page.getByText("Close or reduce a position")).toBeVisible();
+  await page.goto("/prepared/zzz");
+  await expect(page.getByText("This link is not known. Ask your agent again.")).toBeVisible();
+});
+
 test("stats shows the chain's public numbers", async ({ page }) => {
   await mockService(page);
   await page.goto("/monad/stats");

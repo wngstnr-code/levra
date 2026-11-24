@@ -1,5 +1,6 @@
 "use client";
 
+import { SLIPPAGE_CHOICES as SLIPPAGES } from "@/lib/prepared";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
 import { formatLeverage } from "@/lib/units";
@@ -33,7 +34,6 @@ type Props = {
   action: ActionState;
 };
 
-const SLIPPAGES = [30, 50, 100];
 
 export function OrderPanel(p: Props) {
   const m = useT();
