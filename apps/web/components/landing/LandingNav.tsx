@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "../brand/Logo";
+import { GlowButton } from "./GlowButton";
 
 const links = [
   ["MARKETS", "/monad/markets"],
@@ -25,6 +26,7 @@ export function LandingNav() {
             </Link>
           ))}
         </nav>
+        <GlowButton href="/monad/markets" label="Open app" className="ml-auto" />
       </div>
     </header>
   );
