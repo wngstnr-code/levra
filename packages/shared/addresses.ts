@@ -131,6 +131,28 @@ export const xlayerTokens = {
   wGOOGLx: { address: "0xf8c5308F80E459bb53d9EbE689854d9cBb2Caa6f", decimals: 18 },
 } as const satisfies Record<string, TokenInfo>;
 
+/**
+ * Levra's own TapeOut processor on X Layer (BE-82, D-113), made on 24 November 2026. Circuit IDs are local to this
+ * processor. Soft layer only (D-55): no fund movement or hard limit reads these circuits.
+ */
+export const xlayerTapeout = {
+  /** The processor's circuit NFT collection, "Levra" (LEVRA). */
+  processor: "0x4D5Bf68e1362046B0281b9bA678345b7FD2aAa5c",
+  transistors: "0xa2B8315F62CF21f702aFc2343E92850dc805Afbf",
+  /** Holds the circuit NFTs and sends the TapeSend messages (BE-84). A key on the VPS. */
+  operator: "0x5A04bBda155BF83a4675f7561aa2015b442DC5e5",
+  circuits: {
+    /** Market session from calendar.ts, New York dates 2026 to 2030. */
+    wallStreetClock: 1,
+    /** Risk at a 77% hard limit, soft limits 73% and 70% (GOOGL, QQQ, SPY). */
+    risk77: 2,
+    /** Risk at a 62.5% hard limit, soft limits 58% and 50% (NVDA). */
+    risk62_5: 3,
+  },
+  /** Container of the clock circuit, opened for TapeSend and DeWEB. */
+  clockContainer: "0xd2738E919bCE30a7EF36b26f51c8297352a41Ed4",
+} as const satisfies { circuits: Record<string, number> } & Record<string, Address | Record<string, number>>;
+
 export const externalByChain = { 143: external, 8453: baseExternal, 196: xlayerExternal } as const satisfies Record<
   ChainId,
   CommonExternal
