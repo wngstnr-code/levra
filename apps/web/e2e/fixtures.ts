@@ -79,6 +79,7 @@ export async function mockService(page: Page, a: Answers = {}) {
     const shape = <T extends { oraclePriceE8: string }>(list: T[]) => list.map((x) => ({ ...x, haltReasons: a.haltReasons ?? [], ...(a.noPrice ? { oraclePriceE8: "0" } : {}) }));
     if (path === "/v1/markets") return json({ session: session(), markets: shape(markets) });
     if (path === "/v1/chains" && a.chains) return json({ defaultChainId: 143, chains: a.chains.map(([chainId, slug, name, live]) => ({ chainId, slug, name, nativeSymbol: "X", live })) });
+    if (path === "/v1/stats") return json({ chainId: 143, wallets: { total: 12, traders: 9, lenders: 4 }, openInterest: { longUsdRaw: "1500000000", shortUsdRaw: "500000000", openPositions: 7 }, volume: { last24hUsdRaw: "250000000", last7dUsdRaw: "900000000", totalUsdRaw: "35820000000", trades: 41 }, earn: { suppliedUsdRaw: "750000000" }, updatedAt: now() - 30 });
     if (path === "/v1/session") return json(session());
     if (path === "/v1/status") return json(status(a.stale));
     if (path === "/v1/markets/QQQ") return json({ ...detail(), markets: shape(detail().markets) });

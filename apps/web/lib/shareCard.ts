@@ -25,10 +25,16 @@ export function shareCardData(p: Position, tokenSymbol: string, chainName: strin
     chainName,
     moveText: formatBps(inFavour, { signed: true, fractionDigits: 1 }),
     moveUp: inFavour >= 0,
-    pnlText: formatUsdSigned(p.unrealizedPnlUsdRaw),
+    pnlText: pnlWithPercent(p),
     entryText: formatUsdE8(BigInt(p.entryPriceE8)),
     nowText: formatUsdE8(BigInt(p.oraclePriceE8)),
   };
+}
+
+/** PnL in dollars, with the percent of the margin put in when the service knows it (BE-101). */
+export function pnlWithPercent(p: Pick<Position, "unrealizedPnlUsdRaw" | "pnlBps">): string {
+  const usd = formatUsdSigned(p.unrealizedPnlUsdRaw);
+  return p.pnlBps == null ? usd : `${usd} (${formatBps(p.pnlBps, { signed: true, fractionDigits: 1 })})`;
 }
 
 export function postOnXUrl(text: string, link: string): string {
