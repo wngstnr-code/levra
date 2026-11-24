@@ -341,3 +341,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Needs: BE-74.
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
   - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
+
+- [x] **FE-96 · Market clock session from the calendar when the price is stale**
+  - Do: when every market's oracle is stale, take the clock label from the exchange calendar (`calendar.ts`) and say the price is paused (blocker from Wangsit, 24 November 2026).
+  - Done when: the label follows the calendar on a stale chain, with unit tests for weekdays, the weekend and Thanksgiving.
+  - Note: done on 24 November 2026 (`fe/FE-96-clock-label`).
