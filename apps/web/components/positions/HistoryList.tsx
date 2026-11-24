@@ -7,6 +7,9 @@ import { useHistory } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { historySentence } from "@/lib/historyText";
+import { closedCardData } from "@/lib/shareCard";
+import { ShareSheet } from "./ShareSheet";
+import { Share2 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { formatLocal } from "@/lib/time";
 import { Button } from "../ui/Button";
@@ -77,6 +80,9 @@ function Row({ item }: { item: HistoryItem }) {
   const chain = useChain();
   const m = useT();
   const stock = stockOn(chain, item.symbol);
+  const [sharing, setSharing] = useState(false);
+  const txUrl = `${chain.explorer}/tx/${item.txHash}`;
+  const card = item.type === "close" ? closedCardData(item, stock?.tokenSymbol ?? item.symbol, chain.name, { exit: m.share.exit, closed: m.share.closedOn }, formatLocal(item.timestamp)) : null;
   const mark = marks[item.type];
   return (
     <div className="squircle flex items-start gap-4 rounded-panel bg-surface-2 p-4">
@@ -95,10 +101,26 @@ function Row({ item }: { item: HistoryItem }) {
       </div>
       <div className="shrink-0 text-right text-[13px]">
         <p className="text-fg-2">{formatLocal(item.timestamp)}</p>
-        <a href={`${chain.explorer}/tx/${item.txHash}`} target="_blank" rel="noreferrer" className="font-medium text-lime">
+        <a href={txUrl} target="_blank" rel="noreferrer" className="font-medium text-lime">
           {m.common.viewTx} ↗
         </a>
+        {card && (
+          <button onClick={() => setSharing(true)} className="mt-1 flex items-center gap-1 font-medium text-fg-2 hover:text-fg">
+            <Share2 size={13} aria-hidden /> {m.share.button}
+          </button>
+        )}
       </div>
+      {card && (
+        <ShareSheet
+          data={card}
+          link={txUrl}
+          text={m.share.closedPost(card.tokenSymbol, card.side === "long" ? m.trade.long : m.trade.short, card.pnlText)}
+          fileName={`levra-${card.tokenSymbol}-${card.side}-closed.png`}
+          note={m.share.closedNote}
+          open={sharing}
+          onClose={() => setSharing(false)}
+        />
+      )}
     </div>
   );
 }

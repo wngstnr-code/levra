@@ -22,6 +22,10 @@ export const en = {
     download: "Download image",
     postX: "Post on X",
     post: (stock: string, side: string, move: string) => `${move} on my ${stock} ${side.toLowerCase()} with Levra.`,
+    exit: "Exit",
+    closedOn: "Closed",
+    closedNote: "The result of this trade. The link opens the close transaction on the block explorer.",
+    closedPost: (stock: string, side: string, pnl: string) => `Closed my ${stock} ${side.toLowerCase()} with Levra: ${pnl}.`,
   },
   signIn: {
     title: "Sign in to Levra",
