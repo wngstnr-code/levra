@@ -563,6 +563,10 @@ export const en = {
     manualMintBody: "Circle's delivery did not go through. Send one transaction on the receiving network to finish it. The USDC goes to the same address.",
     delayed: (why: string) => `Circle is holding it: ${why}.`,
     newTransfer: "New transfer",
+    overBalance: (v: string) => `More than your balance of ${v} USDC.`,
+    slow: "Circle has not seen the transfer yet. It can take longer when the network is busy; the transfer link shows its state.",
+    mintSent: "Delivery sent. Checking with Circle.",
+    unsafe: "This route does not match your request, so nothing was sent. Try again; if it repeats, tell us.",
   },
   deposit: {
     title: "Deposit",
