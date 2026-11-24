@@ -349,3 +349,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: a dev server proxy so `localhost` reaches the API, which allows only the app's origin (CORS).
   - Done when: the dev server shows live data with `NEXT_PUBLIC_API_URL=http://localhost:3000/api-proxy` and `API_PROXY_TARGET` set, and production builds ignore the proxy.
   - Note: done on 23 November 2026 (`fe/FE-95-dev-api-proxy`, PR #152). Sign-in with wallet (SIWE) for alerts still names the app's host, so it is tested on a preview or `app.levra.finance`.
+
+- [x] **FE-96 · Market clock session from the calendar when the price is stale**
+  - Do: when every market's oracle is stale, take the clock label from the exchange calendar (`calendar.ts`) and say the price is paused (blocker from Wangsit, 24 November 2026).
+  - Done when: the label follows the calendar on a stale chain, with unit tests for weekdays, the weekend and Thanksgiving.
+  - Note: done on 24 November 2026 (`fe/FE-96-clock-label`).
