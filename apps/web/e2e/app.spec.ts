@@ -1,7 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { expect, mockService, test } from "./fixtures";
 
-const monadRouter = readDeployment(new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname).router;
+const monadRouter = readDeployment(fileURLToPath(new URL("../../../contracts/deployments/monad.json", import.meta.url))).router;
 
 test("markets shows prices, limits and leverage from the service", async ({ page }) => {
   await mockService(page);
