@@ -82,7 +82,7 @@ function Row({ item }: { item: HistoryItem }) {
   const stock = stockOn(chain, item.symbol);
   const [sharing, setSharing] = useState(false);
   const txUrl = `${chain.explorer}/tx/${item.txHash}`;
-  const card = item.type === "close" ? closedCardData(item, stock?.tokenSymbol ?? item.symbol, chain.name, { exit: m.share.exit, closed: m.share.closedOn }, formatLocal(item.timestamp)) : null;
+  const card = item.type === "close" || item.type === "reduce" ? closedCardData(item, stock?.tokenSymbol ?? item.symbol, chain.name, { exit: m.share.exit, closed: m.share.closedOn }, formatLocal(item.timestamp)) : null;
   const mark = marks[item.type];
   return (
     <div className="squircle flex items-start gap-4 rounded-panel bg-surface-2 p-4">

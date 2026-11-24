@@ -82,7 +82,7 @@ export function ShareSheet({ data, link, text, fileName, note, open, onClose }: 
     img.onload = () => render(img);
     img.onerror = () => render(null);
     img.src = "/share-bg.jpg";
-  }, [open, data.moveText, data.pnlText, data.nowText]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, data.moveText, data.pnlText, data.nowText, JSON.stringify(data.stats)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Sheet open={open} onClose={onClose} title={m.share.title}>
