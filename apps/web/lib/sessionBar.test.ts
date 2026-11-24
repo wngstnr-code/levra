@@ -35,5 +35,7 @@ describe("calendarSession", () => {
     expect(calendarSession(at("2026-11-26", 11))).toBe("CLOSED");
     expect(calendarSession(at("2026-11-27", 12))).toBe("REGULAR");
     expect(calendarSession(at("2026-11-27", 14))).toBe("POST_MARKET");
+    expect(calendarSession(at("2026-11-27", 16))).toBe("POST_MARKET");
+    expect(calendarSession(at("2026-11-27", 18))).toBe("CLOSED");
   });
 });

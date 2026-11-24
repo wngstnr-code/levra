@@ -35,6 +35,8 @@ export function calendarSession(unix: number): SessionName {
   if (hours >= 20) return isTradingDay(addDays(p.date, 1)) ? "OVERNIGHT" : "CLOSED";
   if (!isTradingDay(p.date)) return "CLOSED";
   if (hours < 9.5) return "PRE_MARKET";
-  if (unix < regularCloseAt(p.date)) return "REGULAR";
-  return unix < etToUnix(p.date, 20 * 3600) ? "POST_MARKET" : "OVERNIGHT";
+  const close = regularCloseAt(p.date);
+  if (unix < close) return "REGULAR";
+  // After-hours run four hours past the close: 20:00, or 17:00 after an early close (05, "Clock session rules").
+  return unix < close + 4 * 3600 ? "POST_MARKET" : "CLOSED";
 }
