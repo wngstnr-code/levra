@@ -1,34 +1,59 @@
-/* Landing buttons, after the reference: fill, rolling label and echo rings on hover. */
+/*
+ * Landing buttons, timed from the reference frame by frame:
+ * enter: fill, glow and label cross-fade over 0.6 s; a white light runs round the border for about 1 s;
+ *        the echo rings grow from 1 s to 1.6 s.
+ * leave: after 0.17 s the fill and label return over 0.33 s; the echo rings vanish at once.
+ */
 .glow .glow-fill { fill: #ffffff; }
 .glow[data-fill="clear"] .glow-fill { fill: rgba(10, 10, 11, 0.35); }
-.glow .glow-hover { opacity: 0; transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.glow .glow-hover { opacity: 0; transition: opacity 0.33s cubic-bezier(0.4, 0, 0.2, 1) 0.17s; }
+.glow:hover .glow-hover,
+.glow:focus-visible .glow-hover { opacity: 1; transition: opacity 0.6s cubic-bezier(0.45, 0, 0.25, 1); }
+
+.glow .glow-labels { transition: transform 0.33s cubic-bezier(0.4, 0, 0.2, 1) 0.17s; }
+.glow .glow-label { transition: opacity 0.33s cubic-bezier(0.4, 0, 0.2, 1) 0.17s; }
+.glow .glow-label-alt { opacity: 0; transition: opacity 0.33s cubic-bezier(0.4, 0, 0.2, 1) 0.17s; }
+.glow:hover .glow-labels,
+.glow:focus-visible .glow-labels { transform: translateY(-100%); transition: transform 0.6s cubic-bezier(0.45, 0, 0.25, 1); }
+.glow:hover .glow-label,
+.glow:focus-visible .glow-label { opacity: 0; transition: opacity 0.6s cubic-bezier(0.45, 0, 0.25, 1); }
+.glow:hover .glow-label-alt,
+.glow:focus-visible .glow-label-alt { opacity: 1; transition: opacity 0.6s cubic-bezier(0.45, 0, 0.25, 1); }
+
+.glow .glow-trace { opacity: 0; stroke-dasharray: 0 100; }
+.glow:hover .glow-trace,
+.glow:focus-visible .glow-trace { animation: glow-trace 1s cubic-bezier(0.55, 0, 0.45, 1) both; }
+@keyframes glow-trace {
+  0% { opacity: 1; stroke-dasharray: 0 100; stroke-dashoffset: 0; }
+  75% { opacity: 1; stroke-dasharray: 30 100; stroke-dashoffset: -70; }
+  100% { opacity: 0; stroke-dasharray: 0 100; stroke-dashoffset: -100; }
+}
+
 .glow .glow-echo {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  transform: scale(0.86);
-  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s ease;
+  transition: none;
 }
-.glow .glow-label,
-.glow .glow-label-alt { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-.glow .glow-label-alt { transform: translateY(30px); }
-.glow:hover .glow-hover,
-.glow:focus-visible .glow-hover { opacity: 1; }
+.glow .glow-echo-far { transform: scale(0.778); }
+.glow .glow-echo-near { transform: scale(0.875); }
 .glow:hover .glow-echo,
-.glow:focus-visible .glow-echo { transform: scale(1); }
+.glow:focus-visible .glow-echo {
+  transform: scale(1);
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 1s, opacity 0.7s ease 1s;
+}
 .glow:hover .glow-echo-near,
 .glow:focus-visible .glow-echo-near { opacity: 0.4; }
 .glow:hover .glow-echo-far,
-.glow:focus-visible .glow-echo-far { opacity: 0.12; }
-.glow:hover .glow-label,
-.glow:focus-visible .glow-label { transform: translateY(-30px); }
-.glow:hover .glow-label-alt,
-.glow:focus-visible .glow-label-alt { transform: translateY(0); }
+.glow:focus-visible .glow-echo-far { opacity: 0.1; }
 .glow:focus-visible { outline: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .glow .glow-hover,
-  .glow .glow-echo,
+  .glow .glow-labels,
   .glow .glow-label,
-  .glow .glow-label-alt { transition: none; }
+  .glow .glow-label-alt,
+  .glow .glow-echo { transition: none !important; }
+  .glow:hover .glow-trace { animation: none; }
 }
