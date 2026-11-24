@@ -548,6 +548,9 @@ export const en = {
     wrongWallet: (addr: string) => `Prepared for ${addr}. Sign in with that wallet to continue.`,
     signIn: "Sign in with the wallet your agent prepared this for.",
     expires: (t: string) => `Link expires in ${t}`,
+    noShort: "No short market here",
+    noShortBody: "Your agent asked for a short, but this stock has no short market on this network. Nothing was changed to a long; ask your agent again.",
+    unknownChain: "This action is for a network the app does not offer.",
     kinds: { open: "Open a position", close: "Close or reduce a position", collateral: "Change a position" },
   },
   deposit: {

@@ -54,7 +54,9 @@ export function PreparedView({ id }: { id: string }) {
         <p className="text-[15px]">{p.summary}</p>
         <p className="text-[13px] text-fg-2">{a.body}</p>
         <p className="text-xs text-fg-3">{expired ? a.expired : a.expires(formatDuration(p.expiresAt - now))}</p>
-        {!chain || expired ? null : !address ? (
+        {!chain ? (
+          <p className="text-sm font-semibold text-caution">{a.unknownChain}</p>
+        ) : expired ? null : !address ? (
           <>
             <p className="text-sm text-fg-2">{a.signIn}</p>
             {signIn && <Button onClick={signIn}>{m.wallet.signIn}</Button>}
