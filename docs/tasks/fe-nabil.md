@@ -341,3 +341,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Needs: BE-74.
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
   - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
+
+- [x] **FE-97 · Fixes from the Chrome audit of 24 November**
+  - Do: status banners per chain (Base and X Layer showed Monad's stale prices), the `--color-base` token that turned every `text-base` blue, and a label that did not fit on Earn cards.
+  - Done when: each chain shows only its own price and service state, with unit tests.
+  - Note: done on 24 November 2026 (`fe/FE-97-audit-fixes`).
