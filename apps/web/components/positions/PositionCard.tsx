@@ -1,10 +1,11 @@
 "use client";
 
+import { useUiMultiplier } from "@/lib/api/hooks";
 import type { Position } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
-import { formatBps, formatToken, formatUsd, formatWadPercent, wadRatio } from "@/lib/units";
+import { formatBps, formatToken, formatUsd, formatWadPercent, sharesRaw, wadRatio } from "@/lib/units";
 import { GapTry } from "../GapTry";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -22,13 +23,14 @@ import { pnlWithPercent } from "@/lib/shareCard";
 export type ManageTab = "add" | "remove" | "repay" | "reduce" | "close";
 
 export function PositionCard({ p, onManage, protectionControl, openSoftWad }: { p: Position; onManage: (tab: ManageTab) => void; protectionControl: React.ReactNode; openSoftWad?: string }) {
+  const mult = useUiMultiplier(p.symbol);
   const chain = useChain();
   const m = useT();
   const stock = stockOn(chain, p.symbol);
   const long = p.side === "long";
   const ltvShare = wadRatio(p.ltvWad, p.lltvWad);
   const tone = p.overSoftLimit ? (ltvShare > 0.95 ? "down" : "caution") : "up";
-  const stockAmt = stock ? `${formatToken(p.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}` : p.stockAmountRaw;
+  const stockAmt = stock ? `${formatToken(sharesRaw(p.stockAmountRaw, mult), stock.decimals)} ${stock.tokenSymbol}` : p.stockAmountRaw;
   const pnl = BigInt(p.unrealizedPnlUsdRaw);
   const noPrice = hasNoPrice(p.oraclePriceE8);
   const worst = p.gapScenarios[0];

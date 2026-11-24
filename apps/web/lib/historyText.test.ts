@@ -36,3 +36,9 @@ describe("historySentence", () => {
     expect(historySentence(item, en, stockOf)).toBe("Closed. Got $49.70 back, +$0.42.");
   });
 });
+
+describe("historySentence with a share multiplier", () => {
+  it("shows Base share units", () => {
+    expect(historySentence(base, en, stockOf, () => "2000000000000000000")).toContain("0.5382 aQQQ");
+  });
+});

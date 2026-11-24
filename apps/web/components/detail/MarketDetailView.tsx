@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { formatAge, formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { stockTone } from "@/lib/tones";
-import { formatBps, formatLeverage, formatToken, formatUsd, formatWadPercent, wadRatio } from "@/lib/units";
+import { formatBps, formatLeverage, formatToken, formatUsd, formatWadPercent, wadRatio, sharesRaw } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
 import { useOracleSnapshots } from "@/lib/useOracleSnapshots";
 import { AreaChart } from "../ui/AreaChart";
@@ -171,7 +171,7 @@ function LendingCard({ market, symbol }: { market: Market; symbol: string }) {
   const chain = useChain();
   const m = useT();
   const stock = stockOn(chain, symbol)!;
-  const fmt = (raw: string) => (market.side === "long" ? `${formatUsd(raw, 0)} USDC` : `${formatToken(raw, stock.decimals, 2)} ${stock.tokenSymbol}`);
+  const fmt = (raw: string) => (market.side === "long" ? `${formatUsd(raw, 0)} USDC` : `${formatToken(sharesRaw(raw, market.uiMultiplierWad), stock.decimals, 2)} ${stock.tokenSymbol}`);
   return (
     <Card className="flex flex-col gap-4">
       <p className="label-caps">{m.detail.lending}</p>

@@ -11,7 +11,7 @@ import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
 import { splitRequirements } from "@/lib/typedData";
-import { formatToken, formatUsd, formatWadPercent, parseAmount, stockValueUsd } from "@/lib/units";
+import { formatToken, formatUsd, formatWadPercent, parseAmount, stockValueUsd, sharesRaw } from "@/lib/units";
 import { useDebounced } from "@/lib/useDebounced";
 import { useNowSeconds } from "@/lib/useNow";
 import { useChainLimits } from "@/lib/useChainLimits";
@@ -122,10 +122,10 @@ export function TradeView() {
 
   const sentences = q
     ? side === "long"
-      ? m.trade.sentencesLong(`${formatToken(q.preview.debtRaw, 6, 2)} USDC`, `${formatToken(q.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}`, formatUsd(q.preview.feeRaw))
+      ? m.trade.sentencesLong(`${formatToken(q.preview.debtRaw, 6, 2)} USDC`, `${formatToken(sharesRaw(q.preview.stockAmountRaw, market?.uiMultiplierWad), stock.decimals)} ${stock.tokenSymbol}`, formatUsd(q.preview.feeRaw))
       : m.trade.sentencesShort(
           `${formatToken(marginRaw ?? 0n, 6, 2)} USDC`,
-          `${formatToken(q.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}`,
+          `${formatToken(sharesRaw(q.preview.stockAmountRaw, market?.uiMultiplierWad), stock.decimals)} ${stock.tokenSymbol}`,
           formatUsd(stockValueUsd(q.preview.stockAmountRaw, q.preview.execPriceE8, stock.decimals)),
         )
     : [];
