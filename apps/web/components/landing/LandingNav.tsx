@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "../brand/Logo";
 
 const links = [
   ["MARKETS", "/monad/markets"],
@@ -7,22 +8,24 @@ const links = [
   ["HELP", "/monad/help"],
 ] as const;
 
+const POINTER = "cursor-[url(/cursor/pointer.svg)_28_28,pointer]";
+
+/** Floats over the hero like the reference: no fill, a hairline under it, links in the condensed face. */
 export function LandingNav() {
   return (
-    <header className="relative z-20 flex h-[96px] items-center border-b border-white/15 bg-black px-[42px]">
-      <Link href="/landing" className="border-[3px] border-white px-4 py-0.5 font-[family-name:var(--font-league)] text-[46px] leading-none tracking-[0.08em] text-white">
-        LEVRA
-      </Link>
-      <nav aria-label="Main" className="absolute left-1/2 flex -translate-x-1/2 gap-[60px]">
-        {links.map(([label, href]) => (
-          <Link key={label} href={href} className="font-[family-name:var(--font-league)] text-[36px] leading-none text-[#b9b9c2] transition-colors hover:text-white">
-            {label}
-          </Link>
-        ))}
-      </nav>
-      <Link href="/monad/markets" className="ml-auto rounded-full bg-gradient-to-r from-[#d4ee8c] via-[#c7b6f2] to-[#a9b8ff] p-[2px]">
-        <span className="block rounded-full bg-black px-6 py-3 font-[family-name:var(--font-dm-mono)] text-[14px] tracking-[0.2em] text-white">OPEN APP</span>
-      </Link>
+    <header className="fixed inset-x-0 top-0 z-30 h-[100px] border-b border-white/20 bg-gradient-to-b from-black/60 to-transparent">
+      <div className="relative flex h-full items-center px-8">
+        <Link href="/landing" aria-label="Levra home" className={`text-white ${POINTER}`}>
+          <Logo className="h-9 w-auto [&_g]:fill-white" />
+        </Link>
+        <nav aria-label="Main" className="absolute left-1/2 flex -translate-x-1/2 gap-12">
+          {links.map(([label, href]) => (
+            <Link key={label} href={href} className={`font-[family-name:var(--font-league)] text-[26px] leading-none text-white/80 transition-colors duration-300 hover:text-white ${POINTER}`}>
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </div>
     </header>
   );
 }
