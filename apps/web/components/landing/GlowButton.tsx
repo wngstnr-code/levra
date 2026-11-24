@@ -48,7 +48,7 @@ function Frame({ w, h, r, round, children }: { w: number; h: number; r: number; 
       <rect x={pad} y={pad} width={w} height={h} rx={round ? h / 2 : r} fill="none" stroke={`url(#g${id})`} strokeWidth={2} />
       <rect className="glow-hover" x={pad} y={pad} width={w} height={h} rx={round ? h / 2 : r} fill={`url(#r${id})`} stroke={`url(#g${id})`} strokeWidth={4} filter={`url(#s${id})`} />
       <rect className="glow-hover" x={pad} y={pad} width={w} height={h} rx={round ? h / 2 : r} fill="none" stroke={`url(#g${id})`} strokeWidth={4} filter={`url(#b${id})`} />
-      <rect className="glow-trace" x={pad} y={pad} width={w} height={h} rx={round ? h / 2 : r} fill="none" stroke="white" strokeWidth={3} strokeLinecap="round" pathLength={100} />
+      <rect className="glow-trace" x={pad} y={pad} width={w} height={h} rx={round ? h / 2 : r} fill="none" stroke="white" strokeWidth={3} pathLength={100} />
       {children}
     </svg>
   );
