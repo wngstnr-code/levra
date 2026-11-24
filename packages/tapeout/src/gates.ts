@@ -105,6 +105,83 @@ export class Logic {
   muxWord(sel: number, ifOne: Word, ifZero: Word): Word {
     return ifOne.map((s, i) => this.mux(sel, s, ifZero[i] ?? CONST0));
   }
+
+  /**
+   * `x * k` for a constant `k > 0`, over `x.length + bitLength(k)` bits, which always holds the product. Shift and add
+   * on the signed digits of `k` (non-adjacent form), so a run of ones costs one subtraction instead of many additions.
+   */
+  mulConst(x: Word, k: bigint): Word {
+    if (k <= 0n) throw new Error("mulConst needs a positive constant");
+    const width = x.length + k.toString(2).length;
+    const digits = nonAdjacentForm(k);
+    const shifted = (s: number): Word => [...Array<number>(s).fill(CONST0), ...x].slice(0, width);
+    let acc: Word | null = null;
+    for (let s = digits.length - 1; s >= 0; s--) {
+      const d = digits[s]!;
+      if (d === 0) continue;
+      const term = shifted(s);
+      // The top digit of a non-adjacent form is +1, so the sum starts positive; wrapping in between is exact mod 2^width.
+      if (acc === null) acc = [...term, ...Array<number>(width).fill(CONST0)].slice(0, width);
+      else if (d > 0) acc = this.addTight(acc, term, width);
+      else acc = this.addTight(acc, Array.from({ length: width }, (_, i) => this.not(term[i] ?? CONST0)), width, CONST1);
+    }
+    return acc!;
+  }
+
+  /**
+   * `a + b` like `add`, with the 9 NAND full adder where no input is a constant (13 in `add`). `add` stays as it is
+   * because the Wall Street Clock's measured size depends on it.
+   */
+  addTight(a: Word, b: Word, width: number, carryIn: number = CONST0): Word {
+    const sum: Word = [];
+    let carry = carryIn;
+    for (let i = 0; i < width; i++) {
+      const x = a[i] ?? CONST0;
+      const y = b[i] ?? CONST0;
+      if ([x, y, carry].some((s) => s === CONST0 || s === CONST1)) {
+        const xy = this.xor(x, y);
+        sum.push(this.xor(xy, carry));
+        carry = this.or(this.and(x, y), this.and(xy, carry));
+        continue;
+      }
+      const t1 = this.c.nand(x, y);
+      const xy = this.c.nand(this.c.nand(x, t1), this.c.nand(y, t1));
+      const t4 = this.c.nand(xy, carry);
+      sum.push(this.c.nand(this.c.nand(xy, t4), this.c.nand(carry, t4)));
+      carry = this.c.nand(t1, t4);
+    }
+    return sum;
+  }
+
+  /** At least two of three in 6 NAND where no input is a constant. */
+  majorityTight(a: number, b: number, c: number): number {
+    if ([a, b, c].some((s) => s === CONST0 || s === CONST1)) return this.majority(a, b, c);
+    return this.c.nand(this.not(this.c.nand(this.c.nand(a, b), this.c.nand(a, c))), this.c.nand(b, c));
+  }
+
+  /** `a <= b`, unsigned, for words of any widths. */
+  le(a: Word, b: Word): number {
+    const width = Math.max(a.length, b.length);
+    // "b is below a so far" from the low bit up: at each bit the majority of (not b_i, a_i, below).
+    let below = CONST0;
+    for (let i = 0; i < width; i++) below = this.majorityTight(this.not(b[i] ?? CONST0), a[i] ?? CONST0, below);
+    return this.not(below);
+  }
+}
+
+/** Signed digits of `k`, lowest first, no two adjacent digits non-zero. */
+export function nonAdjacentForm(k: bigint): number[] {
+  const digits: number[] = [];
+  let n = k;
+  while (n > 0n) {
+    if ((n & 1n) === 1n) {
+      const d = 2 - Number(n & 3n);
+      digits.push(d);
+      n -= BigInt(d);
+    } else digits.push(0);
+    n >>= 1n;
+  }
+  return digits;
 }
 
 function tree(xs: readonly number[], empty: number, op: (a: number, b: number) => number): number {

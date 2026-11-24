@@ -17,18 +17,23 @@ import {
   openContainer,
   packBits,
   readClockOutput,
+  readRiskOutput,
+  riskAt,
+  riskCircuit,
+  riskInput,
   sendMessage,
   tapeout,
   toBits,
   transistorsAbi,
   unpackBits,
   wallStreetClock,
+  type RiskPosition,
 } from "../src";
 
 /**
- * BE-82 and BE-86: the TapeOut path on a fork of X Layer. Our own processor from the factory, an 8-bit `a < b` circuit
- * taped out, evaluated, its container opened and one TapeSend message sent; then the Wall Street Clock taped out and
- * read onchain against `calendar.ts`. Start `anvil --fork-url https://rpc.xlayer.tech --chain-id 196 --block-time 1`
+ * BE-82, BE-86 and BE-83: the TapeOut path on a fork of X Layer. Our own processor from the factory, an 8-bit `a < b`
+ * circuit taped out, evaluated, its container opened and one TapeSend message sent; then the Wall Street Clock and the
+ * risk circuit taped out and read onchain against `calendar.ts` and `math.ts`. Start `anvil --fork-url https://rpc.xlayer.tech --chain-id 196 --block-time 1`
  * and run with XLAYER_FORK_RPC_URL.
  */
 const forkUrl = process.env.XLAYER_FORK_RPC_URL;
@@ -123,6 +128,40 @@ describe.skipIf(!forkUrl)("TapeOut on an X Layer fork (BE-82, BE-86)", () => {
       const data = encodeFunctionData({ abi: circuitsAbi, functionName: "eval", args: [taped.id, clockInput(moments[0]!)] });
       const gas = await client.estimateGas({ to: cpu.circuits, data, account: AUTHOR });
       console.log(`eval clock: gas ${gas}`);
+    },
+    TIMEOUT_MS,
+  );
+
+  it(
+    "tapes out the aQQQ risk circuit and reads it onchain like math.ts",
+    async () => {
+      const pct = (bps: bigint) => (bps * 10n ** 18n) / 10_000n;
+      const limits = { lltvWad: pct(7700n), softOpenWad: pct(7300n), softClosedWad: pct(7000n) };
+      const risk = riskCircuit(limits);
+      await mintNand(clients, FACTORY, cpu.transistors, BigInt(risk.gates.length));
+      const taped = await tapeout(clients, cpu.circuits, risk);
+      log(`tapeout risk aQQQ (${risk.gates.length} NAND)`, taped.gasUsed, taped.fee);
+      expect(taped.gateCount).toBe(risk.gates.length);
+
+      const value = 1_234_567_890_123n;
+      const at = (bps: bigint) => (value * pct(bps)) / 10n ** 18n;
+      const positions: RiskPosition[] = [
+        { debt: 0n, value: 0n, session: "REGULAR", preClose: false },
+        { debt: at(7000n), value, session: "REGULAR", preClose: false },
+        { debt: at(7150n), value, session: "REGULAR", preClose: false },
+        { debt: at(7150n), value, session: "CLOSED", preClose: false },
+        { debt: at(7150n), value, session: "REGULAR", preClose: true },
+        { debt: at(7700n), value, session: "OVERNIGHT", preClose: false },
+        { debt: at(7700n) + 1n, value, session: "UNKNOWN", preClose: false },
+        { debt: 5n, value: 0n, session: "PRE_MARKET", preClose: false },
+      ];
+      for (const p of positions) {
+        const out = await evalCircuit(client, cpu.circuits, taped.id, riskInput(p));
+        expect(readRiskOutput(out), JSON.stringify(p, (_, v) => (typeof v === "bigint" ? v.toString() : v))).toEqual(riskAt(limits, p));
+      }
+      const data = encodeFunctionData({ abi: circuitsAbi, functionName: "eval", args: [taped.id, riskInput(positions[2]!)] });
+      const gas = await client.estimateGas({ to: cpu.circuits, data, account: AUTHOR });
+      console.log(`eval risk aQQQ: gas ${gas}`);
     },
     TIMEOUT_MS,
   );
