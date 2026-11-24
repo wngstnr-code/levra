@@ -36,8 +36,8 @@ export type RateLimitOptions = {
 };
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-/** Quotes outside /v1/quote/ that also call an outside service. */
-const QUOTE_PATHS = new Set(["/v1/deposit/quote", "/v1/withdraw/quote", "/v1/bridge/deposit", "/v1/bridge/withdraw"]);
+/** Quotes outside /v1/quote/ that also call an outside service. A prepared action runs a quote first (BE-77). */
+const QUOTE_PATHS = new Set(["/v1/deposit/quote", "/v1/withdraw/quote", "/v1/bridge/deposit", "/v1/bridge/withdraw", "/v1/agent/prepare"]);
 
 /** Our proxy appends the address it saw to x-forwarded-for, so the last entry is the one we can trust. */
 export function clientIp(c: Context, trustProxyHeader: string | undefined): string {
@@ -56,8 +56,9 @@ export function clientIp(c: Context, trustProxyHeader: string | undefined): stri
 async function bodyWallet(c: Context): Promise<string | undefined> {
   try {
     const body: unknown = await c.req.json();
-    const fields = typeof body === "object" && body !== null ? (body as { user?: unknown; recipient?: unknown }) : {};
-    const user = fields.user ?? fields.recipient;
+    type Fields = { user?: unknown; recipient?: unknown; request?: { user?: unknown } };
+    const fields = typeof body === "object" && body !== null ? (body as Fields) : {};
+    const user = fields.user ?? fields.recipient ?? fields.request?.user;
     return typeof user === "string" && ADDRESS.test(user) ? user.toLowerCase() : undefined;
   } catch {
     return undefined;

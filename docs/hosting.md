@@ -48,8 +48,8 @@ All app services use one image built from the repo (`deploy/Dockerfile`, BE-90):
 | `keeper-monad` | `pnpm --filter @levra/keeper start` for chain 143, plus the jobs that run once for all chains (`KEEPER_GLOBAL=1`, BE-95) | BE-90 | `DATABASE_URL`, the four Monad role keys, `TELEGRAM_BOT_TOKEN`, swap API keys |
 | `keeper-base`, `keeper-xlayer` | Same code for chains 8453 and 196. They start without keys, for the Chainlink price recorder only (BE-97), and get role keys with our deployments | BE-97, then BE-73 and BE-80 | The role keys of that chain |
 | `indexer-base`, `indexer-xlayer` | Same code for chains 8453 and 196 | BE-73, BE-80 | `DATABASE_URL`, `ENVIO_API_TOKEN` |
-| `agent` | MCP server and the Telegram bot updates. Holds no keys | BE-77, BE-78 | `TELEGRAM_BOT_TOKEN` (moves from the keeper) |
-| `caddy` | HTTPS and the reverse proxy to `api` | BE-90 | None |
+| `agent` | `apps/agent` MCP server at `api.levra.finance/mcp` (stateless Streamable HTTP, port 8790, no public port). Calls the API at `http://api:8787` and passes on only the caller's address (`CLIENT_IP_HEADER`, D-111). Holds no keys. Later also the Telegram bot updates (BE-78) | BE-77, BE-78 | None now; `TELEGRAM_BOT_TOKEN` with BE-78 (moves from the keeper) |
+| `caddy` | HTTPS and the reverse proxy: `/mcp` to `agent`, everything else to `api` | BE-90 | None |
 
 Each chain gets its own four role keys (BE-55), so a rotation on one chain does not touch the others.
 
@@ -69,7 +69,7 @@ Rules: a secret is never printed, pasted in chat or committed. The keeper's logg
 ## HTTPS and the API address
 
 1. First deploy: `api.levra.finance` (D-96) is an `A` record on Cloudflare pointing at the server's IPv4 address, **DNS only** (grey cloud), and `API_HOST=api.levra.finance` in `caddy.env`. Caddy then gets a Let's Encrypt certificate itself. Not verified: check that the certificate is issued (`curl https://api.levra.finance/v1/health`) before the address goes to Nabil. Until Cloudflare proxies it, the API trusts `x-forwarded-for` as written by Caddy (`TRUST_PROXY_HEADER`).
-2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52). This is what lets the API refuse US users on Base (D-73).
+2. Then (BE-52): the `api` record proxied (orange cloud), with Cloudflare's SSL mode "Full (strict)" so it checks Caddy's certificate. The server then accepts ports 80 and 443 from Cloudflare's address ranges only, so nobody can go around Cloudflare and forge the country header. The API sets `GEO_COUNTRY_HEADER=cf-ipcountry`, `GEO_REGION_HEADER=cf-region-code` and `TRUST_PROXY_HEADER=cf-connecting-ip` (BE-52), and `agent.env` sets `CLIENT_IP_HEADER=cf-connecting-ip` in the same deploy (`deploy.sh` refuses a mismatch). This is what lets the API refuse US users on Base (D-73).
 
 ### Cloudflare in front (BE-52)
 

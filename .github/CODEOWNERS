@@ -2,6 +2,7 @@
 /apps/api/                           @dharumahendra
 /apps/indexer/                       @dharumahendra
 /apps/keeper/                        @dharumahendra
+/apps/agent/                         @dharumahendra
 /apps/web/                           @Nabil-Aufa
 /deploy/                             @dharumahendra
 /.dockerignore                       @dharumahendra

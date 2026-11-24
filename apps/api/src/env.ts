@@ -43,6 +43,8 @@ const envSchema = z.object({
   AUTH_DOMAIN: optional(),
   /** Web origins allowed to call the API from a browser, same pattern rules, for example https://app.levra.finance. */
   CORS_ORIGINS: optional(),
+  /** Base URL of the web app, for example https://app.levra.finance. Agent links point there; the agent routes are off without it (BE-77). */
+  WEB_APP_URL: optional().pipe(z.url().optional()),
   /** Username of the alert bot, without @. The Telegram link route is off without it. */
   TELEGRAM_BOT_USERNAME: optional(),
   /** Aurora Intents partner token (BE-40). Optional: without it the service adds its own 0.2% fee to every transfer. */
