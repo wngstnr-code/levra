@@ -280,11 +280,12 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Done when: the page loads from DeWEB and its address is in 05. If the tools cannot export it, raise it to the team the same day.
   - Note (24 November 2026, D-113): the page on DeWEB is the "close without Levra" guide from `docs/public/contracts.md` (revoke, repay, withdraw collateral on Morpho), linked from the app footer and the help page. The stats page can follow.
 
-- [ ] **FE-83 · Show the risk circuit**
+- [~] **FE-83 · Show the risk circuit**
   - Needs: BE-83.
   - Do: on the position page, show health and liquidation price with a "checked by TapeOut circuit" mark and a link to the circuit.
   - Done when: it shows for a real X Layer position.
   - Note (24 November 2026, D-113): also in the long and short confirmation: a weekend gap check line ("after a Monday gap like the worst one, this position stays healthy / would be liquidated") with the "checked by TapeOut circuit" mark, and the market session shown from the clock circuit on X Layer.
+  - Note: 24 November 2026 (`fe/FE-83-gap-check`): the long and short confirmation ends with the weekend gap check from the quote's worst historical gap (stays open, or would be liquidated). Left: the "checked by TapeOut circuit" mark and the session from the clock circuit need the taped out risk and clock circuits on X Layer mainnet (BE-82 paused until its key is funded) and their addresses in `packages/shared`.
 
 - [ ] **FE-94 · USDC in and out through CCTP**
   - Needs: BE-85 (built, 24 November 2026).
