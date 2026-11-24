@@ -1,4 +1,4 @@
-import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform, Triangle } from "ogl";
+import { Camera, Mesh, Plane, Program, RenderTarget, Renderer, Texture, Transform, Triangle } from "ogl";
 
 /**
  * The landing hero in one WebGL canvas: a topographic background that follows the active card's colour and bends
@@ -49,6 +49,29 @@ void main() {
   gl_FragColor = vec4(c * light, 1.0);
 }`;
 
+/**
+ * A small velocity field that the pointer stirs: it carries itself along and fades, like the reference's fluid but
+ * at 64 x 64 and without a pressure step. Stored as RGBA8 (velocity x 0.5 + 0.5) so it runs on every GPU.
+ */
+const fluidFragment = /* glsl */ `
+precision highp float;
+uniform sampler2D tPrev;
+uniform vec2 uPoint;
+uniform vec2 uDir;
+uniform float uAspect;
+varying vec2 vUv;
+void main() {
+  vec2 v = texture2D(tPrev, vUv).xy * 2.0 - 1.0;
+  vec2 a = texture2D(tPrev, vUv - v * 0.02).xy * 2.0 - 1.0;
+  a *= 0.972;
+  vec2 d = vUv - uPoint;
+  d.x *= uAspect;
+  a += uDir * exp(-dot(d, d) / 0.0045);
+  a = clamp(a, -1.0, 1.0);
+  if (length(a) < 0.012) a = vec2(0.0);
+  gl_FragColor = vec4(a * 0.5 + 0.5, 0.0, 1.0);
+}`;
+
 const bgVertex = /* glsl */ `
 attribute vec2 position;
 attribute vec2 uv;
@@ -61,6 +84,7 @@ uniform float uTime;
 uniform vec2 uRes;
 uniform vec2 uMouse;
 uniform float uForce;
+uniform sampler2D tFluid;
 uniform vec3 uBase;
 uniform vec3 uLine;
 varying vec2 vUv;
@@ -91,8 +115,8 @@ float snoise(vec2 v) {
 void main() {
   vec2 p = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0) * 2.0;
   vec2 m = (uMouse - 0.5) * vec2(uRes.x / uRes.y, 1.0) * 2.0;
-  float d = distance(p, m);
-  p += (p - m) * uForce * 0.35 * exp(-d * d * 5.0);
+  vec2 vel = texture2D(tFluid, vUv).xy * 2.0 - 1.0;
+  p -= vel * vec2(0.55, -0.55);
   // Wide, thin rings around a point near the top, stretched sideways, as in the reference.
   float f = length((p - vec2(0.35, 1.05)) * vec2(0.6, 1.0)) * 1.8
           + snoise(p * 0.45 + vec2(0.0, uTime * 0.03)) * 0.14
@@ -136,6 +160,10 @@ export class HeroScene {
   private cards: Mesh[] = [];
   private bg: Mesh;
   private bgProgram: Program;
+  private fluid: Mesh;
+  private fluidProgram: Program;
+  private targets: [RenderTarget, RenderTarget];
+  private splat = { x: 0.5, y: 0.5, dx: 0, dy: 0 };
   private raf = 0;
   private running = false;
   private start = performance.now();
@@ -172,6 +200,27 @@ export class HeroScene {
       uniforms: { uTime: { value: 0 }, uRes: { value: [1, 1] }, uMouse: { value: [0.5, 0.5] }, uForce: { value: 0 }, uBase: { value: first.base }, uLine: { value: first.line } },
     });
     this.bg = new Mesh(gl, { geometry: new Triangle(gl), program: this.bgProgram });
+
+    const rt = () => new RenderTarget(gl, { width: 64, height: 64, depth: false, minFilter: gl.LINEAR, magFilter: gl.LINEAR });
+    this.targets = [rt(), rt()];
+    this.fluidProgram = new Program(gl, {
+      vertex: bgVertex,
+      fragment: fluidFragment,
+      depthTest: false,
+      depthWrite: false,
+      uniforms: { tPrev: { value: this.targets[0].texture }, uPoint: { value: [0.5, 0.5] }, uDir: { value: [0, 0] }, uAspect: { value: 1 } },
+    });
+    this.fluid = new Mesh(gl, { geometry: new Triangle(gl), program: this.fluidProgram });
+    this.bgProgram.uniforms.tFluid = { value: this.targets[0].texture };
+    // Start from a still field: 0.5 in both channels means no velocity.
+    for (const t of this.targets) {
+      this.renderer.bindFramebuffer(t);
+      gl.viewport(0, 0, 64, 64);
+      gl.clearColor(0.5, 0.5, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+    this.renderer.bindFramebuffer();
+    gl.clearColor(0, 0, 0, 1);
 
     const radius = 1 / (2 * Math.sin(Math.PI / this.count));
     const geometry = new Plane(gl, { width: 1, height: CARD_HEIGHT, widthSegments: 48, heightSegments: 1 });
@@ -223,6 +272,7 @@ export class HeroScene {
     const radius = 1 / (2 * Math.sin(Math.PI / this.count));
     this.ring.position.set(0.02, -0.045, -(distance + radius * 0.5));
     this.bgProgram.uniforms.uRes!.value = [w, h];
+    this.fluidProgram.uniforms.uAspect!.value = w / h;
     if (!this.running) this.render(0);
   }
 
@@ -233,11 +283,13 @@ export class HeroScene {
     if (!this.running) this.render(0);
   }
 
-  pointer(x: number, y: number, speed: number) {
+  /** Pointer in section units (0 to 1, y down) with its movement since the last event, also in section units. */
+  pointer(x: number, y: number, dx = 0, dy = 0) {
     this.mouse.x = x;
     this.mouse.y = 1 - y;
-    if (!this.still) this.aim = { x: x - 0.5, y: y - 0.5 };
-    this.mouse.force = Math.min(1, this.mouse.force + speed * 0.004);
+    if (this.still) return;
+    this.aim = { x: x - 0.5, y: y - 0.5 };
+    this.splat = { x, y: 1 - y, dx: this.splat.dx + dx * 9, dy: this.splat.dy - dy * 9 };
   }
 
   private currentPalette(): Palette {
@@ -254,6 +306,17 @@ export class HeroScene {
     u.uLine!.value = pal.line;
     u.uTime!.value = time;
     this.mouse.force *= 0.94;
+    if (!this.still) {
+      const f = this.fluidProgram.uniforms;
+      f.tPrev!.value = this.targets[0].texture;
+      f.uPoint!.value = [this.splat.x, this.splat.y];
+      f.uDir!.value = [Math.max(-1, Math.min(1, this.splat.dx)), Math.max(-1, Math.min(1, this.splat.dy))];
+      this.splat.dx = 0;
+      this.splat.dy = 0;
+      this.renderer.render({ scene: this.fluid, target: this.targets[1], clear: false });
+      this.targets.reverse();
+      u.tFluid!.value = this.targets[0].texture;
+    }
     u.uMouse!.value = [this.mouse.x, this.mouse.y];
     u.uForce!.value = this.mouse.force;
     this.tilt.x += (this.aim.x - this.tilt.x) * 0.06;
