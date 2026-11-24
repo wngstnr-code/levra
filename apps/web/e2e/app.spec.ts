@@ -1,7 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { expect, mockService, test } from "./fixtures";
 
-const monadRouter = readDeployment(new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname).router;
+const monadRouter = readDeployment(fileURLToPath(new URL("../../../contracts/deployments/monad.json", import.meta.url))).router;
 
 test("markets shows prices, limits and leverage from the service", async ({ page }) => {
   await mockService(page);
@@ -151,3 +152,15 @@ for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn",
     expect(width).toBeLessThanOrEqual(page.viewportSize()!.width);
   });
 }
+
+test("the landing hero has its own nav and turns the carousel", async ({ page }) => {
+  await page.goto("/landing");
+  await expect(page.getByRole("link", { name: "LEVRA" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Change network/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("NVIDIA");
+  await page.getByRole("button", { name: "Next stock" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("TESLA");
+  await page.getByRole("button", { name: "Show APPLE" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("APPLE");
+  await expect(page.getByRole("link", { name: "TRADE" })).toHaveAttribute("href", "/base/trade?symbol=AAPL");
+});
