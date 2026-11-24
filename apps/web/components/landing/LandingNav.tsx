@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "../brand/Logo";
 import { GlowButton } from "./GlowButton";
@@ -13,8 +16,16 @@ const POINTER = "cursor-[url(/cursor/pointer.svg)_28_28,pointer]";
 
 /** Floats over the hero like the reference: no fill, a hairline under it, links in the condensed face. */
 export function LandingNav() {
+  // Over the hero the nav is clear; past it, it turns solid black like the reference so it reads on light sections.
+  const [solid, setSolid] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setSolid(window.scrollY > window.innerHeight - 110);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   return (
-    <header className="fixed inset-x-0 top-0 z-30 h-[100px] border-b border-white/20 bg-gradient-to-b from-black/60 to-transparent">
+    <header className={`fixed inset-x-0 top-0 z-30 h-[100px] border-b border-white/20 transition-colors duration-500 ${solid ? "bg-black" : "bg-gradient-to-b from-black/60 to-transparent"}`}>
       <div className="relative flex h-full items-center px-8">
         <Link href="/landing" aria-label="Levra home" className={`text-white ${POINTER}`}>
           <Logo className="h-9 w-auto [&_g]:fill-white" />

@@ -15,7 +15,7 @@ const slides: Slide[] = [
   { symbol: "QQQ", name: "NASDAQ 100", chain: "monad", chainName: "MONAD", line: "THE QQQ ETF AS A TOKEN, WITH LEVERAGE", image: "/landing/qqq.jpg", tile: "#836EF9", colors: palette("#36285f", "#a796f0") },
   { symbol: "AAPL", name: "APPLE", chain: "base", chainName: "BASE", line: "LEND AAPL AND EARN INTEREST", image: "/landing/aapl.jpg", tile: "#1C1C1F", colors: palette("#4a4c52", "#c3c6cf") },
   { symbol: "SPY", name: "S&P 500", chain: "xlayer", chainName: "X LAYER", line: "THE SPY ETF ON X LAYER, LONG OR SHORT", image: "/landing/spy.jpg", tile: "#2B2B30", colors: palette("#2f4a63", "#9fc0dd") },
-  { symbol: "META", name: "META", chain: "base", chainName: "BASE", line: "LONG META WITH UP TO 2× ON BASE", image: "/landing/meta.jpg", tile: "#0467DF", colors: palette("#1a3474", "#86a9f2") },
+  { symbol: "META", name: "META", chain: "base", chainName: "BASE", line: "LONG META WITH LEVERAGE ON BASE", image: "/landing/meta.jpg", tile: "#0467DF", colors: palette("#1a3474", "#86a9f2") },
 ];
 
 const N = slides.length;
@@ -219,7 +219,7 @@ export function LandingHero() {
           {slide.line}
         </p>
         <div data-fade className="pointer-events-auto mt-[3vh]">
-          <GlowButton href={`/${slide.chain}/trade?symbol=${slide.symbol}`} label="Trade" />
+          <GlowButton href={`/${slide.chain}/trade?symbol=${slide.symbol}`} label={`Trade ${slide.symbol}`} />
         </div>
       </div>
 
@@ -238,7 +238,7 @@ export function LandingHero() {
 
       <div className="absolute top-[83.1%] right-[10.4%] z-10 flex flex-col items-end gap-[2.4vh]">
         <Link
-          href="/monad/markets"
+          href="#markets"
           className="flex items-center gap-2 font-[family-name:var(--font-dm-mono)] text-[12px] leading-none tracking-[0.1em] text-white uppercase transition-opacity duration-300 hover:opacity-70 cursor-[url(/cursor/pointer.svg)_28_28,pointer]"
         >
           See all markets

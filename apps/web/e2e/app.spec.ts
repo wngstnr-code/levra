@@ -162,5 +162,8 @@ test("the landing hero has its own nav and turns the carousel", async ({ page })
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("TESLA");
   await page.getByRole("button", { name: "Show APPLE" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("APPLE");
-  await expect(page.getByRole("link", { name: "Trade", exact: true })).toHaveAttribute("href", "/base/trade?symbol=AAPL");
+  await expect(page.getByRole("link", { name: "Trade AAPL" })).toHaveAttribute("href", "/base/trade?symbol=AAPL");
+  await expect(page.getByRole("link", { name: /See all markets/ })).toHaveAttribute("href", "#markets");
+  await expect(page.locator("#markets")).toBeAttached();
+  await expect(page.getByRole("contentinfo")).toContainText("Not available in the US");
 });
