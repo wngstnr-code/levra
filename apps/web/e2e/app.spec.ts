@@ -132,6 +132,23 @@ test("an agent's prepared close shows what it does and asks to sign in", async (
   await expect(page.getByText("This link is not known. Ask your agent again.")).toBeVisible();
 });
 
+test("stats shows the chain's public numbers", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/stats");
+  await expect(page.getByRole("heading", { name: "Stats" })).toBeVisible();
+  await expect(page.getByText("12", { exact: true })).toBeVisible();
+  await expect(page.getByText("$2,000.00")).toBeVisible();
+  await expect(page.getByText("$35,820.00")).toBeVisible();
+  await expect(page.getByText("41 trades")).toBeVisible();
+});
+
+test("the footer links to stats on every screen", async ({ page }) => {
+  await mockService(page);
+  await page.goto("/monad/markets");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Stats" }).click();
+  await expect(page).toHaveURL(/\/monad\/stats$/);
+});
+
 test("an unknown network in the URL says the page does not exist", async ({ page }) => {
   await mockService(page);
   await page.goto("/nowhere/markets");
@@ -157,7 +174,7 @@ test("phones get the tab bar instead of the top navigation", async ({ page, isMo
 });
 
 // The page must never be wider than the screen. Compared with the device width, not innerWidth, which grows with the page.
-for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help"]) {
+for (const path of ["/markets", "/markets/QQQ", "/trade", "/positions", "/earn", "/deposit", "/settings", "/help", "/stats"]) {
   test(`${path} fits a phone screen`, async ({ page, isMobile }) => {
     test.skip(!isMobile, "phone layout only");
     await mockService(page);

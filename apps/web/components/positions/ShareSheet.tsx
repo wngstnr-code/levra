@@ -44,7 +44,7 @@ function draw(canvas: HTMLCanvasElement, d: ShareCardData, bg: HTMLImageElement 
   ctx.fillStyle = d.moveUp ? "#6fd39a" : "#ff8a80";
   ctx.font = font(800, 168);
   ctx.fillText(d.moveText, 48, 410);
-  const stats: [string, string][] = [
+  const stats: [string, string][] = d.stats ?? [
     [labels.entry, d.entryText],
     [labels.now, d.nowText],
     [labels.pnl, d.pnlText],
@@ -64,14 +64,11 @@ function draw(canvas: HTMLCanvasElement, d: ShareCardData, bg: HTMLImageElement 
   ctx.fillText(labels.cta, W - 56 - cw, 552);
 }
 
-/** A picture of the position for X, drawn in the browser from the numbers the service reports. */
-export function ShareSheet({ position, open, onClose }: { position: Position; open: boolean; onClose: () => void }) {
+/** A picture of a position or a closed trade for X, drawn in the browser from the numbers the service reports. */
+export function ShareSheet({ data, link, text, fileName, note, open, onClose }: { data: ShareCardData; link: string; text: string; fileName: string; note: string; open: boolean; onClose: () => void }) {
   const m = useT();
-  const chain = useChain();
   const canvas = useRef<HTMLCanvasElement>(null);
   const [url, setUrl] = useState<string | null>(null);
-  const stock = stockOn(chain, position.symbol);
-  const data = shareCardData(position, stock?.tokenSymbol ?? position.symbol, chain.name);
 
   useEffect(() => {
     if (!open || !canvas.current) return;
@@ -85,17 +82,14 @@ export function ShareSheet({ position, open, onClose }: { position: Position; op
     img.onload = () => render(img);
     img.onerror = () => render(null);
     img.src = "/share-bg.jpg";
-  }, [open, data.moveText, data.pnlText, data.nowText]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const link = typeof window !== "undefined" ? `${window.location.origin}${chainPath(chain, `/markets/${position.symbol}`)}` : "";
-  const text = m.share.post(data.tokenSymbol, position.side === "long" ? m.trade.long : m.trade.short, data.moveText);
+  }, [open, data.moveText, data.pnlText, data.nowText, JSON.stringify(data.stats)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Sheet open={open} onClose={onClose} title={m.share.title}>
       <canvas ref={canvas} width={W} height={H} className="aspect-[1200/630] w-full rounded-panel bg-ink" aria-label={text} />
-      <p className="text-xs text-fg-3">{m.share.note}</p>
+      <p className="text-xs text-fg-3">{note}</p>
       <div className="flex gap-2">
-        <a href={url ?? undefined} download={`levra-${data.tokenSymbol}-${position.side}.png`} aria-disabled={!url} className={buttonClass("secondary", "md", "flex-1 gap-2")}>
+        <a href={url ?? undefined} download={fileName} aria-disabled={!url} className={buttonClass("secondary", "md", "flex-1 gap-2")}>
           <Download size={16} aria-hidden /> {m.share.download}
         </a>
         <a href={postOnXUrl(text, link)} target="_blank" rel="noreferrer" className={buttonClass("primary", "md", "flex-1 gap-2")}>
@@ -104,4 +98,15 @@ export function ShareSheet({ position, open, onClose }: { position: Position; op
       </div>
     </Sheet>
   );
+}
+
+/** The share sheet for an open position, linking to its market. */
+export function PositionShareSheet({ position, open, onClose }: { position: Position; open: boolean; onClose: () => void }) {
+  const m = useT();
+  const chain = useChain();
+  const stock = stockOn(chain, position.symbol);
+  const data = shareCardData(position, stock?.tokenSymbol ?? position.symbol, chain.name);
+  const link = typeof window !== "undefined" ? `${window.location.origin}${chainPath(chain, `/markets/${position.symbol}`)}` : "";
+  const text = m.share.post(data.tokenSymbol, position.side === "long" ? m.trade.long : m.trade.short, data.moveText);
+  return <ShareSheet data={data} link={link} text={text} fileName={`levra-${data.tokenSymbol}-${position.side}.png`} note={m.share.note} open={open} onClose={onClose} />;
 }

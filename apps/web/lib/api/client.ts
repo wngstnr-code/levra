@@ -30,7 +30,7 @@ export type ApiResponse<N extends EndpointName> = Endpoints[N] extends { respons
 export type ApiBody<N extends EndpointName> = Endpoints[N] extends { body: infer B extends z.ZodType } ? z.input<B> : never;
 
 /** Endpoints that do not belong to one chain: health, the status of every chain, compliance and alerts. */
-const GLOBAL_ENDPOINTS = new Set<EndpointName>(["health", "status", "prepared", "chains", "eligibility", "termsAccept", "authNonce", "authSiwe", "alertsGet", "alertsPut", "alertsTelegramLink", "alertsTelegramUnlink"]);
+const GLOBAL_ENDPOINTS = new Set<EndpointName>(["health", "status", "prepared", "bridgeStatus", "chains", "eligibility", "termsAccept", "authNonce", "authSiwe", "alertsGet", "alertsPut", "alertsTelegramLink", "alertsTelegramUnlink"]);
 
 /** The chain whose routes stay at /v1/... as aliases until the web app moves (D-60, BE-70). */
 const ALIAS_CHAIN_ID = 143;

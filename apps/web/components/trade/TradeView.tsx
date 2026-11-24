@@ -11,7 +11,7 @@ import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
 import { splitRequirements } from "@/lib/typedData";
-import { formatToken, formatUsd, formatWadPercent, parseAmount, stockValueUsd } from "@/lib/units";
+import { formatBps, formatToken, formatUsd, formatWadPercent, parseAmount, sharesRaw, stockValueUsd } from "@/lib/units";
 import { useDebounced } from "@/lib/useDebounced";
 import { useNowSeconds } from "@/lib/useNow";
 import { useChainLimits } from "@/lib/useChainLimits";
@@ -31,6 +31,7 @@ import { QuoteSummary } from "./QuoteSummary";
 import { useChain, useChainHref } from "@/lib/useChain";
 import { deployedMarketOn, listedStocks, stockOn } from "@/lib/chains";
 import { noticeFor } from "@/lib/warnings";
+import { worstGap } from "@/lib/gapSteps";
 import { slippageFromParam } from "@/lib/prepared";
 import { useAgentRequest } from "@/lib/useAgentRequest";
 import { haltNotice, hasNoPrice, noPriceNotice } from "@/lib/marketState";
@@ -134,15 +135,18 @@ export function TradeView() {
     };
   })();
 
-  const sentences = q
+  const worst = q ? worstGap(q.preview.gapScenarios) : null;
+  const gapLine = worst ? (worst.liquidated ? m.gapCheck.liquidated : m.gapCheck.healthy)(formatBps(worst.moveBps, { signed: true, fractionDigits: 1 })) : null;
+  const baseSentences = q
     ? side === "long"
-      ? m.trade.sentencesLong(`${formatToken(q.preview.debtRaw, 6, 2)} USDC`, `${formatToken(q.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}`, formatUsd(q.preview.feeRaw))
+      ? m.trade.sentencesLong(`${formatToken(q.preview.debtRaw, 6, 2)} USDC`, `${formatToken(sharesRaw(q.preview.stockAmountRaw, market?.uiMultiplierWad), stock.decimals)} ${stock.tokenSymbol}`, formatUsd(q.preview.feeRaw))
       : m.trade.sentencesShort(
           `${formatToken(marginRaw ?? 0n, 6, 2)} USDC`,
-          `${formatToken(q.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}`,
+          `${formatToken(sharesRaw(q.preview.stockAmountRaw, market?.uiMultiplierWad), stock.decimals)} ${stock.tokenSymbol}`,
           formatUsd(stockValueUsd(q.preview.stockAmountRaw, q.preview.execPriceE8, stock.decimals)),
         )
     : [];
+  const sentences = gapLine ? [...baseSentences, gapLine] : baseSentences;
 
   const confirm = () => {
     if (!address || !q || !market) return;
