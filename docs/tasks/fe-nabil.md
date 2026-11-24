@@ -222,6 +222,7 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: Coinbase stocks with Chainlink price, session, feed frozen and halted states, share units through the multiplier.
   - Done when: real Base prices show next to Monad ones.
   - Note: 22 November 2026: Base markets list from the deployment, prices from each market's `snapshot()`, the halt notice from `haltReasons` and `tokenPaused`. Not done: share units through `uiMultiplierWad`.
+  - Note: 24 November 2026 (`fe/FE-71-ui-multiplier`): stock amounts on trade, positions, history, the close sheet, short room and lending show share units through `Market.uiMultiplierWad` (raw x multiplier / 1e18, rounded down).
 
 - [~] **FE-72 · Long, short and close on Base**
   - Needs: BE-72, SC-76.
