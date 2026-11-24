@@ -1,7 +1,9 @@
 "use client";
 
 import { ApiRequestError } from "@/lib/api/client";
-import { apiConfigured, useServiceStatus } from "@/lib/api/hooks";
+import { apiConfigured, useMarkets, useServiceStatus } from "@/lib/api/hooks";
+import { stockOn } from "@/lib/chains";
+import { useChain } from "@/lib/useChain";
 import { useT } from "@/lib/i18n";
 import { serviceHealth } from "@/lib/serviceHealth";
 import { Banner } from "./ui/Banner";
@@ -10,6 +12,8 @@ import { Banner } from "./ui/Banner";
 export function StatusBanners() {
   const m = useT();
   const status = useServiceStatus();
+  const chain = useChain();
+  const markets = useMarkets();
 
   if (!apiConfigured) {
     return (
@@ -26,12 +30,13 @@ export function StatusBanners() {
     );
   }
   if (!status.data) return null;
-  const { staleSymbols, degraded } = serviceHealth(status.data);
+  const staleOnChain = markets.data?.markets.filter((x) => x.oracleStale).map((x) => x.symbol) ?? [];
+  const { staleSymbols, degraded } = serviceHealth(status.data, chain.id, staleOnChain);
   return (
     <>
       {staleSymbols.length > 0 && (
         <Banner tone="caution" title={m.status.staleTitle}>
-          {m.status.staleBody(staleSymbols.map((s) => `a${s}`).join(", "))}
+          {m.status.staleBody(staleSymbols.map((s) => stockOn(chain, s)?.tokenSymbol ?? s).join(", "))}
         </Banner>
       )}
       {degraded && (
