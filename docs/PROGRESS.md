@@ -33,7 +33,7 @@ Status values: not started, in progress, done. A milestone is done only when its
 | M4. Cross-chain deposits | Deposit from and withdraw to other chains | SC-40 | BE-40 to BE-42 | FE-40 to FE-41 | I-4 | not started |
 | M5. Hardening | Invariant tests, audit, monitoring, compliance gates | SC-50 to SC-56 | BE-50 to BE-55 | FE-50 to FE-55 | I-5 | not started |
 | M6. Launch | Production deployment owned by the multisig, open to the public | SC-60 to SC-61 | BE-60 to BE-61 | FE-60 to FE-61 | I-6 | not started |
-| B. Base (Stocks Maxxing) | Long, short and Earn on Base, agent, submission by 5 December 2026 (doc 11) | SC-70 to SC-78 | BE-70 to BE-79 | FE-70 to FE-77 | I-B1, I-B2 | not started |
+| B. Base (Stocks Maxxing) | Long, short and Earn on Base, agent, submission by 12 December 2026, 23:59 UTC (doc 11) | SC-70 to SC-78 | BE-70 to BE-79 | FE-70 to FE-77 | I-B1, I-B2 | not started |
 | X. X Layer (TapeOut Accelerate) | Long, short and Earn on X Layer, TapeOut risk circuit and PnL proofs, submission by 7 December 2026 (doc 12) | SC-80 to SC-85 | BE-80 to BE-87 | FE-80 to FE-83 | I-X1 | not started |
 
 Milestones are ordered, but work inside a milestone runs in parallel. Work from a later milestone may start early when it does not depend on anything unfinished. For example BE-03 (one week of oracle logging), X-12 (talking to Anchored) and FE-04 (screen design) should start on day one.
@@ -316,6 +316,7 @@ Newest first.
 
 Newest first.
 
+- 24 November 2026: hackathon pages read again. Base Stocks Maxxing: the deadline is 12 December 2026, 23:59 UTC (not 5 December); registration is optional (Apply Now form); projects that enable trading for US users are not eligible, so the region gate must block the US (BE-52). X Layer TapeOut Accelerate: no registration step, one Google Form (`forms.gle/EoDNbxQ65dev1wFd9`), deadline 7 December 2026, 23:59 UTC (marked provisional), processor address and circuit ID required. Docs 11, the task files and the milestone row updated.
 - 24 November 2026: D-113, TapeOut built into Levra on X Layer: the clock circuit sets the X Layer market hours (calendar poster and app session), a weekend gap check by the risk circuit in every trade confirmation, the "close without Levra" page on DeWEB, and TapeSend for private close receipts and pre-close alerts instead of public PnL commitments. Doc 12 and the BE-83, BE-84, BE-86, FE-81, FE-82, FE-83 notes updated. Funding for the mainnet run: about 0.12 OKB and 0.15 BEM on the deployer.
 - 23 November 2026: TapeOut addresses in `xlayerExternal` for BE-82 (`tapeoutFactory`, `tapeoutOpener`, `tapesendHub`, `bem`). Checked on X Layer the same day: code at all four, `deployFee()` 0.1 BEM, opener `FEE()` 0.08 OKB, BEM has 8 decimals. Blocker removed.
 - 23 November 2026: risk disclosure draft (X-11) updated for Base and X Layer: the price source per chain, what waits while a price is stale (a full close does not, T-22), the issuer controls per chain (one Coinbase key on Base, T-21; the xStocks sanctions list, pause and upgrade on X Layer, T-23) and what Levra does about them, the exchanges used, no audit yet, and the multisig with its 2 day delay. Blocker row removed. Still not reviewed by counsel.
