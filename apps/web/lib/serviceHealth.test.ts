@@ -24,3 +24,17 @@ describe("serviceHealth", () => {
     expect(serviceHealth({ ...healthy, keepers: [{ name: "monitor", lastHeartbeatAt: null, healthy: false }] }).degraded).toBe(false);
   });
 });
+
+describe("serviceHealth on another chain", () => {
+  const withBase: StatusResponse = {
+    ...healthy,
+    oracle: [{ symbol: "QQQ", publishedAt: 1, ageSeconds: 9_999, stale: true }],
+    chains: [{ chainId: 8453, name: "Base", keepers: [{ name: "protector", lastHeartbeatAt: 1, healthy: false }], indexer: { lastBlock: 1, chainHead: 2, lagBlocks: 1 } }],
+  };
+  it("ignores Monad's stale oracles and reads its own entry", () => {
+    expect(serviceHealth(withBase, 8453, ["NVDA", "NVDA"])).toEqual({ staleSymbols: ["NVDA"], degraded: true });
+  });
+  it("keeps Monad on the top-level fields", () => {
+    expect(serviceHealth(withBase, 143).staleSymbols).toEqual(["QQQ"]);
+  });
+});

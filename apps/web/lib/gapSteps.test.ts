@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gapSteps, mergeGapScenarios } from "./gapSteps";
+import { gapSteps, mergeGapScenarios, worstGap } from "./gapSteps";
 
 const WAD = 10n ** 18n;
 const pct = (p: number) => ((BigInt(p) * WAD) / 100n).toString();
@@ -22,5 +22,14 @@ describe("mergeGapScenarios", () => {
     const worst = { label: "worst", moveBps: -1780, ltvWad: pct(65), liquidated: false };
     const steps = gapSteps("long", pct(50), pct(77), (b) => `${b}`);
     expect(mergeGapScenarios([worst], steps).map((s) => s.moveBps)).toEqual([-1000, -1780, -2000, -3000]);
+  });
+});
+
+describe("worstGap", () => {
+  it("picks the largest move either way", () => {
+    const a = { label: "a", moveBps: -1420, ltvWad: "1", liquidated: false };
+    const b = { label: "b", moveBps: 900, ltvWad: "1", liquidated: false };
+    expect(worstGap([b, a])).toBe(a);
+    expect(worstGap([])).toBeNull();
   });
 });

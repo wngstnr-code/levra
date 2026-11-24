@@ -14,7 +14,7 @@ FROM deps AS build
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --offline --frozen-lockfile \
-      --filter "@levra/api..." --filter "@levra/indexer..." --filter "@levra/keeper..." --filter "@levra/db..." --filter "@levra/agent..."
+      --filter "@levra/api..." --filter "@levra/indexer..." --filter "@levra/keeper..." --filter "@levra/db..." --filter "@levra/agent..." --filter "@levra/tapeout..."
 
 FROM node:24-bookworm-slim AS runtime
 ARG APP_VERSION=local

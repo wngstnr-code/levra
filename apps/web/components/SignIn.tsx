@@ -52,7 +52,7 @@ function SignInSheet({ open, onClose, onReopen }: { open: boolean; onClose: () =
         <EmailForm onDone={onClose} onBack={() => setEmailOpen(false)} />
       ) : (
         <div className="space-y-2">
-          <Option highlight icon={<span aria-hidden className="size-4 rounded-[4px] bg-base" />} title={s.baseAccount} sub={s.baseAccountSub} onClick={run(() => login({ loginMethods: ["wallet"] }))} />
+          <Option highlight icon={<span aria-hidden className="size-4 rounded-[4px] bg-chain-base" />} title={s.baseAccount} sub={s.baseAccountSub} onClick={run(() => login({ loginMethods: ["wallet"] }))} />
           <Option icon={<Mail size={18} aria-hidden />} title={s.email} sub={s.emailSub} onClick={() => setEmailOpen(true)} />
           <Option icon={<ScanFace size={18} aria-hidden />} title={s.passkey} sub={s.passkeySub} onClick={run(() => loginWithPasskey())} />
           <Option icon={<Wallet size={18} aria-hidden />} title={s.wallet} sub={s.walletSub} onClick={run(() => login({ loginMethods: ["wallet"] }))} />
@@ -68,7 +68,7 @@ function Option({ icon, title, sub, onClick, highlight = false }: { icon: React.
   return (
     <button
       onClick={onClick}
-      className={cn("flex w-full items-center gap-3.5 rounded-panel p-3.5 text-left transition-colors", highlight ? "bg-base text-white hover:brightness-110" : "bg-surface-3 hover:brightness-110")}
+      className={cn("flex w-full items-center gap-3.5 rounded-panel p-3.5 text-left transition-colors", highlight ? "bg-chain-base text-white hover:brightness-110" : "bg-surface-3 hover:brightness-110")}
     >
       <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px]", highlight ? "bg-white" : "bg-surface-2")}>{icon}</span>
       <span className="min-w-0 flex-1">

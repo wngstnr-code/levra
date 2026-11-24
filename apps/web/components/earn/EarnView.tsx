@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 import { apiConfigured, queryKeys, useEarnAccount, useEarnOptions } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
-import { formatToken, formatTokenSigned, formatWadPercent, parseAmount } from "@/lib/units";
+import { formatToken, formatTokenSigned, formatWadPercent, parseAmount, sharesRaw, tokenRawFromShares } from "@/lib/units";
 import { useEarnChain, type EarnChainOption } from "@/lib/useEarnChain";
 import { useStoredFlag } from "@/lib/useStoredFlag";
 import { trackStep } from "@/lib/metrics";
@@ -33,7 +33,7 @@ function apiFor(o: EarnChainOption, api: EarnOption[] | undefined) {
 }
 
 function amountText(raw: bigint, o: EarnChainOption) {
-  return `${formatToken(raw, o.decimals, o.decimals === 6 ? 2 : 4)} ${o.symbol}`;
+  return `${formatToken(sharesRaw(raw, o.uiMultiplierWad), o.decimals, o.decimals === 6 ? 2 : 4)} ${o.symbol}`;
 }
 
 export function EarnView() {
@@ -93,7 +93,7 @@ export function EarnView() {
                     {earned && (
                       <p className="text-right">
                         <span className={cn("block text-[15px] font-semibold", BigInt(earned) > 0n ? "text-up" : BigInt(earned) < 0n ? "text-down" : "text-fg-2")}>
-                          {formatTokenSigned(earned, o.decimals, o.decimals === 6 ? 2 : 4)}
+                          {formatTokenSigned(sharesRaw(earned, o.uiMultiplierWad), o.decimals, o.decimals === 6 ? 2 : 4)}
                         </span>
                         <span className="text-xs text-fg-2">{m.earn.earned}</span>
                       </p>
@@ -143,7 +143,7 @@ function OptionCard({ o, api, selected, onSelect }: { o: EarnChainOption; api: E
       <span className="grid grid-cols-3 gap-2">
         <StatBox label={m.earn.supplied} value={amountText(o.totalSuppliedRaw, o).replace(/ \S+$/, "")} />
         <StatBox label={m.earn.borrowed} value={util} className={full ? "text-caution" : undefined} />
-        <StatBox label={m.earn.canWithdraw} value={available === null ? DASH : available > 0n ? formatToken(available, o.decimals, 2) : m.earn.nothingNow} />
+        <StatBox label={m.earn.canWithdraw} value={available === null ? DASH : available > 0n ? formatToken(sharesRaw(available, o.uiMultiplierWad), o.decimals, 2) : m.earn.nothingNow} />
       </span>
       {full && <span className="text-xs text-caution">{m.earn.fullyBorrowed}</span>}
     </button>
@@ -155,8 +155,10 @@ function EarnPanel({ o, mode, onMode, user, signIn, invalidate }: { o: EarnChain
   const flow = useTxFlow();
   const [text, setText] = useState("");
   const [accepted, setAccepted] = useStoredFlag(user ? `levra.lenderRisk.${user.toLowerCase()}` : null);
-  const amount = parseAmount(text, o.decimals);
+  const typed = parseAmount(text, o.decimals);
   const limit = mode === "supply" ? (o.user?.walletRaw ?? 0n) : (o.user?.withdrawableRaw ?? 0n);
+  // Typing the shown maximum means the whole amount, so the share rounding leaves no dust behind.
+  const amount = typed === null ? null : typed === sharesRaw(limit, o.uiMultiplierWad) ? limit : tokenRawFromShares(typed, o.uiMultiplierWad);
   const tooMuch = amount !== null && amount > limit;
   const where = o.kind === "vault" ? m.earn.vaultWhere : m.earn.marketWhere(o.symbol);
   const label = amount ? amountText(amount, o) : "";
@@ -213,7 +215,7 @@ function EarnPanel({ o, mode, onMode, user, signIn, invalidate }: { o: EarnChain
         {o.user && (
           <span className="mt-2 flex text-[13px] text-ink/60">
             {mode === "supply" ? m.earn.inWallet(amountText(o.user.walletRaw, o)) : m.earn.withdrawable(amountText(o.user.withdrawableRaw, o))}
-            <button type="button" onClick={() => setText(formatToken(limit, o.decimals, o.decimals).replace(/,/g, ""))} className="ml-1.5 font-semibold text-ink">
+            <button type="button" onClick={() => setText(formatToken(sharesRaw(limit, o.uiMultiplierWad), o.decimals, o.decimals).replace(/,/g, ""))} className="ml-1.5 font-semibold text-ink">
               {m.common.max}
             </button>
           </span>

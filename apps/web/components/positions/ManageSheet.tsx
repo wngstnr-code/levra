@@ -4,16 +4,17 @@ import { morphoAbi } from "@levra/shared/abis";
 import type { Position, SignatureInput } from "@levra/shared/api";
 import { WAD } from "@levra/shared/math";
 import { useState } from "react";
-import { erc20Abi, type Address } from "viem";
+import { erc20Abi, formatUnits, type Address } from "viem";
 import { useReadContract } from "wagmi";
 import { queryKeys } from "@/lib/api/hooks";
+import { useUiMultiplier } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { formatUsdE8 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { guardRouterTx } from "@/lib/txGuard";
 import { splitRequirements } from "@/lib/typedData";
-import { formatToken, formatUsd, formatUsdSigned, formatWadPercent, parseAmount } from "@/lib/units";
+import { formatToken, formatUsd, formatUsdSigned, formatWadPercent, parseAmount, sharesRaw, tokenRawFromShares } from "@/lib/units";
 import { useDebounced } from "@/lib/useDebounced";
 import { useQuote } from "@/lib/useQuote";
 import { useTxFlow } from "@/lib/useTxFlow";
@@ -25,14 +26,34 @@ import { stockOn } from "@/lib/chains";
 import { useChain } from "@/lib/useChain";
 import { noticeFor } from "@/lib/warnings";
 import { NoticeRow } from "../ui/NoticeRow";
+import { useAgentRequest } from "@/lib/useAgentRequest";
 import { hasNoPrice, manageTabs, noPriceNotice } from "@/lib/marketState";
 
 const TABS: ManageTab[] = ["add", "remove", "repay", "reduce", "close"];
 const FRACTIONS = [25, 50, 75, 100];
 const SLIPPAGE_BPS = 50;
 
-export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { position: Position; tab: ManageTab; onTab: (t: ManageTab) => void; onClose: () => void; user: Address }) {
+export function ManageSheet({
+  position,
+  tab: asked,
+  onTab,
+  onClose,
+  user,
+  agentId = null,
+  initialAmountRaw = null,
+  initialFraction,
+}: {
+  position: Position;
+  tab: ManageTab;
+  onTab: (t: ManageTab) => void;
+  onClose: () => void;
+  user: Address;
+  agentId?: string | null;
+  initialAmountRaw?: string | null;
+  initialFraction?: number;
+}) {
   const noPrice = hasNoPrice(position.oraclePriceE8);
+  const mult = useUiMultiplier(position.symbol);
   const { tabs, tab } = manageTabs(TABS, noPrice, asked);
   const chain = useChain();
   const m = useT();
@@ -46,16 +67,38 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
   const amountToken = tab === "repay" ? loanToken : collateralToken;
   const isAmount = tab === "add" || tab === "remove" || tab === "repay";
 
-  const [amountText, setAmountText] = useState("");
-  const [fraction, setFraction] = useState(50);
+  /** The stock token shows in share units on Base (uiMultiplier); USDC never does. */
+  const multOf = (tok: { address: string }) => (tok.address === stk.address ? mult : null);
+  const shown = (raw: string | bigint, tok: { address: string }) => sharesRaw(raw, multOf(tok));
+  const prefilledRaw = initialAmountRaw && /^\d+$/.test(initialAmountRaw) ? BigInt(initialAmountRaw) : null;
+  const [amountText, setAmountText] = useState(() => (prefilledRaw === null ? "" : formatUnits(shown(prefilledRaw, amountToken), amountToken.decimals)));
+  const [fraction, setFraction] = useState(initialFraction ?? 50);
   const pct = tab === "close" ? 100 : fraction;
-  const amountRaw = parseAmount(amountText, amountToken.decimals);
+  // The link's amount is used exactly as long as the field still shows it, so rounding never changes what is quoted.
+  const [prefillText] = useState(amountText);
+  const fractionWad = (WAD * BigInt(Math.round(pct * 100))) / 10_000n;
 
   const balance = useReadContract({ address: amountToken.address, abi: erc20Abi, functionName: "balanceOf", args: [user], chainId: chain.id, query: { enabled: isAmount } });
-  const available = tab === "remove" ? BigInt(position.collateralRaw) : tab === "repay" ? BigInt(position.debtRaw) : (balance.data ?? null);
+  const typed = parseAmount(amountText, amountToken.decimals);
+  const availableRaw = tab === "remove" ? BigInt(position.collateralRaw) : tab === "repay" ? BigInt(position.debtRaw) : (balance.data ?? null);
+  const amountRaw =
+    prefilledRaw !== null && prefillText !== "" && amountText === prefillText
+      ? prefilledRaw
+      : typed === null
+        ? null
+        : typed === (availableRaw === null ? null : shown(availableRaw, amountToken))
+          ? availableRaw
+          : tokenRawFromShares(typed, multOf(amountToken));
+  const agent = useAgentRequest(agentId, user, (p) => {
+    if (p.kind === "open" || p.request.marketId.toLowerCase() !== position.marketId.toLowerCase()) return false;
+    if (p.kind === "close") return !isAmount && BigInt(p.request.fractionWad) === fractionWad;
+    return p.request.action === tab && amountRaw !== null && BigInt(p.request.amountRaw) === amountRaw;
+  });
+
+  const available = availableRaw;
 
   const collKey = useDebounced(isAmount && amountRaw && amountRaw > 0n ? JSON.stringify({ marketId: position.marketId, action: tab, amountRaw: amountRaw.toString() }) : null);
-  const closeKey = !isAmount ? JSON.stringify({ marketId: position.marketId, fractionWad: ((WAD * BigInt(pct)) / 100n).toString(), slippageBps: SLIPPAGE_BPS }) : null;
+  const closeKey = !isAmount ? JSON.stringify({ marketId: position.marketId, fractionWad: fractionWad.toString(), slippageBps: SLIPPAGE_BPS }) : null;
   const [signatures, setSignatures] = useState<SignatureInput[]>([]);
   const coll = useQuote("quoteCollateral", user, collKey ? JSON.parse(collKey) : null, signatures);
   const close = useQuote("quoteClose", user, closeKey ? JSON.parse(closeKey) : null);
@@ -68,14 +111,14 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
   const blocked = quote?.warnings.find((w) => w.severity === "block");
   const tooMuch = isAmount && amountRaw !== null && available !== null && amountRaw > available;
 
-  const amountLabel = amountRaw ? `${formatToken(amountRaw, amountToken.decimals, amountToken.decimals === 6 ? 2 : 4)} ${amountToken.symbol}` : "";
+  const amountLabel = amountRaw ? `${formatToken(shown(amountRaw, amountToken), amountToken.decimals, amountToken.decimals === 6 ? 2 : 4)} ${amountToken.symbol}` : "";
   const confirmLabel = isAmount ? m.positions.confirm[tab as "add" | "remove" | "repay"](amountLabel) : tab === "close" ? m.positions.confirm.close : m.positions.confirm.reduce(`${pct}%`);
   const sentences = isAmount
     ? m.positions.sentences[tab as "add" | "remove" | "repay"](amountLabel)
     : close.data
       ? m.positions.sentences.reduce(
-          `${formatToken(close.data.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol}`,
-          formatToken(close.data.preview.debtRepaidRaw, loanToken.decimals, loanToken.decimals === 6 ? 2 : 4) + ` ${loanToken.symbol}`,
+          `${formatToken(sharesRaw(close.data.preview.stockAmountRaw, mult), stock.decimals)} ${stock.tokenSymbol}`,
+          formatToken(shown(close.data.preview.debtRepaidRaw, loanToken), loanToken.decimals, loanToken.decimals === 6 ? 2 : 4) + ` ${loanToken.symbol}`,
           formatUsd(close.data.preview.returnedRaw),
         )
       : [];
@@ -115,11 +158,15 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
       <Sheet open={flow.state.phase === "idle"} onClose={onClose} title={m.positions.manageTitle(stock.tokenSymbol, long ? m.trade.long : m.trade.short)}>
         <div role="tablist" className="flex gap-1 rounded-full bg-surface-1 p-1">
           {tabs.map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => onTab(t)} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", tab === t ? "bg-surface-3 font-semibold" : "text-fg-2 hover:text-fg")}>
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => {
+              if (t !== tab) setAmountText("");
+              onTab(t);
+            }} className={cn("flex-1 rounded-full py-2 text-sm font-medium transition-colors", tab === t ? "bg-surface-3 font-semibold" : "text-fg-2 hover:text-fg")}>
               {m.positions.tabs[t]}
             </button>
           ))}
         </div>
+        {agent && <NoticeRow notice={{ icon: "verified", blocks: false, title: m.agent.title, body: m.agent.body }} />}
         {noPrice && <NoticeRow notice={noPriceNotice(m)} />}
 
         {isAmount ? (
@@ -131,8 +178,8 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
             </span>
             {available !== null && (
               <span className="mt-2 flex text-[13px] text-fg-2">
-                {tab === "add" ? m.positions.inWallet(formatToken(available, amountToken.decimals, 4)) : `${formatToken(available, amountToken.decimals, 4)} ${amountToken.symbol}`}
-                <button type="button" onClick={() => setAmountText(formatToken(available, amountToken.decimals, amountToken.decimals).replace(/,/g, ""))} className="ml-1.5 font-semibold text-lime">
+                {tab === "add" ? m.positions.inWallet(formatToken(shown(available, amountToken), amountToken.decimals, 4)) : `${formatToken(shown(available, amountToken), amountToken.decimals, 4)} ${amountToken.symbol}`}
+                <button type="button" onClick={() => setAmountText(formatToken(shown(available, amountToken), amountToken.decimals, amountToken.decimals).replace(/,/g, ""))} className="ml-1.5 font-semibold text-lime">
                   {m.common.max}
                 </button>
               </span>
@@ -159,18 +206,18 @@ export function ManageSheet({ position, tab: asked, onTab, onClose, user }: { po
         <div className="squircle divide-y divide-line rounded-panel bg-surface-1 text-sm">
           {isAmount && coll.data ? (
             <>
-              <Line k={m.positions.collateralAfter} v={`${formatToken(coll.data.preview.collateralAfterRaw, collateralToken.decimals, 4)} ${collateralToken.symbol}`} />
+              <Line k={m.positions.collateralAfter} v={`${formatToken(shown(coll.data.preview.collateralAfterRaw, collateralToken), collateralToken.decimals, 4)} ${collateralToken.symbol}`} />
               <Line k={m.positions.ltvAfter} v={formatWadPercent(coll.data.preview.ltvAfterWad)} />
               <Line k={m.positions.liqAfter} v={formatUsdE8(BigInt(coll.data.preview.liqPriceE8))} />
             </>
           ) : !isAmount && close.data ? (
             <>
-              <Line k={long ? m.positions.sold : m.positions.boughtBack} v={`${formatToken(close.data.preview.stockAmountRaw, stock.decimals)} ${stock.tokenSymbol} · ${formatUsdE8(BigInt(close.data.preview.execPriceE8))}`} />
-              <Line k={m.positions.repaid} v={`${formatToken(close.data.preview.debtRepaidRaw, loanToken.decimals, 4)} ${loanToken.symbol}`} />
-              <Line k={m.positions.withdrawn} v={`${formatToken(close.data.preview.collateralWithdrawnRaw, collateralToken.decimals, 4)} ${collateralToken.symbol}`} />
+              <Line k={long ? m.positions.sold : m.positions.boughtBack} v={`${formatToken(sharesRaw(close.data.preview.stockAmountRaw, mult), stock.decimals)} ${stock.tokenSymbol} · ${formatUsdE8(BigInt(close.data.preview.execPriceE8))}`} />
+              <Line k={m.positions.repaid} v={`${formatToken(shown(close.data.preview.debtRepaidRaw, loanToken), loanToken.decimals, 4)} ${loanToken.symbol}`} />
+              <Line k={m.positions.withdrawn} v={`${formatToken(shown(close.data.preview.collateralWithdrawnRaw, collateralToken), collateralToken.decimals, 4)} ${collateralToken.symbol}`} />
               <Line k={m.positions.youReceive} v={formatUsd(close.data.preview.returnedRaw)} />
               {!long && BigInt(close.data.preview.stockAmountRaw) > BigInt(close.data.preview.debtRepaidRaw) && (
-                <Line k={m.positions.stockBack} v={`${formatToken(BigInt(close.data.preview.stockAmountRaw) - BigInt(close.data.preview.debtRepaidRaw), stock.decimals)} ${stock.tokenSymbol}`} />
+                <Line k={m.positions.stockBack} v={`${formatToken(sharesRaw(BigInt(close.data.preview.stockAmountRaw) - BigInt(close.data.preview.debtRepaidRaw), mult), stock.decimals)} ${stock.tokenSymbol}`} />
               )}
               <Line k={m.positions.realized} v={formatUsdSigned(close.data.preview.realizedPnlUsdRaw)} tone={BigInt(close.data.preview.realizedPnlUsdRaw) < 0n ? "text-down" : "text-up"} />
               <Line k={m.positions.fee} v={formatUsd(close.data.preview.feeRaw)} />

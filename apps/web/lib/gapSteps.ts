@@ -20,3 +20,8 @@ export function mergeGapScenarios(fromQuote: GapScenario[], steps: GapScenario[]
   const worst = Math.max(0, ...fromQuote.map((s) => Math.abs(s.moveBps)));
   return [...fromQuote, ...steps.filter((s) => Math.abs(s.moveBps) !== worst)].sort((a, b) => Math.abs(a.moveBps) - Math.abs(b.moveBps));
 }
+
+/** The service's worst historical gap for this position, the one the weekend check in the confirmation names (D-113). */
+export function worstGap(fromQuote: GapScenario[]): GapScenario | null {
+  return fromQuote.reduce<GapScenario | null>((w, s) => (!w || Math.abs(s.moveBps) > Math.abs(w.moveBps) ? s : w), null);
+}
