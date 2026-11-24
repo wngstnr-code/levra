@@ -272,16 +272,19 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Needs: BE-84, FE-76.
   - Do: the share card and leaderboard show "verified onchain" with a link to the TapeSend proof, checked in the browser against the chain.
   - Done when: a real proof is shown and checked.
+  - Note (24 November 2026, D-113): TapeSend receipts are private, so the public "verified onchain" link is dropped. The share card links the close transaction instead; the receipt stays in the user's wallet.
 
 - [ ] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
   - Do: publish the stats page and a light landing page on X Layer DeWEB. Required since D-66.
   - Done when: the page loads from DeWEB and its address is in 05. If the tools cannot export it, raise it to the team the same day.
+  - Note (24 November 2026, D-113): the page on DeWEB is the "close without Levra" guide from `docs/public/contracts.md` (revoke, repay, withdraw collateral on Morpho), linked from the app footer and the help page. The stats page can follow.
 
 - [ ] **FE-83 · Show the risk circuit**
   - Needs: BE-83.
   - Do: on the position page, show health and liquidation price with a "checked by TapeOut circuit" mark and a link to the circuit.
   - Done when: it shows for a real X Layer position.
+  - Note (24 November 2026, D-113): also in the long and short confirmation: a weekend gap check line ("after a Monday gap like the worst one, this position stays healthy / would be liquidated") with the "checked by TapeOut circuit" mark, and the market session shown from the clock circuit on X Layer.
 
 - [ ] **FE-94 · USDC in and out through CCTP**
   - Needs: BE-85 (built, 24 November 2026).

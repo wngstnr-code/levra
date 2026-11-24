@@ -113,7 +113,7 @@ Later (BE-60): GitHub Actions builds the image for every `main` commit, pushes i
 - Every day at 03:00 UTC, cron runs `deploy/backup.sh` as `levra`: `pg_dump` inside the Postgres container, 14 dumps kept in `/opt/levra/backups`, log in `backups/backup.log`.
 - Each dump is copied off the server with rclone to `LEVRA_BACKUP_REMOTE` (set in `/opt/levra/env/backup.env`, provider still to choose). A backup that lives only on the same server does not count: the script records it as failed.
 - Every Sunday at 04:00 UTC, `deploy/restore-check.sh` restores the newest dump into a scratch database in the same container and checks it (age, off-site copy, every table and migration present). Log in `backups/restore-check.log`.
-- Both scripts write one row per run in the `backup_runs` table. The team monitor in the `KEEPER_GLOBAL` keeper alerts the team on a failed run, a backup older than 26 hours or a restore check older than 7 days and 2 hours (D-113).
+- Both scripts write one row per run in the `backup_runs` table. The team monitor in the `KEEPER_GLOBAL` keeper alerts the team on a failed run, a backup older than 26 hours or a restore check older than 7 days and 2 hours (D-114).
 - A restore drill once a month by a person, following the runbook. Results go in the runbook.
 - After a change to `cron/levra-backup`, install it again as root: `su -c "install -m 0644 /opt/levra/app/deploy/cron/levra-backup /etc/cron.d/levra-backup"`.
 - What can be rebuilt without a backup: our events (the indexer replays from the deployment block) and oracle prices (the recorder reads logs back). What cannot: DEX depth runs, rate snapshots, cross-chain transfers, alert settings, Telegram links and terms acceptances.
