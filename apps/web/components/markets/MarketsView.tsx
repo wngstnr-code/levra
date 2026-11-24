@@ -48,7 +48,7 @@ export function MarketsView() {
           <p className="mt-2 text-[15px] text-fg-2">{m.markets.subtitle}</p>
         </div>
       </div>
-      <MarketClock session={rows.find((r) => r.session)?.session ?? next?.session ?? null} info={next ?? null} />
+      <MarketClock session={rows.find((r) => r.session)?.session ?? next?.session ?? null} info={next ?? null} stale={rows.length > 0 && rows.every((r) => r.stale)} />
 
       {!loading && nothing && oracle.isError ? (
         <Card className="flex items-center gap-4">
