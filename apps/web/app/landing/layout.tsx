@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, DM_Sans, League_Gothic } from "next/font/google";
+import "./landing.css";
 
 const league = League_Gothic({ subsets: ["latin"], variable: "--font-league", display: "swap" });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
