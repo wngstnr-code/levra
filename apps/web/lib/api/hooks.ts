@@ -124,6 +124,12 @@ export function useServiceStatus() {
   });
 }
 
+/** CCTP chains USDC can come from or go to, for the current chain (BE-85). */
+export function useBridgeChains() {
+  const chain = useChain();
+  return useQuery({ queryKey: ["bridgeChains", chain.id], queryFn: ({ signal }) => api("bridgeChains", { chainId: chain.id, signal }), enabled: apiConfigured, staleTime: 10 * 60_000, retry: shouldRetry });
+}
+
 export function useEarnOptions() {
   const chain = useChain();
   return useQuery({ queryKey: [...queryKeys.earn, chain.id], queryFn: ({ signal }) => api("earn", { chainId: chain.id, signal }), enabled: apiConfigured, refetchInterval: 60_000, retry: shouldRetry });
