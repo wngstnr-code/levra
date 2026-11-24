@@ -333,7 +333,7 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: append Levra's Builder Code to every Base transaction the web app builds itself (Earn deposit, withdraw and supply, approvals, `setAuthorization`) with `withBuilderCode(chainId, data)` from `@levra/shared/api` (D-108). Send the API's `tx.data` unchanged: it already carries the code.
   - Done when: a unit test shows the suffix on a Base Earn transaction and none on Monad, and a real Base transaction shows the code on the Base Dashboard (dashboard.base.org). Levra's code (`bc_1w63m4n4`) is already in `builderCodes[8453]`, so use `withBuilderCode` and do not retype it.
 
-- [x] **FE-94 · Local development against the live API**
+- [x] **FE-95 · Local development against the live API**
   - Do: a dev server proxy so `localhost` reaches the API, which allows only the app's origin (CORS).
   - Done when: the dev server shows live data with `NEXT_PUBLIC_API_URL=http://localhost:3000/api-proxy` and `API_PROXY_TARGET` set, and production builds ignore the proxy.
-  - Note: done on 23 November 2026 (`fe/FE-94-dev-api-proxy`). Sign-in with wallet (SIWE) for alerts still names the app's host, so it is tested on a preview or `app.levra.finance`.
+  - Note: done on 23 November 2026 (`fe/FE-95-dev-api-proxy`, PR #152). Sign-in with wallet (SIWE) for alerts still names the app's host, so it is tested on a preview or `app.levra.finance`.
