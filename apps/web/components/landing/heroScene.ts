@@ -93,13 +93,18 @@ void main() {
   vec2 m = (uMouse - 0.5) * vec2(uRes.x / uRes.y, 1.0) * 2.0;
   float d = distance(p, m);
   p += (p - m) * uForce * 0.35 * exp(-d * d * 5.0);
-  float f = length((p - vec2(0.15, 0.15)) * vec2(0.75, 1.1)) * 1.8
-          + snoise(p * 0.5 + vec2(0.0, uTime * 0.03)) * 0.16
-          + snoise(p * 1.2 - vec2(uTime * 0.02, 0.0)) * 0.04;
-  float band = abs(fract(f * 4.2) - 0.5);
-  float line = smoothstep(0.42, 0.44, band);
-  vec3 col = mix(uBase, uLine, line * 0.75);
-  col *= mix(0.55, 1.0, smoothstep(-0.2, 0.75, vUv.y));
+  // Wide, thin rings around a point near the top, stretched sideways, as in the reference.
+  float f = length((p - vec2(0.35, 1.05)) * vec2(0.6, 1.0)) * 1.8
+          + snoise(p * 0.45 + vec2(0.0, uTime * 0.03)) * 0.14
+          + snoise(p * 1.1 - vec2(uTime * 0.02, 0.0)) * 0.035;
+  float band = abs(fract(f * 4.6) - 0.5);
+  float line = smoothstep(0.445, 0.468, band);
+  vec3 ink = mix(uLine, vec3(1.0), 0.55);
+  vec3 col = mix(uBase, ink, line * 0.42);
+  // Light from the top right, falling off toward the bottom left.
+  float light = smoothstep(-0.15, 1.15, vUv.x * 0.85 + vUv.y * 0.55);
+  col *= mix(0.42, 1.38, light);
+  col *= mix(0.6, 1.0, smoothstep(0.0, 0.45, vUv.y));
   gl_FragColor = vec4(col, 1.0);
 }`;
 
