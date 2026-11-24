@@ -601,12 +601,14 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: health factor, liquidation price and session limit from `math.ts` as a TapeOut circuit. A test compares its output with `math.ts` on many inputs. The API and the agent show the circuit result next to ours and flag any difference. The circuit answers for any Morpho xStocks borrower on X Layer, not only Levra users (D-66).
   - Done when: the test passes and the agent answers "my health" with the circuit result.
   - Note (24 November 2026): circuit built and tested without waiting for BE-82 (D-112). `riskCircuit(limits)` in `packages/tapeout/src/risk.ts`: healthy, closed regime, and at or under each soft limit, exact against `math.ts` and `morphoIsHealthy` in the unit test; 8,522 NAND for aQQQ, taped out and read onchain on the X Layer fork (05). Liquidation price and a numeric health factor are not in the circuit (a full division is too large); they stay in `math.ts`. Left: tape out on mainnet with the BE-82 processor (one circuit per limit set on X Layer, plus the Morpho xStocks LLTVs), the circuit IDs in 05 and 03 (interface change with Nabil), then the API and the agent (BE-77) show the circuit answer next to ours and flag a difference.
+  - Note (24 November 2026, D-113): the API answers a weekend gap check for each quote: the risk circuit's verdict at the price after the historical worst gap of that stock (the gap tables of 04), for FE's trade confirmation.
 
 - [ ] **BE-84 · PnL proofs through TapeSend**
   - Needs: BE-82, BE-80.
   - Do: on every closed position on X Layer, post a commitment (market, side, entry, exit, PnL percent, close transaction hash) through TapeSend from a keeper key. Expose `GET /v1/:chainId/proofs/:positionId`. Shape written in 03.
   - Done when: a real close produces a proof that FE-81 can verify.
   - Note (20 November 2026): D-87 extends the proofs to closes on every chain. They are posted from their own funded key on X Layer (one more key in BE-55), and Levra pays the OKB.
+  - Note (24 November 2026, D-113): changed: no public commitment. TapeSend sends each user a private receipt of a closed position (market, side, entry, exit, PnL percent, close hash) and the pre-close alert, from the processor's circuit with the one open container. Done when a real close on X Layer delivers a receipt the user can read.
 
 - [~] **BE-85 · CCTP deposits into X Layer**
   - Needs: BE-76.
@@ -619,6 +621,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: the market sessions from `calendar.ts` (regular, pre, after, overnight, weekend, holiday) as a TapeOut circuit on X Layer that any app can read (D-66). A test compares it with `calendar.ts` across a year of times, including holidays and daylight saving changes. Soft layer only: no contract and no hard limit reads it.
   - Done when: the test passes, the circuit address and ID are in 05 and 03, and the agent and the stats page read it.
   - Note (23 November 2026): circuit built and tested without waiting for BE-82. `wallStreetClock(2026, 2030)` in `packages/tapeout/src/clock.ts`, 4,850 NAND, built from `calendar.ts`; `clockAt` is the same rules on `calendar.ts` and the test compares the two over five years and around every holiday, early close and daylight saving change. On the fork it tapes out (14.1 million gas) and `eval` (11.2 million gas) matches `calendar.ts` onchain (05). Left: tape out on mainnet with the BE-82 processor, the circuit ID in 05 and 03 (interface change with Nabil for the stats page), then the agent (BE-77) and the stats page read it. The holiday evening overnight session and the 17:00 end of after-hours on an early close are initial proposals (05).
+  - Note (24 November 2026, D-113): the X Layer calendar poster takes `nextCloseAt` from this circuit on mainnet, and `/v1/196/...` returns the session read from it, so the app shows the same session. A mismatch with `calendar.ts` alerts the team and the poster falls back to `calendar.ts` (opening is the only thing a wrong close can affect).
 
 - [ ] **BE-87 · Agent checked by circuits**
   - Needs: BE-83, BE-86, BE-77.
