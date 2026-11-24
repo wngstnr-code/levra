@@ -539,8 +539,8 @@ export const en = {
     methods: { email: "Email", passkey: "Passkey", wallet: "Wallet" },
   },
   gapCheck: {
-    healthy: (move: string) => `After a Monday gap like the worst one so far (${move}), this position stays open`,
-    liquidated: (move: string) => `After a Monday gap like the worst one so far (${move}), this position would be liquidated`,
+    healthy: (move: string) => `Estimate: after a Monday gap like the worst one so far (${move}), this position would stay under the liquidation limit`,
+    liquidated: (move: string) => `Estimate: after a Monday gap like the worst one so far (${move}), this position would be liquidated`,
   },
   deposit: {
     title: "Deposit",
