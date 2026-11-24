@@ -538,6 +538,18 @@ export const en = {
     connect: "Sign in to see your settings.",
     methods: { email: "Email", passkey: "Passkey", wallet: "Wallet" },
   },
+  agent: {
+    title: "Prepared by your agent",
+    body: "Your agent filled this in. The numbers below are a fresh quote; nothing is sent until you sign.",
+    loading: "Loading what your agent prepared",
+    review: "Review and sign",
+    notFound: "This link is not known. Ask your agent again.",
+    expired: "This link expired. Ask your agent to prepare it again.",
+    wrongWallet: (addr: string) => `Prepared for ${addr}. Sign in with that wallet to continue.`,
+    signIn: "Sign in with the wallet your agent prepared this for.",
+    expires: (t: string) => `Link expires in ${t}`,
+    kinds: { open: "Open a position", close: "Close or reduce a position", collateral: "Change a position" },
+  },
   deposit: {
     title: "Deposit",
     subtitle: "Move USDC from any network into your wallet.",
