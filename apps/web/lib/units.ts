@@ -24,6 +24,20 @@ export function formatToken(raw: string | bigint, decimals: number, fractionDigi
   return formatUnitsFixed(toBig(raw), decimals, fractionDigits);
 }
 
+/**
+ * Token units to the share units users see (03, `Market.uiMultiplierWad`): raw x multiplier / 1e18, rounded down.
+ * Coinbase stock tokens on Base raise the multiplier with dividends; other tokens have none.
+ */
+export function sharesRaw(raw: string | bigint, uiMultiplierWad?: string | null): bigint {
+  const v = toBig(raw);
+  return uiMultiplierWad ? (v * BigInt(uiMultiplierWad)) / 10n ** BigInt(WAD_DECIMALS) : v;
+}
+
+/** Share units a user typed back to token units: shares x 1e18 / multiplier, rounded down so nothing is overspent. */
+export function tokenRawFromShares(shares: bigint, uiMultiplierWad?: string | null): bigint {
+  return uiMultiplierWad ? (shares * 10n ** BigInt(WAD_DECIMALS)) / BigInt(uiMultiplierWad) : shares;
+}
+
 /** Like formatToken, with a plus sign for gains and a minus sign for losses. */
 export function formatTokenSigned(raw: string | bigint, decimals: number, fractionDigits = 4): string {
   const v = toBig(raw);

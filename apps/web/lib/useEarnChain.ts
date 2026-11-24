@@ -5,6 +5,7 @@ import { toAssetsDown } from "@levra/shared/math";
 import { erc20Abi, erc4626Abi, zeroAddress, type Address, type Hex } from "viem";
 import { useReadContracts } from "wagmi";
 import { stockOn } from "./chains";
+import { useMarkets } from "./api/hooks";
 import { useChain } from "./useChain";
 
 export type MarketParams = { loanToken: Address; collateralToken: Address; oracle: Address; irm: Address; lltv: bigint };
@@ -21,6 +22,8 @@ export type EarnChainOption = {
   totalSuppliedRaw: bigint;
   totalBorrowedRaw: bigint | null;
   user: { suppliedRaw: bigint; withdrawableRaw: bigint; shares: bigint; walletRaw: bigint; allowanceRaw: bigint } | null;
+  /** Stock lent on Base shows in share units (Market.uiMultiplierWad); null for USDC and chains without one. */
+  uiMultiplierWad: string | null;
 };
 
 
@@ -30,6 +33,8 @@ export type EarnChainOption = {
  */
 export function useEarnChain(user: Address | undefined) {
   const chain = useChain();
+  const apiMarkets = useMarkets();
+  const multOf = (symbol: string) => apiMarkets.data?.markets.find((x) => x.symbol === symbol)?.uiMultiplierWad ?? null;
   /** Stock lending happens in the short markets, where the stock is the loan token. */
   const lendingMarkets = chain.deployment.markets.filter((m) => m.side === "short");
   const vault = chain.deployment.usdcVault ?? null;
@@ -67,6 +72,7 @@ export function useEarnChain(user: Address | undefined) {
     const totalShares = ok<bigint>(5) ?? 0n;
     const assets = totalShares > 0n ? (shares * totalAssets) / totalShares : 0n;
     options.push({
+      uiMultiplierWad: null,
       id: "vault",
       kind: "vault",
       symbol: "USDC",
@@ -93,6 +99,7 @@ export function useEarnChain(user: Address | undefined) {
     const supplied = position && market.totalSupplyShares > 0n ? toAssetsDown(position.supplyShares, market.totalSupplyAssets, market.totalSupplyShares) : 0n;
     const liquidity = market.totalSupplyAssets - market.totalBorrowAssets;
     options.push({
+      uiMultiplierWad: multOf(mk.symbol),
       id: mk.marketId,
       kind: "market",
       symbol: stock.tokenSymbol,

@@ -3,7 +3,7 @@
 import type { HistoryItem, HistoryItemType } from "@levra/shared/api";
 import { useState } from "react";
 import type { Address } from "viem";
-import { useHistory } from "@/lib/api/hooks";
+import { useHistory, useUiMultiplier } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 import { describeError } from "@/lib/contractErrors";
 import { historySentence } from "@/lib/historyText";
@@ -77,6 +77,7 @@ export function HistoryList({ address }: { address: Address }) {
 }
 
 function Row({ item }: { item: HistoryItem }) {
+  const mult = useUiMultiplier(item.symbol);
   const chain = useChain();
   const m = useT();
   const stock = stockOn(chain, item.symbol);
@@ -97,7 +98,7 @@ function Row({ item }: { item: HistoryItem }) {
             {item.side ? ` ${item.side === "long" ? m.trade.long : m.trade.short}`.toLowerCase() : ""}
           </span>
         </div>
-        <p className="mt-1 text-sm text-fg-2">{historySentence(item, m, (sym) => stockOn(chain, sym))}</p>
+        <p className="mt-1 text-sm text-fg-2">{historySentence(item, m, (sym) => stockOn(chain, sym), () => mult)}</p>
       </div>
       <div className="shrink-0 text-right text-[13px]">
         <p className="text-fg-2">{formatLocal(item.timestamp)}</p>

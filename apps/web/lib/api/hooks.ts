@@ -9,6 +9,7 @@ import { useChain } from "../useChain";
 
 export const queryKeys = {
   markets: ["markets"] as const,
+  stats: ["stats"] as const,
   marketDetail: (symbol: string) => ["marketDetail", symbol] as const,
   prices: (symbol: string, range: PriceRange) => ["prices", symbol, range] as const,
   account: (address: string) => ["account", address.toLowerCase()] as const,
@@ -122,6 +123,18 @@ export function useServiceStatus() {
     refetchInterval: 30_000,
     retry: shouldRetry,
   });
+}
+
+/** The share multiplier of a stock on the current chain (Base B20 tokens), or null. */
+export function useUiMultiplier(symbol: string | undefined): string | null {
+  const markets = useMarkets();
+  return markets.data?.markets.find((x) => x.symbol === symbol)?.uiMultiplierWad ?? null;
+}
+
+/** Public numbers of the chosen chain (BE-79, D-109). */
+export function useStats() {
+  const chain = useChain();
+  return useQuery({ queryKey: [...queryKeys.stats, chain.id], queryFn: ({ signal }) => api("stats", { chainId: chain.id, signal }), enabled: apiConfigured, refetchInterval: 60_000, retry: shouldRetry });
 }
 
 export function useEarnOptions() {

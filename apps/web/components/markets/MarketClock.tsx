@@ -3,7 +3,7 @@
 import type { SessionInfo, SessionName } from "@levra/shared/api";
 import { cn } from "@/lib/cn";
 import { useT } from "@/lib/i18n";
-import { dayProgress, segmentShare, sessionSegments } from "@/lib/sessionBar";
+import { calendarSession, dayProgress, segmentShare, sessionSegments } from "@/lib/sessionBar";
 import { formatDuration } from "@/lib/units";
 import { useNowSeconds } from "@/lib/useNow";
 import { LevraIcon } from "../icons/LevraIcon";
@@ -13,9 +13,10 @@ const labelColor: Record<SessionName, string> = { REGULAR: "text-up!", PRE_MARKE
 const segColor: Record<string, string> = { PRE_MARKET: "bg-butter", REGULAR: "bg-up", POST_MARKET: "bg-butter", OVERNIGHT: "bg-peri" };
 
 /** The US session as a day bar with a countdown to the next weekly close or open. */
-export function MarketClock({ session, info }: { session: SessionName | null; info: Pick<SessionInfo, "nextCloseAt" | "nextOpenAt" | "closedRegime"> | null }) {
+export function MarketClock({ session: reported, info, stale = false }: { session: SessionName | null; info: Pick<SessionInfo, "nextCloseAt" | "nextOpenAt" | "closedRegime"> | null; stale?: boolean }) {
   const m = useT();
   const now = useNowSeconds();
+  const session = stale ? calendarSession(now) : reported;
   const closeIn = info?.nextCloseAt && info.nextCloseAt > now ? info.nextCloseAt - now : null;
   const openIn = info?.nextOpenAt && info.nextOpenAt > now ? info.nextOpenAt - now : null;
   const closed = session === "CLOSED";
@@ -27,6 +28,7 @@ export function MarketClock({ session, info }: { session: SessionName | null; in
       <div className="min-w-[200px]">
         <p className={cn("label-caps", session && labelColor[session])}>{session ? m.session[session] : m.common.loading}</p>
         <p className="text-display mt-1 text-[26px] font-semibold tabular-nums">{countdown ?? "—"}</p>
+        {stale && <p className="mt-1 text-xs text-caution">{m.clock.pricePaused}</p>}
       </div>
       {!closed && (
         <div className="min-w-0 flex-1" aria-hidden>
