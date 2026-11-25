@@ -396,10 +396,11 @@ BE-87 is not planned for this round: its own rule is "only if time allows before
 
 ## M6. Launch
 
-- [ ] **BE-60 · Production backend**
+- [~] **BE-60 · Production backend**
   - Needs: SC-60.
   - Do: a production environment separate from staging; production addresses; keepers with production keys.
   - Done when: all endpoints answer correctly against the production contracts; all keepers send a heartbeat.
+  - Note (25 November 2026, D-115): started early with the deploy part. `.github/workflows/deploy.yml` deploys each `main` commit to the VPS after the Backend workflow passed, through a key that can only run `/opt/levra/bin/ci-deploy` (`deploy/ci-deploy.sh`). Tested on a throwaway repo: bad input, a short hash and a commit off `main` are refused, a commit already included is skipped. Left: the one-time setup in `hosting.md` ("Automatic deploy"; GitHub secret and variables by Wangsit), then a first run. The separate production server and keys stay for later.
 
 - [x] **BE-61 · Status page**
   - Done when: the public can see the state of the oracle, keepers, API and indexer.

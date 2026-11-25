@@ -14,6 +14,7 @@ Status on 20 November 2026: the files in `deploy/` are written. Verified in a lo
 | `new-secrets.sh` | Makes the database password, every `DATABASE_URL` and `AUTH_SECRET` on the server, without showing them |
 | `keys.sh` | Makes role keys on the server (BE-55, `docs/keys.md`) |
 | `deploy.sh` | Builds, migrates, starts and checks a commit |
+| `ci-deploy.sh` | The one command of the CI deploy key: checks the commit is on `main`, then runs `deploy.sh` (installed as `/opt/levra/bin/ci-deploy`) |
 | `backup.sh`, `restore-check.sh`, `backup-common.sh`, `cron/levra-backup` | The daily backup and the weekly restore check (BE-53) |
 
 Known limit: the image is about 2.5 GB unpacked, because it carries the dev tools (`tsx` runs the TypeScript directly, as on Railway). Fine for one server; to trim later with BE-60.
@@ -106,7 +107,26 @@ Every update, `deploy/deploy.sh`:
 
 Rollback: check out the previous commit and run the script again. This cannot undo a migration, and going back across one needs a restore (BE-53), so migrations stay additive.
 
-Later (BE-60): GitHub Actions builds the image for every `main` commit, pushes it to a registry and deploys it. Production gets its own server.
+### Automatic deploy (BE-60, D-115)
+
+`.github/workflows/deploy.yml` deploys every commit of `main` after the Backend workflow passed on it. It connects as `levra` with its own SSH key, and that key can run one thing only: `/opt/levra/bin/ci-deploy`, which takes the commit hash and nothing else. The script refuses a commit that is not on `main`, does nothing when a later commit is already live (it never goes back by itself), runs one deploy at a time, then calls `deploy.sh <commit>`. The workflow then checks that `/v1/status` reports that commit or a later one. A failed deploy fails the workflow run, shown in the Actions tab and emailed by GitHub according to each person's notification settings.
+
+Deploys run one after another and are never cancelled halfway, since a migration may be running. A hand deploy is still possible; go through the same script so it waits for a running one: `/opt/levra/bin/ci-deploy <full commit hash>`. A rollback is a hand deploy of the older commit with `deploy/deploy.sh <commit>`.
+
+The workflow logs are public (the repo is public since 25 November 2026). `deploy.sh` prints the build, `docker compose` and `/v1/status` output only, no env or secret values.
+
+Setup, once:
+
+1. On the VPS, as root, install the script outside the checkout (owned by root, so a deploy cannot change it):
+   `su - -c "install -d -m 0755 /opt/levra/bin && install -m 0755 /opt/levra/app/deploy/ci-deploy.sh /opt/levra/bin/ci-deploy"`. Run it again after a change to `deploy/ci-deploy.sh`.
+2. Check that `levra` can fetch without a forwarded agent, since the CI session has none: `git -C /opt/levra/app fetch origin`. If it asks for a key, point the checkout at the public URL: `git -C /opt/levra/app remote set-url origin https://github.com/wngstnr-code/levra.git`.
+3. Wangsit (repo admin) makes the key on his own machine, so the private half goes only to GitHub: `ssh-keygen -t ed25519 -N "" -C levra-ci-deploy -f levra-ci-deploy`.
+4. In GitHub: Settings, Environments, `production` (made by the first run, or add it). Secret `VPS_DEPLOY_KEY`: the whole private key file. Variables: `VPS_HOST` = `62.83.118.175`, `API_HOST` = `api.levra.finance`, `VPS_KNOWN_HOSTS` = the output of `ssh-keyscan -t ed25519 62.83.118.175`, after checking its fingerprint against `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the VPS. Then delete the private key file.
+5. On the VPS, add the public key with the restriction, as one line at the end of `/home/levra/.ssh/authorized_keys`:
+   `restrict,command="/opt/levra/bin/ci-deploy" ssh-ed25519 AAAA... levra-ci-deploy`
+6. Test from GitHub: Actions, Deploy, "Run workflow" on `main` with no hash. The run should end with "API runs ..., which includes ...".
+
+Later: build the image in GitHub Actions and push it to a registry, so the VPS no longer builds (about 11 minutes on this server). Production gets its own server.
 
 ## Backups (BE-53)
 

@@ -65,6 +65,7 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
 | 24 November 2026 | Nabil (CCTP in the app, FE-94) | Dharu | `POST /v1/:chainId/bridge/deposit` and `bridge/withdraw` answer 500 `INTERNAL` on the VPS (checked 24 November with Base to X Layer, X Layer to Base and Base to Arbitrum); `bridge/chains` works | FE-94, BE-85 |
+| 25 November 2026 | Dharu (automatic deploy to the VPS, BE-60) | Wangsit (repo admin) | In the GitHub `production` environment: the secret `VPS_DEPLOY_KEY` and the variables `VPS_HOST`, `API_HOST` and `VPS_KNOWN_HOSTS`, made as in `hosting.md` ("Automatic deploy", steps 3 and 4); the public key goes to Dharu for the VPS | BE-60 |
 | 24 November 2026 | Nabil (TapeOut mark in the app, FE-83) | Dharu | Wangsit's part is done: the processor and circuit IDs are in `xlayerTapeout` and the read-only `tapeoutCircuitsAbi` (`eval`) is in PR #182. Left: the circuit IDs in 03 with the input and output format from `packages/tapeout`, and the API answer next to ours (BE-83) | FE-83, BE-83, BE-86 |
 | 24 November 2026 | Nabil (exit guide on DeWEB, FE-82) | All three | Access to X Layer DeWEB to upload the static `/exit` page (#177) | FE-82 |
 | 24 November 2026 | Wangsit (market clock on Monad) | Nabil | The market clock on `/monad/markets` labels the session PRE-MARKET at 01:00 New York time (overnight). `MarketsView` passes the first row's `session`, which comes from the oracle snapshot; Anchored's oracle has been stuck at session 1 (`PRE_MARKET`) since 19 November, so the label shows a stale state. The bar marker and the countdown (to 25 November 20:00 New York, before Thanksgiving) are right. When the price is stale, take the label from the calendar (`calendar.ts`, or the clock circuit on X Layer, D-113) or show "Price paused" | FE-13, FE-88, FE-96 (built in #171, waits for merge) |
@@ -286,6 +287,8 @@ One section per person. Add your lines only at the top of your own section, each
 ### Dharu
 
 Newest first.
+
+- 25 November 2026: automatic deploy to the VPS (BE-60, D-115): `.github/workflows/deploy.yml` deploys each `main` commit after the Backend workflow passed, through a key that can only run `/opt/levra/bin/ci-deploy <commit>`. Next: the one-time setup (Wangsit adds the key and variables in GitHub, Dharu installs the script and the public key on the VPS), then a first run from the Actions tab.
 
 - 24 November 2026: BE-73 and BE-80 started, the Base and X Layer deployment files being there since 22 November: `indexer-base` and `indexer-xlayer` in compose (the indexer takes `LOG_BLOCK_RANGE`, 100 for `rpc.xlayer.tech`), and the Base and X Layer keepers get `DEPLOYMENT_FILE` for the calendar poster and the team monitor. Both indexers ran locally from their deployment blocks. Blocker: every Base and X Layer role key holds no gas and `nextCloseAt` is 0 on both chains.
 - 24 November 2026: BE-53 off-site copy on: Cloudflare R2 bucket `levra-backups` (private, objects deleted after 30 days), backup and restore check pass with the copy. Debian's rclone 1.60 gets 501 from R2 on the first upload try, so `setup-server.sh` now installs rclone v1.76.0 from downloads.rclone.org with a pinned checksum. Next: install it on the VPS, then the drill with all three.
