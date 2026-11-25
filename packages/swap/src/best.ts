@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { SwapError, type SwapProvider, type SwapSource } from "./types";
 
 /** Picks the error that tells the caller the most when every provider failed. */
@@ -35,5 +36,18 @@ export function bestRoute(providers: readonly SwapProvider[]): SwapSource {
     async price(p) {
       return (await race(async (provider) => ({ amountOut: await provider.price(p) }))).amountOut;
     },
+    without(targets) {
+      return withoutTargets(providers, targets);
+    },
   };
+}
+
+/** The best route among `providers` minus those whose target is in `targets`. */
+export function withoutTargets(providers: readonly SwapProvider[], targets: readonly Address[]): SwapSource {
+  const rest = providers.filter((p) => !targets.some((t) => t.toLowerCase() === p.target.toLowerCase()));
+  if (rest.length > 0) return bestRoute(rest);
+  const none = async (): Promise<never> => {
+    throw new SwapError("NO_ROUTE", "No other swap provider is left for this route.");
+  };
+  return { quote: none, price: none, without: () => withoutTargets([], []) };
 }
