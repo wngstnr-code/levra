@@ -1,5 +1,5 @@
 import { createKyber, KYBER_MONAD_URL } from "@levra/swap";
-import { tokensByChain } from "@levra/shared/addresses";
+import { tokensByChain, xlayerTapeout } from "@levra/shared/addresses";
 import { chains } from "@levra/shared/chains";
 import { readDeployment } from "@levra/shared/deployments/node";
 import { stocksByChain, type ChainlinkStock } from "@levra/shared/markets";
@@ -7,6 +7,7 @@ import { createWalletClient, http, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { createAlerts } from "./alerts/job";
 import { resendEmail, telegramBot, type Channels } from "./alerts/channels";
+import { memoClock, onchainClock } from "./calendar/clock-circuit";
 import { createCalendarPoster } from "./calendar/poster";
 import { viemChains } from "./chain";
 import { chainlinkPrices, createMarketDepth } from "./dex/depth";
@@ -77,9 +78,21 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     logger.info("oracle age poster off: ORACLE_AGE_POSTER_KEY or DEPLOYMENT_FILE is not set");
   }
 
+  const bot = env.TELEGRAM_BOT_TOKEN ? telegramBot(env.TELEGRAM_BOT_TOKEN) : undefined;
+  const team: TeamChannel[] = [
+    ...(bot && env.TEAM_TELEGRAM_CHAT_ID ? [(text: string) => bot.send(env.TEAM_TELEGRAM_CHAT_ID!, text)] : []),
+    ...(env.TEAM_WEBHOOK_URL ? [webhookChannel(env.TEAM_WEBHOOK_URL)] : []),
+  ];
+  const tellTeam = async (text: string) => void (await Promise.all(team.map((send) => send(text))));
+
   // Every chain: Anchored's observed schedule on Monad, the Chainlink feeds' weekly freeze elsewhere (scheduleForChain).
+  // On X Layer the Wall Street Clock circuit checks each close (D-113).
   if (deployment && env.CALENDAR_POSTER_KEY) {
-    jobs.push(createCalendarPoster({ client, wallet: walletFor(env.CALENDAR_POSTER_KEY), deployment }));
+    const clock =
+      chainId === 196
+        ? { read: memoClock(onchainClock(client, xlayerTapeout.processor, BigInt(xlayerTapeout.circuits.wallStreetClock))), chainName, tell: tellTeam }
+        : undefined;
+    jobs.push(createCalendarPoster({ client, wallet: walletFor(env.CALENDAR_POSTER_KEY), deployment, clock }));
   } else {
     logger.info("calendar poster off: CALENDAR_POSTER_KEY or DEPLOYMENT_FILE is not set");
   }
@@ -92,7 +105,6 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     logger.info("protector off: PROTECTOR_KEY or DEPLOYMENT_FILE is not set");
   }
 
-  const bot = env.TELEGRAM_BOT_TOKEN ? telegramBot(env.TELEGRAM_BOT_TOKEN) : undefined;
   const channels: Channels = {
     ...(env.RESEND_API_KEY && env.ALERT_EMAIL_FROM ? { email: resendEmail(env.RESEND_API_KEY, env.ALERT_EMAIL_FROM) } : {}),
     ...(bot ? { telegram: bot.send } : {}),
@@ -112,10 +124,6 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
   }
 
   if (deployment) {
-    const team: TeamChannel[] = [
-      ...(bot && env.TEAM_TELEGRAM_CHAT_ID ? [(text: string) => bot.send(env.TEAM_TELEGRAM_CHAT_ID!, text)] : []),
-      ...(env.TEAM_WEBHOOK_URL ? [webhookChannel(env.TEAM_WEBHOOK_URL)] : []),
-    ];
     if (team.length === 0) logger.warn("team monitor has no channel: set TEAM_TELEGRAM_CHAT_ID (with TELEGRAM_BOT_TOKEN) or TEAM_WEBHOOK_URL; alerts only go to the log");
     // The gas token balance of every role key this keeper runs with.
     const roles = [
