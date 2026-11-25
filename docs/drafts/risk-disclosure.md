@@ -44,7 +44,7 @@ If the issuer blocks or pauses, the stock cannot move. Closing, reducing and liq
 
 **Smart contracts can have bugs.** Levra's contracts have not been audited yet. They and the protocols Levra uses (Morpho, and the exchanges KyberSwap, 1inch, Aerodrome, OKX DEX and Uniswap) can fail even after audits.
 
-**Levra's team can change some settings.** Ownership is moving to a team multisig (2 of 3 signatures) behind a 2 day delay. After that, changing limits and fees waits 2 days, so you can see a change before it applies. The multisig can tighten limits or stop new positions at once. The team cannot move your funds or stop you from closing, reducing or adding collateral.
+**Levra's team can change some settings.** The contracts are owned by a team multisig (2 of 3 signatures) behind a 2 day delay. Changing limits and fees waits 2 days, so you can see a change before it applies. The multisig can tighten limits or stop new positions at once. The team cannot move your funds or stop you from closing, reducing or adding collateral.
 
 **Levra does not hold your funds.** Your collateral and debt sit in your own position in Morpho. This protects you from us, and it also means we cannot recover funds for you.
 

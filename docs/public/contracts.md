@@ -37,7 +37,7 @@ The source of every contract above is verified on Sourcify with an exact match. 
 
 ## Addresses on Base
 
-Base mainnet (chain ID 8453), deployed on 22 November 2026. Not audited. The limits are initial proposals. Ownership is moving from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` to a 2 day timelock [`0xA0089B68a8CFf4d810985DF8503815b3d1344c67`](https://basescan.org/address/0xA0089B68a8CFf4d810985DF8503815b3d1344c67) run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069`; the vault goes to the Safe directly. Until the Safe accepts, the deployer is still the owner.
+Base mainnet (chain ID 8453), deployed on 22 November 2026. Not audited. The limits are initial proposals. Since 25 November 2026 the router, risk manager and liquidator are owned by a 2 day timelock [`0xA0089B68a8CFf4d810985DF8503815b3d1344c67`](https://basescan.org/address/0xA0089B68a8CFf4d810985DF8503815b3d1344c67) that only the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3) can use, and the vault by the Safe itself. The deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` holds no role.
 
 | Contract | Address | What it does |
 |---|---|---|
@@ -77,7 +77,7 @@ The machine-readable list is [`contracts/deployments/base.json`](../../contracts
 
 ## Addresses on X Layer
 
-X Layer mainnet (chain ID 196), deployed on 22 November 2026, at the same contract addresses as on Base. Not audited. The limits are initial proposals. Ownership is moving from the deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` to a 2 day timelock `0xce171c460929433640f58dC5d3e9746Db00b420e` run by the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069`. Until the Safe accepts, the deployer is still the owner.
+X Layer mainnet (chain ID 196), deployed on 22 November 2026, at the same contract addresses as on Base. Not audited. The limits are initial proposals. Since 25 November 2026 the router, risk manager and liquidator are owned by a 2 day timelock `0xce171c460929433640f58dC5d3e9746Db00b420e` that only the team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3) can use. The deployer `0x7C7b6639d9cb9Eb691de0Eb90146ff77cde947D0` holds no role.
 
 | Contract | Address | What it does |
 |---|---|---|
@@ -125,13 +125,13 @@ To do this, the router needs your authorization on Morpho. That authorization le
 
 | Role | Held today by | Can do |
 |---|---|---|
-| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, one team key, until the timelock `0xf1F6C17660Fa513A42565746a73C654886bd14Dd` accepts ownership (pending since 22 November 2026) | Everything in the next table |
+| Owner | The timelock `0xf1F6C17660Fa513A42565746a73C654886bd14Dd` (2 day delay), which only the team multisig `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3) can use, since 25 November 2026. This covers the current router and the previous one | Everything in the next table, 2 days after the multisig schedules it |
 | Guardian | The team multisig `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3), since 22 November 2026 | Tighten soft limits and position caps, and pause new positions. Cannot loosen or resume |
 | Keeper | `0x469ab4F20dcDcD470b89A829783B5bbd5c64f474` on the router, `0xE36EafE2cC96F256B80E7952DFFBe916f0d64a6A` on the liquidator | Reduce a protected position, and call the liquidator |
 | Calendar poster | `0xd166D46a4e61daC99e87472B76423A9C379274Fb` | Post the time of the next market close, at most 8 days ahead |
 | Oracle age poster | `0xaec389DfC7D6F5CaB30e7D761206D989f7F6ed19` | Move the price age allowed for new positions, inside bounds set by the owner |
 
-The owner is still a single key. On 22 November 2026 ownership was offered to a 2 day timelock controlled by the team multisig (2 of 3), and the multisig became guardian. The move completes when the multisig accepts through the timelock, which takes at least 2 days.
+No single key owns the contracts. Every owner action needs 2 of 3 signatures on the team multisig and then waits 2 days in the timelock, so you can see a change before it applies. The multisig became guardian on 22 November 2026 and the timelock accepted ownership on 25 November 2026.
 
 ### What the owner can do
 
@@ -164,7 +164,7 @@ The vault is a MetaMorpho v1.1 vault created from Morpho's own factory (`0x33f20
 | Supply cap per market | 10,000 USDC for QQQ, 5,000 for HOOD, 20,000 for BIL | The owner. Lowering is immediate. Raising, or adding a market, waits for the timelock |
 | Fee | 10% of the interest earned | The owner, at most 50% by Morpho's rule |
 | Timelock | 1 day | The owner can lengthen it, up to 2 weeks. Morpho's code does not allow less than 1 day |
-| Owner | `0x70297E9b7f4cCE6272Ef830e3Df8744760bC1855`, the same single team key | Pending to the team multisig `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` since 22 November 2026 |
+| Owner | The team multisig `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (2 of 3) | Accepted on 22 November 2026 |
 | Curator, guardian | Not set | The owner |
 
 The owner cannot withdraw lenders' deposits. The owner does choose which markets the vault lends to, and a bad choice could lose deposits. A new market can be added only after the timelock, so lenders have 1 day to leave if they disagree. No guardian is set yet, so nobody can veto such a change during that day.
