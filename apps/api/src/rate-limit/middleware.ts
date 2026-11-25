@@ -53,9 +53,10 @@ export function clientIp(c: Context, trustProxyHeader: string | undefined): stri
   }
 }
 
+/** Reads a copy: the chain routes (`/v1/196/...`) forward the original request, so its body must stay unread. */
 async function bodyWallet(c: Context): Promise<string | undefined> {
   try {
-    const body: unknown = await c.req.json();
+    const body: unknown = await c.req.raw.clone().json();
     type Fields = { user?: unknown; recipient?: unknown; request?: { user?: unknown } };
     const fields = typeof body === "object" && body !== null ? (body as Fields) : {};
     const user = fields.user ?? fields.recipient ?? fields.request?.user;
