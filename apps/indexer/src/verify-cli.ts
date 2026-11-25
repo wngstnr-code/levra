@@ -25,7 +25,7 @@ try {
 
   const streams = [routerStream(deployment), morphoStream(deployment), vaultStream(deployment)].filter((s): s is Stream => s !== null);
   for (const stream of streams) {
-    const r = await checkStream(db, rpcSource(client), deployment, stream);
+    const r = await checkStream(db, rpcSource(client, BigInt(env.LOG_BLOCK_RANGE)), deployment, stream);
     if (!r) {
       console.log(`${stream.cursor}: not synced yet (no cursor). Start the indexer first.`);
       failed = true;
