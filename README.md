@@ -1,8 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/levra-logo-white.svg?v=2">
-  <img src="docs/assets/levra-logo-dark.svg?v=2" alt="Levra" width="280">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/levra-logo-on-dark.svg">
+  <img src="docs/assets/levra-logo-on-light.svg" alt="Levra" width="280">
 </picture>
 
 ### Trade tokenized stocks with leverage, with limits that respect market hours.
