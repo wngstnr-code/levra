@@ -1,6 +1,6 @@
 import { marginRouterAbi } from "@levra/shared/abis";
 import type { Address, PublicClient } from "viem";
-import { bestRoute } from "./best";
+import { withoutTargets } from "./best";
 import { SwapError, type SwapProvider, type SwapSource } from "./types";
 
 const same = (a: Address, b: Address) => a.toLowerCase() === b.toLowerCase();
@@ -25,26 +25,34 @@ export async function allowedProviders(client: PublicClient, contract: Address, 
  */
 export function routeForRouter(client: PublicClient, contract: Address, providers: readonly SwapProvider[]): SwapSource | null {
   if (providers.length === 0) return null;
-  let route: Promise<SwapSource> | null = null;
-  const resolve = () => {
-    route ??= allowedProviders(client, contract, providers).then(
-      (allowed) => {
-        if (allowed.length === 0) throw new SwapError("NO_ROUTE", "The contract accepts none of our swap providers.");
-        return allowed.length === 1 ? allowed[0]! : bestRoute(allowed);
+  let allowedList: Promise<SwapProvider[]> | null = null;
+  const allowed = () => {
+    allowedList ??= allowedProviders(client, contract, providers).then(
+      (list) => {
+        if (list.length === 0) throw new SwapError("NO_ROUTE", "The contract accepts none of our swap providers.");
+        return list;
       },
       (err) => {
-        route = null;
+        allowedList = null;
         throw new SwapError("UPSTREAM_ERROR", "Could not read the contract's swap targets.", undefined, err);
       },
     );
-    return route;
+    return allowedList;
   };
-  return {
-    async quote(p) {
-      return (await resolve()).quote(p);
-    },
-    async price(p) {
-      return (await resolve()).price(p);
-    },
+  const sourceWithout = (excluded: readonly Address[]): SwapSource => {
+    const pick = async () => {
+      const list = await allowed();
+      return excluded.length === 0 && list.length === 1 ? list[0]! : withoutTargets(list, excluded);
+    };
+    return {
+      async quote(p) {
+        return (await pick()).quote(p);
+      },
+      async price(p) {
+        return (await pick()).price(p);
+      },
+      without: (targets) => sourceWithout([...excluded, ...targets]),
+    };
   };
+  return sourceWithout([]);
 }

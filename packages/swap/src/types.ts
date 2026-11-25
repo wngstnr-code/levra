@@ -29,6 +29,11 @@ export type SwapSource = {
   quote(p: QuoteParams): Promise<SwapQuote>;
   /** Output for `amountIn` without building calldata. Used for the DEX mid price and market depth. */
   price(p: PriceParams): Promise<bigint>;
+  /**
+   * The same choice without the providers whose target is in `targets`, for a route that failed when executed (BE-102).
+   * Absent on a single provider; quoting with nothing left throws NO_ROUTE.
+   */
+  without?(targets: readonly Address[]): SwapSource;
 };
 
 /** One way to swap on one chain. Our contracts call `target` and approve `spender` (`swapSpender` in `SwapTargets`). */
