@@ -894,7 +894,8 @@ type AlertSettings = {
 // `ltvThresholdWad` must be above 0 and below 1e18, or null to turn it off.
 // When alerts go out (alerts keeper): 24 hours, 4 hours and 1 hour before a close, for positions above the closed-market
 // limit; once when a position's LTV passes the threshold, again only after it went back under; on auto-deleverage,
-// liquidation and an arrived deposit, for events less than a day old.
+// liquidation and an arrived deposit, for events less than a day old. An arrived deposit is a finished 1Click deposit
+// or, since BE-76, any CCTP mint of USDC to the wallet on that chain (`MintAndWithdraw`, with the amount received).
 // Halts (BE-75) go to every wallet with a channel, with no event switch: when an issuer control blocks a stock the user
 // holds (or the whole chain, which also covers USDC lent in Earn), once per block, and once more when it is lifted. The
 // text is the market's `haltReasons` sentence.
