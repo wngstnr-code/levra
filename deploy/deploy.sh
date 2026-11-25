@@ -16,6 +16,10 @@ main() {
 
   git fetch --prune origin
   git checkout --quiet --detach "$ref"
+  # Run this commit's own deploy script: the one bash has read belongs to the commit checked out before.
+  if [ -z "${LEVRA_DEPLOY_SELF:-}" ]; then
+    LEVRA_DEPLOY_SELF=1 exec deploy/deploy.sh "$(git rev-parse HEAD)"
+  fi
 
   # Every service in compose.yml reads an env file; name the missing ones before compose fails on the first.
   missing=0
