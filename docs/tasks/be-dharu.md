@@ -496,11 +496,12 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Done when: `/v1/accounts/:address` returns it, with tests by hand.
   - Note (23 November 2026): `pnlBps(pnl, invested)` in `math.ts` (signed bps, rounded toward zero, null without margin put in) and `Position.pnlBps` (03). The base is the margin still in the position, the same one as `unrealizedPnlUsdRaw`. Tests: the formula, and an account at +20% and -20%, plus null for a Morpho-only position and a market without a price. Optional in the schema so the web app's fixtures still type-check.
 
-- [ ] **BE-102 · Quote with the next provider when the best route fails**
+- [x] **BE-102 · Quote with the next provider when the best route fails**
   - Needs: nothing.
   - Do: when the open or close quote's simulation reverts without a known error, quote again with the next best allowed provider (at most each provider once) instead of answering 502. Log which provider failed, so a provider that fails often shows in the logs.
   - Done when: a test with a provider whose calldata reverts gets a quote from the next one, and a known contract error (a blocking warning) still does not switch providers.
   - Note (25 November 2026): found in the BE-72 final run: the winning GOOGL route reverted on execution for about 10 minutes while KyberSwap alone and Aero alone passed (05; which provider won was not logged). Users would have seen "Could not simulate the transaction." for that stock.
+  - Note (25 November 2026, later): done. `simulate` throws `RouteRevert` for a revert none of our contracts explains (no data, unknown data, `Error(string)` or `Panic`); a node failure and our own contract errors stay as they were. `withRouteFallback` runs the open and close quotes again without the swap targets the failed attempt used, through `without(targets)` on `bestRoute` and `routeForRouter` in `@levra/swap`, until no provider is left; then the first failure is the answer. Each failed target is logged as "swap route reverted, trying the next provider" with the chain ID. Tests: the next provider takes over and the failed one is reported; a known contract error stays a blocking warning without a retry; a node failure does not retry; all routes failing answers the first error; a single provider does not retry. A live GOOGL run on Base passes through the new path. No API shape change.
 
 ---
 
