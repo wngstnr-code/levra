@@ -120,7 +120,7 @@ Setup, once:
 1. On the VPS, as root, install the script outside the checkout (owned by root, so a deploy cannot change it):
    `su - -c "install -d -m 0755 /opt/levra/bin && install -m 0755 /opt/levra/app/deploy/ci-deploy.sh /opt/levra/bin/ci-deploy"`. Run it again after a change to `deploy/ci-deploy.sh`.
 2. Check that `levra` can fetch without a forwarded agent, since the CI session has none: `git -C /opt/levra/app fetch origin`. If it asks for a key, point the checkout at the public URL: `git -C /opt/levra/app remote set-url origin https://github.com/wngstnr-code/levra.git`.
-3. Wangsit (repo admin) makes the key on his own machine, so the private half goes only to GitHub: `ssh-keygen -t ed25519 -N "" -C levra-ci-deploy -f levra-ci-deploy`.
+3. Wangsit (repo admin) makes the key on their own machine, so the private half goes only to GitHub: `ssh-keygen -t ed25519 -N "" -C levra-ci-deploy -f levra-ci-deploy`.
 4. In GitHub: Settings, Environments, `production` (made by the first run, or add it). Secret `VPS_DEPLOY_KEY`: the whole private key file. Variables: `VPS_HOST` = `62.83.118.175`, `API_HOST` = `api.levra.finance`, `VPS_KNOWN_HOSTS` = the output of `ssh-keyscan -t ed25519 62.83.118.175`, after checking its fingerprint against `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the VPS. Then delete the private key file.
 5. On the VPS, add the public key with the restriction, as one line at the end of `/home/levra/.ssh/authorized_keys`:
    `restrict,command="/opt/levra/bin/ci-deploy" ssh-ed25519 AAAA... levra-ci-deploy`
