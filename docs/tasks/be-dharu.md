@@ -623,6 +623,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Do: deposits and withdrawals for X Layer through CCTP V2 with native USDC.
   - Done when: a real deposit from another chain into X Layer, hash in PROGRESS.
   - Note (24 November 2026): built without waiting for BE-76, since CCTP does not depend on the 1Click work (D-110). New `packages/cctp` (Circle's contracts and domains, the Iris client, the burn plan and the status reader) and `/v1/:chainId/bridge/chains`, `bridge/deposit`, `bridge/withdraw` and `/v1/bridge/status` (03). The burn carries the Forwarding Service hook, so Circle mints on X Layer and the user needs no OKB. Fork test: a 5 USDC burn from X Layer to Base with the planned calls passes on Circle's real contracts (05). The routes serve every live chain, so the CCTP half of BE-76 is done too. The rate limit now counts paths with a chain ID like the Monad ones (quotes on Base and X Layer were not counted as quotes before). Left: FE-94 (Nabil), then a real deposit of a few USDC from Base into X Layer and its hashes and time in PROGRESS and 05.
+  - Note (25 November 2026): `bridge/deposit` and `bridge/withdraw` answered 500 on the VPS. The rate limit read the body of `/v1/:chainId/...` paths, so the chain route forwarded a used body. It now reads a copy, and a test covers a chain route with the rate limit on.
 
 - [~] **BE-86 · Wall Street Clock circuit**
   - Needs: BE-82.

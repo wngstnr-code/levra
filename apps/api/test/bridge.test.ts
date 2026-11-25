@@ -81,6 +81,15 @@ describe("CCTP bridge routes (BE-85)", () => {
     expect(await codes("/v1/196/bridge/withdraw", { toChainId: 8453, amountRaw: "5000000", user })).toEqual([400, "BAD_REQUEST"]);
   });
 
+  it("plans a deposit on a chain route when the rate limit has read the body", async () => {
+    const limited = createApp({ logger: pino({ level: "silent" }), reader: reader(143), otherChains: [reader(196)], iris: fake.iris, rateLimit: {} });
+    const res = await limited.request("/v1/196/bridge/deposit", json({ fromChainId: 8453, amountRaw: "100000000", recipient: user }));
+    expect(res.status).toBe(200);
+    expect(bridgePlan.parse(await res.json())).toMatchObject({ fromChainId: 8453, toChainId: 196 });
+    const bad = await limited.request("/v1/196/bridge/deposit", { ...json({}), body: "not json" });
+    expect(bad.status).toBe(400);
+  });
+
   it("answers 404 on a chain that is not live", async () => {
     expect((await app.request("/v1/8453/bridge/chains")).status).toBe(404);
   });
