@@ -82,7 +82,7 @@ main() {
 
   # Every app service shares this one image; `compose build` would export and unpack it once per service, which filled
   # the disk on 25 November 2026.
-  docker build -t "levra-backend:$APP_VERSION" -f deploy/Dockerfile .
+  docker build -t "levra-backend:$APP_VERSION" --build-arg "APP_VERSION=$APP_VERSION" -f deploy/Dockerfile .
   # Check the Caddy config with the same image and env before the running Caddy sees it.
   docker run --rm --env-file "${LEVRA_HOME:-/opt/levra}/env/caddy.env" -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2-alpine \
     caddy adapt --validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
