@@ -5,6 +5,7 @@ import { FEED_SCHEDULE, nextCloseAfter, scheduleFromStretches, type SessionSched
 import type { Deployment } from "@levra/shared/deployments";
 import { type Account, type Chain, type PublicClient, type Transport, type WalletClient } from "viem";
 import type { Job } from "../runner";
+import { checkClose, clockAlerts, type ClockSource } from "./clock-circuit";
 
 /** RiskManager: MAX_CLOSE_HORIZON and CLOSE_GRACE, in seconds. */
 const MAX_CLOSE_HORIZON = 8 * 86_400;
@@ -45,13 +46,19 @@ export type CalendarPosterOptions = {
   deployment: Deployment;
   schedule?: ScheduleSource;
   intervalMs?: number;
+  /**
+   * X Layer (D-113): the Wall Street Clock circuit checks each close before it is posted. On a difference or an unreadable
+   * circuit the calendar.ts close is still posted (opening is the only thing a wrong close can affect) and the team is told.
+   */
+  clock?: { read: ClockSource; chainName: string; tell: (text: string) => Promise<void> };
 };
 
 /**
  * Keeps `nextCloseAt` on `RiskManager` at the next close of the chain's oracle (BE-30). The time comes from the exchange
  * calendar and the chain's schedule, never from a table of dates in the code. Uses the chain's clock.
  */
-export function createCalendarPoster({ client, wallet, deployment, schedule = scheduleForChain, intervalMs = 600_000 }: CalendarPosterOptions): Job {
+export function createCalendarPoster({ client, wallet, deployment, schedule = scheduleForChain, intervalMs = 600_000, clock }: CalendarPosterOptions): Job {
+  const alertFor = clock ? clockAlerts(clock.chainName) : undefined;
   return {
     name: "calendar",
     intervalMs,
@@ -68,7 +75,13 @@ export function createCalendarPoster({ client, wallet, deployment, schedule = sc
       const now = Number(block.timestamp);
       const next = nextCloseAfter(now, sched);
       const decision = decideNextClose({ now, current: Number(current), next });
-      const entry = { now, current: Number(current), next, schedule: sched, ...decision };
+      const check = clock ? await checkClose(now, sched, next, clock.read) : undefined;
+      const text = check && alertFor?.(check);
+      if (clock && text) {
+        logger.warn({ check }, text);
+        await clock.tell(text).catch((err: unknown) => logger.error({ err }, "could not tell the team about the clock circuit"));
+      }
+      const entry = { now, current: Number(current), next, schedule: sched, ...(check ? { clock: check } : {}), ...decision };
       if (decision.action === "skip") return entry;
 
       const request = { address: deployment.riskManager, abi: riskManagerAbi, functionName: "setNextCloseAt", args: [BigInt(decision.value)] } as const;
