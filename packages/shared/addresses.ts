@@ -19,6 +19,10 @@ type CommonExternal = {
   safeSingleton: Address;
   safeSingletonL2: Address;
   safeProxyFactory: Address;
+  /** Circle CCTP V2, the same addresses on every EVM chain (05, Circle CCTP V2). */
+  cctpTokenMessengerV2: Address;
+  cctpMessageTransmitterV2: Address;
+  cctpTokenMinterV2: Address;
 };
 
 /** Contracts we use but did not deploy on Monad. Each was confirmed to have code on Monad mainnet. */
@@ -41,6 +45,9 @@ export const external = {
   safeSingletonL2: "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
   safeProxyFactory: "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
   wrappedMon: "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+  cctpTokenMessengerV2: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+  cctpMessageTransmitterV2: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+  cctpTokenMinterV2: "0xfd78EE919681417d192449715b2594ab58f5D002",
 } as const satisfies CommonExternal & Record<string, Address>;
 
 /** Monad tokens. */
@@ -74,6 +81,9 @@ export const baseExternal = {
   safeSingleton: "0x41675C099F32341bf84BFc5382aF534df5C7461a",
   safeSingletonL2: "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
   safeProxyFactory: "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+  cctpTokenMessengerV2: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+  cctpMessageTransmitterV2: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+  cctpTokenMinterV2: "0xfd78EE919681417d192449715b2594ab58f5D002",
 } as const satisfies CommonExternal & Record<string, Address>;
 
 /** Base tokens. Coinbase stock tokens are B20 precompiles with 8 decimals. */
@@ -120,6 +130,9 @@ export const xlayerExternal = {
   safeSingletonL2: "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
   safeProxyFactory: "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
   wrappedOkb: "0xe538905cf8410324e03A5A23C1c177a474D59b2b",
+  cctpTokenMessengerV2: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+  cctpMessageTransmitterV2: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+  cctpTokenMinterV2: "0xfd78EE919681417d192449715b2594ab58f5D002",
 } as const satisfies CommonExternal & Record<string, Address>;
 
 /** X Layer tokens. USDC is Circle's native token; the stocks are the wrapped xStocks the Morpho markets use. */
