@@ -51,4 +51,13 @@ describe("best route", () => {
   it("needs at least one provider", () => {
     expect(() => bestRoute([])).toThrow();
   });
+
+  it("chooses again without the excluded targets, and answers NO_ROUTE when none is left (BE-102)", async () => {
+    const providers = [provider("k", 100n), provider("o", 103n), provider("a", 101n)];
+    const params = { tokenIn: a, tokenOut: b, amountIn: 10n, sender, slippageBps: 50 } as const;
+    const rest = bestRoute(providers).without!([providers[1]!.target]);
+    expect((await rest.quote(params)).target).toBe(providers[2]!.target);
+    const none = rest.without!([providers[0]!.target, providers[2]!.target]);
+    await expect(none.quote(params)).rejects.toMatchObject({ code: "NO_ROUTE" });
+  });
 });
