@@ -18,3 +18,4 @@ export { b20TokenAbi } from "./b20Token";
 export { b20PolicyRegistryAbi } from "./b20PolicyRegistry";
 export { xStockAbi } from "./xStock";
 export { sanctionsListAbi } from "./sanctionsList";
+export { tapeoutCircuitsAbi } from "./tapeoutCircuits";
