@@ -45,10 +45,10 @@ Deployed on 22 November 2026 with the same contracts. Not used with real positio
 
 - **Base**: 16 markets (long and short on AAPL, AMZN, GOOGL, META, MSFT, NVDA, SPCX and TSLA) over the Coinbase stock tokens, and a USDC vault for lenders. 20 contracts, verified on Basescan and Sourcify.
 - **X Layer**: 8 markets (long and short on GOOGL, NVDA, QQQ and SPY) over the wrapped xStocks. Lenders supply directly to a market, because Morpho has no vault factory on X Layer. 12 contracts verified on Sourcify.
-- Ownership on both chains is moving from the deployer to the team multisig behind a 2 day timelock; the first step is done and the second can run once the delay ends.
+- On both chains the contracts are owned by a 2 day timelock that only the team multisig (2 of 3) can use, since 25 November 2026. The deployer holds no role.
 - The indexer, keepers and web app screens for both chains are being finished.
 
-Not done yet, and stated plainly: the external audit, the multisig accepting ownership on all three chains through the 2 day timelock, the first real positions on Base and X Layer, cross-chain deposits through Circle CCTP and Across, a paid RPC provider, and legal review of the region list and the terms. Every risk limit in [docs/04-risk-rules.md](docs/04-risk-rules.md) is an initial proposal, not a tested or safe value.
+Not done yet, and stated plainly: the external audit, the first real positions on Base and X Layer, cross-chain deposits through Circle CCTP and Across, a paid RPC provider, and legal review of the region list and the terms. Every risk limit in [docs/04-risk-rules.md](docs/04-risk-rules.md) is an initial proposal, not a tested or safe value.
 
 Progress, blockers and every transaction hash are tracked in [docs/PROGRESS.md](docs/PROGRESS.md).
 
