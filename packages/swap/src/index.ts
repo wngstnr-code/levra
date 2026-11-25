@@ -10,4 +10,5 @@ export { AERO_TICK_SPACINGS, createAero, type AeroOptions } from "./aero";
 export { createOkx, OKX_API_URL, type OkxOptions } from "./okx";
 export { createUniswapV3, UNISWAP_V3_FEES, type UniswapV3Options } from "./uniswap-v3";
 export { bestRoute } from "./best";
+export { allowedProviders, routeForRouter } from "./allowed";
 export { dexMidPriceE8, MID_PROBE_USD_RAW } from "./mid";
