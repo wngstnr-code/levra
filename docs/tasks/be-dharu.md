@@ -496,6 +496,12 @@ Added on 20 November 2026 with the execution plan at the top. These tasks replac
   - Done when: `/v1/accounts/:address` returns it, with tests by hand.
   - Note (23 November 2026): `pnlBps(pnl, invested)` in `math.ts` (signed bps, rounded toward zero, null without margin put in) and `Position.pnlBps` (03). The base is the margin still in the position, the same one as `unrealizedPnlUsdRaw`. Tests: the formula, and an account at +20% and -20%, plus null for a Morpho-only position and a market without a price. Optional in the schema so the web app's fixtures still type-check.
 
+- [ ] **BE-102 · Quote with the next provider when the best route fails**
+  - Needs: nothing.
+  - Do: when the open or close quote's simulation reverts without a known error, quote again with the next best allowed provider (at most each provider once) instead of answering 502. Log which provider failed, so a provider that fails often shows in the logs.
+  - Done when: a test with a provider whose calldata reverts gets a quote from the next one, and a known contract error (a blocking warning) still does not switch providers.
+  - Note (25 November 2026): found in the BE-72 final run: the winning GOOGL route reverted on execution for about 10 minutes while KyberSwap alone and Aero alone passed (05; which provider won was not logged). Users would have seen "Could not simulate the transaction." for that stock.
+
 ---
 
 ## B. Base (Stocks Maxxing)
@@ -514,13 +520,14 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: the provider choice is made (D-72): 1inch Swap API primary and the Aerodrome router as fallback on Base, 0x dropped. Prove it: on Base, quote and build a 1inch swap and an Aerodrome swap for each stock with our router as sender and recipient; measure price and rate limits. On Monad, check whether 1inch routes Anchored tokens; until it does, KyberSwap stays.
   - Done when: results in 05, router addresses sent to Wangsit (SC-75), and the Monad choice recorded in 09.
 
-- [~] **BE-72 · Quotes on Base**
+- [x] **BE-72 · Quotes on Base**
   - Needs: BE-70, BE-71, BE-95, BE-96, SC-73; SC-76 for the final test.
   - Do: long, short, close and Earn quotes on Base with the chosen aggregator. B20 amounts stay raw; UI share amounts use the multiplier.
   - Done when: quotes match a live simulation (`eth_simulateV1`) within the stated tolerance. A local fork cannot run B20 tokens (SC-71, 07), so a fork execution is not possible on Base.
   - Note (20 November 2026): long first (25 November), then short and the Earn data (28 November). Earn on Base is our USDC vault and stock supply to our short markets (D-77); the web app builds the Earn transactions itself (D-07).
   - Note (23 November 2026): `apps/api/test/base-quotes.live.test.ts` (`BASE_LIVE=1`) runs the API on a virtual Base: its reads and gas estimates run in `eth_simulateV1` after setup calls, pinned to one block. Long, short and full close quotes for SPCX execute with the quoted calldata and gas limit and match the preview within 1 bp; the router ends empty; Earn shows a market supply and a vault deposit exactly. No API change was needed. Results in 05. Left: the final run after SC-76 against the finished Base deployment, the other stocks on a weekday (`BASE_LIVE_STOCK`), and 1inch with `ONEINCH_API_KEY`.
   - Note (23 November 2026, later): all 8 stocks run on a weekday, with 1inch competing, on the VPS. Long, short, close and Earn pass for every stock, within 8 bps of the preview. The short and Earn cases of AMZN, META, MSFT and TSLA first failed in the test's setup, because Morpho holds less than 5 of those shares; the test now takes the stock from its largest holder (Morpho or an Aero pool). Results in 05. Left: the final run after SC-76.
+  - Note (25 November 2026): done. Final run against the finished Base deployment: all 8 stocks pass long, short, close and Earn, within 6 bps of the preview (05). A GOOGL long failed for about 10 minutes because the winning route reverted on execution (provider not logged), while each provider alone passed; the fallback is BE-102.
 
 - [~] **BE-73 · Indexer and keeper on Base**
   - Needs: SC-72, SC-76.
