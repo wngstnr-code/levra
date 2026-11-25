@@ -76,12 +76,14 @@ main() {
 
   compose() { docker compose -f deploy/compose.yml "$@"; }
 
-  compose build
+  # Every app service shares this one image; `compose build` would export and unpack it once per service, which filled
+  # the disk on 25 November 2026.
+  docker build -t "levra-backend:$APP_VERSION" -f deploy/Dockerfile .
   # Check the Caddy config with the same image and env before the running Caddy sees it.
   docker run --rm --env-file "${LEVRA_HOME:-/opt/levra}/env/caddy.env" -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2-alpine \
     caddy adapt --validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
   # `up` runs migrate first and starts the apps only if it succeeds (depends_on in compose.yml).
-  compose up -d --remove-orphans
+  compose up -d --no-build --remove-orphans
   # `up` recreates Caddy only when its env or mounts change; a new Caddyfile alone needs a reload. A failed reload keeps the old config.
   for try in 1 2 3 4 5; do
     compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile && break
@@ -106,7 +108,12 @@ main() {
 
   compose exec -T api node -e "fetch('http://127.0.0.1:8787/v1/status').then(r=>r.json()).then(s=>console.log(JSON.stringify(s,null,2)))"
   compose ps
-  docker image prune -f --filter "until=168h" >/dev/null
+  # Each deploy tags a new image, which `image prune` never removes. Keep this one and the newest other (for a rollback
+  # without a rebuild); an image a container still uses is refused by `rm` and stays.
+  docker image ls levra-backend --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | cut -f2 | grep -vx "$APP_VERSION" | tail -n +2 |
+    sed 's/^/levra-backend:/' | xargs -r docker image rm >/dev/null 2>&1 || true
+  docker image prune -f >/dev/null
+  docker builder prune -f --filter "until=72h" >/dev/null
 }
 
 main "$@"
