@@ -133,6 +133,9 @@ importers:
 
   apps/keeper:
     dependencies:
+      '@levra/cctp':
+        specifier: workspace:*
+        version: link:../../packages/cctp
       '@levra/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -10176,7 +10179,7 @@ snapshots:
 
   aria-hidden@1.2.6:
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   aria-query@5.3.2: {}
 

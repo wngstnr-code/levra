@@ -5,6 +5,7 @@ import { readDeployment } from "@levra/shared/deployments/node";
 import { stocksByChain, type ChainlinkStock } from "@levra/shared/markets";
 import { createWalletClient, http, type Address, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { cctpArrivals } from "./alerts/arrivals";
 import { createAlerts } from "./alerts/job";
 import { resendEmail, telegramBot, type Channels } from "./alerts/channels";
 import { memoClock, onchainClock } from "./calendar/clock-circuit";
@@ -111,7 +112,7 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     ...(bot ? { telegram: bot.send } : {}),
   };
   if (deployment && (channels.email || channels.telegram)) {
-    jobs.push(createAlerts({ client, deployment, channels, telegram: env.KEEPER_GLOBAL ? bot : undefined }));
+    jobs.push(createAlerts({ client, deployment, channels, telegram: env.KEEPER_GLOBAL ? bot : undefined, arrivals: cctpArrivals(client, tokensByChain[chainId].USDC.address) }));
   } else {
     logger.info("alerts off: no email or Telegram channel, or DEPLOYMENT_FILE is not set");
   }
