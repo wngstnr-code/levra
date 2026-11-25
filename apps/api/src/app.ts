@@ -8,6 +8,7 @@ import { rateLimit, type RateLimitOptions } from "./rate-limit/middleware";
 import type { ChainReader } from "./chain/reader";
 import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
+import type { RouteFailed } from "./quotes/fallback";
 import { chainEventStore, dbEventStore, type EventStore } from "./positions/events";
 import { accountRoutes } from "./routes/accounts";
 import { alertRoutes } from "./routes/alerts";
@@ -121,7 +122,8 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     if (db) sub.route("/", statsRoutes(r, db));
     // Quotes need a swap route for the chain (BE-96): KyberSwap on Monad, the best of three on Base, X Layer with BE-81.
     // Region and terms belong to the wallet, so the same gate applies on every chain.
-    if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance));
+    const routeFailed: RouteFailed = (target, err) => logger.warn({ chainId: id, target, error: err.message }, "swap route reverted, trying the next provider");
+    if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance, routeFailed));
     if (fees) sub.route("/", bridgeRoutes(id, fees, compliance));
     // The agent prepares only what this chain can quote (BE-77), through the same quote route and gate.
     if (chainSwap && db && agent) {
