@@ -2,8 +2,8 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { decodeEventLog, isAddress, keccak256, toBytes } from "viem";
 import { describe, expect, it } from "vitest";
-import { erc20PermitAbi, liquidatorAbi, marginRouterAbi, metaMorphoAbi, morphoAbi, riskManagerAbi } from "./abis";
-import { BASE_CHAIN_ID, XLAYER_CHAIN_ID, external, tokens, tokensByChain } from "./addresses";
+import { erc20PermitAbi, liquidatorAbi, marginRouterAbi, metaMorphoAbi, morphoAbi, riskManagerAbi, tapeoutCircuitsAbi } from "./abis";
+import { BASE_CHAIN_ID, XLAYER_CHAIN_ID, external, externalByChain, tokens, tokensByChain } from "./addresses";
 import { parseDeployment, type Deployment } from "./deployments";
 import { baseDeployment } from "./deployments.base";
 import { monadDeployment } from "./deployments.monad";
@@ -47,6 +47,11 @@ describe("abis", () => {
     );
     expect(functions(erc20PermitAbi)).toContain("nonces");
   });
+
+  it("carry the TapeOut circuit reads, and only reads", () => {
+    expect(functions(tapeoutCircuitsAbi).sort()).toEqual(["circuitInfo", "eval", "netlist", "ownerOf"]);
+    for (const item of tapeoutCircuitsAbi) if (item.type === "function") expect(item.stateMutability).toBe("view");
+  });
 });
 
 describe("addresses", () => {
@@ -61,6 +66,12 @@ describe("addresses", () => {
   it("are unique", () => {
     const seen = new Set(all.map(([, address]) => address.toLowerCase()));
     expect(seen.size).toBe(all.length);
+  });
+
+  it("put Circle's CCTP V2 at the same addresses on every chain", () => {
+    const cctp = Object.values(externalByChain).map((e) => [e.cctpTokenMessengerV2, e.cctpMessageTransmitterV2, e.cctpTokenMinterV2]);
+    for (const set of cctp) expect(set).toEqual(cctp[0]);
+    expect(new Set(cctp[0]).size).toBe(3);
   });
 });
 
