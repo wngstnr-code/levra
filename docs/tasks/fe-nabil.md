@@ -365,3 +365,8 @@ The design lives in a Pencil file kept by Nabil (`levra.pen`), with dark and lig
   - Do: status banners per chain (Base and X Layer showed Monad's stale prices), the `--color-base` token that turned every `text-base` blue, and a label that did not fit on Earn cards.
   - Done when: each chain shows only its own price and service state, with unit tests.
   - Note: done on 24 November 2026 (`fe/FE-97-audit-fixes`).
+
+- [x] **FE-98 · Rabby and other browser wallets in the sign-in list**
+  - Do: add `rabby_wallet` and `detected_ethereum_wallets` to Privy's `walletList`, so Rabby and any other installed browser wallet show up.
+  - Done when: Rabby appears in the Privy sign-in list in a browser that has it.
+  - Note: done on 25 November 2026 (`fe/FE-98-rabby`).
