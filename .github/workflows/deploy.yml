@@ -1,0 +1,85 @@
+name: Deploy
+
+# Deploys main to the VPS after the Backend workflow passed on that commit (hosting.md, "Automatic deploy").
+# The key may only run /opt/levra/bin/ci-deploy, which takes the commit hash and nothing else.
+on:
+  workflow_run:
+    workflows: [Backend]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full hash of a commit on main. Empty deploys the newest commit of main.
+        required: false
+        default: ""
+
+# Deploys run one after another, never cancelled halfway (a migration may be running).
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to the VPS
+    # Only a push to main of this repository, never a pull request from a fork whose branch is also called main.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || inputs.sha || github.sha }}
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      API_HOST: ${{ vars.API_HOST }}
+    steps:
+      - name: Check the settings
+        env:
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+        run: |
+          missing=0
+          for name in VPS_HOST API_HOST VPS_KNOWN_HOSTS VPS_DEPLOY_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::$name is not set in the production environment"; missing=1; fi
+          done
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::not a full commit hash: $SHA"; missing=1; }
+          exit "$missing"
+
+      - name: Deploy
+        env:
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+        run: |
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          (umask 077 && printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/deploy_key)
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
+            "levra@$VPS_HOST" "$SHA"
+
+      # The live version must be this commit, or a later one from a newer deploy that already includes it.
+      - name: The API runs this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=""
+          for attempt in $(seq 1 20); do
+            version=$(curl -fsS --max-time 10 "https://$API_HOST/v1/status" | jq -r '.api.version // empty' || true)
+            if [[ "$version" =~ ^[0-9a-f]{7,40}$ ]]; then
+              status=$(gh api "repos/${{ github.repository }}/compare/$SHA...$version" --jq .status 2>/dev/null || true)
+              if [ "$status" = "identical" ] || [ "$status" = "ahead" ]; then echo "API runs $version, which includes $SHA"; exit 0; fi
+            fi
+            sleep 15
+          done
+          echo "::error::API reports '${version:-nothing}', which does not include $SHA"
+          exit 1
+
+      - name: Remove the key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
