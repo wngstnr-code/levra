@@ -1032,7 +1032,8 @@ type StatusResponse = {
   }[];
   keepers: {
     // "receipts" and "tapesend" added in BE-84. "tapesend" runs in the X Layer keeper only, so Monad's list leaves it out.
-    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers" | "monitor" | "receipts" | "tapesend";
+    // "telegram" added in BE-78: the Telegram bot (chat linking and commands), in the KEEPER_GLOBAL keeper.
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers" | "monitor" | "receipts" | "tapesend" | "telegram";
     lastHeartbeatAt: number | null;
     healthy: boolean;
   }[];
