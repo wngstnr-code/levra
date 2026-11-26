@@ -754,9 +754,10 @@ type BridgeStatusResponse = {
 Status: proposed by Dharu on 27 November 2026 and built as additions (06), waiting for Nabil's review. Off until `ACROSS_API_KEY` is set on the API, so nothing changes for the web app before then. CCTP above stays the way for USDC to USDC; Across is for any other token Across takes (for example ETH or USDT on Arbitrum), delivered as USDC.
 
 - `POST /v1/:chainId/bridge/across/deposit` on Monad and Base only (Across does not list X Layer), plus the Monad alias without a chain ID. `GET /v1/bridge/across/status` without a chain ID.
-- The API asks Across for an approval-funded quote only, so the wallet never signs typed data and nothing is posted back to Across: send `approve` when it is there (skip it if the allowance already covers `amountRaw`), then `deposit` with `valueRaw` of native token. Before signing, switch the wallet to `fromChainId`. No Levra contract or key is involved and no funds pass through us.
-- Every quote is checked before the wallet sees it: the same input token, amount, depositor, output token (USDC on this chain) and recipient; an approval of exactly that token and amount; the deposit as the last step on `fromChainId`, with a native value only for a native token; not expired. Anything else answers 502 `UPSTREAM_ERROR`.
-- Sign before `expiresAt`, or ask again. Across refusing the amount or token answers 400 `BAD_REQUEST` with Across's reason.
+- The API asks Across for an approval-funded quote with an exact approval only, so the wallet never signs typed data and nothing is posted back to Across. Send, in order: `approveReset` when it is there, `approve` (always there for a token, null only for a native token; never skip it over an existing allowance), then `deposit` with `valueRaw` of native token. Across's deposit pulls everything the allowance lets it, and `approve` sets the allowance to exactly `amountRaw`, so the deposit can never take more than asked (Across docs, read on 27 November 2026). Before signing, switch the wallet to `fromChainId`. No Levra contract or key is involved and no funds pass through us.
+- Every quote is checked before the wallet sees it: the same input token, amount, depositor, output token (USDC on this chain) and recipient; the fee in that USDC when Across names its token; an approval of exactly that token and amount, after an optional reset to zero for the same spender; the deposit as the last step on `fromChainId`, with whole-byte call data and a native value only for a native token; at least 60 s left (initial proposal). Anything else answers 502 `UPSTREAM_ERROR`.
+- The deposit must have landed by `expiresAt` (Across's `originValidUntil`), or ask again. Across refusing the amount or token answers 400 `BAD_REQUEST` with Across's reason.
+- Not checked yet: that `spender` and the deposit's `to` are Across contracts. Across does not publish the addresses of its new quote flow; they are read from the first live quote and then held in `packages/shared` (Known issues in PROGRESS).
 - Polling `bridge/across/status` with `orderId`: `not_found` until Across sees the deposit (a few seconds, sometimes minutes), then Across's own `state`; stop when `terminal` is true. `description` is Across's sentence for the user.
 - Region and terms apply to `recipient` on the chain in the path. Counted as a quote for the rate limit, per wallet through `recipient`.
 
@@ -772,9 +773,10 @@ type AcrossDepositPlan = {
   expectedReceivedRaw: string;  // USDC on toChainId
   minReceivedRaw: string;       // the least Across guarantees
   feeRaw: string;               // Across's whole fee, USDC on toChainId
-  expiresAt: number;            // unix ms
+  expiresAt: number;            // unix ms, the deposit must have landed by then
   estimatedSeconds: number | null;
-  approve: (Call & { token: Address; spender: Address }) | null;
+  approveReset: Call | null;    // approve(spender, 0) first, for USDT-like tokens
+  approve: (Call & { token: Address; spender: Address }) | null; // null only for a native token
   deposit: Call & { valueRaw: string };
 };
 // GET /v1/bridge/across/status?orderId=0x...

@@ -247,6 +247,21 @@ Verified on 14 October 2026 (no funds moved): without a partner token every quot
 
 Still not verified (BE-05): a real deposit; whether a partner token removes the 0.2% fee; the feature that runs automatic steps when funds arrive.
 
+### Across, quote API (BE-76, D-120)
+
+| Item | Value | Status |
+|---|---|---|
+| Base URL | `https://api.across.to`: `POST /v1/quotes`, `GET /v1/transfers/{orderId}` | From Across's docs, read on 27 November 2026 |
+| Key | `Authorization: Bearer <ACROSS_API_KEY>` on every call, from Across's form. Requested by Dharu | Not received yet |
+| Chains | Lists Monad and Base; not X Layer | Read on 25 November 2026 |
+| Cost | 10 USDC from Base to Monad: about $0.0013, filled at once | One quote on 25 November 2026, through the older `/swap/approval` |
+| Approval flow | With `capabilities` approve and send only, the quote ends with an `approve_token` (`id: "approval"`, maybe after an `approval-reset` to 0 for USDT-like tokens) and a `send_transaction` with `id: "prefunded-store"`, the deposit. Nothing is posted back | From the docs, not from a live quote |
+| Allowance | The deposit pulls everything the allowance lets it. The default approval is unlimited; `authorizationPolicy.approvalAmount: "exact"` asks for exactly the amount | From the docs |
+| Deadline | The deposit must land before `originValidUntil` | From the docs |
+| Contracts | The `spender` and the deposit's `to` are not in the docs for this flow (`0x998d...e707` appears as the spender in their Arbitrum examples) | Not verified |
+
+The older `/swap/approval` endpoints answer without a key but are deprecated; Across's docs say not to build on them.
+
 ## Numbers measured on 13 October 2026
 
 A starting point only. The backend measures again on a regular basis.
