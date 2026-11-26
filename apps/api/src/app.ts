@@ -1,10 +1,11 @@
 import type { Db } from "@levra/db";
-import type { ChainsResponse, HealthResponse } from "@levra/shared/api";
+import type { ChainsResponse, HealthResponse, PrepareRequest } from "@levra/shared/api";
 import { chainIds, chains, DEFAULT_CHAIN_ID, isChainId } from "@levra/shared/chains";
 import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { matchesAny } from "./origins";
 import { rateLimit, type RateLimitOptions } from "./rate-limit/middleware";
+import { actionCircuitCheck } from "./chain/action-check";
 import type { ChainReader } from "./chain/reader";
 import { ApiHttpError, fromSwapError } from "./errors";
 import type { Logger } from "./logger";
@@ -134,7 +135,9 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
         h.set("content-type", "application/json");
         return Promise.resolve(sub.request(path, { method: "POST", headers: h, body: JSON.stringify(body) }));
       };
-      sub.route("/", agentRoutes(r.deployment, db, quoteThrough, agent.webAppUrl));
+      // X Layer: each prepared action also carries the TapeOut circuits' check (BE-87).
+      const checkCircuits = r.circuits ? (a: PrepareRequest, q: unknown, nowMs: number) => actionCircuitCheck(r, a, q, nowMs) : undefined;
+      sub.route("/", agentRoutes(r.deployment, db, quoteThrough, agent.webAppUrl, Date.now, checkCircuits));
     }
     sub.notFound(notFound);
     sub.onError(onError);
