@@ -4,7 +4,8 @@ import { chains } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
 import { WAD } from "@levra/shared/math";
 import { and, eq, gte, inArray, like } from "drizzle-orm";
-import { erc20Abi, getAddress, type PublicClient } from "viem";
+import { erc20Abi, formatUnits, getAddress, type PublicClient } from "viem";
+import type { ArrivalSource } from "./arrivals";
 import { GATE_EFFECT } from "../monitor/checks";
 import { closeFromCalendar, type CloseSource } from "../protector/protector";
 import type { Job } from "../runner";
@@ -79,6 +80,8 @@ export type AlertsOptions = {
   /** Only in the keeper with KEEPER_GLOBAL: Telegram allows one update reader per bot. */
   telegram?: TelegramSource;
   nextClose?: CloseSource;
+  /** USDC that arrived through CCTP (BE-76). Without it, only 1Click deposits alert. */
+  arrivals?: ArrivalSource;
   /** Unix seconds. The chain's clock unless a test sets another. */
   clock?: () => Promise<number>;
   intervalMs?: number;
@@ -89,7 +92,7 @@ export type AlertsOptions = {
  * auto-deleverage, liquidation and arrived deposits, for the positions on this keeper's chain. Each alert goes out once
  * per channel (`alert_deliveries`, keys start with the chain id); a failed send is removed again so the next run retries it.
  */
-export function createAlerts({ client, deployment, channels, telegram, nextClose = closeFromCalendar, clock, intervalMs = 60_000 }: AlertsOptions): Job {
+export function createAlerts({ client, deployment, channels, telegram, nextClose = closeFromCalendar, arrivals, clock, intervalMs = 60_000 }: AlertsOptions): Job {
   const chainClock = async () => Number((await client.getBlock({ blockTag: "latest" })).timestamp);
   const symbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
   const marketSymbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m.symbol as string]));
@@ -126,6 +129,8 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
       const linked = telegram ? await linkTelegramChats(db, chainId, telegram) : 0;
       const now = await (clock ?? chainClock)();
       const users = (await db.select().from(alertSettings)).filter((s) => (s.email && channels.email) || (s.telegramChatId && channels.telegram));
+      // Read even with nobody to alert, so the reader keeps up with the chain.
+      const minted = arrivals ? await arrivals(users.filter((u) => u.depositArrived).map((u) => getAddress(u.address))) : [];
       if (users.length === 0) return { linked, users: 0, sent: 0 };
 
       const markets: MarketView[] = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).map((m) => ({
@@ -239,6 +244,9 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
         if (s.depositArrived) {
           for (const d of arrived.filter((r) => r.user === s.address && r.updatedAt.getTime() >= createdAt)) {
             await send(s, { key: `deposit:${d.id}`, subject: "Deposit arrived", text: `Your deposit arrived on ${chainName}${d.destinationTxHash ? `. Transaction: ${d.destinationTxHash}` : "."}` });
+          }
+          for (const a of minted.filter((m) => m.recipient.toLowerCase() === s.address.toLowerCase() && m.blockTime * 1000 >= createdAt)) {
+            await send(s, { key: `cctp:${a.txHash}:${a.logIndex}`, subject: "Deposit arrived", text: `${formatUnits(a.amount, 6)} USDC arrived on ${chainName}. Transaction: ${a.txHash}` });
           }
         }
       }

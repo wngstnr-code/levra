@@ -15,6 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@levra/cctp": "workspace:*",
     "@levra/db": "workspace:*",
     "@levra/intents": "workspace:*",
     "@levra/shared": "workspace:*",
