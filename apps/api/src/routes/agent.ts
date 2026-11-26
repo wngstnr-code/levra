@@ -6,6 +6,7 @@ import {
   preparedAction,
   quoteCloseResponse,
   quoteOpenResponse,
+  type AgentCircuitCheck,
   type PrepareRequest,
   type PrepareResponse,
   type PreparedResponse,
@@ -71,8 +72,14 @@ export function summarize(deployment: Deployment, action: PrepareRequest, quote:
 
 const QUOTE_PATH = { open: "/v1/quote/open", close: "/v1/quote/close", collateral: "/v1/quote/collateral" } as const;
 
-/** `POST /v1/:chainId/agent/prepare` (BE-77): checks the request with a real quote, stores it, returns the app link. */
-export function agentRoutes(deployment: Deployment, db: Db, quoteThrough: QuoteThrough, webAppUrl: string, now: () => number = Date.now) {
+/** BE-87: the circuits' view of an action from its quote; given on X Layer only. */
+export type CheckCircuits = (action: PrepareRequest, quote: unknown, nowMs: number) => Promise<AgentCircuitCheck | null>;
+
+/**
+ * `POST /v1/:chainId/agent/prepare` (BE-77): checks the request with a real quote, stores it, returns the app link. With
+ * `checkCircuits` (X Layer, BE-87) the answer also carries the TapeOut circuits' check of the action.
+ */
+export function agentRoutes(deployment: Deployment, db: Db, quoteThrough: QuoteThrough, webAppUrl: string, now: () => number = Date.now, checkCircuits?: CheckCircuits) {
   const app = new Hono();
   app.post("/v1/agent/prepare", async (c) => {
     const parsed = prepareRequest.safeParse(await c.req.json().catch(() => null));
@@ -87,6 +94,7 @@ export function agentRoutes(deployment: Deployment, db: Db, quoteThrough: QuoteT
       throw new ApiHttpError("UPSTREAM_ERROR", "The quote for this action failed.");
     }
     const summary = summarize(deployment, action, body);
+    const circuitCheck = checkCircuits ? await checkCircuits(action, body, now()) : undefined;
 
     const id = randomUUID();
     const created = new Date(now());
@@ -103,7 +111,7 @@ export function agentRoutes(deployment: Deployment, db: Db, quoteThrough: QuoteT
       expiresAt: expires,
     });
     const url = new URL(`/prepared/${id}`, webAppUrl).toString();
-    return c.json({ id, url, expiresAt: Math.floor(expires.getTime() / 1000), summary } satisfies PrepareResponse);
+    return c.json({ id, url, expiresAt: Math.floor(expires.getTime() / 1000), summary, ...(checkCircuits ? { circuitCheck } : {}) } satisfies PrepareResponse);
   });
   return app;
 }

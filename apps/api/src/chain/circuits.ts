@@ -27,7 +27,7 @@ const OPEN_SESSIONS: readonly SessionName[] = ["PRE_MARKET", "REGULAR", "POST_MA
 
 export type Circuits = ReturnType<typeof createCircuits>;
 
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`no circuit answer in ${ms} ms`)), ms);

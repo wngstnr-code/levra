@@ -93,6 +93,26 @@ describe.skipIf(!url)("prepare and open a prepared action (needs TEST_DATABASE_U
     expect(rows.filter((r) => r.user === user.toLowerCase())).toHaveLength(0);
   });
 
+  it("adds the circuit check on X Layer only (BE-87)", async () => {
+    answer = Response.json(closeQuote);
+    const body = { kind: "close", request: { user, marketId: longId, fractionWad: "1000000000000000000", slippageBps: 50 } };
+    const check = { risk: null, gap: null, clock: null };
+    const seen: unknown[] = [];
+    const xlayer = new Hono();
+    xlayer.route(
+      "/",
+      agentRoutes(deployment, db, quoteThrough, "https://app.levra.finance", () => clock, async (action, quote) => {
+        seen.push({ action, quote });
+        return check;
+      }),
+    );
+    const res = await xlayer.request("/v1/agent/prepare", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    expect(prepareResponse.parse(await res.json()).circuitCheck).toEqual(check);
+    expect(seen).toEqual([{ action: body, quote: closeQuote }]);
+
+    expect(prepareResponse.parse(await (await prepare(body)).json())).not.toHaveProperty("circuitCheck");
+  });
+
   it("refuses a bad body and an unknown id", async () => {
     expect((await prepare({ kind: "swap", request: {} })).status).toBe(400);
     expect((await app.request("/v1/prepared/00000000-0000-0000-0000-000000000000")).status).toBe(404);

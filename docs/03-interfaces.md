@@ -1098,6 +1098,14 @@ type PrepareResponse = {
   url: string;       // `${WEB_APP_URL}/prepared/${id}`
   expiresAt: number; // Unix seconds: one hour after preparing (initial proposal)
   summary: string;   // one plain sentence from the quote made at preparation, for the chat
+  circuitCheck?: AgentCircuitCheck | null; // X Layer only (BE-87); absent on the other chains
+};
+
+// BE-87, D-118: the TapeOut circuits' view of the action, from the quote made at preparation.
+type AgentCircuitCheck = {
+  risk: RiskCheck | null;   // the risk circuit on the position after the action; null after a full close
+  gap: GapCheck | null;     // opens only: the quote's preview.circuitGapCheck
+  clock: ClockCheck | null; // the Wall Street Clock at preparation time
 };
 
 // GET /v1/prepared/:id
@@ -1112,6 +1120,13 @@ type PreparedResponse = PreparedAction & {
 - `POST /v1/:chainId/agent/prepare` counts as a quote in the rate limit, per wallet through `request.user`.
 - The web app page `/prepared/:id` (FE-77, proposed): load the action, check that the connected wallet is `user` and the chain is `chainId`, send `request` to `POST /v1/:chainId/quote/<kind>` (with permit signatures as usual), show the fresh quote and that an agent prepared it, then sign. The stored `summary` is only what the agent saw; the screen shows the fresh quote.
 - Prepared permits are not stored: signatures are collected in the app.
+- `circuitCheck` (X Layer, BE-87). The types are in "TapeOut circuit answers on X Layer".
+  - The position after the action is:
+    - for an open, the quote's `collateralRaw` and `debtRaw`;
+    - for a partial close, the position now less `collateralWithdrawnRaw` and `debtRepaidRaw`;
+    - for a collateral action, `collateralAfterRaw` with the debt now, less `amountRaw` for a repay.
+  - `risk` is null after a full close, without a position to start from, or when the circuit gives no answer.
+  - The whole field is null when reading the chain fails. It never stops an action being prepared and is not stored: `GET /v1/prepared/:id` does not carry it, because the app quotes again.
 
 The MCP server (`apps/agent`, D-111) holds no keys and no secrets. Tools: `levra_chains`, `levra_markets`, `levra_market`, `levra_account`, `levra_session`, `levra_quote_open`, `levra_quote_close`, `levra_quote_collateral` (read only; the answer has no `tx` and no `requirements`, so the agent never hands out something to sign), and `levra_prepare_open`, `levra_prepare_close`, `levra_prepare_collateral` (return the link). Remote clients use Streamable HTTP at `https://api.levra.finance/mcp` (stateless, JSON answers); local clients run it over stdio.
 
