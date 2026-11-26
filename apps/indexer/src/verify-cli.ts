@@ -18,17 +18,27 @@ const deployment = readDeployment(env.DEPLOYMENT_FILE);
 if (deployment.chainId !== env.CHAIN_ID) throw new Error(`DEPLOYMENT_FILE is for chain ${deployment.chainId}, but CHAIN_ID is ${env.CHAIN_ID}`);
 const client = createPublicClient({ chain: viemChains[env.CHAIN_ID], transport: http(env.rpcUrl, { retryCount: 5, timeout: 30_000 }) }) as PublicClient;
 const { db, close } = createDb(env.DATABASE_URL, { max: 2 });
-/** Pause between log queries in ms. X Layer's public endpoint, shared with the running indexer, gets 500 by default. */
-const pauseMs = Number(process.env.VERIFY_PAUSE_MS ?? (env.CHAIN_ID === 196 ? 500 : 0));
+/**
+ * Pause between log queries in ms. X Layer's public endpoint, shared with the running indexer, gets 500 by default
+ * (initial proposal: its rate limit is not measured). An empty value counts as unset, as in `loadEnv`.
+ */
+const pauseRaw = process.env.VERIFY_PAUSE_MS?.trim();
+const pauseMs = pauseRaw ? Number(pauseRaw) : env.CHAIN_ID === 196 ? 500 : 0;
 if (!Number.isInteger(pauseMs) || pauseMs < 0) throw new Error("VERIFY_PAUSE_MS must be a whole number of ms");
+/** One paced source for every stream, so the pause also holds between one stream's last query and the next one's first. */
+const source = pacedSource(rpcSource(client, BigInt(env.LOG_BLOCK_RANGE)), pauseMs);
 
 let failed = false;
 try {
   console.log(`Chain ${deployment.chainId}, router ${deployment.router}, from block ${deployment.block}.\n`);
 
   const streams = [routerStream(deployment), morphoStream(deployment), vaultStream(deployment)].filter((s): s is Stream => s !== null);
+  if (pauseMs > 0) {
+    const queries = Number(((await client.getBlockNumber()) - BigInt(deployment.block)) / BigInt(env.LOG_BLOCK_RANGE)) + 1;
+    console.log(`Pausing ${pauseMs} ms between log queries: about ${Math.ceil((queries * pauseMs * streams.length) / 60_000)} minutes of pauses for ${streams.length} streams.\n`);
+  }
   for (const stream of streams) {
-    const r = await checkStream(db, pacedSource(rpcSource(client, BigInt(env.LOG_BLOCK_RANGE)), pauseMs), deployment, stream);
+    const r = await checkStream(db, source, deployment, stream);
     if (!r) {
       console.log(`${stream.cursor}: not synced yet (no cursor). Start the indexer first.`);
       failed = true;
