@@ -95,8 +95,8 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
 
   // Telegram allows one update reader per bot: chat linking and the chat commands (BE-78) run in the KEEPER_GLOBAL keeper.
   if (env.KEEPER_GLOBAL && bot) {
-    if (!env.MONITOR_API_URL) logger.warn("Telegram chat commands off: set MONITOR_API_URL; chat linking still runs");
-    jobs.push(createTelegramBot({ bot, api: env.MONITOR_API_URL ? levraApi(env.MONITOR_API_URL) : undefined }));
+    if (!env.LEVRA_API_URL) logger.warn("Telegram chat commands off: set LEVRA_API_URL; chat linking still runs");
+    jobs.push(createTelegramBot({ bot, api: env.LEVRA_API_URL ? levraApi(env.LEVRA_API_URL) : undefined }));
   }
 
   // Every chain: Anchored's observed schedule on Monad, the Chainlink feeds' weekly freeze elsewhere (scheduleForChain).
