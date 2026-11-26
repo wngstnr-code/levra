@@ -18,6 +18,23 @@ export type StreamCheck = { cursor: string; upToBlock: bigint; onChain: number; 
 const key = (txHash: string, logIndex: number) => `${txHash.toLowerCase()}:${logIndex}`;
 
 /**
+ * Waits `pauseMs` before every log query after the first, so a full reread stays under a public endpoint's rate limit
+ * (rpc.xlayer.tech answers "over rate limit" while the indexer shares it).
+ */
+export function pacedSource(source: LogSource, pauseMs: number, sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))): LogSource {
+  if (pauseMs <= 0) return source;
+  let first = true;
+  return {
+    ...source,
+    async logs(q) {
+      if (!first) await sleep(pauseMs);
+      first = false;
+      return source.logs(q);
+    },
+  };
+}
+
+/**
  * Every log of one stream from the deployment block to the stream's cursor, read again from the source, against the
  * rows stored for that chain up to the same block. Null when the stream has no cursor yet (never synced).
  */
