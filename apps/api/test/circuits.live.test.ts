@@ -2,6 +2,7 @@ import { xlayerDeployment } from "@levra/shared/deployments/xlayer";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { xLayer } from "viem/chains";
 import { describe, expect, it } from "vitest";
+import { actionCircuitCheck } from "../src/chain/action-check";
 import { createChainReader } from "../src/chain/reader";
 
 /**
@@ -27,6 +28,17 @@ describe.skipIf(!live)("TapeOut circuits on X Layer mainnet (BE-83, BE-86)", () 
       expect(over, `${m.info.symbol} ${m.info.side}`).toMatchObject({ healthy: false, matches: true });
     }
   }, 180_000);
+
+  it("checks a prepared open with the real circuits (BE-87)", async () => {
+    const m = (await reader.markets()).find((x) => x.info.side === "long" && x.oraclePriceE8 > 0n)!;
+    const user = "0x00000000000000000000000000000000000a6e77";
+    const open = { kind: "open", request: { user, symbol: m.info.symbol, side: "long", marginRaw: "50000000", leverageE2: 150, slippageBps: 50 } } as const;
+    // One share as collateral and a fifth of its value as debt: healthy and under every soft limit.
+    const value = (m.oraclePriceE8 * 10n ** 6n) / 10n ** 8n;
+    const quote = { market: { marketId: m.info.marketId }, preview: { collateralRaw: (10n ** BigInt(m.info.stock.decimals)).toString(), debtRaw: (value / 5n).toString() } };
+    const check = await actionCircuitCheck(reader, open, quote, Date.now());
+    expect(check).toMatchObject({ risk: { healthy: true, belowSoftLimit: true, matches: true }, gap: null, clock: { matches: true } });
+  }, 60_000);
 
   it("reads the clock and agrees with calendar.ts", async () => {
     const now = Math.floor(Date.now() / 1_000);
