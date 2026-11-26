@@ -761,7 +761,7 @@ When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `s
 
 ### Trade receipts through TapeSend (BE-84, D-116)
 
-Proposal by Dharu on 25 November 2026, waiting for Nabil (the app side, FE-99) and Wangsit. Schemas in `packages/shared/api/receipts.ts`, crypto in `packages/tapeout/src/tapesend.ts` (TapeKit's TAP-10 v2 format, tested byte for byte against TapeKit's vectors).
+Proposal by Dharu on 25 November 2026, confirmed by Wangsit on 26 November 2026, waiting for Nabil (the app side, FE-99). Schemas in `packages/shared/api/receipts.ts`, crypto in `packages/tapeout/src/tapesend.ts` (TapeKit's TAP-10 v2 format, tested byte for byte against TapeKit's vectors).
 
 1. The wallet signs the receipt key text (below) once with `personal_sign`. The app derives an X25519 key pair from the signature with `deriveReceiptKey` and keeps only the public key outside the browser. The same wallet always gets the same key, so a new device signs again instead of moving a key. EOA wallets only: a smart wallet's signature is not deterministic.
 2. `PUT /v1/receipts/key` with `{ publicKey, keyIndex }`: `publicKey` is the 32-byte X25519 public key as `0x` hex, `keyIndex` 0 to 65535 (0 unless the user rotated). The API refuses a key that is not a valid X25519 point (400 `BAD_REQUEST`). `GET` answers `{ key: { publicKey, keyIndex } | null, sender }` and `DELETE` removes the key; with no key the wallet gets no receipts.
