@@ -34,6 +34,8 @@ const envSchema = z.object({
   OKX_API_KEY: optional(),
   OKX_SECRET_KEY: optional(),
   OKX_API_PASSPHRASE: optional(),
+  /** Across API key (BE-76, 05). The Across deposit routes are off without it. Never commit it. */
+  ACROSS_API_KEY: optional(),
   /** Signs session tokens after a wallet sign-in (BE-33). Sign-in and alert routes are off without it. Never commit it. */
   AUTH_SECRET: optional().pipe(z.string().min(32).optional()),
   /**

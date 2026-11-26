@@ -37,7 +37,7 @@ export type RateLimitOptions = {
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 /** Quotes outside /v1/quote/ that also call an outside service. A prepared action runs a quote first (BE-77). */
-const QUOTE_PATHS = new Set(["/v1/deposit/quote", "/v1/withdraw/quote", "/v1/bridge/deposit", "/v1/bridge/withdraw", "/v1/agent/prepare"]);
+const QUOTE_PATHS = new Set(["/v1/deposit/quote", "/v1/withdraw/quote", "/v1/bridge/deposit", "/v1/bridge/withdraw", "/v1/bridge/across/deposit", "/v1/agent/prepare"]);
 
 /** Our proxy appends the address it saw to x-forwarded-for, so the last entry is the one we can trust. */
 export function clientIp(c: Context, trustProxyHeader: string | undefined): string {
