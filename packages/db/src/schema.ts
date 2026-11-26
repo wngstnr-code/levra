@@ -321,3 +321,44 @@ export const backupRuns = pgTable(
   },
   (t) => [primaryKey({ columns: [t.kind, t.finishedAt] })],
 );
+
+/**
+ * Receipt keys (BE-84): the X25519 public key a wallet made in the app from one signature (`deriveReceiptKey` in
+ * `@levra/tapeout`). Only the public half is here; Levra cannot open the receipts.
+ */
+export const receiptKeys = pgTable("receipt_keys", {
+  address: text("address").primaryKey(),
+  publicKey: text("public_key").notNull(),
+  keyIndex: integer("key_index").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+/**
+ * TapeSend messages to wallets (BE-84). Any keeper adds rows; only the keeper that holds the TapeOut key sends them, one
+ * at a time, so one key never has two senders. `key` is unique per wallet (`<chainId>:close:<tx>:<log>`), so a message
+ * is queued once. `txHash` is written as soon as the transaction is out and `sentAt` once it is mined; `payload` is
+ * the sealed bytes as sent, which the API serves to the app.
+ */
+export const tapesendOutbox = pgTable(
+  "tapesend_outbox",
+  {
+    address: text("address").notNull(),
+    key: text("key").notNull(),
+    subject: text("subject").notNull(),
+    body: text("body").notNull(),
+    levra: jsonb("levra").$type<Record<string, string | number | boolean | null>>().notNull(),
+    /** When the event happened, the `ts` of the message. */
+    eventAt: timestamp("event_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    publicKey: text("public_key"),
+    payload: text("payload"),
+    txHash: text("tx_hash"),
+    txSentAt: timestamp("tx_sent_at", { withTimezone: true }),
+    inboxIndex: numeric("inbox_index", { precision: 78, scale: 0 }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.key] }), index("tapesend_outbox_waiting").on(t.createdAt).where(sql`${t.sentAt} is null`)],
+);
