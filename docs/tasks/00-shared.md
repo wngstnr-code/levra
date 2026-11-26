@@ -141,10 +141,11 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Do: join the Telegram groups of Bankr and the other partners, show the idea, ask about the build in public award and traction rules (Q-33).
   - Done when: answers recorded in 09.
 
-- [ ] **X-33 · Public repo** (driver: Wangsit)
+- [x] **X-33 · Public repo** (driver: Wangsit)
   - Do: secrets scan of the whole history, then make the repo public or publish a public mirror (Q-32). Tag `pre-base` on the last `main` commit before this work.
   - Done when: the public link works and the tag exists.
   - Note (21 November 2026): the repo was public from D-63 and is private again during development (D-98). Make it public again, or publish the mirror, before 5 December; the `pre-base` tag is still to check. Before that, update the root README: it still names the Railway API, Aurora Intents and Monad only.
+  - Done 26 November 2026: gitleaks found no secrets in the history, the repo is public again (https://github.com/wngstnr-code/levra), and the root README is rewritten for the three chains. Tag `pre-base` is on `eafb1d0` (merge of #81, 18 November 2026), the last `main` commit before the Base work began with #82 on 19 November.
 
 - [ ] **X-34 · Stocks Maxxing submission** (driver: Nabil)
   - Needs: I-B1.
