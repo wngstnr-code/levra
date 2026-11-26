@@ -11,6 +11,7 @@
 /packages/intents/                   @dharumahendra
 /packages/tapeout/                   @dharumahendra
 /packages/cctp/                      @dharumahendra
+/packages/positions/                 @dharumahendra
 
 /packages/shared/                    @wngstnr-code @dharumahendra
 /packages/shared/abis/               @wngstnr-code
