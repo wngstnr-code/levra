@@ -20,7 +20,7 @@ const party = z.object({ address: z.string() }).passthrough();
 const amount = z.string().regex(/^[0-9]+$/);
 
 /** An action the wallet runs. Only the two kinds an approval-funded quote returns are read; any other kind fails. */
-export const approveAction = z.object({ kind: z.literal("approve_token"), tokenAddress: z.string(), spender: z.string(), amount, chainId: z.number().int().optional() });
+export const approveAction = z.object({ kind: z.literal("approve_token"), id: z.string().optional(), tokenAddress: z.string(), spender: z.string(), amount, chainId: z.number().int().optional() });
 export const sendAction = z.object({ kind: z.literal("send_transaction"), id: z.string(), to: z.string(), data: z.string(), value: amount.default("0"), chainId: z.number().int().optional() });
 const anyAction = z.object({ kind: z.string() }).passthrough();
 
@@ -28,10 +28,12 @@ export const acrossQuote = z
   .object({
     orderId: z.string(),
     expiresAt: z.string(),
+    /** The deposit must land before this (Across docs, read on 27 November 2026). */
+    originValidUntil: z.string().nullish(),
     expectedFillTimeMs: z.number().nonnegative().nullish(),
     origin: z.object({ token: tokenRef, amount, depositor: party }).passthrough(),
     destination: z.object({ token: tokenRef, amount, minAmount: amount, recipient: party }).passthrough(),
-    fee: z.object({ totalFee: z.object({ amount }).passthrough() }).passthrough(),
+    fee: z.object({ totalFee: z.object({ amount, token: tokenRef.nullish() }).passthrough() }).passthrough(),
     /** Read one by one in `planDeposit`, where any kind but these two stops the quote. */
     nextActions: z.array(anyAction),
   })
@@ -108,7 +110,8 @@ export function createAcross({ apiKey, baseUrl = ACROSS_URL, fetchFn = fetch, ti
           amountType: "exact_input",
           // A wallet that only approves and sends: the quote then ends with the deposit transaction, nothing to sign or POST.
           capabilities: { operations: [{ kind: "approve_token", ecosystem: "evm" }, { kind: "send_transaction", ecosystem: "evm" }] },
-          authorizationPolicy: { allowedTypes: ["approval"] },
+          // The deposit pulls everything the allowance lets it, and Across's default approval is unlimited (Across docs).
+          authorizationPolicy: { allowedTypes: ["approval"], approvalAmount: "exact" },
         }),
       });
       if (status !== 200) fail(status, body);

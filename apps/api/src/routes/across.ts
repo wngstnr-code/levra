@@ -54,6 +54,9 @@ export function acrossRoutes(chainId: number, across: AcrossSource, compliance?:
         feeRaw: plan.feeRaw.toString(),
         expiresAt: plan.expiresAtMs,
         estimatedSeconds: plan.estimatedSeconds,
+        approveReset: plan.approve?.resetFirst
+          ? { to: plan.approve.token, data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [plan.approve.spender, 0n] }) }
+          : null,
         approve: plan.approve && {
           to: plan.approve.token,
           data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [plan.approve.spender, plan.approve.amountRaw] }),
@@ -91,7 +94,7 @@ export function acrossStatusRoutes(across: AcrossSource) {
       description: t.status.description ?? null,
       depositTxHash: tx("deposit"),
       fillTxHash: tx("fill"),
-      receivedRaw: t.output?.amount ?? null,
+      receivedRaw: t.output?.amount == null ? null : BigInt(t.output.amount).toString(),
     } satisfies AcrossStatusResponse);
   });
   return app;

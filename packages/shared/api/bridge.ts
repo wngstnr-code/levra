@@ -89,7 +89,10 @@ export const acrossDepositRequest = z.object({
 });
 export type AcrossDepositRequest = z.infer<typeof acrossDepositRequest>;
 
-/** What the wallet sends on `fromChainId`, in order: `approve` when given, then `deposit` with `valueRaw` of native token. */
+/**
+ * What the wallet sends on `fromChainId`, in order: `approveReset` when given, `approve` when given, then `deposit` with
+ * `valueRaw` of native token.
+ */
 export const acrossDepositPlan = z.object({
   /** Across's order ID; poll `GET /v1/bridge/across/status?orderId=` with it after the deposit. */
   orderId: z.string(),
@@ -100,12 +103,17 @@ export const acrossDepositPlan = z.object({
   /** USDC on this chain: what Across expects to deliver, and the least it guarantees. */
   expectedReceivedRaw: usdRaw,
   minReceivedRaw: usdRaw,
-  /** Across's whole fee, in USDC on this chain. */
+  /** Across's whole fee, in USDC on this chain (refused when Across names another token for it). */
   feeRaw: usdRaw,
-  /** Unix ms. Sign before it, or ask again. */
+  /** Unix ms: the deposit must have landed by then, or ask again. At least a minute away when served. */
   expiresAt: z.number().int().nonnegative(),
   estimatedSeconds: z.number().int().nonnegative().nullable(),
-  /** Null when the allowance already covers the amount, or for the native token. */
+  /** `approve(spender, 0)` first, for tokens like USDT that refuse a change between two non-zero allowances. */
+  approveReset: call.nullable(),
+  /**
+   * Null only for the native token. Send it even when an allowance exists: it sets the allowance to exactly `amountRaw`,
+   * and the deposit pulls everything the allowance lets it.
+   */
   approve: call.extend({ token: address, spender: address }).nullable(),
   deposit: call.extend({ valueRaw: rawAmount }),
 });
