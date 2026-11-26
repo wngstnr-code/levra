@@ -632,12 +632,13 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Note (24 November 2026, D-113): the API answers a weekend gap check for each quote: the risk circuit's verdict at the price after the historical worst gap of that stock (the gap tables of 04), for FE's trade confirmation.
   - Note (24 November 2026): on mainnet with BE-82 as circuits 2 (77% / 73% / 70%) and 3 (62.5% / 58% / 50%) of the Levra processor (05). Left: the Morpho xStocks LLTV circuits if we keep them, the circuit IDs in 03 (interface change with Nabil), then the API and the agent.
 
-- [ ] **BE-84 · PnL proofs through TapeSend**
+- [~] **BE-84 · PnL proofs through TapeSend**
   - Needs: BE-82, BE-80.
   - Do: on every closed position on X Layer, post a commitment (market, side, entry, exit, PnL percent, close transaction hash) through TapeSend from a keeper key. Expose `GET /v1/:chainId/proofs/:positionId`. Shape written in 03.
   - Done when: a real close produces a proof that FE-81 can verify.
   - Note (20 November 2026): D-87 extends the proofs to closes on every chain. They are posted from their own funded key on X Layer (one more key in BE-55), and Levra pays the OKB.
   - Note (24 November 2026, D-113): changed: no public commitment. TapeSend sends each user a private receipt of a closed position (market, side, entry, exit, PnL percent, close hash) and the pre-close alert, from the processor's circuit with the one open container. Done when a real close on X Layer delivers a receipt the user can read.
+  - Note (25 November 2026, D-116, proposal for Nabil and Wangsit): built. `packages/tapeout` seals and opens TapeSend messages (TAP-10 v2, byte for byte against TapeKit's vectors) and derives the user's receipt key from a wallet signature. `/v1/receipts/key` and `/v1/receipts` (03), tables `receipt_keys` and `tapesend_outbox` (migration 0013). Keeper: the `receipts` job queues a receipt per close on its chain and the alerts job queues alerts as a TapeSend channel; the `tapesend` job in the X Layer keeper sends them with `TAPEOUT_KEY`, one at a time. Cost basis moved to the new `packages/positions` so the keeper and the API share it. Fork test: a receipt from the clock container to a plain wallet, opened with the key from its signature, 170,468 gas. Left: review by Nabil and Wangsit, CI for the DB tests, `TAPEOUT_KEY` in `secrets/keeper-xlayer` on the VPS, FE-99, then a real close on X Layer and its receipt hash in PROGRESS.
 
 - [~] **BE-85 · CCTP deposits into X Layer**
   - Needs: BE-76.

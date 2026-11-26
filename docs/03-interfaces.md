@@ -465,6 +465,8 @@ Every chain route (list above) also exists as `/v1/:chainId/<path>` (BE-70); the
 | GET, PUT | `/v1/alerts` | User alert settings (sign-in required) | M3 |
 | POST | `/v1/alerts/telegram` | One-time t.me link that links a Telegram chat to the wallet (sign-in required) | M3 |
 | DELETE | `/v1/alerts/telegram` | Unlinks the Telegram chat (sign-in required) | M3 |
+| GET, PUT, DELETE | `/v1/receipts/key` | The wallet's TapeSend receipt key, a public key only (sign-in required, BE-84) | M7 |
+| GET | `/v1/receipts` | The wallet's sent TapeSend receipts and alerts, sealed, newest first, at most 50 (sign-in required, BE-84) | M7 |
 
 ### Main data shapes
 
@@ -754,6 +756,57 @@ When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `s
 - `quote/close` with a smaller fraction, and `quote/open`: 400 `BAD_REQUEST` with `details: { oraclePriceE8: "0" }` and a message that says why. The router would revert them.
 - `quote/collateral`: adding collateral and repaying still quote, with `ltvAfterWad` `"0"` and an `info` warning `ORACLE_STALE`. Removing collateral while there is debt stays blocked (`ORACLE_STALE`, `block`), as before.
 
+### Trade receipts through TapeSend (BE-84, D-116)
+
+Proposal by Dharu on 25 November 2026, waiting for Nabil (the app side, FE-99) and Wangsit. Schemas in `packages/shared/api/receipts.ts`, crypto in `packages/tapeout/src/tapesend.ts` (TapeKit's TAP-10 v2 format, tested byte for byte against TapeKit's vectors).
+
+1. The wallet signs the receipt key text (below) once with `personal_sign`. The app derives an X25519 key pair from the signature with `deriveReceiptKey` and keeps only the public key outside the browser. The same wallet always gets the same key, so a new device signs again instead of moving a key. EOA wallets only: a smart wallet's signature is not deterministic.
+2. `PUT /v1/receipts/key` with `{ publicKey, keyIndex }`: `publicKey` is the 32-byte X25519 public key as `0x` hex, `keyIndex` 0 to 65535 (0 unless the user rotated). The API refuses a key that is not a valid X25519 point (400 `BAD_REQUEST`). `GET` answers `{ key: { publicKey, keyIndex } | null, sender }` and `DELETE` removes the key; with no key the wallet gets no receipts.
+3. Every keeper queues a receipt for each position its chain's router closes for a wallet with a key, from when the key was registered (at most three days back). The pre-close and other alerts go the same way for wallets that also have alert settings. The X Layer keeper seals each message to the wallet's key and sends it with `send` on the TapeSend hub from the clock circuit's container to the wallet's endpoint `uint32(0) ‖ uint64(196) ‖ wallet` on X Layer, whatever chain the close was on. Levra pays the OKB.
+4. `GET /v1/receipts` answers `{ sender, items: [{ id, txHash, inboxIndex, payload, sentAt }] }`. The same payload is in the hub's `Sent` event and can be read without the API (`inboxCount` and the logs to that endpoint). The app opens it with `open` (envelope `{ chainId: 196, to: wallet, from: sender.container, hub: sender.hub }`) and the secret key, then `decodeContent`.
+
+`sender` is `{ chainId: 196, hub, container }`. The opened content is TAP-10 message content `{ v: 1, kind: "message", subject, body, ts }` plus Levra's `levra` object. `body` reads on its own in any TapeSend client. `levra` for a close is:
+
+```json
+{
+  "type": "close",
+  "chainId": 143,
+  "marketId": "0x...",
+  "symbol": "NVDA",
+  "side": "long",
+  "entryPriceE8": "15000000000",
+  "exitPriceE8": "18000000000",
+  "realizedUsdRaw": "20000000",
+  "marginUsdRaw": "100000000",
+  "pnlBps": 2000,
+  "reason": 0,
+  "txHash": "0x..."
+}
+```
+
+`entryPriceE8` is `"0"` and `pnlBps` null for a position opened outside Levra. `reason` is the router's: 1 is a close by the protector. For an alert, `levra` is `{ "type": "alert", "key": "<chainId>:<alert key>" }`.
+
+Receipt key text, lines joined by a single newline. `<wallet>` and `<hub>` checksummed, `<k>` the key index. The shared source is `receiptKeyText` in `packages/tapeout`:
+
+```
+app.levra.finance wants you to sign in with your Ethereum account:
+<wallet>
+
+Create the Levra key that opens your private trade receipts on X Layer. Anyone who obtains this signature can read your receipts. Only sign this on app.levra.finance.
+
+URI: https://app.levra.finance
+Version: 1
+Chain ID: 196
+Nonce: levrareceiptkey<k>
+Issued At: 2026-11-25T00:00:00Z
+Resources:
+- levra:receipts:<wallet>
+- tapesend:hub:<hub>
+- levra:key-index:<k>
+```
+
+The key is HKDF-SHA256 over the 64 bytes r ‖ s of the signature (s normalized to the low half, so both forms of one signature give one key), salt `Levra/receipt-key/v1`, info the wallet's endpoint ‖ uint256 key index ‖ hub, 32 bytes, as the X25519 secret key. `deriveReceiptKey` checks first that the signature recovers to the wallet. The text is not a sign-in: its fixed nonce is never issued by `/v1/auth/nonce` (32 random hex characters, used once), so `/v1/auth/siwe` refuses it.
+
 ### More data shapes
 
 Added while writing the schemas in BE-02. The binding source for every shape is `packages/shared/api/`. `endpoints.ts` there maps each endpoint to its request and response schema.
@@ -929,7 +982,8 @@ type StatusResponse = {
     ageLimitLearning?: boolean;      // true while the session has too few samples and the strict default applies
   }[];
   keepers: {
-    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers" | "monitor";
+    // "receipts" and "tapesend" added in BE-84. "tapesend" runs in the X Layer keeper only, so Monad's list leaves it out.
+    name: "calendar" | "protector" | "liquidator" | "alerts" | "oracleMonitor" | "oracleAgePoster" | "marketDepth" | "transfers" | "monitor" | "receipts" | "tapesend";
     lastHeartbeatAt: number | null;
     healthy: boolean;
   }[];
@@ -1114,6 +1168,7 @@ Shared names. Each app has its own `.env.example`, which lists every variable it
 | `ONEINCH_API_KEY` | BE, research scripts | 1inch Business API key for the Swap API on Base (D-80). Secret: only in a local or hosted `.env`, never in the repo |
 | `INTENTS_JWT` | BE | Aurora Intents 1Click partner token. Optional: without it the service adds its own 0.2% fee to every transfer |
 | `ORACLE_AGE_POSTER_KEY`, `CALENDAR_POSTER_KEY`, `PROTECTOR_KEY`, `LIQUIDATOR_KEY` | BE (keeper) | Keeper keys, one per role and chain (BE-55). Each role job runs only when its key is set |
+| `TAPEOUT_KEY` | BE (keeper, X Layer) | The key that holds Levra's TapeOut circuits (BE-82). In the X Layer keeper it sends the TapeSend receipts and alerts (BE-84); unset leaves them queued |
 | `DEPLOYER_PRIVATE_KEY` | SC | Deployer key, for staging only |
 | `WEB_APP_URL` | BE (API) | The web app's address, for the links of prepared actions (BE-77). Unset turns the agent routes off |
 | `LEVRA_API_URL` | BE (agent) | The API the MCP server calls: the internal `http://api:8787` on the server, never the public address (D-111) |
