@@ -297,6 +297,7 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Done when: it shows for a real X Layer position.
   - Note (24 November 2026, D-113): also in the long and short confirmation: a weekend gap check line ("after a Monday gap like the worst one, this position stays healthy / would be liquidated") with the "checked by TapeOut circuit" mark, and the market session shown from the clock circuit on X Layer.
   - Note: 24 November 2026 (`fe/FE-83-gap-check`): the long and short confirmation ends with the weekend gap check from the quote's worst historical gap (stays open, or would be liquidated). Left: the "checked by TapeOut circuit" mark and the session from the clock circuit need the taped out risk and clock circuits on X Layer mainnet (BE-82 paused until its key is funded) and their addresses in `packages/shared`.
+  - Note (26 November 2026, from Dharu, BE-83 and BE-86): the API side is proposed in 03 "TapeOut circuit answers on X Layer" (D-117): `Position.circuit`, `preview.circuitGapCheck` in open quotes and `SessionInfo.clock`, on `/v1/196/...` only. Show the mark only when the field is not null and `matches` is true; link to the processor and `circuitId`. Please review the 03 section before the PR merges.
 
 - [~] **FE-94 · USDC in and out through CCTP**
   - Needs: BE-85 (built, 24 November 2026).

@@ -482,6 +482,7 @@ type SessionInfo = {
   nextCloseAt: number | null; // next weekend or holiday close
   nextOpenAt: number | null;
   updatedAt: number;
+  clock?: ClockCheck | null;  // X Layer, GET /v1/196/session only: the Wall Street Clock circuit (BE-86)
 };
 
 type Market = {
@@ -585,6 +586,7 @@ type QuoteOpenResponse = {
     liqDistanceBps: number;   // distance from the current oracle price to the liquidation price
     borrowApyWad: string;
     gapScenarios: GapScenario[];
+    circuitGapCheck?: GapCheck | null; // X Layer only: the risk circuit after gapScenarios[0] (BE-83)
   };
   requirements: Requirement[];
   tx: TxRequest;              // direct call, when all approvals are in place
@@ -640,6 +642,7 @@ type Position = {
   protection: boolean;
   overSoftLimit: boolean;
   gapScenarios: GapScenario[];
+  circuit?: RiskCheck | null; // X Layer only: the risk circuit's answer (BE-83)
 };
 
 type Account = {
@@ -806,6 +809,52 @@ Resources:
 ```
 
 The key is HKDF-SHA256 over the 64 bytes r ‖ s of the signature (s normalized to the low half, so both forms of one signature give one key), salt `Levra/receipt-key/v1`, info the wallet's endpoint ‖ uint256 key index ‖ hub, 32 bytes, as the X25519 secret key. `deriveReceiptKey` checks first that the signature recovers to the wallet. The text is not a sign-in: its fixed nonce is never issued by `/v1/auth/nonce` (32 random hex characters, used once), so `/v1/auth/siwe` refuses it.
+
+### TapeOut circuit answers on X Layer (BE-83, BE-86, D-117)
+
+Proposal by Dharu on 26 November 2026, waiting for Nabil (FE-83). Added only: three optional fields, sent on `/v1/196/...` and absent on the other chains. Soft layer only (D-55): no contract and no hard limit reads a circuit, and a circuit answer never replaces the API's own numbers. Schemas in `packages/shared/api/circuits.ts`.
+
+The circuits belong to Levra's processor on X Layer, `xlayerTapeout.processor` in `packages/shared` (`0x4D5Bf68e1362046B0281b9bA678345b7FD2aAa5c`). Anyone reads one with `eval(circuitId, input)` on that contract, no wallet needed:
+
+| `circuitId` | Circuit | Input, packed LSB first in each byte | Output bits |
+|---|---|---|---|
+| 1 | Wall Street Clock, 2026 to 2030 (`wallStreetClock` in `packages/tapeout/src/clock.ts`) | UTC day since 1970-01-01 (16 bits), then the UTC minute of that day (11 bits) | session (3 bits, the order of `Session` in section 2), holiday, weekend, early close |
+| 2 | Risk at a 77% hard limit, soft limits 73% open and 70% closed (GOOGL, QQQ, SPY, long and short) | debt (80 bits), then collateral value (80 bits), both in loan token base units as Morpho counts them (debt rounded up, value `collateral * price() / 1e36` rounded down), then the session (3 bits) and the pre-close flag (1 bit) | healthy (at or under the hard limit), closed regime, at or under the soft limit that applies now, at or under the open soft limit, at or under the closed soft limit |
+| 3 | Risk at 62.5%, soft limits 58% and 50% (NVDA, long and short) | as circuit 2 | as circuit 2 |
+
+The API uses a risk circuit for a market only when the netlist onchain is byte for byte the circuit built from the market's limits as read on chain now (`riskCircuit` in `packages/tapeout/src/risk.ts`). After a limit change no circuit matches, and the answer is null until a new circuit is taped out.
+
+```ts
+type CircuitRef = { processor: Address; circuitId: number };
+
+// Position.circuit: the risk circuit for the position now.
+type RiskCheck = CircuitRef & {
+  healthy: boolean;          // at or under the hard limit (not liquidatable)
+  belowSoftLimit: boolean;   // at or under the soft limit that applies now (closed limit in the pre-close window)
+  matches: boolean;          // false when the circuit and math.ts disagree on either answer
+};
+
+// QuoteOpenResponse.preview.circuitGapCheck: the risk circuit after the move of gapScenarios[0].
+type GapCheck = CircuitRef & {
+  moveBps: number;           // the same move as gapScenarios[0].moveBps
+  healthyAfterGap: boolean;
+  matches: boolean;
+};
+
+// SessionInfo.clock (GET /v1/196/session only): the Wall Street Clock at `updatedAt`, next to the oracle's `session`.
+type ClockCheck = CircuitRef & {
+  session: Session;
+  holiday: boolean;
+  weekend: boolean;
+  earlyClose: boolean;
+  matches: boolean;          // false when the circuit and calendar.ts disagree
+};
+```
+
+- Each field is null on X Layer when the circuit gives no answer: no circuit holds the market's limits, the market has no oracle price, an amount does not fit in 80 bits, or the read failed or took longer than 5 seconds (initial proposal). The app then shows the API's numbers without the "checked by TapeOut circuit" mark.
+- When `matches` is false the app shows the API's numbers and says the circuit disagrees; it never shows the mark.
+- The gap check moves the collateral value by `moveBps` (a long's stock value moves with the price; a short's USDC buys `1 / (1 + move)` as much stock) and keeps the debt. `healthyAfterGap` is Morpho's rule (at or under the hard limit), so an LTV exactly at the hard limit counts as healthy, while `gapScenarios[0].liquidated` counts it as liquidated.
+- `SessionInfo.session` stays the oracle's session, which the contracts use. `clock` is the calendar's answer from the circuit. They can differ around the weekly freeze; the app may label the market from `clock` while the oracle's price is stale.
 
 ### More data shapes
 
