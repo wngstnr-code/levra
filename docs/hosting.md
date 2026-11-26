@@ -84,10 +84,12 @@ Turning the proxy on changes three things at once, so do it in one go, in this o
 4. On the server, right after: in `caddy.env` set `ORIGIN=cloudflare`; in `api.env` set `TRUST_PROXY_HEADER=cf-connecting-ip`, `GEO_COUNTRY_HEADER=cf-ipcountry` and `GEO_REGION_HEADER=cf-region-code`; then `deploy/deploy.sh`. The script refuses Cloudflare headers with `ORIGIN=open` (anyone could forge them) and `ORIGIN=cloudflare` without `cf-connecting-ip` (shared rate limit), and checks the Caddy config before the running Caddy sees it.
 5. Check: `/v1/health` answers through the domain; a request straight to the server's IP is closed; `curl -sI https://api.levra.finance` shows `server: cloudflare`.
 6. Then authenticated origin pulls, so only our own Cloudflare zone gets through (closes the known limit below):
-   - as root, `deploy/origin-pull.sh` makes our CA and a client certificate in `secrets/caddy`;
-   - in Cloudflare, SSL/TLS > Origin Server > Authenticated Origin Pulls, upload `cert.crt` and `cert.key` (copied straight from the file into the form, never into chat) and turn zone-level on;
-   - `shred -u` the key on the server, set `ORIGIN=cloudflare-mtls` in `caddy.env`, then `deploy/deploy.sh`.
-   Check: `/v1/health` still answers through the domain. If it answers 400 or the connection fails, zone-level is off or the certificate is not uploaded: set `ORIGIN=cloudflare` and deploy again. The client certificate lasts 2 years: `deploy/origin-pull.sh --renew`, upload the new one, deploy.
+   - as root, `deploy/origin-pull.sh` makes our CA and a client certificate. The CA and the certificate are public and go to `caddy-origin/` (readable by the deploy user, mounted into Caddy); the key goes to `secrets/origin-pull/` (root only);
+   - in Cloudflare, SSL/TLS > Origin Server > Authenticated Origin Pulls, upload `secrets/origin-pull/cert.crt` and `cert.key` (copied straight from the file into the form, never into chat) and turn zone-level on;
+   - `shred -u` the key on the server, set `ORIGIN=cloudflare-mtls` in `caddy.env`, then `deploy/deploy.sh`;
+   - write the certificate's end date (the script prints it) in 05, "Name and domains".
+   Check: `/v1/health` still answers through the domain. A Cloudflare error 525 (SSL handshake failed) means zone-level is off or the certificate is not uploaded: set `ORIGIN=cloudflare` and deploy again.
+   Renewal, before the client certificate ends after 2 years (`deploy.sh` warns 60 days ahead), without a gap: `deploy/origin-pull.sh --renew` (Caddy now trusts the old and the new CA), `deploy/deploy.sh`, upload the new certificate in place of the old one, `shred -u` the key, check `/v1/health`, then `deploy/origin-pull.sh --finish` and `deploy/deploy.sh` again.
 
 With `ORIGIN=cloudflare` Caddy closes every connection that does not come from Cloudflare's ranges (`remote_ip`). Docker publishes ports 80 and 443 past `ufw`, which is why the check is in Caddy and not in the firewall. Turning the proxy off again is the same steps in reverse: `ORIGIN=open` and `TRUST_PROXY_HEADER=x-forwarded-for` with the GEO headers emptied, deployed right after the record goes back to DNS only.
 
