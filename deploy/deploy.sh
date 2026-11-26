@@ -49,14 +49,18 @@ main() {
         esac
       done
       ;;
-    cloudflare)
+    cloudflare | cloudflare-mtls)
       if [ "$trust" != "cf-connecting-ip" ]; then
-        echo "caddy.env has ORIGIN=cloudflare, so TRUST_PROXY_HEADER in api.env must be cf-connecting-ip; otherwise every visitor shares Cloudflare's address in the rate limit." >&2
+        echo "caddy.env has ORIGIN=$origin, so TRUST_PROXY_HEADER in api.env must be cf-connecting-ip; otherwise every visitor shares Cloudflare's address in the rate limit." >&2
+        exit 1
+      fi
+      if [ "$origin" = "cloudflare-mtls" ] && [ ! -f "${LEVRA_HOME:-/opt/levra}/secrets/caddy/rootca.crt" ]; then
+        echo "ORIGIN=cloudflare-mtls needs secrets/caddy/rootca.crt: run deploy/origin-pull.sh and upload the certificate to Cloudflare first." >&2
         exit 1
       fi
       ;;
     *)
-      echo "ORIGIN in caddy.env must be open or cloudflare, not $origin" >&2
+      echo "ORIGIN in caddy.env must be open, cloudflare or cloudflare-mtls, not $origin" >&2
       exit 1
       ;;
   esac
@@ -84,7 +88,8 @@ main() {
   # the disk on 25 November 2026.
   docker build -t "levra-backend:$APP_VERSION" --build-arg "APP_VERSION=$APP_VERSION" -f deploy/Dockerfile .
   # Check the Caddy config with the same image and env before the running Caddy sees it.
-  docker run --rm --env-file "${LEVRA_HOME:-/opt/levra}/env/caddy.env" -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2-alpine \
+  docker run --rm --env-file "${LEVRA_HOME:-/opt/levra}/env/caddy.env" -v "$PWD/deploy/caddy:/etc/caddy:ro" \
+    -v "${LEVRA_HOME:-/opt/levra}/secrets/caddy:/etc/caddy-origin:ro" caddy:2-alpine \
     caddy adapt --validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
   # `up` runs migrate first and starts the apps only if it succeeds (depends_on in compose.yml).
   compose up -d --no-build --remove-orphans
