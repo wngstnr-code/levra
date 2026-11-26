@@ -14,13 +14,14 @@ const req: AcrossQuoteRequest = { originChainId: 42161, inputToken: ARB_USDT, am
 const quote = (over: Partial<AcrossQuote> = {}): AcrossQuote =>
   ({
     orderId: "0x7a961202c77345e711eb85ec722687848327dc26bd81f6e8b09c3dd7489044f4",
-    expiresAt: "2026-11-27T10:15:00.000Z",
+    expiresAt: "2026-11-27T10:14:00.000Z",
+    originValidUntil: "2026-11-27T10:15:00.000Z",
     expectedFillTimeMs: 1252,
     origin: { token: { chainId: 42161, address: ARB_USDT.toLowerCase() }, amount: "10000000", depositor: { address: USER } },
     destination: { token: { chainId: 8453, address: BASE_USDC.toLowerCase() }, amount: "9979842", minAmount: "9921185", recipient: { address: USER } },
-    fee: { totalFee: { amount: "20158" } },
+    fee: { totalFee: { amount: "20158", token: { chainId: 8453, address: BASE_USDC.toLowerCase() } } },
     nextActions: [
-      { kind: "approve_token", tokenAddress: ARB_USDT, spender: SPENDER, amount: "10000000", chainId: 42161 },
+      { kind: "approve_token", id: "approval", tokenAddress: ARB_USDT, spender: SPENDER, amount: "10000000", chainId: 42161 },
       { kind: "send_transaction", id: "prefunded-store", to: SPENDER, data: "0x110560ad00", value: "0", chainId: 42161 },
     ],
     ...over,
@@ -36,14 +37,15 @@ describe("planDeposit (BE-76)", () => {
       expectedReceivedRaw: 9_979_842n,
       minReceivedRaw: 9_921_185n,
       feeRaw: 20_158n,
-      approve: { token: ARB_USDT, spender: SPENDER, amountRaw: 10_000_000n },
+      approve: { token: ARB_USDT, spender: SPENDER, amountRaw: 10_000_000n, resetFirst: false },
       deposit: { to: SPENDER, data: "0x110560ad00", valueRaw: 0n },
     });
   });
 
-  it("has no approve when the allowance already covers the amount, and sends the value for a native deposit", () => {
+  it("refuses a token deposit without its exact approval, and sends the value for a native deposit", () => {
     const deposit = quote().nextActions[1]!;
-    expect(planDeposit(req, quote({ nextActions: [deposit] }), NOW).approve).toBeNull();
+    // An older, larger allowance would let the deposit pull more than asked, so the approval is never left out.
+    expect(() => planDeposit(req, quote({ nextActions: [deposit] }), NOW)).toThrow(/without its approval/);
     const eth = { ...req, inputToken: "0x0000000000000000000000000000000000000000" };
     const ethQuote = quote({
       origin: { token: { chainId: 42161, address: eth.inputToken }, amount: "10000000", depositor: { address: USER } },
@@ -61,7 +63,35 @@ describe("planDeposit (BE-76)", () => {
     expect(() => planDeposit({ ...req, outputToken: OTHER }, q, NOW)).toThrow(/another output token/);
     expect(() => planDeposit({ ...req, originChainId: 10 }, q, NOW)).toThrow(/another input token/);
     expect(() => planDeposit(req, quote({ destination: { ...q.destination, minAmount: "0" } }), NOW)).toThrow(/no guaranteed amount/);
-    expect(() => planDeposit(req, q, Date.parse("2026-11-27T10:15:00.000Z"))).toThrow(/expired/);
+    expect(() => planDeposit(req, quote({ fee: { totalFee: { amount: "1", token: { chainId: 42161, address: ARB_USDT } } } }), NOW)).toThrow(/fee in another token/);
+  });
+
+  it("serves a quote only with a minute left before the deposit must land", () => {
+    const until = Date.parse("2026-11-27T10:15:00.000Z");
+    expect(planDeposit(req, quote(), until - 60_000).expiresAtMs).toBe(until);
+    expect(() => planDeposit(req, quote(), until - 59_999)).toThrow(/expires too soon/);
+    expect(() => planDeposit(req, quote(), until)).toThrow(/expires too soon/);
+    expect(planDeposit(req, quote({ originValidUntil: null }), NOW).expiresAtMs).toBe(Date.parse("2026-11-27T10:14:00.000Z"));
+  });
+
+  it("takes the native token in either of Across's two forms", () => {
+    const eth = { ...req, inputToken: "0x0000000000000000000000000000000000000000" };
+    const deposit = quote().nextActions[1]!;
+    const placeholder = quote({
+      origin: { token: { chainId: 42161, address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" }, amount: "10000000", depositor: { address: USER } },
+      nextActions: [{ ...deposit, value: "10000000" }],
+    } as Partial<AcrossQuote>);
+    expect(planDeposit(eth, placeholder, NOW).approve).toBeNull();
+  });
+
+  it("accepts a reset to zero before the approval, for tokens like USDT", () => {
+    const [approve, deposit] = quote().nextActions as unknown as [Record<string, unknown>, Record<string, unknown>];
+    const withActions = (nextActions: unknown[]) => quote({ nextActions } as Partial<AcrossQuote>);
+    const reset = { ...approve, id: "approval-reset", amount: "0" };
+    expect(planDeposit(req, withActions([reset, approve, deposit]), NOW).approve).toMatchObject({ amountRaw: 10_000_000n, resetFirst: true });
+    expect(() => planDeposit(req, withActions([{ ...reset, spender: OTHER }, approve, deposit]), NOW)).toThrow(/reset for another spender/);
+    expect(() => planDeposit(req, withActions([reset, deposit]), NOW)).toThrow(/reset without its approval/);
+    expect(() => planDeposit(req, withActions([reset, reset, approve, deposit]), NOW)).toThrow(/another amount/);
   });
 
   it("refuses steps a plain wallet should not run", () => {
@@ -75,6 +105,10 @@ describe("planDeposit (BE-76)", () => {
     expect(() => planDeposit(req, withActions([approve, { ...deposit, id: "other" }]), NOW)).toThrow(/does not run/);
     expect(() => planDeposit(req, withActions([deposit, approve]), NOW)).toThrow(/does not run/);
     expect(() => planDeposit(req, withActions([approve]), NOW)).toThrow(/no deposit/);
+    expect(() => planDeposit(req, withActions([approve, { ...deposit, data: "0x110560ad0" }]), NOW)).toThrow(/without a target or call/);
+    expect(() => planDeposit(req, withActions([approve, { ...deposit, data: "0x1105" }]), NOW)).toThrow(/without a target or call/);
+    expect(() => planDeposit(req, withActions([approve, { ...deposit, data: "0x110560ad0" }]), NOW)).toThrow(/without a target or call/);
+    expect(() => planDeposit(req, withActions([approve, { ...deposit, data: "0x1105" }]), NOW)).toThrow(/without a target or call/);
   });
 });
 
@@ -94,7 +128,7 @@ describe("createAcross (BE-76)", () => {
     expect(seen?.url).toBe("https://api.across.to/v1/quotes");
     expect((seen?.init.headers as Record<string, string>).authorization).toBe("Bearer test-key");
     const body = JSON.parse(String(seen?.init.body));
-    expect(body).toMatchObject({ amountType: "exact_input", authorizationPolicy: { allowedTypes: ["approval"] }, origin: { amount: "10000000", depositor: USER } });
+    expect(body).toMatchObject({ amountType: "exact_input", authorizationPolicy: { allowedTypes: ["approval"], approvalAmount: "exact" }, origin: { amount: "10000000", depositor: USER } });
   });
 
   it("maps Across's refusals: a refused amount is the caller's, a refused key or an outage is ours", async () => {

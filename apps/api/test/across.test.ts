@@ -58,7 +58,17 @@ describe("Across deposit routes (BE-76)", () => {
     expect(plan.approve).toMatchObject({ to: ARB_USDT, token: ARB_USDT, spender: SPOKE });
     expect(decodeFunctionData({ abi: erc20Abi, data: plan.approve!.data }).args).toEqual([SPOKE, 10_000_000n]);
     expect(plan.deposit).toEqual({ to: SPOKE, data: "0x110560ad00", valueRaw: "0" });
+    expect(plan.approveReset).toBeNull();
     expect(fake.asked[0]).toMatchObject({ destinationChainId: 8453, outputToken: BASE_USDC, recipient: user, amountRaw: 10_000_000n });
+  });
+
+  it("sends Across's reset to zero first when it asks for one", async () => {
+    const fake = fakeAcross((q) => ({ ...q, nextActions: [{ ...q.nextActions[0]!, id: "approval-reset", amount: "0" }, ...q.nextActions] }));
+    const app = createApp({ logger: pino({ level: "silent" }), reader: reader(143), otherChains: [reader(8453)], across: fake.across });
+    const plan = acrossDepositPlan.parse(await (await app.request("/v1/8453/bridge/across/deposit", json(deposit))).json());
+    expect(plan.approveReset?.to).toBe(ARB_USDT);
+    expect(decodeFunctionData({ abi: erc20Abi, data: plan.approveReset!.data }).args).toEqual([SPOKE, 0n]);
+    expect(decodeFunctionData({ abi: erc20Abi, data: plan.approve!.data }).args).toEqual([SPOKE, 10_000_000n]);
   });
 
   it("serves Monad without a chain ID, and not X Layer, which Across does not list", async () => {
@@ -97,7 +107,8 @@ describe("Across deposit routes (BE-76)", () => {
     expect(first).toMatchObject({ state: "not_found", terminal: false });
     fake.setTransfer({
       status: { state: "completed", reason: "filled", description: "The transfer is complete.", isTerminal: true },
-      output: { amount: "9979842" },
+      // A leading zero, which the shared schema refuses, comes out normalized.
+      output: { amount: "09979842" },
       transactions: [
         { type: "deposit", transaction: { txnRef: `0x${"12".repeat(32)}`, chainId: 42161 } },
         { type: "fill", transaction: { txnRef: `0x${"34".repeat(32)}`, chainId: 8453 } },
