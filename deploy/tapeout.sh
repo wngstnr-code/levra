@@ -6,7 +6,8 @@
 #   deploy/tapeout.sh --confirm  sends; a second run reads the state file and skips what is done
 #   deploy/tapeout.sh handover --to <team Safe> [--confirm]
 #                                moves the risk circuits 2 and 3 to the team Safe; the key keeps the clock circuit,
-#                                which TapeSend sends from. Stop keeper-xlayer first if it runs with this key.
+#                                which TapeSend sends from. Refused with --confirm while keeper-xlayer runs, since it
+#                                sends receipts with the same key (one sender per key, or the nonces collide).
 set -euo pipefail
 
 script=scripts/xlayer-run.ts
@@ -15,6 +16,17 @@ if [ "${1:-}" = "handover" ]; then
   shift
   script=scripts/xlayer-handover.ts
   extra=()
+fi
+for a in "$@"; do
+  if [ "$a" = "handover" ]; then
+    echo "Put handover first: deploy/tapeout.sh handover --to <team Safe> [--confirm]" >&2
+    exit 1
+  fi
+done
+if [ "$script" = scripts/xlayer-handover.ts ] && [[ " $* " == *" --confirm "* ]] &&
+  [ -n "$(docker ps -q --filter name=keeper-xlayer --filter status=running)" ]; then
+  echo "keeper-xlayer is running and sends with the same key. Stop it first: docker compose -f deploy/compose.yml stop keeper-xlayer" >&2
+  exit 1
 fi
 
 cd "$(dirname "$0")/.."

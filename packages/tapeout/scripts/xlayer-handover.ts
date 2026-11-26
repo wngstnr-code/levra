@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { xlayerTapeout } from "@levra/shared/addresses";
-import { createPublicClient, createWalletClient, formatEther, getAddress, http, isAddress, type Hex } from "viem";
+import { createPublicClient, createWalletClient, formatEther, http, isAddress, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { xLayer } from "viem/chains";
 import { circuitsAbi } from "../src/chain";
-import { handOverCircuits } from "../src/handover";
+import { handOverCircuits, planHandover } from "../src/handover";
 
 /**
  * Hands the risk circuits from the TapeOut key to the team Safe (BE-84 known issue). The key keeps the clock circuit,
@@ -39,13 +39,16 @@ async function main() {
   const risk = [BigInt(circuits.risk77), BigInt(circuits.risk62_5)];
   const keep = [BigInt(circuits.wallStreetClock)];
 
-  console.log(`Signer ${account.address}, ${formatEther(await client.getBalance({ address: account.address }))} OKB. Safe ${getAddress(to)}.`);
-  for (const id of [...keep, ...risk]) {
+  // The same checks as the real run, so a clean plan means --confirm will not stop on them.
+  const plan = await planHandover(client, processor, account.address, risk, to as `0x${string}`, keep);
+  console.log(`Signer ${account.address}, ${formatEther(await client.getBalance({ address: account.address }))} OKB. Safe ${plan.to}, threshold ${plan.threshold}.`);
+  for (const id of keep) {
     const owner = await client.readContract({ address: processor, abi: circuitsAbi, functionName: "ownerOf", args: [id] });
-    console.log(`circuit ${id}: held by ${owner}${keep.includes(id) ? " (stays: TapeSend sends from it)" : " (to the Safe)"}`);
+    console.log(`circuit ${id}: held by ${owner} (stays: TapeSend sends from it)`);
   }
+  for (const c of plan.circuits) console.log(`circuit ${c.id}: held by ${c.owner}${c.move ? " (moves to the Safe)" : " (already with the Safe)"}`);
   if (!process.argv.includes("--confirm")) {
-    console.log("Plan only. Add --confirm to send. Stop keeper-xlayer first if it runs with this key (one sender per key).");
+    console.log("Plan only. Add --confirm to send.");
     return;
   }
   for (const h of await handOverCircuits({ client, wallet }, processor, risk, to as `0x${string}`, keep)) {
