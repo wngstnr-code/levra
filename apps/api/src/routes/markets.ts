@@ -166,7 +166,12 @@ export function marketRoutes(
     } satisfies ConfigResponse),
   );
 
-  app.get("/v1/session", async (c) => c.json(toSessionInfo(await upstream(reader.session))));
+  app.get("/v1/session", async (c) => {
+    const info = toSessionInfo(await upstream(reader.session));
+    // X Layer only (BE-86, D-113): the Wall Street Clock circuit at the same time, next to the oracle's session.
+    if (reader.circuits) info.clock = await reader.circuits.clock(info.updatedAt);
+    return c.json(info);
+  });
 
   app.get("/v1/markets", async (c) => {
     const [session, markets, mids, blocks] = await Promise.all([upstream(reader.session), upstream(reader.markets), dexMids(), halts()]);

@@ -9,6 +9,8 @@ const INSTRUCTIONS = [
   "To act, call a levra_prepare_* tool and give the user the link: the user reviews the fresh quote in the Levra app and signs with their own wallet.",
   "Amounts are integers in base units as strings: USDC has 6 decimals; leverage is x100 (200 = 2x); fractionWad 1e18 = 100%.",
   "Prices and limits change quickly and stock markets have hours; quote again before advising, and never promise a price.",
+  "On X Layer, answers carry Levra's TapeOut circuit checks: `circuit` on each position (health and soft limit), `circuitGapCheck` in an open quote (health after the worst weekend gap) and `clock` in the session.",
+  "When asked about health or the market session there, say what the circuit answers and that anyone can check it onchain with `eval`. If `matches` is false, say the circuit and Levra's own numbers disagree; if the field is null, say the circuit could not answer.",
 ].join(" ");
 
 const chainId = z.union([z.literal(143), z.literal(8453), z.literal(196)]).describe("Chain ID: 143 Monad, 8453 Base, 196 X Layer.");
@@ -81,13 +83,17 @@ export function createLevraServer(api: LevraApi): McpServer {
 
   server.registerTool(
     "levra_account",
-    { description: "A wallet's positions on a chain: size, debt ratio, liquidation price, profit and loss, and totals.", inputSchema: { chainId, address }, annotations: readOnly },
+    {
+      description: "A wallet's positions on a chain: size, debt ratio, liquidation price, profit and loss, and totals. On X Layer each position also has the TapeOut risk circuit's answer (`circuit`).",
+      inputSchema: { chainId, address },
+      annotations: readOnly,
+    },
     ({ chainId, address }) => run(() => api.get(`/v1/${chainId}/accounts/${address}`)),
   );
 
   server.registerTool(
     "levra_session",
-    { description: "The US market session on a chain now, and the next close and open.", inputSchema: { chainId }, annotations: readOnly },
+    { description: "The US market session on a chain now, and the next close and open. On X Layer also the Wall Street Clock circuit's session (`clock`).", inputSchema: { chainId }, annotations: readOnly },
     ({ chainId }) => run(() => api.get(`/v1/${chainId}/session`)),
   );
 

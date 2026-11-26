@@ -1,4 +1,5 @@
 export * from "./primitives";
+export * from "./circuits";
 export * from "./errors";
 export * from "./session";
 export * from "./markets";

@@ -12,6 +12,7 @@ import {
   usdRaw,
   wad,
 } from "./primitives";
+import { riskCheck } from "./circuits";
 import { gapScenario } from "./quotes";
 
 export const position = z.object({
@@ -39,6 +40,11 @@ export const position = z.object({
   protection: z.boolean(),
   overSoftLimit: z.boolean(),
   gapScenarios: z.array(gapScenario),
+  /**
+   * X Layer only (BE-83): the risk circuit's answer for this position. Null when no circuit holds this market's limits,
+   * the market has no price, or the circuit could not be read.
+   */
+  circuit: riskCheck.nullable().optional(),
 });
 export type Position = z.infer<typeof position>;
 

@@ -1,4 +1,4 @@
-import { BASE_CHAIN_ID, baseExternal, externalByChain, tokensByChain } from "@levra/shared/addresses";
+import { BASE_CHAIN_ID, XLAYER_CHAIN_ID, baseExternal, externalByChain, tokensByChain } from "@levra/shared/addresses";
 import { isChainId } from "@levra/shared/chains";
 import { coinbaseOracleRegistryAbi, lensAbi, marginRouterAbi, morphoAbi, riskManagerAbi, sessionOracleAbi } from "@levra/shared/abis";
 import type { SessionName } from "@levra/shared/api";
@@ -17,6 +17,7 @@ import {
   type PublicClient,
 } from "viem";
 import { createCache } from "./cache";
+import { createCircuits } from "./circuits";
 
 /**
  * Standard ERC-2612 reads plus `version()`, which USDC on Monad has (05).
@@ -318,5 +319,8 @@ export function createChainReader(client: PublicClient, deployment: Deployment) 
       }
     });
 
-  return { deployment, morpho, usdc, markets, session, positions, latestBlock, routerFees, closesWithoutPrice, permitDomain, userState, borrowShares, routerEvents, client };
+  /** Levra's TapeOut circuits live on X Layer only (BE-83, BE-86). */
+  const circuits = deployment.chainId === XLAYER_CHAIN_ID ? createCircuits(client) : null;
+
+  return { deployment, morpho, usdc, markets, session, positions, latestBlock, routerFees, closesWithoutPrice, permitDomain, userState, borrowShares, routerEvents, client, circuits };
 }
