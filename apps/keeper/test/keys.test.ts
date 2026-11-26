@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseEther, type Address } from "viem";
 import { grantLine, handoverLine, keysChain, parseKeysArgs, storeKey } from "../scripts/keys";
@@ -37,7 +38,7 @@ describe("keys script arguments", () => {
   });
 
   it("refuses a deployment file of another chain than CHAIN_ID", () => {
-    const monadFile = new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    const monadFile = fileURLToPath(new URL("../../../contracts/deployments/monad.json", import.meta.url));
     expect(keysChain({ DEPLOYMENT_FILE: monadFile }).chainId).toBe(143);
     expect(() => keysChain({ DEPLOYMENT_FILE: monadFile, CHAIN_ID: "8453" })).toThrow(/is for chain 143, but CHAIN_ID is 8453/);
   });
