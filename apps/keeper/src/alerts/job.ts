@@ -1,4 +1,4 @@
-import { activeGates, alertDeliveries, alertSettings, deposits, monitorState, morphoEvents, routerEvents, type Db } from "@levra/db";
+import { activeGates, alertDeliveries, alertSettings, deposits, monitorState, morphoEvents, receiptKeys, routerEvents, type Db } from "@levra/db";
 import { lensAbi } from "@levra/shared/abis";
 import { chains } from "@levra/shared/chains";
 import type { Deployment } from "@levra/shared/deployments";
@@ -97,10 +97,11 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
   const symbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
   const marketSymbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m.symbol as string]));
 
-  async function deliver(db: Db, s: Settings, alert: Alert): Promise<{ sent: number; failed: number }> {
+  async function deliver(db: Db, s: Settings, alert: Alert, keyed: Set<string>): Promise<{ sent: number; failed: number }> {
     const targets: [string, () => Promise<void>][] = [];
     if (s.email && channels.email) targets.push(["email", () => channels.email!(s.email!, alert.subject, alert.text)]);
     if (s.telegramChatId && channels.telegram) targets.push(["telegram", () => channels.telegram!(s.telegramChatId!, `${alert.subject}\n\n${alert.text}`)]);
+    if (keyed.has(s.address) && channels.tapesend) targets.push(["tapesend", () => channels.tapesend!(db, s.address, alert.key, alert.subject, alert.text)]);
     let sent = 0;
     let failed = 0;
     for (const [channel, send] of targets) {
@@ -128,7 +129,8 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
       const chainName = chains[chainId].name;
       const linked = telegram ? await linkTelegramChats(db, chainId, telegram) : 0;
       const now = await (clock ?? chainClock)();
-      const users = (await db.select().from(alertSettings)).filter((s) => (s.email && channels.email) || (s.telegramChatId && channels.telegram));
+      const keyed = new Set(channels.tapesend ? (await db.select({ address: receiptKeys.address }).from(receiptKeys)).map((k) => k.address) : []);
+      const users = (await db.select().from(alertSettings)).filter((s) => (s.email && channels.email) || (s.telegramChatId && channels.telegram) || keyed.has(s.address));
       // Read even with nobody to alert, so the reader keeps up with the chain.
       const minted = arrivals ? await arrivals(users.filter((u) => u.depositArrived).map((u) => getAddress(u.address))) : [];
       if (users.length === 0) return { linked, users: 0, sent: 0 };
@@ -165,7 +167,7 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
       let sent = 0;
       let failed = 0;
       const send = async (s: Settings, alert: Omit<Alert, "address">) => {
-        const r = await deliver(db, s, { ...alert, key: `${chainId}:${alert.key}`, address: s.address });
+        const r = await deliver(db, s, { ...alert, key: `${chainId}:${alert.key}`, address: s.address }, keyed);
         sent += r.sent;
         failed += r.failed;
       };

@@ -1,7 +1,21 @@
+import { tapesendOutbox, type Db } from "@levra/db";
+
 /** Where alerts go (BE-33). Each channel is off until its key is set. */
 export type Channels = {
   email?: (to: string, subject: string, text: string) => Promise<void>;
   telegram?: (chatId: string, text: string) => Promise<void>;
+  /** TapeSend (BE-84, D-113): queued for the X Layer sender, for wallets with a receipt key. `key` is the alert's key. */
+  tapesend?: (db: Db, address: string, key: string, subject: string, text: string) => Promise<void>;
+};
+
+/**
+ * Queues an alert as a TapeSend message; the sender in the X Layer keeper seals and sends it. `alert_deliveries` already
+ * lets each alert through once, and an LTV alert may come back after the position fell under the level, so the queue
+ * key carries the time.
+ */
+export const tapesendQueue: NonNullable<Channels["tapesend"]> = async (db, address, key, subject, text) => {
+  const now = new Date();
+  await db.insert(tapesendOutbox).values({ address, key: `alert:${key}:${now.getTime()}`, subject, body: text, levra: { type: "alert", key }, eventAt: now, createdAt: now });
 };
 
 const TIMEOUT_MS = 15_000;

@@ -7,8 +7,10 @@ import { createWalletClient, http, type Address, type PublicClient } from "viem"
 import { privateKeyToAccount } from "viem/accounts";
 import { cctpArrivals } from "./alerts/arrivals";
 import { createAlerts } from "./alerts/job";
-import { resendEmail, telegramBot, type Channels } from "./alerts/channels";
+import { resendEmail, tapesendQueue, telegramBot, type Channels } from "./alerts/channels";
 import { memoClock, onchainClock } from "./calendar/clock-circuit";
+import { createReceipts } from "./receipts/job";
+import { createTapeSendSender } from "./receipts/sender";
 import { createCalendarPoster } from "./calendar/poster";
 import { viemChains } from "./chain";
 import { chainlinkPrices, createMarketDepth } from "./dex/depth";
@@ -107,14 +109,23 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     logger.info("protector off: PROTECTOR_KEY or DEPLOYMENT_FILE is not set");
   }
 
+  // TapeSend needs no key here: every keeper queues, and the X Layer keeper with TAPEOUT_KEY sends (BE-84).
   const channels: Channels = {
     ...(env.RESEND_API_KEY && env.ALERT_EMAIL_FROM ? { email: resendEmail(env.RESEND_API_KEY, env.ALERT_EMAIL_FROM) } : {}),
     ...(bot ? { telegram: bot.send } : {}),
+    tapesend: tapesendQueue,
   };
-  if (deployment && (channels.email || channels.telegram)) {
+  if (deployment) {
     jobs.push(createAlerts({ client, deployment, channels, telegram: env.KEEPER_GLOBAL ? bot : undefined, arrivals: cctpArrivals(client, tokensByChain[chainId].USDC.address) }));
+    jobs.push(createReceipts({ client, deployment }));
   } else {
-    logger.info("alerts off: no email or Telegram channel, or DEPLOYMENT_FILE is not set");
+    logger.info("alerts and receipts off: DEPLOYMENT_FILE is not set");
+  }
+
+  if (chainId === 196 && env.TAPEOUT_KEY) {
+    jobs.push(createTapeSendSender({ client, wallet: walletFor(env.TAPEOUT_KEY) }));
+  } else if (chainId === 196) {
+    logger.info("TapeSend sender off: TAPEOUT_KEY is not set; receipts and alerts stay queued");
   }
 
   if (deployment?.liquidator && env.LIQUIDATOR_KEY) {
@@ -131,6 +142,7 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
       ["calendar poster", env.CALENDAR_POSTER_KEY],
       ["protector", env.PROTECTOR_KEY],
       ["liquidator", env.LIQUIDATOR_KEY],
+      ["TapeSend sender", chainId === 196 ? env.TAPEOUT_KEY : undefined],
     ] as const;
     const wallets = roles.filter(([, key]) => key).map(([role, key]) => ({ role, address: privateKeyToAccount(key as `0x${string}`).address }));
     jobs.push(

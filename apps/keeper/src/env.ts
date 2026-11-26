@@ -38,6 +38,11 @@ const fields = z.object({
   PROTECTOR_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   /** Key of a Liquidator keeper (BE-32). The bot runs only when it is set. One key per role (BE-55). */
   LIQUIDATOR_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+  /**
+   * The TapeOut key (BE-82, BE-84): holds Levra's circuit NFTs on X Layer and sends the TapeSend receipts from the clock
+   * container. Only the X Layer keeper takes it, and only one process may send with it.
+   */
+  TAPEOUT_KEY: optional().pipe(z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   /** Email alerts through Resend (BE-33, proposal). Both are needed; email is off without them. Never commit the key. */
   RESEND_API_KEY: optional(),
   ALERT_EMAIL_FROM: optional(),
