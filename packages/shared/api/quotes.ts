@@ -15,6 +15,7 @@ import {
   usdRaw,
   wad,
 } from "./primitives";
+import { gapCheck } from "./circuits";
 import { market } from "./markets";
 
 export const warningCode = z.enum([
@@ -101,6 +102,8 @@ export const quoteOpenResponse = z.object({
     liqDistanceBps: signedBps,
     borrowApyWad: wad,
     gapScenarios: z.array(gapScenario),
+    /** X Layer only (BE-83, D-113): the risk circuit's verdict after the gap of `gapScenarios[0]`; null when unanswered. */
+    circuitGapCheck: gapCheck.nullable().optional(),
   }),
   requirements: z.array(requirement),
   tx: txRequest,
