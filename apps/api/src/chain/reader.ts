@@ -4,6 +4,7 @@ import { coinbaseOracleRegistryAbi, lensAbi, marginRouterAbi, morphoAbi, riskMan
 import type { SessionName } from "@levra/shared/api";
 import type { Deployment } from "@levra/shared/deployments";
 import { listMarkets, type MarketInfo } from "@levra/shared/markets";
+import type { RouterEvent } from "@levra/positions";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -70,11 +71,7 @@ export type MarketState = {
   tokenPaused: boolean;
 };
 
-export type RouterEvent =
-  | { kind: "opened"; marketId: Hex; block: bigint; logIndex: number; margin: bigint; collateralDelta: bigint; debtDelta: bigint; fee: bigint }
-  | { kind: "reduced"; marketId: Hex; block: bigint; logIndex: number; collateralDelta: bigint; debtDelta: bigint; returned: bigint; fee: bigint; reason: number }
-  | { kind: "repaid"; marketId: Hex; block: bigint; logIndex: number; assets: bigint }
-  | { kind: "liquidated"; marketId: Hex; block: bigint; logIndex: number; seized: bigint; repaid?: bigint };
+export type { RouterEvent };
 
 export type ChainSession = {
   session: SessionName;

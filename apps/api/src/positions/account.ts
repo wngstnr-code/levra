@@ -6,6 +6,7 @@ import { isChainId } from "@levra/shared/chains";
 import { stocksByChain } from "@levra/shared/markets";
 import { erc20Abi, type Address, type Hex } from "viem";
 import type { ChainReader, MarketState } from "../chain/reader";
+import { borrowSharesDelta, reductionCloses } from "@levra/positions";
 import { costBasis, entryPriceE8, longCostBasis, realizedOnReduce, type CostBasis } from "./cost-basis";
 import { toCostEvents, type StoredEvent } from "./events";
 
@@ -165,8 +166,7 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
       const before = costBasis(side, toCostEvents(events.slice(0, i)), market.marketId);
       // The stock leaving the position: sold collateral for a long, repaid debt for a short.
       const sold = side === "long" ? big("collateralDelta") : big("debtDelta");
-      // With Morpho events indexed, a reduction that leaves no borrow shares closed the position, for long and short.
-      const closed = shares.has(market.marketId) ? shares.get(market.marketId) === 0n : before.shares > 0n && sold >= before.shares;
+      const closed = reductionCloses(shares.get(market.marketId), before, sold);
       const type: HistoryItemType = Number(e.args.reason) === 1 ? "autoReduce" : closed ? "close" : "reduce";
       items.push({
         ...base,
@@ -202,15 +202,6 @@ export function buildHistory(reader: ChainReader, events: StoredEvent[]): Histor
     }
   }
   return items.reverse();
-}
-
-/** Change in the owner's borrow shares from one Morpho event, or null when the event does not touch them. */
-function borrowSharesDelta(e: StoredEvent): bigint | null {
-  const v = (k: string) => BigInt(String(e.args[k] ?? "0"));
-  if (e.name === "Borrow") return v("shares");
-  if (e.name === "Repay") return -v("shares");
-  if (e.name === "Liquidate") return -(v("repaidShares") + v("badDebtShares"));
-  return null;
 }
 
 type ItemBody = Omit<HistoryItem, "id" | "marketId" | "symbol" | "txHash" | "timestamp">;

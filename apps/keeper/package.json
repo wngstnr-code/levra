@@ -18,6 +18,7 @@
     "@levra/cctp": "workspace:*",
     "@levra/db": "workspace:*",
     "@levra/intents": "workspace:*",
+    "@levra/positions": "workspace:*",
     "@levra/shared": "workspace:*",
     "@levra/swap": "workspace:*",
     "@levra/tapeout": "workspace:*",

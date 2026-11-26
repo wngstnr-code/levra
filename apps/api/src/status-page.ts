@@ -18,6 +18,8 @@ const KEEPER_LABELS: Record<KeeperName, string> = {
   marketDepth: "DEX prices and depth",
   transfers: "Cross-chain transfers",
   monitor: "Team monitoring",
+  receipts: "Trade receipts",
+  tapesend: "TapeSend messages",
 };
 
 const escape = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);

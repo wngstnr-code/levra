@@ -330,7 +330,8 @@ levra/
 │   ├── swap/         Swap providers: KyberSwap, 1inch, Aero, OKX DEX
 │   ├── cctp/         Circle CCTP client for USDC from other chains
 │   ├── intents/      Cross-chain deposits through 1Click
-│   └── tapeout/      TapeOut circuits: Wall Street Clock and risk
+│   ├── positions/    Position cost basis and closed positions from router events
+│   └── tapeout/      TapeOut circuits (Wall Street Clock, risk) and TapeSend receipts
 ├── deploy/           Backend hosting: image, Docker Compose, HTTPS, deploy and backup scripts
 └── docs/             Product, architecture, interfaces, risk rules, tasks and progress
 ```

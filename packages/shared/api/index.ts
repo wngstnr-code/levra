@@ -11,6 +11,7 @@ export * from "./agent";
 export * from "./compliance";
 export * from "./auth";
 export * from "./alerts";
+export * from "./receipts";
 export * from "./status";
 export * from "./config";
 export * from "./chains";

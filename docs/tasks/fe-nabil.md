@@ -279,6 +279,11 @@ Plan and reasons: [12-xlayer-tapeout.md](../12-xlayer-tapeout.md). Deadline for 
   - Note (24 November 2026, D-113): TapeSend receipts are private, so the public "verified onchain" link is dropped. The share card links the close transaction instead; the receipt stays in the user's wallet.
   - Note: 24 November 2026 (`fe/FE-81-share-close`): every closed trade in History has a Share button; the picture leads with the realized PnL, shows the exit price and day, and the X post links the close transaction on the block explorer. The leaderboard is not built.
 
+- [ ] **FE-99 · Private trade receipts (TapeSend)**
+  - Needs: BE-84.
+  - Do: a "Receipts" view for the signed-in wallet. Turning it on asks the wallet to sign `receiptKeyText` once (EOA only; say so for a smart wallet), derives the key with `deriveReceiptKey` in the browser and sends only the public key with `PUT /v1/receipts/key`. The view lists `GET /v1/receipts`, opens each payload with `openReceipt` and the key (a new device signs again; the server never stores a secret) and shows subject, body and the close transaction. A switch turns receipts off (`DELETE`). The functions are in `packages/tapeout/src/tapesend.ts` and `receipts.ts` (no Node APIs: `@noble`, viem and `@levra/shared` only). Shapes and the text in 03 (D-116).
+  - Done when: a receipt from a real close on X Layer is opened and shown in the app.
+
 - [~] **FE-82 · DeWEB mirror**
   - Needs: BE-82.
   - Do: publish the stats page and a light landing page on X Layer DeWEB. Required since D-66.

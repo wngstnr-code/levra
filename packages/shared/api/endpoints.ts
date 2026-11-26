@@ -24,6 +24,7 @@ import {
   quoteOpenRequest,
   quoteOpenResponse,
 } from "./quotes";
+import { receiptKeyRequest, receiptKeyResponse, receiptsResponse } from "./receipts";
 import { sessionInfo } from "./session";
 import { statsResponse } from "./stats";
 import { healthResponse, statusResponse } from "./status";
@@ -89,6 +90,10 @@ export const endpoints = {
   alertsPut: { method: "PUT", path: "/v1/alerts", body: alertSettingsUpdate, response: alertSettings, auth: true },
   alertsTelegramLink: { method: "POST", path: "/v1/alerts/telegram", response: telegramLinkResponse, auth: true },
   alertsTelegramUnlink: { method: "DELETE", path: "/v1/alerts/telegram", response: alertSettings, auth: true },
+  receiptKeyGet: { method: "GET", path: "/v1/receipts/key", response: receiptKeyResponse, auth: true },
+  receiptKeyPut: { method: "PUT", path: "/v1/receipts/key", body: receiptKeyRequest, response: receiptKeyResponse, auth: true },
+  receiptKeyDelete: { method: "DELETE", path: "/v1/receipts/key", response: receiptKeyResponse, auth: true },
+  receipts: { method: "GET", path: "/v1/receipts", response: receiptsResponse, auth: true },
 } as const;
 
 export type EndpointName = keyof typeof endpoints;

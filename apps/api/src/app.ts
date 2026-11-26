@@ -18,6 +18,7 @@ import type { IntentsSource } from "@levra/intents";
 import type { IrisSource } from "@levra/cctp";
 import { bridgeRoutes, bridgeStatusRoutes, irisFees } from "./routes/bridge";
 import { authRoutes } from "./routes/auth";
+import { receiptRoutes } from "./routes/receipts";
 import { agentRoutes, preparedRoutes, type QuoteThrough } from "./routes/agent";
 import { earnRoutes } from "./routes/earn";
 import { dbMarketHistory, marketRoutes, type DexMids, type Halts } from "./routes/markets";
@@ -161,6 +162,7 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     if (db && auth) {
       app.route("/", authRoutes(new Map(live.map((r) => [r.deployment.chainId, r.client])), db, { secret: auth.secret, domains: auth.domains }));
       app.route("/", alertRoutes(db, { secret: auth.secret, telegramBot: auth.telegramBot }));
+      app.route("/", receiptRoutes(db, { secret: auth.secret }));
     }
   }
 
