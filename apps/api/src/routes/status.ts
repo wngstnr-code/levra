@@ -12,6 +12,9 @@ type MonitorDetails = { oracleLimits?: Record<string, { limitSeconds: number; le
 
 type Beat = typeof keeperHeartbeats.$inferSelect;
 
+/** Jobs that never run in the Monad keeper, so the main chain's full list leaves them out. TapeSend sends from X Layer (BE-84). */
+const NOT_ON_MAIN: readonly KeeperName[] = ["tapesend"];
+
 async function chainParts(reader: ChainReader, db: Db) {
   const chainId = reader.deployment.chainId;
   const [block, beats, cursors] = await Promise.all([
@@ -30,7 +33,7 @@ async function chainParts(reader: ChainReader, db: Db) {
     block,
     byName,
     /** Every keeper job, reported or not: the shape of the top-level list. */
-    allKeepers: keeperName.options.map((name) => keeper(name, byName.get(name))),
+    allKeepers: keeperName.options.filter((name) => !NOT_ON_MAIN.includes(name)).map((name) => keeper(name, byName.get(name))),
     /** Only the jobs that have reported on this chain; the others do not run there yet. */
     reportedKeepers: keeperName.options.filter((name) => byName.has(name)).map((name) => keeper(name, byName.get(name))),
     indexer: { lastBlock, chainHead: head, lagBlocks: Math.max(0, head - lastBlock) },

@@ -67,6 +67,9 @@ describe.skipIf(!url)("status (needs TEST_DATABASE_URL)", () => {
     const health = Object.fromEntries(s.keepers.map((k) => [k.name, k.healthy]));
     expect(health).toMatchObject({ alerts: true, protector: false, liquidator: false, oracleAgePoster: false });
     expect(s.keepers.find((k) => k.name === "oracleAgePoster")?.lastHeartbeatAt).toBeNull();
+    // The TapeSend sender runs in the X Layer keeper only, so Monad's full list leaves it out.
+    expect(s.keepers.map((k) => k.name)).toContain("receipts");
+    expect(s.keepers.map((k) => k.name)).not.toContain("tapesend");
     expect(s.indexer).toEqual({ lastBlock: 1_990, chainHead: 2_000, lagBlocks: 10 });
     expect(s.api.version).toBe("abc123");
   });
