@@ -83,4 +83,24 @@ describe.skipIf(!url)("Telegram chat linking (needs TEST_DATABASE_URL)", () => {
     expect(offsets).toEqual([0, 13]);
     expect((await db.select().from(alertSettings).where(eq(alertSettings.address, address)))[0]?.telegramChatId).toBe("333");
   });
+
+  it("hands every other message to the chat commands, and moves on when one fails (BE-78)", async () => {
+    const messages: [string, string][] = [];
+    pending.push(
+      { update_id: 14, message: { chat: { id: 333 }, text: "/positions" } },
+      { update_id: 15, message: { chat: { id: 555 }, text: "/session" } },
+      { update_id: 16, message: { chat: { id: 666 } } },
+    );
+    const onMessage = async (chatId: string, text: string) => {
+      messages.push([chatId, text]);
+      if (chatId === "333") throw new Error("api down");
+    };
+    expect(await linkTelegramChats(db, 143, bot, new Date(), onMessage)).toBe(0);
+    expect(messages).toEqual([
+      ["333", "/positions"],
+      ["555", "/session"],
+    ]);
+    await linkTelegramChats(db, 143, bot, new Date(), onMessage);
+    expect(offsets.at(-1)).toBe(17);
+  });
 });
