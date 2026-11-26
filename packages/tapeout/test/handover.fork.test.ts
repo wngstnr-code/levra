@@ -3,7 +3,7 @@ import { createPublicClient, createWalletClient, http, toHex, type Address, type
 import { xLayer } from "viem/chains";
 import { describe, expect, it } from "vitest";
 import { circuitsAbi } from "../src/chain";
-import { handOverCircuits } from "../src/handover";
+import { handOverCircuits, planHandover } from "../src/handover";
 
 /**
  * The risk circuit handover on a fork of X Layer mainnet, as the real TapeOut key (BE-84 known issue).
@@ -29,7 +29,13 @@ describe.skipIf(!forkUrl)("risk circuits to the team Safe on a fork (BE-84)", ()
     const clients = { client, wallet } as unknown as Parameters<typeof handOverCircuits>[0];
 
     await expect(handOverCircuits(clients, processor, risk, "0x000000000000000000000000000000000000dEaD", [clock])).rejects.toThrow(/no code/);
+    // A contract that is not a Safe, such as the processor itself, would lock the circuits for good.
+    await expect(handOverCircuits(clients, processor, risk, processor, [clock])).rejects.toThrow(/does not answer as a Safe/);
     await expect(handOverCircuits(clients, processor, [clock], SAFE, [clock])).rejects.toThrow(/must stay/);
+
+    const plan = await planHandover(client, processor, operator, risk, SAFE, [clock]);
+    expect(plan.threshold).toBeGreaterThanOrEqual(2n);
+    expect(plan.circuits).toEqual(risk.map((id) => ({ id, owner: operator, move: true })));
 
     const [nIn] = await client.readContract({ address: processor, abi: circuitsAbi, functionName: "circuitInfo", args: [risk[0]!] });
     const inputs = toHex(new Uint8Array(Math.ceil(nIn / 8)));
