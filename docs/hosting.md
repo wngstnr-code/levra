@@ -4,6 +4,8 @@ How the backend runs after Railway (D-94). Tasks: BE-90 (server and services), B
 
 Status on 20 November 2026: the files in `deploy/` are written. Verified in a local copy of this setup on Docker Desktop (Windows), against Monad mainnet on the public RPC: the image builds; `migrate` runs before the apps; the API answers `/v1/health` and `/v1/status` through Caddy; the indexer syncs; the keeper jobs that need no key report healthy and the role jobs stay off without keys; secrets reach the apps from files and do not show in `docker inspect`; `deploy/keys.sh`'s script writes key files and prints only addresses. Not verified yet: `setup-server.sh`, `new-secrets.sh`, `deploy.sh` and `backup.sh` on the real server, HTTPS with a real certificate, and recovery after a reboot. The server keeps netcup's Debian 13 (D-101): in Debian 13 containers, `setup-server.sh`'s OS check, its packages and Docker 29.10 from Docker's Debian repository install cleanly, and its check of the SSH settings in effect catches an image line that still allows passwords; the steps that need systemd (SSH reload, firewall, timezone) run only on the server. The VPS is bought and running since 20 November 2026 (see "The server"); setup on it has not started.
 
+25 November 2026: reboot test passed on the server (every container back by itself within 3 minutes, `/v1/status` healthy again). Uptime alert tested on purpose: Caddy stopped, DOWN sent at about 15:24 UTC and UP at 15:29 UTC.
+
 | File in `deploy/` | Purpose |
 |---|---|
 | `Dockerfile`, `entrypoint.sh` | The one image, and the start step that loads secret files |
@@ -143,7 +145,7 @@ Later: build the image in GitHub Actions and push it to a registry, so the VPS n
 ## Monitoring
 
 - The team monitor (BE-50) keeps posting to the team Telegram group.
-- An outside uptime check calls `/v1/health` every minute and `/v1/status` every 5 minutes and alerts the team (service chosen in BE-90). It catches what the monitor cannot see: the whole server down.
+- An outside uptime check (UptimeRobot, free plan) calls `/v1/health` every 5 minutes and emails the team address when it fails. It catches what the monitor cannot see: the whole server down. Keyword checks of `/v1/status` and Telegram alerts need a paid plan, so keeper health stays with the team monitor (BE-50).
 - Disk: an alert at 80% full, since Postgres and the logs grow.
 - Public status page: `/status` on the API address (BE-61).
 
