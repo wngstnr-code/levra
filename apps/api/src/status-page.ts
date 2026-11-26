@@ -20,6 +20,7 @@ const KEEPER_LABELS: Record<KeeperName, string> = {
   monitor: "Team monitoring",
   receipts: "Trade receipts",
   tapesend: "TapeSend messages",
+  telegram: "Telegram bot",
 };
 
 const escape = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);

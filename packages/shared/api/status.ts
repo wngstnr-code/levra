@@ -6,7 +6,7 @@ export const healthResponse = z.object({
 });
 export type HealthResponse = z.infer<typeof healthResponse>;
 
-export const keeperName = z.enum(["calendar", "protector", "liquidator", "alerts", "oracleMonitor", "oracleAgePoster", "marketDepth", "transfers", "monitor", "receipts", "tapesend"]);
+export const keeperName = z.enum(["calendar", "protector", "liquidator", "alerts", "oracleMonitor", "oracleAgePoster", "marketDepth", "transfers", "monitor", "receipts", "tapesend", "telegram"]);
 export type KeeperName = z.infer<typeof keeperName>;
 
 /**
@@ -26,6 +26,7 @@ export const KEEPER_HEARTBEAT_LIMIT_S: Record<KeeperName, number> = {
   monitor: 300,
   receipts: 300,
   tapesend: 300,
+  telegram: 300,
 };
 
 const keeperStatus = z.object({
