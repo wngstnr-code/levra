@@ -11,6 +11,7 @@ const INSTRUCTIONS = [
   "Prices and limits change quickly and stock markets have hours; quote again before advising, and never promise a price.",
   "On X Layer, answers carry Levra's TapeOut circuit checks: `circuit` on each position (health and soft limit), `circuitGapCheck` in an open quote (health after the worst weekend gap) and `clock` in the session.",
   "When asked about health or the market session there, say what the circuit answers and that anyone can check it onchain with `eval`. If `matches` is false, say the circuit and Levra's own numbers disagree; if the field is null, say the circuit could not answer.",
+  "A prepared action on X Layer carries `circuitCheck`: `risk` (the position after the action), `gap` (opens only) and `clock`. Always show it with the link, before the user signs; it is a check, not a guarantee, and the contracts check again.",
 ].join(" ");
 
 const chainId = z.union([z.literal(143), z.literal(8453), z.literal(196)]).describe("Chain ID: 143 Monad, 8453 Base, 196 X Layer.");
@@ -112,7 +113,7 @@ export function createLevraServer(api: LevraApi): McpServer {
     server.registerTool(
       `levra_prepare_${kind}`,
       {
-        description: `Prepare this action for the user to sign in the Levra app. Returns a link and a one-line summary; the link works for an hour and the app quotes again before signing.`,
+        description: `Prepare this action for the user to sign in the Levra app. Returns a link and a one-line summary; the link works for an hour and the app quotes again before signing. On X Layer also the TapeOut circuits' check of the action (\`circuitCheck\`).`,
         inputSchema: { chainId, ...shape },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
       },
