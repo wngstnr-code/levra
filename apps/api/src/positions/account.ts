@@ -5,6 +5,7 @@ import { BPS, ORACLE_PRICE_SCALE, cautiousPriceE8, collateralValue, morphoOracle
 import { isChainId } from "@levra/shared/chains";
 import { stocksByChain } from "@levra/shared/markets";
 import { erc20Abi, type Address, type Hex } from "viem";
+import { positionAmounts } from "../chain/circuits";
 import type { ChainReader, MarketState } from "../chain/reader";
 import { borrowSharesDelta, reductionCloses } from "@levra/positions";
 import { costBasis, entryPriceE8, longCostBasis, realizedOnReduce, type CostBasis } from "./cost-basis";
@@ -92,6 +93,17 @@ export async function buildAccount(reader: ChainReader, events: StoredEvent[], u
       overSoftLimit: p.ltvWad > p.softLtvWad,
       gapScenarios: gapScenarios(side, m.info.symbol, p.ltvWad, p.lltvWad),
     });
+  }
+
+  // X Layer only: the risk circuit's answer next to ours (BE-83), read in parallel after the numbers above.
+  const circuits = reader.circuits;
+  if (circuits) {
+    await Promise.all(
+      out.map(async (pos) => {
+        const m = markets.find((x: MarketState) => x.info.marketId.toLowerCase() === pos.marketId.toLowerCase())!;
+        pos.circuit = await circuits.risk(m, positionAmounts(m, BigInt(pos.collateralRaw), BigInt(pos.debtRaw), reader.usdc.decimals));
+      }),
+    );
   }
 
   return {
