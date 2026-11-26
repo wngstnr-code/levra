@@ -145,8 +145,8 @@ services:
     volumes:
       # The folder, not single files: a git checkout replaces files, and a single-file mount would keep the old one.
       - ./caddy:/etc/caddy:ro
-      # The CA for authenticated origin pulls (ORIGIN=cloudflare-mtls, deploy/origin-pull.sh). Unused with other modes.
-      - ${LEVRA_HOME:-/opt/levra}/secrets/caddy:/etc/caddy-origin:ro
+      # Our public CA for authenticated origin pulls (ORIGIN=cloudflare-mtls, deploy/origin-pull.sh). Unused otherwise.
+      - ${LEVRA_HOME:-/opt/levra}/caddy-origin:/etc/caddy-origin:ro
       - caddy-data:/data
       - caddy-config:/config
 
