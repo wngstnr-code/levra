@@ -23,6 +23,8 @@ import { createOracleAgePoster } from "./oracle/age-poster";
 import { chainFeedReader, createChainlinkRecorder } from "./oracle/chainlink";
 import { createOracleRecorder } from "./oracle/recorder";
 import { createProtector } from "./protector/protector";
+import { levraApi } from "./telegram/commands";
+import { createTelegramBot } from "./telegram/job";
 import { createTransferWatcher } from "./transfers/watcher";
 import { createIntents } from "@levra/intents";
 import type { Job } from "./runner";
@@ -91,6 +93,12 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
   ];
   const tellTeam = async (text: string) => void (await Promise.all(team.map((send) => send(text))));
 
+  // Telegram allows one update reader per bot: chat linking and the chat commands (BE-78) run in the KEEPER_GLOBAL keeper.
+  if (env.KEEPER_GLOBAL && bot) {
+    if (!env.LEVRA_API_URL) logger.warn("Telegram chat commands off: set LEVRA_API_URL; chat linking still runs");
+    jobs.push(createTelegramBot({ bot, api: env.LEVRA_API_URL ? levraApi(env.LEVRA_API_URL) : undefined }));
+  }
+
   // Every chain: Anchored's observed schedule on Monad, the Chainlink feeds' weekly freeze elsewhere (scheduleForChain).
   // On X Layer the Wall Street Clock circuit checks each close (D-113).
   if (deployment && env.CALENDAR_POSTER_KEY) {
@@ -116,7 +124,7 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
     tapesend: tapesendQueue,
   };
   if (deployment) {
-    jobs.push(createAlerts({ client, deployment, channels, telegram: env.KEEPER_GLOBAL ? bot : undefined, arrivals: cctpArrivals(client, tokensByChain[chainId].USDC.address) }));
+    jobs.push(createAlerts({ client, deployment, channels, arrivals: cctpArrivals(client, tokensByChain[chainId].USDC.address) }));
     jobs.push(createReceipts({ client, deployment }));
   } else {
     logger.info("alerts and receipts off: DEPLOYMENT_FILE is not set");

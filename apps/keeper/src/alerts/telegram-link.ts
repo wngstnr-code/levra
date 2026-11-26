@@ -12,8 +12,15 @@ export type TelegramSource = { updates: (offset: number) => Promise<TelegramUpda
  * Reads the bot's new messages and links a chat to a wallet when it sends `/start <code>` with a fresh, unused code from
  * `POST /v1/alerts/telegram`. The last update id is kept in `sync_cursors`, so each message is handled once. Telegram
  * allows one update reader per bot, so only the keeper with KEEPER_GLOBAL runs this; its cursor is under that keeper's chain.
+ * Any other message goes to `onMessage` (BE-78, the chat commands); a failure there is its own to report, the cursor moves on.
  */
-export async function linkTelegramChats(db: Db, chainId: number, bot: TelegramSource, now = new Date()): Promise<number> {
+export async function linkTelegramChats(
+  db: Db,
+  chainId: number,
+  bot: TelegramSource,
+  now = new Date(),
+  onMessage?: (chatId: string, text: string) => Promise<void>,
+): Promise<number> {
   const [cursor] = await db
     .select()
     .from(syncCursors)
@@ -41,6 +48,8 @@ export async function linkTelegramChats(db: Db, chainId: number, bot: TelegramSo
       } else {
         await bot.send(chatId, "This link has expired or was used already. Make a new one in the app settings.");
       }
+    } else if (u.message && text && onMessage) {
+      await onMessage(String(u.message.chat.id), text).catch(() => undefined);
     }
     await db
       .insert(syncCursors)

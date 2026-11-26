@@ -10,7 +10,6 @@ import { GATE_EFFECT } from "../monitor/checks";
 import { closeFromCalendar, type CloseSource } from "../protector/protector";
 import type { Job } from "../runner";
 import type { Channels } from "./channels";
-import { linkTelegramChats, type TelegramSource } from "./telegram-link";
 
 /** Before-close alerts (04 pre-close timeline): 24 hours, 4 hours and 1 hour before the close. */
 export const PRE_CLOSE_STAGES = [86_400, 14_400, 3_600] as const;
@@ -77,8 +76,6 @@ export type AlertsOptions = {
   client: PublicClient;
   deployment: Deployment;
   channels: Channels;
-  /** Only in the keeper with KEEPER_GLOBAL: Telegram allows one update reader per bot. */
-  telegram?: TelegramSource;
   nextClose?: CloseSource;
   /** USDC that arrived through CCTP (BE-76). Without it, only 1Click deposits alert. */
   arrivals?: ArrivalSource;
@@ -92,7 +89,7 @@ export type AlertsOptions = {
  * auto-deleverage, liquidation and arrived deposits, for the positions on this keeper's chain. Each alert goes out once
  * per channel (`alert_deliveries`, keys start with the chain id); a failed send is removed again so the next run retries it.
  */
-export function createAlerts({ client, deployment, channels, telegram, nextClose = closeFromCalendar, arrivals, clock, intervalMs = 60_000 }: AlertsOptions): Job {
+export function createAlerts({ client, deployment, channels, nextClose = closeFromCalendar, arrivals, clock, intervalMs = 60_000 }: AlertsOptions): Job {
   const chainClock = async () => Number((await client.getBlock({ blockTag: "latest" })).timestamp);
   const symbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
   const marketSymbols = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), m.symbol as string]));
@@ -127,13 +124,12 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
     intervalMs,
     async run({ db, chainId }) {
       const chainName = chains[chainId].name;
-      const linked = telegram ? await linkTelegramChats(db, chainId, telegram) : 0;
       const now = await (clock ?? chainClock)();
       const keyed = new Set(channels.tapesend ? (await db.select({ address: receiptKeys.address }).from(receiptKeys)).map((k) => k.address) : []);
       const users = (await db.select().from(alertSettings)).filter((s) => (s.email && channels.email) || (s.telegramChatId && channels.telegram) || keyed.has(s.address));
       // Read even with nobody to alert, so the reader keeps up with the chain.
       const minted = arrivals ? await arrivals(users.filter((u) => u.depositArrived).map((u) => getAddress(u.address))) : [];
-      if (users.length === 0) return { linked, users: 0, sent: 0 };
+      if (users.length === 0) return { users: 0, sent: 0 };
 
       const markets: MarketView[] = (await client.readContract({ address: deployment.lens, abi: lensAbi, functionName: "getMarkets" })).map((m) => ({
         marketId: m.marketId.toLowerCase(),
@@ -254,7 +250,7 @@ export function createAlerts({ client, deployment, channels, telegram, nextClose
       }
 
       if (failed > 0) throw new Error(`${failed} alert(s) could not be sent; they will be retried`);
-      return { linked, users: users.length, closeAt, stage, sent };
+      return { users: users.length, closeAt, stage, sent };
     },
   };
 }

@@ -573,11 +573,12 @@ Plan and reasons: [11-base-stocksmaxxing.md](../11-base-stocksmaxxing.md). Deadl
   - Note (20 November 2026), proposal for 03: `POST /v1/:chainId/agent/prepare` stores a prepared action and returns an id and a link; the web app loads `GET /v1/prepared/:id` and asks the wallet to sign (FE-77). The MCP server is a new `apps/agent` that holds no keys.
   - Note (24 November 2026): built (D-111). API: `POST /v1/:chainId/agent/prepare` and `GET /v1/prepared/:id`, table `prepared_actions` (migration 0011), counted as a quote in the rate limit. `apps/agent`: 11 MCP tools over stdio and stateless Streamable HTTP, quote answers without `tx`; tested with a real MCP client in memory and over HTTP, and the prepare routes against Postgres. Deploy: `agent` service in `compose.yml`, `/mcp` in the Caddyfile, `deploy/env/agent.env.example`, `WEB_APP_URL` in api.env. Left: Nabil's review of the 03 section and FE-77 (the `/prepared/:id` page), then on the VPS create `agent.env` and set `WEB_APP_URL`, deploy, and do the "Done when" run: read a real position from an MCP client and sign a prepared close in the app.
 
-- [ ] **BE-78 · Bankr and Telegram agent**
+- [~] **BE-78 · Bankr and Telegram agent**
   - Needs: BE-77.
   - Do: ship the Levra agent in Bankr (skill or integration, check with Bankr's Telegram group) and in the BE-33 Telegram bot. Commands: position, quote, open, close, add collateral, alerts.
   - Done when: a real user flow works end to end from chat, recorded for the demo.
   - Note (20 November 2026): Telegram allows one update reader per bot, so the bot's updates move from the keeper to `apps/agent`, and the keeper only sends messages. P2: only if time allows before 4 December.
+  - Note (26 November 2026, D-119, replaces the note above): the Telegram part is built on `be/BE-78-telegram-commands`. The reader stays in the KEEPER_GLOBAL keeper, as a new job `telegram` every 3 s that links chats and answers `/positions`, `/session`, `/open`, `/close`, `/add` and `/alerts` for the chat's linked wallet through the API over the internal network (`LEVRA_API_URL`, like the MCP server). "Quote" is the summary of `agent/prepare`, which comes from a real quote. `/open`, `/close` and `/add` return the `agent/prepare` link with the circuit check on X Layer. It needs `TELEGRAM_BOT_TOKEN`, which `keeper-monad` already has, and the new `LEVRA_API_URL=http://api:8787` in `keeper-monad.env`. Tests: the commands against a fake API (amounts, chains, percent, decimals, refusals, unlinked chats), and the message routing with the DB in CI. Left: the bot token on the VPS (BE-33), a real flow from a chat recorded for the demo, and Bankr (needs contact with Bankr's group).
 
 - [~] **BE-79 · Public stats endpoint**
   - Needs: BE-73.

@@ -48,10 +48,10 @@ All app services use one image built from the repo (`deploy/Dockerfile`, BE-90):
 | `migrate` | `pnpm --filter @levra/db migrate`, once per deploy, before the apps | BE-90 | `DATABASE_URL` |
 | `api` | `pnpm --filter @levra/api start`. Serves every chain after BE-95 and BE-70 | BE-90 | `DATABASE_URL`, `AUTH_SECRET`, swap API keys |
 | `indexer-monad` | `pnpm --filter @levra/indexer start` for chain 143 | BE-90 | `DATABASE_URL`, `ENVIO_API_TOKEN` |
-| `keeper-monad` | `pnpm --filter @levra/keeper start` for chain 143, plus the jobs that run once for all chains (`KEEPER_GLOBAL=1`, BE-95) | BE-90 | `DATABASE_URL`, the four Monad role keys, `TELEGRAM_BOT_TOKEN`, swap API keys |
+| `keeper-monad` | `pnpm --filter @levra/keeper start` for chain 143, plus the jobs that run once for all chains (`KEEPER_GLOBAL=1`, BE-95), the Telegram bot among them: chat linking and the chat commands (BE-78, D-119), which call the API at `http://api:8787` (`LEVRA_API_URL`) | BE-90 | `DATABASE_URL`, the four Monad role keys, `TELEGRAM_BOT_TOKEN`, swap API keys |
 | `keeper-base`, `keeper-xlayer` | Same code for chains 8453 and 196. They start without keys, for the Chainlink price recorder only (BE-97), and get role keys with our deployments | BE-97, then BE-73 and BE-80 | The role keys of that chain |
 | `indexer-base`, `indexer-xlayer` | Same code for chains 8453 and 196, from the deployment block. On the public endpoints until a paid RPC or HyperSync: `base-rpc.publicnode.com` (10,000 blocks per log query; `mainnet.base.org` answers 429) and `rpc.xlayer.tech` (`LOG_BLOCK_RANGE=100`) | BE-73, BE-80 | `DATABASE_URL`, `ENVIO_API_TOKEN` |
-| `agent` | `apps/agent` MCP server at `api.levra.finance/mcp` (stateless Streamable HTTP, port 8790, no public port). Calls the API at `http://api:8787` and passes on only the caller's address (`CLIENT_IP_HEADER`, D-111). Holds no keys. Later also the Telegram bot updates (BE-78) | BE-77, BE-78 | None now; `TELEGRAM_BOT_TOKEN` with BE-78 (moves from the keeper) |
+| `agent` | `apps/agent` MCP server at `api.levra.finance/mcp` (stateless Streamable HTTP, port 8790, no public port). Calls the API at `http://api:8787` and passes on only the caller's address (`CLIENT_IP_HEADER`, D-111). Holds no keys. The Telegram bot stays in the keeper (D-119) | BE-77 | None |
 | `caddy` | HTTPS and the reverse proxy: `/mcp` to `agent`, everything else to `api` | BE-90 | None |
 
 Each chain gets its own four role keys (BE-55), so a rotation on one chain does not touch the others.

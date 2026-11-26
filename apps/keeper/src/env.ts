@@ -46,7 +46,7 @@ const fields = z.object({
   /** Email alerts through Resend (BE-33, proposal). Both are needed; email is off without them. Never commit the key. */
   RESEND_API_KEY: optional(),
   ALERT_EMAIL_FROM: optional(),
-  /** Telegram alert bot token (BE-33). Telegram alerts and chat linking are off without it. Never commit it. */
+  /** Telegram alert bot token (BE-33). Telegram alerts, chat linking and chat commands (BE-78) are off without it. Never commit it. */
   TELEGRAM_BOT_TOKEN: optional(),
   /** Aurora Intents partner token (BE-40). Optional for reading transfer status. Never commit it. */
   INTENTS_JWT: optional(),
@@ -55,6 +55,12 @@ const fields = z.object({
   TEAM_WEBHOOK_URL: optional().pipe(z.url().optional()),
   /** Public API address the monitor checks for errors and response time, for example https://api.levra.xyz. */
   MONITOR_API_URL: optional().pipe(z.url().optional()),
+  /**
+   * The API over the internal network for the Telegram chat commands (BE-78), `http://api:8787` on the VPS, as the MCP
+   * server calls it. Never the public address: through the CDN the API would see the server's country, and the region
+   * check refuses an open only when there is no country at all. The commands are off without it.
+   */
+  LEVRA_API_URL: optional().pipe(z.url().optional()),
   KYBER_BASE_URL: optional().pipe(z.url().optional()),
   /** Sent as x-client-id. Routes work with any value (05). */
   KYBER_CLIENT_ID: z.string().min(1).default("levra"),
