@@ -56,12 +56,18 @@ importers:
       '@levra/intents':
         specifier: workspace:*
         version: link:../../packages/intents
+      '@levra/positions':
+        specifier: workspace:*
+        version: link:../../packages/positions
       '@levra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@levra/swap':
         specifier: workspace:*
         version: link:../../packages/swap
+      '@levra/tapeout':
+        specifier: workspace:*
+        version: link:../../packages/tapeout
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4(postgres@3.4.9)
@@ -142,6 +148,9 @@ importers:
       '@levra/intents':
         specifier: workspace:*
         version: link:../../packages/intents
+      '@levra/positions':
+        specifier: workspace:*
+        version: link:../../packages/positions
       '@levra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -322,6 +331,25 @@ importers:
         specifier: ^5.0.4
         version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  packages/positions:
+    dependencies:
+      '@levra/shared':
+        specifier: workspace:*
+        version: link:../shared
+      viem:
+        specifier: ^2.57.5
+        version: 2.57.5(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@5.0.10)(zod@4.6.7)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
   packages/shared:
     dependencies:
       zod:
@@ -371,6 +399,15 @@ importers:
       '@levra/shared':
         specifier: workspace:*
         version: link:../shared
+      '@noble/ciphers':
+        specifier: 1.3.0
+        version: 1.3.0
+      '@noble/curves':
+        specifier: 1.9.7
+        version: 1.9.7
+      '@noble/hashes':
+        specifier: 1.8.0
+        version: 1.8.0
       viem:
         specifier: ^2.57.5
         version: 2.57.5(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@5.0.10)(zod@4.6.7)
