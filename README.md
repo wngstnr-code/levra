@@ -329,6 +329,7 @@ levra/
 │   ├── db/           Database schema and migrations
 │   ├── swap/         Swap providers: KyberSwap, 1inch, Aero, OKX DEX
 │   ├── cctp/         Circle CCTP client for USDC from other chains
+│   ├── across/       Across client and quote checks for deposits of other tokens
 │   ├── intents/      Cross-chain deposits through 1Click
 │   ├── positions/    Position cost basis and closed positions from router events
 │   └── tapeout/      TapeOut circuits (Wall Street Clock, risk) and TapeSend receipts

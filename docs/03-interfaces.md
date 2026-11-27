@@ -749,6 +749,48 @@ type BridgeStatusResponse = {
 };
 ```
 
+### Deposits of other tokens through Across (BE-76, D-120)
+
+Status: proposed by Dharu on 27 November 2026 and built as additions (06), waiting for Nabil's review. Off until `ACROSS_API_KEY` is set on the API, so nothing changes for the web app before then. CCTP above stays the way for USDC to USDC; Across is for any other token Across takes (for example ETH or USDT on Arbitrum), delivered as USDC.
+
+- `POST /v1/:chainId/bridge/across/deposit` on Monad and Base only (Across does not list X Layer), plus the Monad alias without a chain ID. `GET /v1/bridge/across/status` without a chain ID.
+- The API asks Across for an approval-funded quote with an exact approval only, so the wallet never signs typed data and nothing is posted back to Across. Send, in order: `approveReset` when it is there, `approve` (always there for a token, null only for a native token; never skip it over an existing allowance), then `deposit` with `valueRaw` of native token. Across's deposit pulls everything the allowance lets it, and `approve` sets the allowance to exactly `amountRaw`, so the deposit can never take more than asked (Across docs, read on 27 November 2026). Before signing, switch the wallet to `fromChainId`. No Levra contract or key is involved and no funds pass through us.
+- Every quote is checked before the wallet sees it: the same input token, amount, depositor, output token (USDC on this chain) and recipient; the fee in that USDC when Across names its token; an approval of exactly that token and amount, after an optional reset to zero for the same spender; the deposit as the last step on `fromChainId`, with whole-byte call data and a native value only for a native token; at least 60 s left (initial proposal). Anything else answers 502 `UPSTREAM_ERROR`.
+- The deposit must have landed by `expiresAt` (Across's `originValidUntil`), or ask again. Across refusing the amount or token answers 400 `BAD_REQUEST` with Across's reason.
+- Not checked yet: that `spender` and the deposit's `to` are Across contracts. Across does not publish the addresses of its new quote flow; they are read from the first live quote and then held in `packages/shared` (Known issues in PROGRESS).
+- Polling `bridge/across/status` with `orderId`: `not_found` until Across sees the deposit (a few seconds, sometimes minutes), then Across's own `state`; stop when `terminal` is true. `description` is Across's sentence for the user.
+- Region and terms apply to `recipient` on the chain in the path. Counted as a quote for the rate limit, per wallet through `recipient`.
+
+```ts
+// POST /v1/8453/bridge/across/deposit
+type AcrossDepositRequest = { fromChainId: number; inputToken: Address; amountRaw: string; depositor: Address; recipient: Address };
+type AcrossDepositPlan = {
+  orderId: string;              // for bridge/across/status
+  fromChainId: number;
+  toChainId: number;
+  inputToken: Address;
+  amountRaw: string;            // input token decimals
+  expectedReceivedRaw: string;  // USDC on toChainId
+  minReceivedRaw: string;       // the least Across guarantees
+  feeRaw: string;               // Across's whole fee, USDC on toChainId
+  expiresAt: number;            // unix ms, the deposit must have landed by then
+  estimatedSeconds: number | null;
+  approveReset: Call | null;    // approve(spender, 0) first, for USDT-like tokens
+  approve: (Call & { token: Address; spender: Address }) | null; // null only for a native token
+  deposit: Call & { valueRaw: string };
+};
+// GET /v1/bridge/across/status?orderId=0x...
+type AcrossStatusResponse = {
+  orderId: string;
+  state: string;                // "not_found", or Across's value, for example "completed"
+  terminal: boolean;
+  description: string | null;
+  depositTxHash: Hex | null;
+  fillTxHash: Hex | null;
+  receivedRaw: string | null;   // USDC delivered
+};
+```
+
 ### A market without an oracle price (BE-99, D-100)
 
 When a market's oracle cannot be read (Lens reports `oraclePriceE8` 0 because `snapshot()` reverts), `oraclePriceE8` is `"0"` everywhere it appears, and that is the flag. Clients never divide by it.
@@ -1231,6 +1273,7 @@ Shared names. Each app has its own `.env.example`, which lists every variable it
 | `DATABASE_URL` | BE | Postgres |
 | `KYBER_CLIENT_ID` | BE | Client ID for the KyberSwap API |
 | `ONEINCH_API_KEY` | BE, research scripts | 1inch Business API key for the Swap API on Base (D-80). Secret: only in a local or hosted `.env`, never in the repo |
+| `ACROSS_API_KEY` | BE | Across API key (BE-76, D-120). The Across deposit routes are off without it. Secret |
 | `INTENTS_JWT` | BE | Aurora Intents 1Click partner token. Optional: without it the service adds its own 0.2% fee to every transfer |
 | `ORACLE_AGE_POSTER_KEY`, `CALENDAR_POSTER_KEY`, `PROTECTOR_KEY`, `LIQUIDATOR_KEY` | BE (keeper) | Keeper keys, one per role and chain (BE-55). Each role job runs only when its key is set |
 | `TAPEOUT_KEY` | BE (keeper, X Layer) | The key that holds Levra's TapeOut circuits (BE-82). In the X Layer keeper it sends the TapeSend receipts and alerts (BE-84); unset leaves them queued |

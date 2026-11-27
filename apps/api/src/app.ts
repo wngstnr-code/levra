@@ -18,6 +18,8 @@ import { complianceRoutes, createCompliance, type ComplianceOptions } from "./ro
 import type { IntentsSource } from "@levra/intents";
 import type { IrisSource } from "@levra/cctp";
 import { bridgeRoutes, bridgeStatusRoutes, irisFees } from "./routes/bridge";
+import { acrossRoutes, acrossStatusRoutes } from "./routes/across";
+import type { AcrossSource } from "@levra/across";
 import { authRoutes } from "./routes/auth";
 import { receiptRoutes } from "./routes/receipts";
 import { agentRoutes, preparedRoutes, type QuoteThrough } from "./routes/agent";
@@ -59,6 +61,8 @@ export type AppDeps = {
   iris?: IrisSource;
   /** Actions an agent prepares for the wallet to sign in the web app (BE-77). Needs `db`. */
   agent?: { webAppUrl: string };
+  /** Across, for tokens from other chains into USDC on Monad and Base (BE-76). Off without `ACROSS_API_KEY`. */
+  across?: AcrossSource;
 };
 
 /** DEX mid prices no older than 30 minutes from the depth keeper, cached for 30 seconds. Initial proposal. */
@@ -73,7 +77,7 @@ function haltsFromDb(db: Db, chainId: number): Halts {
   return () => cached("halts", 30_000, () => activeGates(db, chainId));
 }
 
-export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, iris, agent, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
+export function createApp({ logger, reader, otherChains = [], otherSwaps = new Map(), swap, events, stream, db, version = "dev", auth, intents, iris, agent, across, compliance: complianceOpts, corsOrigins = [], rateLimit: limits }: AppDeps) {
   const app = new Hono();
   if (corsOrigins.length > 0) {
     app.use(
@@ -127,6 +131,7 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
     const routeFailed: RouteFailed = (target, err) => logger.warn({ chainId: id, target, error: err.message }, "swap route reverted, trying the next provider");
     if (chainSwap) sub.route("/", quoteRoutes(r, chainSwap, store, compliance, routeFailed));
     if (fees) sub.route("/", bridgeRoutes(id, fees, compliance));
+    if (across) sub.route("/", acrossRoutes(id, across, compliance));
     // The agent prepares only what this chain can quote (BE-77), through the same quote route and gate.
     if (chainSwap && db && agent) {
       const quoteThrough: QuoteThrough = (path, body, headers) => {
@@ -171,6 +176,7 @@ export function createApp({ logger, reader, otherChains = [], otherSwaps = new M
 
   if (db && intents) app.route("/", depositRoutes(db, intents, compliance));
   if (iris) app.route("/", bridgeStatusRoutes(iris));
+  if (across) app.route("/", acrossStatusRoutes(across));
   if (db && agent) app.route("/", preparedRoutes(db));
 
   app.notFound(notFound);

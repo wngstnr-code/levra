@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { address, hex, usdRaw } from "./primitives";
+import { address, hex, rawAmount, usdRaw } from "./primitives";
 
 /**
  * USDC in and out of a Levra chain through Circle CCTP V2 (BE-85, D-54), at `/v1/:chainId/bridge/...`. The user's
@@ -74,6 +74,69 @@ export type BridgeStatusQuery = z.infer<typeof bridgeStatusQuery>;
 
 export const bridgeState = z.enum(["NOT_FOUND", "ATTESTING", "MINTING", "COMPLETE", "FAILED"]);
 export type BridgeState = z.infer<typeof bridgeState>;
+
+/**
+ * `POST /v1/:chainId/bridge/across/deposit` (BE-76, D-120): any token Across takes on `fromChainId`, swapped and bridged
+ * into USDC for `recipient` on this chain (Monad and Base). `depositor` is the wallet that signs on `fromChainId`.
+ * `amountRaw` is in the input token's own decimals. Region and terms apply to `recipient`.
+ */
+export const acrossDepositRequest = z.object({
+  fromChainId: z.number().int().positive(),
+  inputToken: address,
+  amountRaw: rawAmount.refine((v) => v !== "0", "amountRaw must be above zero"),
+  depositor: address,
+  recipient: address,
+});
+export type AcrossDepositRequest = z.infer<typeof acrossDepositRequest>;
+
+/**
+ * What the wallet sends on `fromChainId`, in order: `approveReset` when given, `approve` when given, then `deposit` with
+ * `valueRaw` of native token.
+ */
+export const acrossDepositPlan = z.object({
+  /** Across's order ID; poll `GET /v1/bridge/across/status?orderId=` with it after the deposit. */
+  orderId: z.string(),
+  fromChainId: z.number().int().positive(),
+  toChainId: z.number().int().positive(),
+  inputToken: address,
+  amountRaw: rawAmount,
+  /** USDC on this chain: what Across expects to deliver, and the least it guarantees. */
+  expectedReceivedRaw: usdRaw,
+  minReceivedRaw: usdRaw,
+  /** Across's whole fee, in USDC on this chain (refused when Across names another token for it). */
+  feeRaw: usdRaw,
+  /** Unix ms: the deposit must have landed by then, or ask again. At least a minute away when served. */
+  expiresAt: z.number().int().nonnegative(),
+  estimatedSeconds: z.number().int().nonnegative().nullable(),
+  /** `approve(spender, 0)` first, for tokens like USDT that refuse a change between two non-zero allowances. */
+  approveReset: call.nullable(),
+  /**
+   * Null only for the native token. Send it even when an allowance exists: it sets the allowance to exactly `amountRaw`,
+   * and the deposit pulls everything the allowance lets it.
+   */
+  approve: call.extend({ token: address, spender: address }).nullable(),
+  deposit: call.extend({ valueRaw: rawAmount }),
+});
+export type AcrossDepositPlan = z.infer<typeof acrossDepositPlan>;
+
+export const acrossStatusQuery = z.object({ orderId: z.string().regex(/^[0-9A-Za-z_-]{1,128}$/) });
+export type AcrossStatusQuery = z.infer<typeof acrossStatusQuery>;
+
+/**
+ * `GET /v1/bridge/across/status?orderId=`. `state` is Across's own value (for example `completed`), or `not_found` until
+ * Across has seen the deposit: keep polling for a few minutes. Stop when `terminal` is true; `description` can be shown
+ * as it is.
+ */
+export const acrossStatusResponse = z.object({
+  orderId: z.string(),
+  state: z.string(),
+  terminal: z.boolean(),
+  description: z.string().nullable(),
+  depositTxHash: hex.nullable(),
+  fillTxHash: hex.nullable(),
+  receivedRaw: usdRaw.nullable(),
+});
+export type AcrossStatusResponse = z.infer<typeof acrossStatusResponse>;
 
 export const bridgeStatusResponse = z.object({
   state: bridgeState,
