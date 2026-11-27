@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { decodeEventLog, isAddress, keccak256, toBytes } from "viem";
 import { describe, expect, it } from "vitest";
 import { erc20PermitAbi, liquidatorAbi, marginRouterAbi, metaMorphoAbi, morphoAbi, riskManagerAbi, tapeoutCircuitsAbi } from "./abis";
-import { BASE_CHAIN_ID, XLAYER_CHAIN_ID, external, externalByChain, tokens, tokensByChain } from "./addresses";
+import { BASE_CHAIN_ID, XLAYER_CHAIN_ID, external, externalByChain, teamSafe, tokens, tokensByChain, xlayerTapeout } from "./addresses";
 import { parseDeployment, type Deployment } from "./deployments";
 import { baseDeployment } from "./deployments.base";
 import { monadDeployment } from "./deployments.monad";
@@ -72,6 +72,19 @@ describe("addresses", () => {
     const cctp = Object.values(externalByChain).map((e) => [e.cctpTokenMessengerV2, e.cctpMessageTransmitterV2, e.cctpTokenMinterV2]);
     for (const set of cctp) expect(set).toEqual(cctp[0]);
     expect(new Set(cctp[0]).size).toBe(3);
+  });
+
+  it("keep the team Safe checksummed and apart from every other address", () => {
+    expect(isAddress(teamSafe, { strict: true })).toBe(true);
+    const others = [
+      ...Object.values(externalByChain).flatMap((e) => Object.values(e)),
+      ...Object.values(tokensByChain).flatMap((t) => Object.values(t).map((token) => token.address)),
+      xlayerTapeout.processor,
+      xlayerTapeout.transistors,
+      xlayerTapeout.operator,
+      xlayerTapeout.clockContainer,
+    ].map((a) => a.toLowerCase());
+    expect(others).not.toContain(teamSafe.toLowerCase());
   });
 });
 

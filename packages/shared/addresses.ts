@@ -145,6 +145,12 @@ export const xlayerTokens = {
 } as const satisfies Record<string, TokenInfo>;
 
 /**
+ * Levra's team Safe, 2 of 3 signers, at the same address on Monad, Base and X Layer (05). It proposes and executes
+ * through each chain's timelock (SC-55) and is the only receiver for assets the team holds, such as the circuits (BE-84).
+ */
+export const teamSafe = "0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069" as const satisfies Address;
+
+/**
  * Levra's own TapeOut processor on X Layer (BE-82, D-113), made on 24 November 2026. Circuit IDs are local to this
  * processor. Soft layer only (D-55): no fund movement or hard limit reads these circuits.
  */
