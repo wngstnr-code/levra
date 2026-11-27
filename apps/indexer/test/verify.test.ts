@@ -5,7 +5,7 @@ import type { PublicClient } from "viem";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import type { LogSource } from "../src/sources/types";
 import { ROUTER_CURSOR, routerStream, syncRouter } from "../src/sync";
-import { checkPositions, checkStream, traction } from "../src/verify";
+import { checkPositions, checkStream, pacedSource, traction } from "../src/verify";
 import { marketId, openedLog, router, user } from "./fixtures";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -82,5 +82,19 @@ describe.skipIf(!url)("data check after a move (BE-91, needs TEST_DATABASE_URL)"
     const reading = (collateral: bigint) => ({ multicall: async () => [{ supplyShares: 0n, collateral, borrowShares: 0n }] }) as unknown as PublicClient;
     expect(await checkPositions(db, reading(0n), deployment)).toEqual({ checked: 1, open: 0, mismatches: [] });
     expect((await checkPositions(db, reading(500n), deployment)).mismatches).toHaveLength(1);
+  });
+});
+
+describe("paced log reads for verify:data", () => {
+  it("waits between log queries but not before the first, and keeps the source as it is without a pause", async () => {
+    const waits: number[] = [];
+    const paced = pacedSource(source([1_000n]), 500, async (ms) => void waits.push(ms));
+    await paced.logs({ address: [router], topic0: [], fromBlock: 1_000n, toBlock: 1_399n });
+    expect(waits).toEqual([]);
+    await paced.logs({ address: [router], topic0: [], fromBlock: 1_400n, toBlock: 1_799n });
+    await paced.logs({ address: [router], topic0: [], fromBlock: 1_800n, toBlock: 2_000n });
+    expect(waits).toEqual([500, 500]);
+    const plain = source([]);
+    expect(pacedSource(plain, 0)).toBe(plain);
   });
 });

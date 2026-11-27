@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import pino from "pino";
 import type { PublicClient } from "viem";
 import { describe, expect, it } from "vitest";
@@ -31,7 +32,7 @@ describe("one keeper per chain (BE-95)", () => {
   });
 
   it("refuses a deployment file of another chain", () => {
-    const monadFile = new URL("../../../contracts/deployments/monad.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    const monadFile = fileURLToPath(new URL("../../../contracts/deployments/monad.json", import.meta.url));
     expect(() => names({ ...base, CHAIN_ID: "8453", RPC_URL: "https://rpc.base.example", DEPLOYMENT_FILE: monadFile })).toThrow(/is for chain 143, but CHAIN_ID is 8453/);
   });
 });
