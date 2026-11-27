@@ -26,6 +26,7 @@ export const circuitsAbi = parseAbi([
   "function netlist(uint256 id) view returns (bytes)",
   "function eval(uint256 id, bytes inputs) view returns (bytes)",
   "function ownerOf(uint256 id) view returns (address)",
+  "function transferFrom(address from, address to, uint256 id)",
   "function transistors() view returns (address)",
   "event TapedOut(uint256 indexed circuitId, address indexed author, uint32 gateCount, uint32 nState)",
 ]);
