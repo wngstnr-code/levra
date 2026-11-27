@@ -64,7 +64,6 @@ Add a row the day a blocker appears. Remove it when solved and note the fix in t
 
 | Date | Who is blocked | Waiting for whom | What is needed | Task |
 |---|---|---|---|---|
-| 27 November 2026 | Dharu | Wangsit | The team Safe `0x5e40f4Be2dEF4900Aa7BBe0eb8B7ba733c1Cf069` (same address on all three chains, 05) as a constant in `packages/shared/addresses.ts`, so the circuit handover (#198) can default to it and refuse any other receiver, and its fork test stops typing the address. In PR #203 (`teamSafe`, read onchain on all three chains: Safe 1.5.0, 2 of 3); after the merge #198 imports it. Not urgent: the handover already refuses anything but a Safe with 2 or more signers | BE-84 |
 | 27 November 2026 | Dharu | Nabil | Review the 03 section "Deposits of other tokens through Across" (D-120, PR #199) and plan the web app's Across flow (approve, then the deposit, then poll `bridge/across/status`). The routes stay off until the Across key is set | BE-76 |
 | 26 November 2026 | Dharu | Nabil | Confirm or change D-116 (TapeSend receipts: a key derived from a wallet signature, `/v1/receipts*`, the signed text in 03) before the BE-84 PR merges. Nabil: FE-99 (the receipts view) | BE-84, FE-99 |
 | 26 November 2026 | Dharu | Nabil | Review the 03 section "TapeOut circuit answers on X Layer" (D-117, PR #194, merged on 26 November; changes go in a follow-up) and `circuitCheck` in "Prepared actions for AI agents" (D-118, PR #195, merged on 26 November): `Position.circuit`, `preview.circuitGapCheck`, `SessionInfo.clock` and `PrepareResponse.circuitCheck` on `/v1/196/...`. Nabil: the "checked by TapeOut circuit" mark (FE-83) | BE-83, BE-86, BE-87, FE-83 |
@@ -361,6 +360,7 @@ Newest first.
 
 Newest first.
 
+- 27 November 2026 (later): #203 merged, so `teamSafe` is on `main` and the team Safe blocker row is removed. Next for #198: import it from `@levra/shared/addresses`.
 - 27 November 2026: PR #203 adds `teamSafe` to `packages/shared/addresses.ts` for Dharu's circuit handover (#198); the Safe read onchain on Monad, Base and X Layer is 1.5.0 with threshold 2 and the three team owners. Removed the stale CCTP blocker row: #182 merged on 25 November with the CCTP V2 addresses.
 - 26 November 2026: X-33 done. The repo is public again after a gitleaks scan of the whole history, which also unblocked CI (Actions had stopped on billing while private). New root README for judges and new readers, with the original logo. Tag `pre-base` on `eafb1d0`, the last `main` commit before the Base work (#82, 19 November). D-115: the auto-deploy key is in the GitHub environment Production (secret `VPS_DEPLOY_KEY`, vars `VPS_HOST`, `API_HOST`, `VPS_KNOWN_HOSTS`), limited to `main`; the public key went to Dharu and the private key was deleted.
 - 26 November 2026: confirmed D-116 (TapeSend receipts) from the contract side, safe for user funds; three notes in review notes, the `TAPEOUT_KEY` hot key as a medium known issue. Nabil still confirms for FE-99.
