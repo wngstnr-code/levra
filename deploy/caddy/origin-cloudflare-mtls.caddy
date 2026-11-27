@@ -1,0 +1,12 @@
+# ORIGIN=cloudflare-mtls: Cloudflare's ranges, and Cloudflare must also show our own client certificate (zone-level
+# authenticated origin pulls, BE-52). The range check alone lets another Cloudflare account point its record at our IP;
+# only our zone holds the certificate signed by our CA. deploy/origin-pull.sh makes the CA and the certificate
+# (docs/hosting.md, "Cloudflare in front"). rootca.crt may hold two CAs while a renewal runs; Caddy trusts every one.
+# A failed handshake shows through Cloudflare as error 525.
+import origin-cloudflare.caddy
+tls {
+	client_auth {
+		mode require_and_verify
+		trust_pool file /etc/caddy-origin/rootca.crt
+	}
+}
