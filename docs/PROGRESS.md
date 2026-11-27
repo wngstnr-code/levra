@@ -215,7 +215,7 @@ One line for every change to 03 after the freeze.
 
 | Date | What changed | Who is affected | PR |
 |---|---|---|---|
-| 27 November 2026 | Section 7 `addresses.ts`: `teamSafe`, the team Safe at one address on all three chains, the only receiver of team-held assets such as the circuits (BE-84). Added only | Dharu (#198) | shared/BE-84-team-safe (#203) |
+| 27 November 2026 | Section 5 `addresses.ts`: `teamSafe`, the team Safe at one address on all three chains, the only receiver of team-held assets such as the circuits (BE-84). Added only | Dharu (#198) | shared/BE-84-team-safe (#203) |
 | 26 November 2026 | Section 4 "Trade receipts through TapeSend" (BE-84, D-116, proposal): `GET`, `PUT`, `DELETE /v1/receipts/key` and `GET /v1/receipts` (sign-in required), the receipt key text the wallet signs, the opened content and its `levra` object; `receipts` and `tapesend` added to the keeper names in `/v1/status` (`tapesend` not in Monad's list); `TAPEOUT_KEY` in section 7. Added only | Nabil (FE-99), Wangsit | be/BE-84-tapesend-receipts |
 | 26 November 2026 | Section 4 "TapeOut circuit answers on X Layer" (BE-83, BE-86, D-117, proposal): circuit IDs 1 to 3 with their inputs and outputs; optional `Position.circuit`, `QuoteOpenResponse.preview.circuitGapCheck` and `SessionInfo.clock` on `/v1/196/...`; schemas in `packages/shared/api/circuits.ts`. Added only | Nabil (FE-83) | be/BE-83-circuit-answers (#194) |
 | 26 November 2026 | Section 4 "Prepared actions for AI agents" (BE-87, D-118, proposal): optional `PrepareResponse.circuitCheck` `{ risk, gap, clock }` on `POST /v1/196/agent/prepare`, the circuits' check of the position after the action; not stored. Added only | Nabil | be/BE-87-agent-circuit-checks (#195) |
