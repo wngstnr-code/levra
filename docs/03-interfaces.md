@@ -34,7 +34,7 @@ These rules apply in the contracts, the API, and the app. Unit mistakes are the 
 
 Position direction: `long` and `short` in the API, `Side.Long` and `Side.Short` in the contracts.
 
-Market session uses the same order as the Anchored oracle: `UNKNOWN`, `PRE_MARKET`, `REGULAR`, `POST_MARKET`, `OVERNIGHT`, `CLOSED`.
+Market session uses the same order as the Anchored oracle: `UNKNOWN`, `PRE_MARKET`, `REGULAR`, `POST_MARKET`, `OVERNIGHT`, `CLOSED`. On Base and X Layer the oracle (`ChainlinkSessionOracle`) reports only `UNKNOWN`, `REGULAR` and `CLOSED`, since Chainlink feeds carry no session: `REGULAR` there means open, pre-market and after-hours included. The X Layer `clock` field gives the finer session.
 
 ## 2. Contract interfaces
 
