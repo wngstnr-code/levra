@@ -162,6 +162,7 @@ export function createJobs(env: Env, client: PublicClient, logger: Logger): Job[
         apiUrl: env.KEEPER_GLOBAL ? env.MONITOR_API_URL : undefined,
         checkGaps: env.KEEPER_GLOBAL,
         checkBackups: env.KEEPER_GLOBAL,
+        checkDisk: env.KEEPER_GLOBAL,
       }),
     );
   } else {
