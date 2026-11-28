@@ -3,7 +3,7 @@ import { WAD } from "@levra/shared/math";
 import { and, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { evaluate, oracleLimit, type Condition, type Finding, type Snapshot } from "../src/monitor/checks";
-import { reconcile, type Notice } from "../src/monitor/job";
+import { reconcile, rootDisk, type Notice } from "../src/monitor/job";
 import { maxAgeRule } from "../src/oracle/max-age";
 
 const NOW = 1_800_000_000;
@@ -48,6 +48,7 @@ function healthy(): Snapshot {
       { kind: "backup", finishedAt: NOW - 3_600, ok: true, error: null },
       { kind: "restore_check", finishedAt: NOW - 86_400, ok: true, error: null },
     ],
+    disk: { usedPct: 12, freeBytes: 107e9 },
   };
 }
 
@@ -76,6 +77,7 @@ describe("team monitor checks (08, one per row)", () => {
       ["gate:anchored-denylist:Morpho:unread", (s) => (s.gates[0]!.blocked = null)],
       ["backup:backup", (s) => (s.backups![0]!.finishedAt = NOW - 26 * 3_600 - 1)],
       ["backup:restore_check", (s) => (s.backups![1]!.ok = false)],
+      ["disk", (s) => (s.disk = { usedPct: 80, freeBytes: 25e9 })],
     ];
     for (const [key, change] of cases) {
       const s = healthy();
@@ -118,6 +120,29 @@ describe("team monitor checks (08, one per row)", () => {
     const elsewhere = healthy();
     delete elsewhere.backups;
     expect(evaluate(elsewhere).filter((f) => f.key.startsWith("backup:"))).toEqual([]);
+  });
+
+  it("tells the team when the server disk fills, only in the monitor that watches it", () => {
+    const disk = (s: Snapshot) => evaluate(s).find((f) => f.key === "disk");
+    const full = healthy();
+    full.disk = { usedPct: 93, freeBytes: 8.75e9 };
+    expect(disk(full)).toMatchObject({ active: true, forSeconds: 300, message: expect.stringContaining("93% full (8.8 GB free)") });
+    full.disk = { usedPct: 79, freeBytes: 26e9 };
+    expect(disk(full)).toMatchObject({ active: false });
+
+    const unread = healthy();
+    unread.disk = null;
+    expect(disk(unread)).toBeUndefined();
+    const elsewhere = healthy();
+    delete elsewhere.disk;
+    expect(disk(elsewhere)).toBeUndefined();
+  });
+
+  it("reads the disk use like df", async () => {
+    const d = await rootDisk(process.cwd());
+    expect(d.usedPct).toBeGreaterThanOrEqual(0);
+    expect(d.usedPct).toBeLessThanOrEqual(100);
+    expect(d.freeBytes).toBeGreaterThan(0);
   });
 
   it("tells the team when the liquidator's loss budget is set or spent (BE-89)", () => {

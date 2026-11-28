@@ -6,6 +6,7 @@ import { isScheduledClosed } from "@levra/shared/calendar";
 import type { Deployment } from "@levra/shared/deployments";
 import { morphoIsHealthy } from "@levra/shared/math";
 import { and, desc, eq, gte } from "drizzle-orm";
+import { statfs } from "node:fs/promises";
 import { getAddress, type Address, type PublicClient } from "viem";
 import { scheduleForChain, type ScheduleSource } from "../calendar/poster";
 import { maxAgeRule } from "../oracle/max-age";
@@ -25,6 +26,14 @@ const GAPS_REFRESH_MS = 86_400_000;
 const API_TIMEOUT_MS = 10_000;
 /** Checks whose subject can disappear (a liquidated borrower); a key missing from a run is resolved. */
 const VANISHING_PREFIXES = ["unhealthy:"];
+
+/** Percent used the way `df` counts it: blocks reserved for root count as neither used nor free. */
+export async function rootDisk(path = "/"): Promise<NonNullable<Snapshot["disk"]>> {
+  const s = await statfs(path);
+  const used = s.blocks - s.bfree;
+  const usable = used + s.bavail;
+  return { usedPct: usable > 0 ? Math.ceil((used * 100) / usable) : 0, freeBytes: s.bavail * s.bsize };
+}
 
 /** Where team alerts go: a Telegram group, a Discord or Slack style webhook, or both. */
 export type TeamChannel = (text: string) => Promise<void>;
@@ -112,6 +121,10 @@ export type MonitorOptions = {
   checkGaps?: boolean;
   /** Whether this monitor watches the database backups (BE-53). Only in the KEEPER_GLOBAL keeper. */
   checkBackups?: boolean;
+  /** Whether this monitor watches the server disk. Only in the KEEPER_GLOBAL keeper: every container shares the disk. */
+  checkDisk?: boolean;
+  /** Read the disk use; by default of the container's root, which lives on the server disk Docker writes to. */
+  readDisk?: () => Promise<NonNullable<Snapshot["disk"]>>;
   schedule?: ScheduleSource;
   /** Daily prices of the real stocks for the gap check (BE-34). */
   bars?: BarSource;
@@ -121,7 +134,7 @@ export type MonitorOptions = {
 
 /** Team monitoring and alerts (BE-50): every row of "What we monitor" in 08, to the team channels. */
 /** Team monitoring and alerts for one chain; the API and gap checks run once, in the KEEPER_GLOBAL keeper. */
-export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, checkBackups = false, schedule = scheduleForChain, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
+export function createMonitor({ client, deployment, channels, wallets, apiUrl, checkGaps = true, checkBackups = false, checkDisk = false, readDisk = rootDisk, schedule = scheduleForChain, bars = yahooBars(), clock = () => Math.floor(Date.now() / 1000), intervalMs = 60_000 }: MonitorOptions): Job {
   const chainId = deployment.chainId as ChainId;
   const morpho = morphoOn(chainId);
   const labels = new Map(deployment.markets.map((m) => [m.marketId.toLowerCase(), `${m.symbol} ${m.side}`]));
@@ -279,6 +292,7 @@ export function createMonitor({ client, deployment, channels, wallets, apiUrl, c
       lossBudgets: await lossBudgets(),
       gates: await readGates(client, chainId, deployment),
       backups: await backups(db),
+      disk: checkDisk ? await readDisk().catch(() => null) : undefined,
     };
     return { snapshot, limits };
   }

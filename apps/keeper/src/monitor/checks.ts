@@ -34,6 +34,11 @@ export const LIMITS = {
   eventLookbackSeconds: 86_400,
   /** The backup runs daily at 03:00 UTC and the restore check weekly (BE-53): a day or a week plus two hours of slack. */
   backupMaxAgeSeconds: { backup: 26 * 3_600, restore_check: 7 * 86_400 + 2 * 3_600 },
+  /**
+   * Disk use of the server, in percent. `deploy.sh` clears the build cache at 70% before a build, so use above this
+   * means something else grows (database, backups, logs). The disk filled on 28 November 2026 and stopped a deploy.
+   */
+  diskUsedPct: 80,
 } as const;
 
 export type BackupKind = keyof typeof LIMITS.backupMaxAgeSeconds;
@@ -86,6 +91,8 @@ export type Snapshot = {
   gates: { key: string; blocked: boolean | null; message: string }[];
   /** The newest backup and restore check run of each kind (BE-53). Absent in a monitor that does not watch backups. */
   backups?: { kind: BackupKind; finishedAt: number; ok: boolean; error: string | null }[];
+  /** Use of the disk the containers write to. Absent in a monitor that does not watch it, null when it could not be read. */
+  disk?: { usedPct: number; freeBytes: number } | null;
 };
 
 const pct = (wad: bigint) => `${(Number((wad * 10_000n) / WAD) / 100).toFixed(2)}%`;
@@ -251,6 +258,16 @@ export function evaluate(s: Snapshot, self: KeeperName = "monitor"): Finding[] {
             : `The last ${name} failed: ${run.error ?? "no reason recorded"}`,
       });
     }
+  }
+
+  if (s.disk) {
+    out.push({
+      kind: "condition",
+      key: "disk",
+      active: s.disk.usedPct >= LIMITS.diskUsedPct,
+      forSeconds: LIMITS.unhealthyForSeconds,
+      message: `The server disk is ${s.disk.usedPct}% full (${(s.disk.freeBytes / 1e9).toFixed(1)} GB free). A full disk stops Postgres and deploys: check docker system df and the backups folder.`,
+    });
   }
   return out;
 }
