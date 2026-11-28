@@ -11,7 +11,7 @@ import {
   type RiskCheck,
 } from "@levra/shared/api";
 import type { ChainId } from "@levra/shared/chains";
-import { findStock } from "@levra/shared/markets";
+import { findStock, stocksByChain } from "@levra/shared/markets";
 import { z } from "zod";
 
 /** The public API, called the way the MCP server calls it (BE-77): no keys, the app quotes again before anyone signs. */
@@ -201,10 +201,17 @@ export async function answer(ctx: ChatContext, text: string): Promise<string> {
 
 const sessionName = (s: string) => s.toLowerCase().replace("_", " ");
 
+/** Chainlink feeds carry no session, so their oracle reports only Regular or Closed: Regular there means open, pre-market and after-hours included. */
+function feedsWithoutSessions(chainId: number): boolean {
+  const list: Record<string, object> | undefined = (stocksByChain as Record<number, Record<string, object>>)[chainId];
+  return list !== undefined && Object.values(list).some((stock) => "priceFeed" in stock);
+}
+
 function sessionLine(chain: LiveChain, s: z.infer<typeof sessionInfo>): string {
   const next = s.closedRegime ? (s.nextOpenAt ? `opens ${utc(s.nextOpenAt)}` : "") : s.nextCloseAt ? `next close ${utc(s.nextCloseAt)}` : "";
   const clock = s.clock && s.clock.matches ? ` (Wall Street Clock circuit: ${sessionName(s.clock.session)})` : "";
-  return `${chain.name}: ${sessionName(s.session)}${next ? `, ${next}` : ""}${clock}`;
+  const session = s.session === "REGULAR" && feedsWithoutSessions(chain.chainId) ? "open" : sessionName(s.session);
+  return `${chain.name}: ${session}${next ? `, ${next}` : ""}${clock}`;
 }
 
 async function reply(ctx: ChatContext, text: string): Promise<string> {
