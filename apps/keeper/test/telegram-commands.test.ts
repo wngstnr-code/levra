@@ -133,13 +133,13 @@ describe("chat commands (BE-78)", () => {
     expect(text).toContain("disagrees with Levra's numbers");
   });
 
-  it("shows the session on every chain and the clock circuit on X Layer", async () => {
+  it("shows the session on every chain, open where the oracle has no sessions, and the clock circuit on X Layer", async () => {
     const { api } = fakeApi();
     expect(await answer(ctx(api), "/session")).toBe(
       [
         "Monad: regular, next close 2026-11-27 18:00 UTC",
-        "Base: regular, next close 2026-11-27 18:00 UTC",
-        "X Layer: regular, next close 2026-11-27 18:00 UTC (Wall Street Clock circuit: regular)",
+        "Base: open, next close 2026-11-27 18:00 UTC",
+        "X Layer: open, next close 2026-11-27 18:00 UTC (Wall Street Clock circuit: regular)",
       ].join("\n"),
     );
   });
