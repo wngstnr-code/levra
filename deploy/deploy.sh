@@ -106,6 +106,10 @@ main() {
   docker run --rm --env-file "${LEVRA_HOME:-/opt/levra}/env/caddy.env" -v "$PWD/deploy/caddy:/etc/caddy:ro" \
     -v "${LEVRA_HOME:-/opt/levra}/caddy-origin:/etc/caddy-origin:ro" caddy:2-alpine \
     caddy adapt --validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+  # The finished migrate container of the last deploy is removed first: recreating it for a new image failed with a
+  # name conflict on 28 November 2026 (Compose renames it to <id>_levra-migrate-1 and then trips over that name).
+  # It only runs during `up`, so nothing is lost.
+  docker ps -aq --filter "name=levra-migrate" | xargs -r docker rm -f >/dev/null
   # `up` runs migrate first and starts the apps only if it succeeds (depends_on in compose.yml).
   compose up -d --no-build --remove-orphans
   # `up` recreates Caddy only when its env or mounts change; a new Caddyfile alone needs a reload. A failed reload keeps the old config.
