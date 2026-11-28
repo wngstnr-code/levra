@@ -94,7 +94,7 @@ export function createLevraServer(api: LevraApi): McpServer {
 
   server.registerTool(
     "levra_session",
-    { description: "The US market session on a chain now, and the next close and open. On X Layer also the Wall Street Clock circuit's session (`clock`).", inputSchema: { chainId }, annotations: readOnly },
+    { description: "The US market session on a chain now, and the next close and open. On X Layer also the Wall Street Clock circuit's session (`clock`). On Base and X Layer the oracle knows only `REGULAR` and `CLOSED`, so `REGULAR` there means open, pre-market and after-hours included.", inputSchema: { chainId }, annotations: readOnly },
     ({ chainId }) => run(() => api.get(`/v1/${chainId}/session`)),
   );
 
