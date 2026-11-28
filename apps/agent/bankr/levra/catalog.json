@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "slug": "levra",
   "provider": "Levra",
-  "providerUrl": "https://levra.finance",
+  "providerUrl": "https://app.levra.finance",
+  "logo": "logo.png",
   "demo": {
     "title": "positions.sh",
     "language": "bash",
