@@ -91,6 +91,13 @@ main() {
   echo "deploying $APP_VERSION"
 
   compose() { docker compose -f deploy/compose.yml "$@"; }
+  disk_used() { df --output=pcent / | tail -n 1 | tr -dc '0-9'; }
+  # One deploy adds about 2.6 GB of image and 3 to 6 GB of build cache. The 125 GB disk filled on 28 November 2026,
+  # most likely with three days of cache, and a full disk also stops Postgres. Clear the cache before building when it fills.
+  if [ "$(disk_used)" -ge 70 ]; then
+    echo "disk at $(disk_used)%: clearing the Docker build cache before the build" >&2
+    docker builder prune -af >/dev/null
+  fi
 
   # Every app service shares this one image; `compose build` would export and unpack it once per service, which filled
   # the disk on 25 November 2026.
@@ -130,7 +137,11 @@ main() {
   docker image ls levra-backend --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | cut -f2 | grep -vx "$APP_VERSION" | tail -n +2 |
     sed 's/^/levra-backend:/' | xargs -r docker image rm >/dev/null 2>&1 || true
   docker image prune -f >/dev/null
-  docker builder prune -f --filter "until=72h" >/dev/null
+  docker builder prune -f --filter "until=24h" >/dev/null
+  if [ "$(disk_used)" -ge 50 ]; then
+    docker builder prune -af >/dev/null
+  fi
+  echo "disk at $(disk_used)% after the deploy"
 }
 
 main "$@"
